@@ -53,8 +53,8 @@ export function ChatContainer() {
     }
   }, [messages, isLoading, streamingText]);
 
-  const handleSend = (message: string) => {
-    sendMessage(message);
+  const handleSend = (message: string, tool?: import("@/types").ToolId | null) => {
+    sendMessage(message, tool);
   };
 
   return (

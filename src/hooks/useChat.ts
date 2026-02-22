@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Message, AIResponseContent } from "@/types";
+import { Message, AIResponseContent, ToolId } from "@/types";
 
 interface ConversationSummary {
   id: string;
@@ -142,7 +142,7 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, tool?: ToolId | null) => {
       // Abort any in-flight stream
       abortRef.current?.abort();
       const abortController = new AbortController();
@@ -166,6 +166,7 @@ export function useChat() {
           body: JSON.stringify({
             message: content,
             conversationId: activeConversationId,
+            ...(tool && { tool }),
           }),
           signal: abortController.signal,
         });

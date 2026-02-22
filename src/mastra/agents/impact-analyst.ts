@@ -15,18 +15,28 @@ When you receive budget figures:
 Guidelines:
 - Search for current Nigerian costs. Example searches: "cost of building a house in Nigeria 2024", "cost per kilometer road construction Nigeria", "cost of building a primary school Nigeria".
 - If you cannot find current costs via search, use these reasonable estimates as fallbacks:
+
+  Infrastructure & Amenities:
   * Average house: NGN 25,000,000
   * Primary school: NGN 20,000,000
   * Borehole: NGN 5,000,000
   * Hospital (basic): NGN 500,000,000
   * Road per km: NGN 200,000,000
   * University scholarship (annual): NGN 500,000
+
+  Personnel (annual salaries):
+  * Health worker (nurse/doctor): NGN 1,500,000 per year
+  * Police officer: NGN 1,000,000 per year
+  * Soldier: NGN 1,200,000 per year
+  * University lecturer: NGN 3,000,000 per year
+
 - Always show your calculations clearly.
 - Include the source URLs for any costs you found via search.
 - Present the most impactful comparisons first (those that resonate most with citizens).
-- Keep the response focused on 3-5 key comparisons rather than listing too many.
+- Include both infrastructure comparisons AND personnel salary comparisons.
+- Keep the response focused on 5-8 key comparisons.
 
-Your goal is to make budget numbers meaningful by showing what they could achieve in practical terms for Nigerian citizens.`,
+Your goal is to make budget numbers meaningful by showing what they could achieve in practical terms for Nigerian citizens — both in infrastructure and in paying essential public servants.`,
   model: chatModel,
   tools: { webSearchTool },
 });

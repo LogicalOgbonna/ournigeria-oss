@@ -88,6 +88,27 @@ export interface Message {
   timestamp: Date;
 }
 
+export type ToolId = "state-budget" | "corruption";
+
+export interface ToolOption {
+  id: ToolId;
+  label: string;
+  description: string;
+}
+
+export const AVAILABLE_TOOLS: ToolOption[] = [
+  {
+    id: "state-budget",
+    label: "State Budget",
+    description: "Analyze Nigerian state budget documents — spending, allocations, and trends",
+  },
+  {
+    id: "corruption",
+    label: "Corruption Tracker",
+    description: "Search EFCC corruption cases — charges, outcomes, and financial details",
+  },
+];
+
 export interface SuggestedQuestion {
   icon: string;
   text: string;

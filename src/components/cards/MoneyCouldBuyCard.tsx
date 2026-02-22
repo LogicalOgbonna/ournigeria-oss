@@ -13,6 +13,10 @@ import {
   Hospital,
   Route,
   Zap,
+  HeartPulse,
+  Shield,
+  Swords,
+  BookOpen,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -24,6 +28,10 @@ const iconMap: Record<string, React.ElementType> = {
   streetlight: Lightbulb,
   road: Route,
   zap: Zap,
+  "heart-pulse": HeartPulse,
+  shield: Shield,
+  swords: Swords,
+  "book-open": BookOpen,
 };
 
 const bgColors = [
@@ -33,6 +41,9 @@ const bgColors = [
   "from-violet-50 to-violet-100/50 border-violet-200/60",
   "from-rose-50 to-rose-100/50 border-rose-200/60",
   "from-cyan-50 to-cyan-100/50 border-cyan-200/60",
+  "from-orange-50 to-orange-100/50 border-orange-200/60",
+  "from-teal-50 to-teal-100/50 border-teal-200/60",
+  "from-indigo-50 to-indigo-100/50 border-indigo-200/60",
 ];
 
 const iconColors = [
@@ -42,6 +53,9 @@ const iconColors = [
   "text-violet-600",
   "text-rose-600",
   "text-cyan-600",
+  "text-orange-600",
+  "text-teal-600",
+  "text-indigo-600",
 ];
 
 function AnimatedCount({ target }: { target: number }) {
