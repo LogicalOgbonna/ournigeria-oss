@@ -115,19 +115,12 @@ export function useChat() {
     [setConversationUrl],
   );
 
-  // Initialize: create user, fetch conversations, and resume from URL if present
+  // Initialize: fetch conversations and resume from URL if present
   const userInitialized = useRef(false);
   useEffect(() => {
     async function init() {
       if (userInitialized.current) return;
       userInitialized.current = true;
-
-      // Ensure user exists (creates if needed, sets cookie)
-      try {
-        await fetch("/api/user", { method: "POST" });
-      } catch {
-        // Non-fatal
-      }
 
       await fetchConversations();
 

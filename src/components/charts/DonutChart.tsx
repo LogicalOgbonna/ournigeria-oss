@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartDataPoint } from "@/types";
 import { formatNaira } from "@/lib/format";
 import { Card } from "@/components/ui/card";
+import { useChartTheme } from "@/hooks/useChartTheme";
 
 interface DonutChartProps {
   title: string;
@@ -11,12 +12,13 @@ interface DonutChartProps {
 }
 
 export function DonutChart({ title, data }: DonutChartProps) {
+  const chart = useChartTheme();
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
   return (
-    <Card className="animate-scale-in overflow-hidden border-slate-200/80 bg-white p-0">
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <Card className="animate-scale-in overflow-hidden border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-0">
+      <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
       </div>
       <div className="flex flex-col items-center gap-4 p-5 sm:flex-row">
         <div className="h-48 w-48 shrink-0">
@@ -39,12 +41,7 @@ export function DonutChart({ title, data }: DonutChartProps) {
               <Tooltip
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(value: any) => [formatNaira(Number(value)), ""]}
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  fontSize: "12px",
-                }}
+                contentStyle={chart.tooltipStyle}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -56,9 +53,9 @@ export function DonutChart({ title, data }: DonutChartProps) {
                 className="h-3 w-3 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-slate-600">
+              <span className="text-xs text-slate-600 dark:text-slate-300">
                 {item.name}{" "}
-                <span className="font-medium text-slate-800">
+                <span className="font-medium text-slate-800 dark:text-slate-100">
                   ({((item.value / total) * 100).toFixed(0)}%)
                 </span>
               </span>

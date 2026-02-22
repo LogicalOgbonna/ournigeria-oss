@@ -23,7 +23,7 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
       )}
 
       {/* Text */}
-      <div className="rounded-2xl rounded-tl-sm bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+      <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
         <Markdown>{content.text}</Markdown>
       </div>
 
@@ -74,7 +74,7 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
             <button
               key={i}
               onClick={() => onFollowUpClick(f.text)}
-              className="animate-fade-in rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 hover:shadow-sm"
+              className="animate-fade-in rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-all hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:shadow-sm"
               style={{ animationDelay: `${i * 100 + 400}ms`, opacity: 0 }}
             >
               {f.text}

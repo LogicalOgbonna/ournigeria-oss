@@ -67,6 +67,8 @@ model NigerianState {
 
 model User {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String?  @unique @map("phone_number") @db.VarChar(20)
+  telegramId  String?  @unique @map("telegram_id") @db.VarChar(20)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
   lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz()
   preferences Json     @default("{}") @db.JsonB
@@ -75,6 +77,19 @@ model User {
   queryAnalytics QueryAnalytic[]
 
   @@map("users")
+}
+
+model OtpVerification {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String   @map("phone_number") @db.VarChar(20)
+  code        String   @db.VarChar(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+  attempts    Int      @default(0)
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([phoneNumber, verified, expiresAt], map: "idx_otp_phone_active")
+  @@map("otp_verifications")
 }
 
 model Conversation {

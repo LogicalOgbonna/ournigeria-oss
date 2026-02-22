@@ -13,6 +13,7 @@ import {
 import { TrendDataPoint } from "@/types";
 import { formatNaira } from "@/lib/format";
 import { Card } from "@/components/ui/card";
+import { useChartTheme } from "@/hooks/useChartTheme";
 
 interface TrendLineProps {
   title: string;
@@ -21,10 +22,12 @@ interface TrendLineProps {
 }
 
 export function TrendLine({ title, data, lines }: TrendLineProps) {
+  const chart = useChartTheme();
+
   return (
-    <Card className="animate-scale-in overflow-hidden border-slate-200/80 bg-white p-0">
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <Card className="animate-scale-in overflow-hidden border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-0">
+      <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
       </div>
       <div className="px-2 py-4">
         <ResponsiveContainer width="100%" height={260}>
@@ -32,16 +35,16 @@ export function TrendLine({ title, data, lines }: TrendLineProps) {
             data={data}
             margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
             <XAxis
               dataKey="year"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: chart.tickFill }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={(v: number) => formatNaira(v)}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: chart.tickFill }}
               axisLine={false}
               tickLine={false}
               width={65}
@@ -52,12 +55,7 @@ export function TrendLine({ title, data, lines }: TrendLineProps) {
                 const line = lines.find((l) => l.key === name);
                 return [formatNaira(Number(value)), line?.label || name];
               }}
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                fontSize: "12px",
-              }}
+              contentStyle={chart.tooltipStyle}
             />
             <Legend
               iconType="circle"
@@ -66,7 +64,7 @@ export function TrendLine({ title, data, lines }: TrendLineProps) {
               formatter={(value: string) => {
                 const line = lines.find((l) => l.key === value);
                 return (
-                  <span className="text-slate-600">{line?.label || value}</span>
+                  <span className="text-slate-600 dark:text-slate-300">{line?.label || value}</span>
                 );
               }}
             />
@@ -77,12 +75,12 @@ export function TrendLine({ title, data, lines }: TrendLineProps) {
                 dataKey={line.key}
                 stroke={line.color}
                 strokeWidth={2.5}
-                dot={{ r: 4, fill: line.color, stroke: "#fff", strokeWidth: 2 }}
+                dot={{ r: 4, fill: line.color, stroke: chart.dotBackground, strokeWidth: 2 }}
                 activeDot={{
                   r: 6,
                   stroke: line.color,
                   strokeWidth: 2,
-                  fill: "#fff",
+                  fill: chart.dotBackground,
                 }}
               />
             ))}

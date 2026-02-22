@@ -4,9 +4,9 @@ const USER_COOKIE = "nb_uid";
 
 /**
  * Read the authenticated user ID from the cookie.
- * Returns null if no cookie is present (user hasn't been initialized yet).
+ * Returns null if no cookie is present (user is not logged in).
  *
- * User creation happens exclusively via POST /api/user.
+ * User creation happens during OTP verification in POST /api/auth/verify-otp.
  * This helper is for other API routes that need the current user ID.
  */
 export async function getUserId(): Promise<string | null> {
@@ -28,7 +28,7 @@ export async function requireUserId(): Promise<string> {
 
 export class UserNotInitializedError extends Error {
   constructor() {
-    super("User not initialized. Call POST /api/user first.");
+    super("Not authenticated. Please log in.");
     this.name = "UserNotInitializedError";
   }
 }

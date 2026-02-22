@@ -50,7 +50,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
     4. On success, move the file to `ingested_budgets`
     5. On failure, move the file to `ingestion_failed` for manual review
 - [ ] Create a connection that syncs and ingests budget documents from the Google Drive folder
-- [ ] User-selectable tools with automatic agent routing
+- [x] User-selectable tools with automatic agent routing
   - Add a **tool selector** in the UI (user dashboard) that lets users explicitly choose which tool to use for their query
   - If the user selects a tool, the backend uses that specific tool and its corresponding agent workflow
   - If the user does **not** select a tool, the AI infers from the question which tool(s) are needed
@@ -67,3 +67,16 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
   - Sessions should be long-lived (effectively "forever")
   - If a session expires for any reason, re-authenticate by sending a new OTP — no password reset flow needed
   - Use a WhatsApp Business API provider (e.g. Twilio, Meta Cloud API) for OTP delivery
+- [ ] Multi-channel access via WhatsApp and Telegram
+  - Users should be able to interact with the application through **WhatsApp** and **Telegram** — meeting them in environments they already use daily
+  - Expose the same AI-powered query capabilities (budget analysis, corruption case lookup, tool routing) through chat messages on both platforms
+  - **WhatsApp integration**:
+    - Use the WhatsApp Business API (e.g. Meta Cloud API, Twilio) to receive and respond to user messages
+    - Support text queries and return formatted responses (with limits appropriate for WhatsApp message length)
+    - Tie into the existing phone-number auth — a user messaging from a verified number is already authenticated
+  - **Telegram integration**:
+    - Create a Telegram Bot via BotFather
+    - Use the Telegram Bot API to receive and respond to messages
+    - Support commands (e.g. `/budget Ebonyi 2025`, `/corruption Yari`) as well as freeform text queries
+  - Both channels should share the same backend query pipeline as the web chat — a unified API layer that WhatsApp, Telegram, and the web frontend all call into
+  - Conversation history should be stored per-user across channels so context is preserved regardless of which platform they use

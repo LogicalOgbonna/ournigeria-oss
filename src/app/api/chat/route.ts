@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       if (e instanceof UserNotInitializedError) {
         return Response.json(
-          { error: "User not initialized. Call POST /api/user first." },
+          { error: "Not authenticated. Please log in." },
           { status: 401 },
         );
       }

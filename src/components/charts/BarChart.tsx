@@ -13,6 +13,7 @@ import {
 import { ChartDataPoint } from "@/types";
 import { formatNaira } from "@/lib/format";
 import { Card } from "@/components/ui/card";
+import { useChartTheme } from "@/hooks/useChartTheme";
 
 interface BarChartProps {
   title: string;
@@ -20,10 +21,12 @@ interface BarChartProps {
 }
 
 export function BudgetBarChart({ title, data }: BarChartProps) {
+  const chart = useChartTheme();
+
   return (
-    <Card className="animate-scale-in overflow-hidden border-slate-200/80 bg-white p-0">
-      <div className="border-b border-slate-100 px-5 py-3">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <Card className="animate-scale-in overflow-hidden border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-0">
+      <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
       </div>
       <div className="px-2 py-4">
         <ResponsiveContainer width="100%" height={data.length * 52 + 20}>
@@ -35,19 +38,19 @@ export function BudgetBarChart({ title, data }: BarChartProps) {
             <CartesianGrid
               strokeDasharray="3 3"
               horizontal={false}
-              stroke="#f1f5f9"
+              stroke={chart.gridStroke}
             />
             <XAxis
               type="number"
               tickFormatter={(v: number) => formatNaira(v)}
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
+              tick={{ fontSize: 11, fill: chart.tickFill }}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              tick={{ fontSize: 12, fill: "#475569", fontWeight: 500 }}
+              tick={{ fontSize: 12, fill: chart.tickFillStrong, fontWeight: 500 }}
               width={90}
               axisLine={false}
               tickLine={false}
@@ -55,12 +58,7 @@ export function BudgetBarChart({ title, data }: BarChartProps) {
             <Tooltip
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any) => [formatNaira(Number(value)), "Budget"]}
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                fontSize: "12px",
-              }}
+              contentStyle={chart.tooltipStyle}
             />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
               {data.map((entry, index) => (

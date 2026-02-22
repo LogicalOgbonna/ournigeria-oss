@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { ConversationForUI } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, MessageSquare, X, Clock } from "lucide-react";
+import { Plus, Trash2, MessageSquare, X, Clock, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ChatSidebarProps {
   conversations: ConversationForUI[];
@@ -46,6 +47,7 @@ export function ChatSidebar({
   isOpen,
   onClose,
 }: ChatSidebarProps) {
+  const router = useRouter();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
@@ -83,22 +85,22 @@ export function ChatSidebar({
       {/* Sidebar — overlays from the right */}
       <aside
         className={`
-          fixed inset-y-0 right-0 z-50 flex w-80 flex-col border-l border-slate-200/80 bg-white
+          fixed inset-y-0 right-0 z-50 flex w-80 flex-col border-l border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900
           shadow-2xl transition-transform duration-200 ease-out
           ${isOpen ? "translate-x-0" : "translate-x-full"}
         `}
       >
         {/* Header */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 dark:border-slate-700/80 px-4">
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-emerald-600" />
-            <h2 className="text-sm font-semibold text-slate-800">History</h2>
+            <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">History</h2>
           </div>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              className="h-8 gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-800 dark:hover:text-emerald-300"
               onClick={handleNewChat}
               title="New chat"
             >
@@ -108,7 +110,7 @@ export function ChatSidebar({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-slate-400 hover:text-slate-600"
+              className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
               onClick={onClose}
             >
               <X className="h-4 w-4" />
@@ -120,13 +122,13 @@ export function ChatSidebar({
         <div className="custom-scrollbar flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                <MessageSquare className="h-5 w-5 text-slate-400" />
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                <MessageSquare className="h-5 w-5 text-slate-400 dark:text-slate-500" />
               </div>
-              <p className="text-sm font-medium text-slate-500">
+              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                 No conversations yet
               </p>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
                 Your chat history will appear here once you start a
                 conversation.
               </p>
@@ -153,8 +155,8 @@ export function ChatSidebar({
                       group relative cursor-pointer rounded-lg p-3 transition-colors
                       ${
                         isActive
-                          ? "bg-emerald-50 ring-1 ring-emerald-200"
-                          : "hover:bg-slate-50"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 ring-1 ring-emerald-200 dark:ring-emerald-800"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800"
                       }
                     `}
                   >
@@ -163,8 +165,8 @@ export function ChatSidebar({
                       <p
                         className={`line-clamp-2 pr-6 text-[13px] leading-snug ${
                           isActive
-                            ? "font-semibold text-emerald-900"
-                            : "font-medium text-slate-700"
+                            ? "font-semibold text-emerald-900 dark:text-emerald-200"
+                            : "font-medium text-slate-700 dark:text-slate-200"
                         }`}
                       >
                         {conv.title}
@@ -177,8 +179,8 @@ export function ChatSidebar({
                           absolute right-2 top-2 shrink-0 rounded-md p-1 transition-all
                           ${
                             isConfirming
-                              ? "bg-red-100 text-red-600"
-                              : "text-slate-300 opacity-0 hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                              ? "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400"
+                              : "text-slate-300 dark:text-slate-600 opacity-0 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-500 dark:hover:text-red-400 group-hover:opacity-100"
                           }
                         `}
                         title={
@@ -192,14 +194,14 @@ export function ChatSidebar({
                     </div>
 
                     {/* Preview */}
-                    <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+                    <p className="mt-1 line-clamp-1 text-xs text-slate-400 dark:text-slate-500">
                       {getPreview(conv)}
                     </p>
 
                     {/* Meta row */}
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-400">
+                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
                       <span>{formatRelativeTime(conv.updatedAt)}</span>
-                      <span className="text-slate-300">&middot;</span>
+                      <span className="text-slate-300 dark:text-slate-600">&middot;</span>
                       <span>
                         {msgCount} {msgCount === 1 ? "message" : "messages"}
                       </span>
@@ -209,6 +211,20 @@ export function ChatSidebar({
               })}
             </div>
           )}
+        </div>
+
+        {/* Logout footer */}
+        <div className="shrink-0 border-t border-slate-200/80 dark:border-slate-700/80 p-3">
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              router.push("/login");
+            }}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </button>
         </div>
       </aside>
     </>

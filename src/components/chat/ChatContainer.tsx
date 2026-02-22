@@ -9,6 +9,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { ChatSidebar } from "./ChatSidebar";
 import { Sparkles, RotateCcw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Markdown } from "./Markdown";
 
 function StreamingBubble({ text }: { text: string }) {
@@ -18,7 +19,7 @@ function StreamingBubble({ text }: { text: string }) {
         <Sparkles className="h-4 w-4 text-white" />
       </div>
       <div className="min-w-0 max-w-[92%] md:max-w-[85%]">
-        <div className="rounded-2xl rounded-tl-sm bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+        <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
           <Markdown>{text}</Markdown>
           <span className="inline-block w-1.5 h-4 ml-0.5 bg-emerald-500 animate-pulse rounded-sm" />
         </div>
@@ -58,7 +59,7 @@ export function ChatContainer() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="flex h-dvh flex-col bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Sidebar overlay */}
       <ChatSidebar
         conversations={conversations}
@@ -71,14 +72,14 @@ export function ChatContainer() {
       />
 
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-[var(--font-heading)] text-base font-bold text-slate-800">
-              Naija<span className="text-emerald-600">Budget</span>
+            <span className="font-[var(--font-heading)] text-base font-bold text-slate-800 dark:text-slate-100">
+              Naija<span className="text-emerald-600 dark:text-emerald-400">Budget</span>
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -87,16 +88,17 @@ export function ChatContainer() {
                 variant="ghost"
                 size="sm"
                 onClick={startNewChat}
-                className="text-xs text-slate-500 hover:text-slate-700"
+                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               >
                 <RotateCcw className="mr-1 h-3 w-3" />
                 New chat
               </Button>
             )}
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-slate-500 hover:text-slate-700"
+              className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
               <Menu className="h-4 w-4" />
