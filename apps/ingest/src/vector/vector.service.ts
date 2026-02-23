@@ -12,21 +12,10 @@ export class VectorService implements OnModuleDestroy {
   private embeddingDimension: number;
 
   constructor(private config: ConfigService) {
-    const dbUrl = this.config.get<string>('DATABASE_URL');
-
     this.pgVector = new PgVector({
       id: 'ingest-vectors',
-      connectionString: dbUrl,
+      connectionString: this.config.getOrThrow<string>('DATABASE_URL'),
     });
-
-    const embeddingBaseUrl =
-      this.config.get<string>('EMBEDDING_BASE_URL') || 'https://api.openai.com/v1';
-    const embeddingModelName =
-      this.config.get<string>('EMBEDDING_MODEL') || 'text-embedding-3-large';
-    const embeddingApiKey =
-      this.config.get<string>('EMBEDDING_API_KEY') ||
-      this.config.get<string>('LLM_API_KEY') ||
-      'ollama';
 
     const timeoutMs = 5 * 60 * 1000;
     const fetchWithTimeout: typeof globalThis.fetch = (input, init) =>
@@ -36,13 +25,15 @@ export class VectorService implements OnModuleDestroy {
       });
 
     const provider = createOpenAI({
-      baseURL: embeddingBaseUrl,
-      apiKey: embeddingApiKey,
+      baseURL: this.config.getOrThrow<string>('EMBEDDING_BASE_URL'),
+      apiKey: this.config.getOrThrow<string>('EMBEDDING_API_KEY'),
       fetch: fetchWithTimeout,
     });
 
-    this.embeddingModel = provider.embedding(embeddingModelName);
-    this.embeddingDimension = 3072; // text-embedding-3-large default
+    this.embeddingModel = provider.embedding(
+      this.config.getOrThrow<string>('EMBEDDING_MODEL'),
+    );
+    this.embeddingDimension = this.config.getOrThrow<number>('EMBEDDING_DIMENSION');
   }
 
   async ensureIndex(indexName: string): Promise<void> {

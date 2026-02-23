@@ -1,12 +1,26 @@
 import { Controller, Post, Req, Res, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { ChatService } from './chat.service';
 
+@ApiTags('Chat')
 @Controller('chat')
 export class ChatController {
   constructor(private chatService: ChatService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Send a chat message (SSE stream)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['message'],
+      properties: {
+        message: { type: 'string', example: 'What is the 2025 federal budget?' },
+        conversationId: { type: 'string' },
+        tool: { type: 'string' },
+      },
+    },
+  })
   async chat(@Req() req: Request, @Res() res: Response) {
     try {
       const { message, conversationId, tool } = req.body;

@@ -18,11 +18,7 @@ export class PdfExtractor implements ITextExtractor {
   private openaiProvider: ReturnType<typeof createOpenAI>;
 
   constructor(private config: ConfigService) {
-    this.ocrModel = this.config.get<string>('OCR_MODEL') || 'glm-ocr:q8_0';
-
-    const llmBaseUrl =
-      this.config.get<string>('LLM_BASE_URL') || 'https://api.openai.com/v1';
-    const llmApiKey = this.config.get<string>('LLM_API_KEY') || 'ollama';
+    this.ocrModel = this.config.getOrThrow<string>('OCR_MODEL');
 
     const timeoutMs = 5 * 60 * 1000;
     const fetchWithTimeout: typeof globalThis.fetch = (input, init) =>
@@ -32,8 +28,8 @@ export class PdfExtractor implements ITextExtractor {
       });
 
     this.openaiProvider = createOpenAI({
-      baseURL: llmBaseUrl,
-      apiKey: llmApiKey,
+      baseURL: this.config.getOrThrow<string>('OCR_BASE_URL'),
+      apiKey: this.config.getOrThrow<string>('OCR_API_KEY'),
       fetch: fetchWithTimeout,
     });
   }

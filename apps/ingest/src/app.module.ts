@@ -5,12 +5,14 @@ import { DatabaseModule } from './database/database.module';
 import { VectorModule } from './vector/vector.module';
 import { IngestionModule } from './ingestion/ingestion.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: validateEnv,
     }),
     ScheduleModule.forRoot(),
     DatabaseModule,

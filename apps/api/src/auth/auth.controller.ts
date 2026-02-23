@@ -8,6 +8,7 @@ import {
   Query,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
@@ -43,12 +44,23 @@ const verifyOtpSchema = z.object({
   code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits'),
 });
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
   @Post('send-otp')
+  @ApiOperation({ summary: 'Send OTP via WhatsApp' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['phoneNumber'],
+      properties: {
+        phoneNumber: { type: 'string', example: '+2348012345678' },
+      },
+    },
+  })
   async sendOtp(@Body() body: unknown, @Res() res: Response) {
     try {
       const parsed = sendOtpSchema.safeParse(body);
@@ -90,6 +102,17 @@ export class AuthController {
 
   @Public()
   @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify OTP and authenticate' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['phoneNumber', 'code'],
+      properties: {
+        phoneNumber: { type: 'string', example: '+2348012345678' },
+        code: { type: 'string', example: '123456' },
+      },
+    },
+  })
   async verifyOtp(@Body() body: unknown, @Res() res: Response) {
     try {
       const parsed = verifyOtpSchema.safeParse(body);
@@ -133,6 +156,7 @@ export class AuthController {
 
   @Public()
   @Post('logout')
+  @ApiOperation({ summary: 'Logout and clear session cookie' })
   async logout(@Res() res: Response) {
     res.clearCookie(USER_COOKIE, { path: '/' });
     return res.json({ success: true });
@@ -140,6 +164,7 @@ export class AuthController {
 
   @Public()
   @Get('telegram')
+  @ApiOperation({ summary: 'Telegram login callback' })
   async telegramAuth(
     @Query() query: Record<string, string>,
     @Res() res: Response,

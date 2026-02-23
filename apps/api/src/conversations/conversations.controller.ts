@@ -6,15 +6,18 @@ import {
   Res,
   HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ConversationsService } from './conversations.service';
 import { CurrentUser } from '../auth/decorators/current-user';
 
+@ApiTags('Conversations')
 @Controller('conversations')
 export class ConversationsController {
   constructor(private conversationsService: ConversationsService) {}
 
   @Get()
+  @ApiOperation({ summary: 'List all conversations for current user' })
   async list(@CurrentUser() userId: string, @Res() res: Response) {
     try {
       if (!userId) {
@@ -32,6 +35,8 @@ export class ConversationsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a conversation by ID' })
+  @ApiParam({ name: 'id', description: 'Conversation ID' })
   async getById(
     @Param('id') id: string,
     @CurrentUser() userId: string,
@@ -56,6 +61,8 @@ export class ConversationsController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a conversation' })
+  @ApiParam({ name: 'id', description: 'Conversation ID' })
   async delete(
     @Param('id') id: string,
     @CurrentUser() userId: string,
