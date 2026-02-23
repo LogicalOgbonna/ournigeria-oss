@@ -85,7 +85,7 @@ async function safeChunk(
   return allChunks;
 }
 
-const BUDGETS_DIR = path.resolve(__dirname, "../../../../budgets");
+const BUDGETS_DIR = path.resolve(__dirname, "../../../../../packages/source/budgets");
 
 function elapsed(startMs: number): string {
   const ms = Date.now() - startMs;

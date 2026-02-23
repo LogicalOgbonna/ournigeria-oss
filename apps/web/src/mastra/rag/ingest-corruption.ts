@@ -11,7 +11,7 @@ import {
 } from "./config";
 
 const CONCURRENCY = Number.parseInt(process.env.INGEST_CONCURRENCY || "5", 10);
-const CORRUPTION_DIR = path.resolve(__dirname, "../../../../corruption");
+const CORRUPTION_DIR = path.resolve(__dirname, "../../../../../packages/source/corruption");
 const INDEX_NAME = "corruption_chunks";
 
 function elapsed(startMs: number): string {

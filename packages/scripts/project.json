@@ -1,0 +1,49 @@
+{
+  "name": "scripts",
+  "projectType": "library",
+  "sourceRoot": "packages/scripts",
+  "targets": {
+    "download-budgets": {
+      "command": "python3 download_budgets.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "download-federal-budgets": {
+      "command": "python3 download_federal_budgets.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "download-implementation-reports": {
+      "command": "python3 download_implementation_reports.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "download-openstates": {
+      "command": "python3 download_openstates.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "fetch-former-governors": {
+      "command": "python3 fetch_former_governors.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "fetch-governor-images": {
+      "command": "python3 fetch_governor_images.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    },
+    "fetch-images": {
+      "command": "python3 fetch_images.py",
+      "options": {
+        "cwd": "packages/scripts"
+      }
+    }
+  }
+}

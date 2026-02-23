@@ -1,0 +1,6 @@
+{
+  "name": "@naija-budget/scripts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Python download and scraping scripts"
+}

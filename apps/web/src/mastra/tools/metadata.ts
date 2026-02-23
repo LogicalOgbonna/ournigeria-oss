@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { BudgetOfficial, BudgetOfficials } from "@/types";
 
-const BUDGETS_DIR = path.resolve(__dirname, "../../../../budgets");
+const BUDGETS_DIR = path.resolve(__dirname, "../../../../../packages/source/budgets");
 
 const ROLE_LABELS: Record<string, string> = {
   governor: "Governor",

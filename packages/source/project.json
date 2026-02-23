@@ -1,0 +1,6 @@
+{
+  "name": "source",
+  "projectType": "library",
+  "sourceRoot": "packages/source",
+  "targets": {}
+}
