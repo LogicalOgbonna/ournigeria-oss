@@ -1,10 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, MessageRole } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { TelegramApiService } from './telegram-api.service';
 import { formatForTelegram } from './telegram-formatter';
 import { routeToAgent, inferTool } from '../mastra/router';
+import { ChartService } from '../chart/chart.service';
 import type { ToolId } from '../types';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class TelegramService {
   constructor(
     private prisma: PrismaService,
     private telegramApi: TelegramApiService,
+    private chartService: ChartService,
     private config: ConfigService,
   ) {
     this.appUrl = this.config.get<string>('APP_URL') || 'http://localhost:3000';
@@ -172,32 +174,27 @@ export class TelegramService {
       const selectedTool: ToolId | null = tool ?? null;
 
       // Get or create conversation
-      const { convId, nextSeq } = await this.getOrCreateConversation(userId);
+      const convId = await this.getOrCreateConversation(userId);
 
-      // Persist user message
-      await this.prisma.message.create({
-        data: {
-          conversationId: convId,
-          sequenceNumber: nextSeq,
-          role: 'user',
-          content: text,
-        },
+      // Persist user message atomically
+      await this.appendMessage(convId, {
+        role: 'user',
+        content: text,
       });
 
       const startTime = Date.now();
 
       // Load conversation history (same pattern as chat.service.ts)
       const historyRows = await this.prisma.message.findMany({
-        where: {
-          conversationId: convId,
-          sequenceNumber: { lt: nextSeq },
-        },
+        where: { conversationId: convId },
         orderBy: { sequenceNumber: 'asc' },
         take: 20,
         select: { role: true, content: true },
       });
 
+      // Exclude the just-saved user message from history context
       const historyContext = historyRows
+        .slice(0, -1)
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n\n');
@@ -212,16 +209,12 @@ export class TelegramService {
 
       const processingTimeMs = Date.now() - startTime;
 
-      // Persist assistant message
-      await this.prisma.message.create({
-        data: {
-          conversationId: convId,
-          sequenceNumber: nextSeq + 1,
-          role: 'assistant',
-          content: (richContent as { text?: string }).text ?? '',
-          richContent: structuredClone(richContent) as unknown as Prisma.InputJsonValue,
-          processingTimeMs,
-        },
+      // Persist assistant message atomically
+      await this.appendMessage(convId, {
+        role: 'assistant',
+        content: (richContent as { text?: string }).text ?? '',
+        richContent: structuredClone(richContent) as unknown as Prisma.InputJsonValue,
+        processingTimeMs,
       });
 
       // Update conversation timestamp
@@ -230,12 +223,24 @@ export class TelegramService {
         data: { updatedAt: new Date() },
       });
 
-      // Format and send response
+      // Format and send text response
       const { text: responseText, replyMarkup } = formatForTelegram(richContent);
       await this.telegramApi.sendMessage(chatId, responseText, {
         parse_mode: 'HTML',
         ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       });
+
+      // Render and send chart images
+      const charts = await this.chartService.renderCharts(richContent);
+      if (charts.barChart) {
+        await this.telegramApi.sendPhoto(chatId, charts.barChart, richContent.barChart?.title);
+      }
+      if (charts.donutChart) {
+        await this.telegramApi.sendPhoto(chatId, charts.donutChart, richContent.donutChart?.title);
+      }
+      if (charts.trendLine) {
+        await this.telegramApi.sendPhoto(chatId, charts.trendLine, richContent.trendLine?.title);
+      }
     } catch (err) {
       this.logger.error('Error processing message:', err);
       await this.telegramApi.sendMessage(
@@ -247,30 +252,49 @@ export class TelegramService {
     }
   }
 
-  private async getOrCreateConversation(
-    userId: string,
-  ): Promise<{ convId: string; nextSeq: number }> {
-    // Find most recent active conversation
+  private async getOrCreateConversation(userId: string): Promise<string> {
     const existing = await this.prisma.conversation.findFirst({
       where: { userId, status: 'active' },
       orderBy: { updatedAt: 'desc' },
+      select: { id: true },
     });
 
-    if (existing) {
-      const lastMsg = await this.prisma.message.findFirst({
-        where: { conversationId: existing.id },
-        orderBy: { sequenceNumber: 'desc' },
-      });
-      return {
-        convId: existing.id,
-        nextSeq: (lastMsg?.sequenceNumber ?? 0) + 1,
-      };
-    }
+    if (existing) return existing.id;
 
     const conv = await this.prisma.conversation.create({
       data: { userId, title: 'Telegram Chat' },
     });
-    return { convId: conv.id, nextSeq: 1 };
+    return conv.id;
+  }
+
+  /** Atomically append a message using a transaction to avoid sequence_number collisions. */
+  private async appendMessage(
+    conversationId: string,
+    data: {
+      role: MessageRole;
+      content: string;
+      richContent?: Prisma.InputJsonValue;
+      processingTimeMs?: number;
+    },
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const last = await tx.message.findFirst({
+        where: { conversationId },
+        orderBy: { sequenceNumber: 'desc' },
+        select: { sequenceNumber: true },
+      });
+      const seq = (last?.sequenceNumber ?? 0) + 1;
+      await tx.message.create({
+        data: {
+          conversationId,
+          sequenceNumber: seq,
+          role: data.role,
+          content: data.content,
+          ...(data.richContent ? { richContent: data.richContent } : {}),
+          ...(data.processingTimeMs != null ? { processingTimeMs: data.processingTimeMs } : {}),
+        },
+      });
+    });
   }
 
   private async archiveActiveConversation(userId: string): Promise<void> {

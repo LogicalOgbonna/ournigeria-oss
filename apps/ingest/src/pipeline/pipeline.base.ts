@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../database/prisma.service";
 import { VectorService } from "../vector/vector.service";
 import { ExtractorRegistry } from "../extractors/extractor.registry";
@@ -17,6 +18,7 @@ export abstract class PipelineBase {
   protected abstract readonly logger: Logger;
 
   constructor(
+    protected readonly config: ConfigService,
     protected readonly prisma: PrismaService,
     protected readonly vector: VectorService,
     protected readonly extractors: ExtractorRegistry,

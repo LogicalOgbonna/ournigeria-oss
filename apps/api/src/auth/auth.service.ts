@@ -263,6 +263,14 @@ export class AuthService {
     });
   }
 
+  async telegramUserExists(telegramId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { telegramId },
+      select: { id: true },
+    });
+    return !!user;
+  }
+
   async upsertUserByTelegram(telegramId: string) {
     return this.prisma.user.upsert({
       where: { telegramId },

@@ -9,6 +9,7 @@ import { PipelineResult } from '../pipeline/pipeline.types';
 export class IngestionService {
   private readonly logger = new Logger(IngestionService.name);
   private readonly uploadDir = path.resolve(__dirname, '../../../uploads');
+  private readonly activePipelines = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -23,11 +24,17 @@ export class IngestionService {
     pipelineType: string,
     trigger: string,
     concurrency?: number,
-  ): Promise<PipelineResult> {
+  ): Promise<{ runId: string; message: string }> {
     const pipeline = this.registry.get(pipelineType);
     if (!pipeline) {
       throw new BadRequestException(
         `Unknown pipeline: ${pipelineType}. Available: ${this.registry.listTypes().join(', ')}`,
+      );
+    }
+
+    if (this.activePipelines.has(pipelineType)) {
+      throw new BadRequestException(
+        `Pipeline "${pipelineType}" is already running. Check /api/ingest/status for progress.`,
       );
     }
 
@@ -43,25 +50,44 @@ export class IngestionService {
       `Starting ${pipelineType} pipeline (run: ${run.id}, trigger: ${trigger})`,
     );
 
-    const result = await pipeline.run(
-      concurrency ? { concurrency } : undefined,
-    );
+    // Fire and forget — run in background
+    this.activePipelines.add(pipelineType);
+    pipeline
+      .run(concurrency ? { concurrency } : undefined)
+      .then(async (result) => {
+        await this.prisma.ingestionRun.update({
+          where: { id: run.id },
+          data: {
+            totalFiles: result.totalFiles,
+            processedFiles: result.processedFiles,
+            skippedFiles: result.skippedFiles,
+            errorFiles: result.errorFiles,
+            totalChunks: result.totalChunks,
+            durationMs: result.durationMs,
+            completedAt: new Date(),
+          },
+        });
+        this.logger.log(`Pipeline ${pipelineType} (run: ${run.id}) completed`);
+      })
+      .catch(async (err) => {
+        this.logger.error(`Pipeline ${pipelineType} (run: ${run.id}) failed`, err);
+        await this.prisma.ingestionRun.update({
+          where: { id: run.id },
+          data: { completedAt: new Date() },
+        });
+      })
+      .finally(() => {
+        this.activePipelines.delete(pipelineType);
+      });
 
-    // Update run with results
-    await this.prisma.ingestionRun.update({
-      where: { id: run.id },
-      data: {
-        totalFiles: result.totalFiles,
-        processedFiles: result.processedFiles,
-        skippedFiles: result.skippedFiles,
-        errorFiles: result.errorFiles,
-        totalChunks: result.totalChunks,
-        durationMs: result.durationMs,
-        completedAt: new Date(),
-      },
-    });
+    return {
+      runId: run.id,
+      message: `Pipeline "${pipelineType}" started. Check /api/ingest/status?pipeline=${pipelineType} for progress.`,
+    };
+  }
 
-    return result;
+  isRunning(pipelineType: string): boolean {
+    return this.activePipelines.has(pipelineType);
   }
 
   async getStatus(pipelineType?: string) {
@@ -105,7 +131,15 @@ export class IngestionService {
       else p.processing += row._count.id;
     }
 
-    return { pipelines, recentRuns: runs };
+    return {
+      pipelines,
+      recentRuns: runs,
+      active: [...this.activePipelines],
+    };
+  }
+
+  getAvailableTypes(): string[] {
+    return this.registry.listTypes();
   }
 
   getUploadDir(): string {

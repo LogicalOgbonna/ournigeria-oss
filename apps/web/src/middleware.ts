@@ -9,8 +9,27 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
 }
 
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5; // 5 years
+
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
+
+  // Handle Telegram auth callback — set cookie from query param and strip it
+  const nbAuth = searchParams.get("nb_auth");
+  if (nbAuth) {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("nb_auth");
+    const response = NextResponse.redirect(url);
+    response.cookies.set(USER_COOKIE, nbAuth, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: COOKIE_MAX_AGE,
+    });
+    return response;
+  }
+
   const hasAuth = request.cookies.has(USER_COOKIE);
 
   // Authenticated users visiting /login → redirect to /

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, ArrowRight, ShieldCheck, ArrowLeft, Loader2, Send } from "lucide-react";
 import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
+import { apiUrl } from "@/lib/api";
 
 type Step = "phone" | "otp";
 type Tab = "whatsapp" | "telegram";
@@ -92,9 +93,10 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/send-otp", {
+      const res = await fetch(apiUrl("/api/auth/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phoneNumber }),
       });
 
@@ -118,9 +120,10 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/verify-otp", {
+      const res = await fetch(apiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phoneNumber, code: otpCode }),
       });
 
@@ -152,9 +155,10 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/send-otp", {
+      const res = await fetch(apiUrl("/api/auth/send-otp"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ phoneNumber }),
       });
 

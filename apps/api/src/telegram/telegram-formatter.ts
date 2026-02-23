@@ -11,12 +11,65 @@ interface TelegramOutput {
   replyMarkup?: { inline_keyboard: InlineKeyboardButton[][] };
 }
 
+/**
+ * Convert markdown (as produced by LLMs) to Telegram-compatible HTML.
+ * Telegram supports: <b>, <i>, <u>, <s>, <code>, <pre>, <a href="">.
+ */
+function mdToTelegramHtml(md: string): string {
+  let text = md;
+
+  // Escape HTML entities first (except we'll add our own tags after)
+  text = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Code blocks: ```lang?\n...\n``` → <pre>...</pre>
+  text = text.replace(/```[\w]*\n([\s\S]*?)```/g, (_m, code) => {
+    return `<pre>${code.trim()}</pre>`;
+  });
+
+  // Inline code: `...` → <code>...</code>
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Headers: ## text → bold line
+  text = text.replace(/^#{1,6}\s+(.+)$/gm, '<b>$1</b>');
+
+  // Bold+italic: ***text*** or ___text___
+  text = text.replace(/\*{3}(.+?)\*{3}/g, '<b><i>$1</i></b>');
+
+  // Bold: **text** or __text__
+  text = text.replace(/\*{2}(.+?)\*{2}/g, '<b>$1</b>');
+  text = text.replace(/__(.+?)__/g, '<b>$1</b>');
+
+  // Italic: *text* or _text_  (avoid matching mid-word underscores)
+  text = text.replace(/(?<!\w)\*([^*\n]+?)\*(?!\w)/g, '<i>$1</i>');
+  text = text.replace(/(?<!\w)_([^_\n]+?)_(?!\w)/g, '<i>$1</i>');
+
+  // Strikethrough: ~~text~~
+  text = text.replace(/~~(.+?)~~/g, '<s>$1</s>');
+
+  // Links: [text](url)
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Bullet lists: lines starting with - or * (but not inside <pre>)
+  text = text.replace(/^[-*]\s+/gm, '• ');
+
+  // Numbered lists: clean up "1. " style (keep as-is, just ensure clean)
+  // These render fine in Telegram as plain text
+
+  // Horizontal rules: --- or *** → simple line
+  text = text.replace(/^[-*_]{3,}$/gm, '—————');
+
+  return text.trim();
+}
+
 export function formatForTelegram(richContent: AIResponseContent): TelegramOutput {
   const sections: string[] = [];
 
-  // Main text
+  // Main text — convert markdown to Telegram HTML
   if (richContent.text) {
-    sections.push(richContent.text);
+    sections.push(mdToTelegramHtml(richContent.text));
   }
 
   // Stats → bold "Key Figures" section
@@ -33,7 +86,7 @@ export function formatForTelegram(richContent: AIResponseContent): TelegramOutpu
     const header = title || `What ${formatNaira(amount)} could fund`;
     const lines = items.map(
       (item) =>
-        `- ${item.count.toLocaleString()} ${item.label} (at ${formatNaira(item.unitCost)} each)`,
+        `• ${item.count.toLocaleString()} ${item.label} (at ${formatNaira(item.unitCost)} each)`,
     );
     sections.push(`<b>${header}</b>\n${lines.join('\n')}`);
   }
@@ -44,7 +97,7 @@ export function formatForTelegram(richContent: AIResponseContent): TelegramOutpu
     for (const group of richContent.officials) {
       lines.push(`<b>${group.state} ${group.year}</b>`);
       for (const o of group.officials) {
-        lines.push(`- ${o.role}: ${o.name}${o.party ? ` (${o.party})` : ''}`);
+        lines.push(`• ${o.role}: ${o.name}${o.party ? ` (${o.party})` : ''}`);
       }
     }
     sections.push(lines.join('\n'));

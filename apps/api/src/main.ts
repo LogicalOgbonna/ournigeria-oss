@@ -9,8 +9,11 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.setGlobalPrefix("api");
+  const allowedOrigins = (process.env.CORS_ORIGINS || process.env.APP_URL || "http://localhost:3000")
+    .split(",")
+    .map((o) => o.trim());
   app.enableCors({
-    origin: process.env.APP_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true,
   });
 

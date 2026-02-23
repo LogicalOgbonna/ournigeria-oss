@@ -18,9 +18,7 @@ export class SchedulingService {
           pipeline,
           'cron',
         );
-        this.logger.log(
-          `${pipeline}: processed=${result.processedFiles}, skipped=${result.skippedFiles}, errors=${result.errorFiles}`,
-        );
+        this.logger.log(`${pipeline}: ${result.message}`);
       } catch (err) {
         this.logger.error(
           `${pipeline} weekly re-ingest failed: ${err instanceof Error ? err.message : err}`,

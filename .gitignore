@@ -53,6 +53,10 @@ __pycache__/
 packages/source/budgets/
 packages/source/federal_budget/
 packages/source/corruption/
+packages/source/govspend/
+
+# db backups
+packages/db_backup/backups/
 
 # pnpm
 .pnpm-store/

@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { embed } from 'ai';
 import { z } from 'zod';
-import { getPgVector, embeddingModelInstance, RAG_CONFIG } from '../rag/config';
+import { getPgVector, embeddingModelInstance, RAG_CONFIG, truncateEmbedding } from '../rag/config';
 import { getOfficialsForResults } from './metadata';
 
 export const budgetSearchTool = createTool({
@@ -70,7 +70,7 @@ export const budgetSearchTool = createTool({
 
     const queryResults = await getPgVector().query({
       indexName: RAG_CONFIG.indexName,
-      queryVector: embedding,
+      queryVector: truncateEmbedding(embedding),
       topK: RAG_CONFIG.topK,
       filter,
     });

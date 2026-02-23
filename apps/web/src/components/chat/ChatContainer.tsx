@@ -15,10 +15,10 @@ import { Markdown } from "./Markdown";
 function StreamingBubble({ text }: { text: string }) {
   return (
     <div className="animate-fade-in-up flex items-start gap-3 px-4 py-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700">
+      <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 md:flex">
         <Sparkles className="h-4 w-4 text-white" />
       </div>
-      <div className="min-w-0 max-w-[92%] md:max-w-[85%]">
+      <div className="min-w-0 max-w-full md:max-w-[85%]">
         <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
           <Markdown>{text}</Markdown>
           <span className="inline-block w-1.5 h-4 ml-0.5 bg-emerald-500 animate-pulse rounded-sm" />
@@ -54,7 +54,10 @@ export function ChatContainer() {
     }
   }, [messages, isLoading, streamingText]);
 
-  const handleSend = (message: string, tool?: import("@/types").ToolId | null) => {
+  const handleSend = (
+    message: string,
+    tool?: import("@/types").ToolId | null,
+  ) => {
     sendMessage(message, tool);
   };
 
@@ -79,7 +82,10 @@ export function ChatContainer() {
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="font-[var(--font-heading)] text-base font-bold text-slate-800 dark:text-slate-100">
-              Naija<span className="text-emerald-600 dark:text-emerald-400">Budget</span>
+              Naija
+              <span className="text-emerald-600 dark:text-emerald-400">
+                Budget
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-1">

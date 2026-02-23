@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Message, AIResponseContent, ToolId } from "@/types";
+import { apiUrl } from "@/lib/api";
 
 interface ConversationSummary {
   id: string;
@@ -59,7 +60,7 @@ export function useChat() {
   // Fetch conversation list from API
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch("/api/conversations");
+      const res = await fetch(apiUrl("/api/conversations"), { credentials: "include" });
       if (!res.ok) return;
       const data: ConversationSummary[] = await res.json();
 
@@ -83,7 +84,7 @@ export function useChat() {
   const loadConversation = useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`/api/conversations/${id}`);
+        const res = await fetch(apiUrl(`/api/conversations/${id}`), { credentials: "include" });
         if (!res.ok) return;
 
         const data = await res.json();
@@ -153,9 +154,10 @@ export function useChat() {
       setStreamingText("");
 
       try {
-        const res = await fetch("/api/chat", {
+        const res = await fetch(apiUrl("/api/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             message: content,
             conversationId: activeConversationId,
@@ -269,7 +271,7 @@ export function useChat() {
   const handleDeleteConversation = useCallback(
     async (id: string) => {
       try {
-        await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+        await fetch(apiUrl(`/api/conversations/${id}`), { method: "DELETE", credentials: "include" });
         fetchConversations();
 
         if (activeConversationId === id) {

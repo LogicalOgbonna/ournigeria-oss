@@ -1,14 +1,19 @@
-import { createTool } from '@mastra/core/tools';
-import { embed } from 'ai';
-import { z } from 'zod';
-import { getPgVector, embeddingModelInstance, RAG_CONFIG } from '../rag/config';
+import { createTool } from "@mastra/core/tools";
+import { embed } from "ai";
+import { z } from "zod";
+import {
+  getPgVector,
+  embeddingModelInstance,
+  RAG_CONFIG,
+  truncateEmbedding,
+} from "../rag/config";
 
-const CORRUPTION_INDEX = 'corruption_chunks';
+const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
 
 export const corruptionSearchTool = createTool({
-  id: 'corruption-search',
+  id: "corruption-search",
   description:
-    'Search EFCC corruption case files for Nigerian officials. Use this tool to find details about charges, financial details, court proceedings, arrest investigations, case outcomes, timelines, and key players in corruption cases against governors and federal officials.',
+    "Search EFCC corruption case files for Nigerian officials. Use this tool to find details about charges, financial details, court proceedings, arrest investigations, case outcomes, timelines, and key players in corruption cases against governors and federal officials.",
   inputSchema: z.object({
     query: z
       .string()
@@ -25,7 +30,7 @@ export const corruptionSearchTool = createTool({
       .string()
       .optional()
       .describe(
-        'Filter by case section: overview, charges, financial_details, court_proceedings, arrest_and_investigation, case_outcome, timeline, key_players',
+        "Filter by case section: overview, charges, financial_details, court_proceedings, arrest_and_investigation, case_outcome, timeline, key_players",
       ),
   }),
   outputSchema: z.object({
@@ -58,16 +63,16 @@ export const corruptionSearchTool = createTool({
 
     const queryResults = await getPgVector().query({
       indexName: CORRUPTION_INDEX,
-      queryVector: embedding,
+      queryVector: truncateEmbedding(embedding),
       topK: RAG_CONFIG.topK,
       filter,
     });
 
     const results = queryResults.map((r) => ({
-      text: (r.metadata?.text as string) ?? '',
-      official: (r.metadata?.official as string) ?? 'Unknown',
-      section: (r.metadata?.section as string) ?? '',
-      filename: (r.metadata?.filename as string) ?? '',
+      text: (r.metadata?.text as string) ?? "",
+      official: (r.metadata?.official as string) ?? "Unknown",
+      section: (r.metadata?.section as string) ?? "",
+      filename: (r.metadata?.filename as string) ?? "",
       score: r.score,
     }));
 

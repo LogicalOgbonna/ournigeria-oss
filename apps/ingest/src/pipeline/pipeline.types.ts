@@ -12,8 +12,8 @@ export interface PipelineConfig {
 }
 
 export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
-  chunkSize: 512,
-  chunkOverlap: 50,
+  chunkSize: 1024,
+  chunkOverlap: 100,
   batchSize: 50,
   concurrency: 5,
 };

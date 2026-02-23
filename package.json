@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "nx run web:dev",
+    "web": "pnpm --filter @naija-budget/web dev",
     "build": "nx run web:build",
     "start": "nx run web:start",
     "lint": "nx run web:lint",
@@ -33,6 +33,7 @@
     "onlyBuiltDependencies": [
       "@prisma/engines",
       "esbuild",
+      "lightningcss",
       "nx",
       "prisma",
       "sharp",

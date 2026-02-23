@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PrismaService } from '../database/prisma.service';
@@ -15,11 +16,12 @@ export class StateBudgetPipeline extends PipelineBase {
   protected readonly logger = new Logger(StateBudgetPipeline.name);
 
   constructor(
+    config: ConfigService,
     prisma: PrismaService,
     vector: VectorService,
     extractors: ExtractorRegistry,
   ) {
-    super(prisma, vector, extractors);
+    super(config, prisma, vector, extractors);
   }
 
   get pipelineType(): string {
@@ -27,7 +29,7 @@ export class StateBudgetPipeline extends PipelineBase {
   }
 
   get indexName(): string {
-    return 'budget_chunks';
+    return this.config.getOrThrow<string>('VECTOR_INDEX_BUDGET');
   }
 
   discoverFiles(): DiscoveredFile[] {

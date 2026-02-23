@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { AuthGuard } from './auth/auth.guard';
 import { ConversationsModule } from './conversations/conversations.module';
 import { ChatModule } from './chat/chat.module';
+import { ChartModule } from './chart/chart.module';
 import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { TelegramModule } from './telegram/telegram.module';
       envFilePath: '.env',
     }),
     DatabaseModule,
+    ChartModule,
     AuthModule,
     ConversationsModule,
     ChatModule,

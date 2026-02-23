@@ -19,7 +19,7 @@ export class IngestionController {
   constructor(private readonly ingestionService: IngestionService) {}
 
   @Post('run')
-  @ApiOperation({ summary: 'Run an ingestion pipeline' })
+  @ApiOperation({ summary: 'Start an ingestion pipeline (runs in background)' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -33,12 +33,11 @@ export class IngestionController {
   async run(
     @Body() body: { pipeline: string; concurrency?: number },
   ) {
-    const result = await this.ingestionService.runPipeline(
+    return this.ingestionService.runPipeline(
       body.pipeline,
       'manual',
       body.concurrency,
     );
-    return result;
   }
 
   @Post('upload')
@@ -85,6 +84,16 @@ export class IngestionController {
       uploadedFiles: files.map((f) => f.originalname),
       ...result,
     };
+  }
+
+  @Get('active')
+  @ApiOperation({ summary: 'List currently running pipelines' })
+  async active() {
+    const types = this.ingestionService.getAvailableTypes();
+    return types.map((type) => ({
+      pipeline: type,
+      running: this.ingestionService.isRunning(type),
+    }));
   }
 
   @Get('status')

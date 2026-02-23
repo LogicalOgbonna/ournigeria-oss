@@ -7,6 +7,7 @@ import { TelegramApiService } from './telegram-api.service';
 @Module({
   controllers: [TelegramController],
   providers: [TelegramService, TelegramApiService],
+  exports: [TelegramApiService],
 })
 export class TelegramModule implements OnModuleInit {
   private readonly logger = new Logger(TelegramModule.name);

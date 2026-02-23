@@ -84,6 +84,29 @@ export class TelegramApiService {
     await this.call('answerCallbackQuery', { callback_query_id: callbackQueryId });
   }
 
+  async sendPhoto(
+    chatId: number,
+    photo: Buffer,
+    caption?: string,
+  ): Promise<void> {
+    const formData = new FormData();
+    formData.append('chat_id', String(chatId));
+    formData.append('photo', new Blob([photo as BlobPart], { type: 'image/png' }), 'chart.png');
+    if (caption) {
+      formData.append('caption', caption);
+    }
+
+    const res = await fetch(`${this.baseUrl}sendPhoto`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      this.logger.error(`Telegram API sendPhoto error: ${res.status} ${text}`);
+    }
+  }
+
   async setWebhook(url: string, secretToken?: string): Promise<void> {
     const body: Record<string, unknown> = { url };
     if (secretToken) {

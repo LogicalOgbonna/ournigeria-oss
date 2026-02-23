@@ -12,6 +12,7 @@ import { ApiTags, ApiOperation, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { AuthService } from './auth.service';
+import { TelegramApiService } from '../telegram/telegram-api.service';
 import { Public } from './decorators/public';
 
 const USER_COOKIE = 'nb_uid';
@@ -47,7 +48,10 @@ const verifyOtpSchema = z.object({
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private telegramApi: TelegramApiService,
+  ) {}
 
   @Public()
   @Post('send-otp')
@@ -136,8 +140,8 @@ export class AuthController {
 
       res.cookie(USER_COOKIE, user.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true,
+        sameSite: 'none',
         path: '/',
         maxAge: COOKIE_MAX_AGE * 1000, // Express uses milliseconds
       });
@@ -158,7 +162,7 @@ export class AuthController {
   @Post('logout')
   @ApiOperation({ summary: 'Logout and clear session cookie' })
   async logout(@Res() res: Response) {
-    res.clearCookie(USER_COOKIE, { path: '/' });
+    res.clearCookie(USER_COOKIE, { path: '/', secure: true, sameSite: 'none' });
     return res.json({ success: true });
   }
 
@@ -179,17 +183,32 @@ export class AuthController {
       }
 
       const { telegramUser } = result;
+      const isNewUser = !(await this.authService.telegramUserExists(telegramUser.id));
       const user = await this.authService.upsertUserByTelegram(telegramUser.id);
 
+      // Set cookie on the API domain so subsequent cross-origin requests are authenticated
       res.cookie(USER_COOKIE, user.id, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        secure: true,
+        sameSite: 'none',
         path: '/',
         maxAge: COOKIE_MAX_AGE * 1000,
       });
 
-      return res.redirect(`${baseUrl}/`);
+      // Send a welcome message to new Telegram users
+      if (isNewUser) {
+        const chatId = Number(telegramUser.id);
+        const name = telegramUser.first_name || 'there';
+        this.telegramApi
+          .sendMessage(
+            chatId,
+            `Welcome to NaijaBudget, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian state budgets and EFCC corruption cases.\n\nSend /help to see available commands.`,
+          )
+          .catch((err) => console.error('Failed to send Telegram welcome:', err));
+      }
+
+      // Pass user ID via query param so the web app can set its own cookie
+      return res.redirect(`${baseUrl}/?nb_auth=${user.id}`);
     } catch (err) {
       console.error('Telegram auth error:', err);
       return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);

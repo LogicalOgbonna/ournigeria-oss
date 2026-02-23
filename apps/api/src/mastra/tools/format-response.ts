@@ -1,4 +1,9 @@
 import type { AIResponseContent } from '../../types';
+import {
+  extractBarChart,
+  extractDonutChart,
+  extractTrendLine,
+} from '../../chart/chart-data';
 
 export function formatAgentResponse(
   budgetAnalysis: string,
@@ -20,6 +25,22 @@ export function formatAgentResponse(
 
   if (equivalents.items.length > 0) {
     response.moneyEquivalents = equivalents;
+  }
+
+  // Populate chart data from agent analysis text
+  const donut = extractDonutChart(budgetAnalysis);
+  if (donut) {
+    response.donutChart = donut;
+  } else {
+    const bar = extractBarChart(budgetAnalysis);
+    if (bar) {
+      response.barChart = bar;
+    }
+  }
+
+  const trend = extractTrendLine(budgetAnalysis);
+  if (trend) {
+    response.trendLine = trend;
   }
 
   return response;
@@ -356,6 +377,15 @@ export function formatCorruptionResponse(
 
   if (equivalents.items.length > 0) {
     response.moneyEquivalents = equivalents;
+  }
+
+  // Populate chart data from corruption analysis text
+  const bar = extractBarChart(corruptionAnalysis);
+  if (bar) {
+    response.barChart = {
+      ...bar,
+      title: bar.title.includes('Sector') ? 'Alleged Amounts' : bar.title,
+    };
   }
 
   return response;

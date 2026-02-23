@@ -17,12 +17,35 @@ export class VectorService implements OnModuleDestroy {
       connectionString: this.config.getOrThrow<string>('DATABASE_URL'),
     });
 
-    const timeoutMs = 5 * 60 * 1000;
-    const fetchWithTimeout: typeof globalThis.fetch = (input, init) =>
-      globalThis.fetch(input, {
+    const timeoutMs = 15 * 60 * 1000;
+    const fetchWithTimeout: typeof globalThis.fetch = async (input, init) => {
+      // Strip encoding_format from embedding requests (Voyage AI rejects 'float')
+      if (init?.body && typeof init.body === 'string') {
+        try {
+          const parsed = JSON.parse(init.body);
+          if (parsed.encoding_format) {
+            delete parsed.encoding_format;
+            init = { ...init, body: JSON.stringify(parsed) };
+          }
+        } catch {}
+      }
+      const resp = await globalThis.fetch(input, {
         ...init,
         signal: AbortSignal.timeout(timeoutMs),
       });
+      // Patch Voyage AI response to match OpenAI schema (add prompt_tokens)
+      if (resp.ok && String(input).includes('/embeddings')) {
+        const body = await resp.json();
+        if (body.usage && body.usage.prompt_tokens === undefined) {
+          body.usage.prompt_tokens = body.usage.total_tokens ?? 0;
+        }
+        return new Response(JSON.stringify(body), {
+          status: resp.status,
+          headers: resp.headers,
+        });
+      }
+      return resp;
+    };
 
     const provider = createOpenAI({
       baseURL: this.config.getOrThrow<string>('EMBEDDING_BASE_URL'),

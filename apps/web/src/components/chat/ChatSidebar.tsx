@@ -5,6 +5,7 @@ import type { ConversationForUI } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, MessageSquare, X, Clock, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/api";
 
 interface ChatSidebarProps {
   conversations: ConversationForUI[];
@@ -217,7 +218,7 @@ export function ChatSidebar({
         <div className="shrink-0 border-t border-slate-200/80 dark:border-slate-700/80 p-3">
           <button
             onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
+              await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
               router.push("/login");
             }}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"
