@@ -1,0 +1,173 @@
+import {
+  Controller,
+  Post,
+  Get,
+  Req,
+  Res,
+  Body,
+  Query,
+  HttpStatus,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { AuthService } from './auth.service';
+import { Public } from './decorators/public';
+
+const USER_COOKIE = 'nb_uid';
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5; // 5 years
+
+const phoneNumberSchema = z
+  .string()
+  .trim()
+  .min(1, 'Phone number is required')
+  .transform((raw) => {
+    let cleaned = raw.replace(/[\s\-().]/g, '');
+    if (cleaned.startsWith('0') && cleaned.length === 11) {
+      cleaned = '+234' + cleaned.slice(1);
+    }
+    if (!cleaned.startsWith('+') && cleaned.startsWith('234')) {
+      cleaned = '+' + cleaned;
+    }
+    return cleaned;
+  })
+  .refine((val) => /^\+\d{7,15}$/.test(val), {
+    message: 'Invalid phone number. Use format: +234XXXXXXXXXX',
+  });
+
+const sendOtpSchema = z.object({
+  phoneNumber: phoneNumberSchema,
+});
+
+const verifyOtpSchema = z.object({
+  phoneNumber: phoneNumberSchema,
+  code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits'),
+});
+
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Public()
+  @Post('send-otp')
+  async sendOtp(@Body() body: unknown, @Res() res: Response) {
+    try {
+      const parsed = sendOtpSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: parsed.error.errors[0].message });
+      }
+
+      const { phoneNumber } = parsed.data;
+
+      const rateLimited = await this.authService.checkRateLimit(phoneNumber);
+      if (rateLimited) {
+        return res
+          .status(HttpStatus.TOO_MANY_REQUESTS)
+          .json({ error: 'Too many OTP requests. Please try again later.' });
+      }
+
+      const code = await this.authService.createOTP(phoneNumber);
+
+      const result = await this.authService.sendWhatsAppOTP(phoneNumber, code);
+      if (!result.success) {
+        return res
+          .status(HttpStatus.BAD_GATEWAY)
+          .json({
+            error: 'Failed to send OTP via WhatsApp. Please try again.',
+          });
+      }
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('send-otp error:', err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: 'Internal server error' });
+    }
+  }
+
+  @Public()
+  @Post('verify-otp')
+  async verifyOtp(@Body() body: unknown, @Res() res: Response) {
+    try {
+      const parsed = verifyOtpSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: parsed.error.errors[0].message });
+      }
+
+      const { phoneNumber, code } = parsed.data;
+
+      const result = await this.authService.verifyOTP(phoneNumber, code);
+      if (!result.success) {
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: result.error });
+      }
+
+      const user = await this.authService.upsertUserByPhone(phoneNumber);
+
+      res.cookie(USER_COOKIE, user.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: COOKIE_MAX_AGE * 1000, // Express uses milliseconds
+      });
+
+      return res.json({
+        success: true,
+        user: { id: user.id, phoneNumber: user.phoneNumber },
+      });
+    } catch (err) {
+      console.error('verify-otp error:', err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: 'Internal server error' });
+    }
+  }
+
+  @Public()
+  @Post('logout')
+  async logout(@Res() res: Response) {
+    res.clearCookie(USER_COOKIE, { path: '/' });
+    return res.json({ success: true });
+  }
+
+  @Public()
+  @Get('telegram')
+  async telegramAuth(
+    @Query() query: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    const baseUrl = process.env.APP_URL || 'http://localhost:3000';
+
+    try {
+      const result = this.authService.verifyTelegramAuth(query);
+      if (!result.valid) {
+        console.error('Telegram auth failed:', result.error);
+        return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
+      }
+
+      const { telegramUser } = result;
+      const user = await this.authService.upsertUserByTelegram(telegramUser.id);
+
+      res.cookie(USER_COOKIE, user.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: COOKIE_MAX_AGE * 1000,
+      });
+
+      return res.redirect(`${baseUrl}/`);
+    } catch (err) {
+      console.error('Telegram auth error:', err);
+      return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
+    }
+  }
+}

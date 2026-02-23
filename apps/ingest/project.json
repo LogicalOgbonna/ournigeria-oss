@@ -1,0 +1,25 @@
+{
+  "name": "ingest",
+  "projectType": "application",
+  "sourceRoot": "apps/ingest/src",
+  "targets": {
+    "dev": {
+      "command": "nest start --watch",
+      "options": {
+        "cwd": "apps/ingest"
+      }
+    },
+    "build": {
+      "command": "nest build",
+      "options": {
+        "cwd": "apps/ingest"
+      }
+    },
+    "start": {
+      "command": "nest start",
+      "options": {
+        "cwd": "apps/ingest"
+      }
+    }
+  }
+}

@@ -16,7 +16,14 @@
     "prisma:reset:force:with-seed": "nx run web:prisma:reset:force:with-seed",
     "prisma:reset:force:with-seed:and-migrate": "nx run web:prisma:reset:force:with-seed:and-migrate",
     "ingest": "nx run web:ingest",
-    "ingest:corruption": "nx run web:ingest:corruption"
+    "ingest:corruption": "nx run web:ingest:corruption",
+    "api:dev": "nx run api:dev",
+    "api:build": "nx run api:build",
+    "api:start": "nx run api:start",
+    "api:prisma:generate": "nx run api:prisma:generate",
+    "ingest:dev": "nx run ingest:dev",
+    "ingest:build": "nx run ingest:build",
+    "ingest:start": "nx run ingest:start"
   },
   "devDependencies": {
     "nx": "^21.3.2",
