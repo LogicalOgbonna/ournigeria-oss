@@ -11,7 +11,7 @@ function isPublicPath(pathname: string): boolean {
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5; // 5 years
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Handle Telegram auth callback — set cookie from query param and strip it

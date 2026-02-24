@@ -72,6 +72,7 @@ const BUDGET_KEYWORDS = [
 ];
 
 export function inferTool(message: string): ToolId {
+  // TODO: Use a more sophisticated approach to infer the tool like LLM
   const lower = message.toLowerCase();
 
   const corruptionScore = CORRUPTION_KEYWORDS.reduce(

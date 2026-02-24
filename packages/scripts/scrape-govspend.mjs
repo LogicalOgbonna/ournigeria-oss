@@ -30,7 +30,7 @@ const __dirname = path.dirname(__filename);
 // ─── Configuration ─────────────────────────────────────────────
 
 const API_BASE = 'https://app.govspend.ng/api/payments/';
-const PER_PAGE = 500;
+const PER_PAGE = 100;
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -90,9 +90,9 @@ async function fetchPage(page, retries = 5) {
       const res = await fetch(url, {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'NaijaBudget-Scraper/1.0 (research)',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         },
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(300_000),
       });
 
       if (res.status === 429) {

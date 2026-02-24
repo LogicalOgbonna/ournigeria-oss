@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Message, AIResponseContent, ToolId } from "@/types";
 import { apiUrl } from "@/lib/api";
 
@@ -26,16 +26,18 @@ export interface ConversationForUI {
   updatedAt: Date;
 }
 
-export function useChat() {
+export function useChat(conversationId?: string) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<ConversationForUI[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
     string | null
-  >(null);
+  >(conversationId ?? null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(
+    !!conversationId,
+  );
   const [streamingText, setStreamingText] = useState<string>("");
   const idCounter = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -45,22 +47,12 @@ export function useChat() {
     return `msg-${Date.now()}-${idCounter.current}`;
   };
 
-  // Sync activeConversationId to the URL query param `c`
-  const setConversationUrl = useCallback(
-    (id: string | null) => {
-      if (id) {
-        router.replace(`?c=${id}`, { scroll: false });
-      } else {
-        router.replace("/", { scroll: false });
-      }
-    },
-    [router],
-  );
-
   // Fetch conversation list from API
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/conversations"), { credentials: "include" });
+      const res = await fetch(apiUrl("/api/conversations"), {
+        credentials: "include",
+      });
       if (!res.ok) return;
       const data: ConversationSummary[] = await res.json();
 
@@ -80,12 +72,26 @@ export function useChat() {
     }
   }, []);
 
-  // Load a conversation's full messages from the API
-  const loadConversation = useCallback(
-    async (id: string) => {
+  // Load the conversation when conversationId is provided
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    fetchConversations();
+
+    if (!conversationId) return;
+
+    async function loadInitialConversation() {
+      setIsLoadingConversation(true);
       try {
-        const res = await fetch(apiUrl(`/api/conversations/${id}`), { credentials: "include" });
-        if (!res.ok) return;
+        const res = await fetch(apiUrl(`/api/conversations/${conversationId}`), {
+          credentials: "include",
+        });
+        if (!res.ok) {
+          router.replace("/");
+          return;
+        }
 
         const data = await res.json();
 
@@ -106,32 +112,15 @@ export function useChat() {
         );
 
         setMessages(msgs);
-        setActiveConversationId(id);
-        setConversationUrl(id);
-        setStreamingText("");
+        setActiveConversationId(conversationId!);
       } catch {
-        // Failed to load — stay on current state
-      }
-    },
-    [setConversationUrl],
-  );
-
-  // Initialize: fetch conversations and resume from URL if present
-  const userInitialized = useRef(false);
-  useEffect(() => {
-    async function init() {
-      if (userInitialized.current) return;
-      userInitialized.current = true;
-
-      await fetchConversations();
-
-      // Resume conversation from URL query param
-      const urlConvId = searchParams.get("c");
-      if (urlConvId) {
-        loadConversation(urlConvId);
+        router.replace("/");
+      } finally {
+        setIsLoadingConversation(false);
       }
     }
-    init();
+
+    loadInitialConversation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,7 +164,6 @@ export function useChat() {
         let buffer = "";
         let fullText = "";
         let richContent: AIResponseContent | null = null;
-        let newConvId: string | null = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -197,10 +185,15 @@ export function useChat() {
 
               switch (event.type) {
                 case "meta":
-                  newConvId = event.conversationId;
-                  if (!activeConversationId) {
-                    setActiveConversationId(newConvId);
-                    setConversationUrl(newConvId);
+                  if (!activeConversationId && event.conversationId) {
+                    setActiveConversationId(event.conversationId);
+                    // Update URL without triggering navigation so the
+                    // stream isn't interrupted by a re-mount.
+                    window.history.replaceState(
+                      null,
+                      "",
+                      `/${event.conversationId}`,
+                    );
                   }
                   break;
 
@@ -256,39 +249,45 @@ export function useChat() {
         setIsLoading(false);
       }
     },
-    [activeConversationId, fetchConversations, setConversationUrl],
+    [activeConversationId, fetchConversations],
+  );
+
+  // Navigate to a conversation by URL
+  const loadConversation = useCallback(
+    (id: string) => {
+      router.push(`/${id}`);
+    },
+    [router],
   );
 
   const startNewChat = useCallback(() => {
     abortRef.current?.abort();
-    setMessages([]);
-    setActiveConversationId(null);
-    setStreamingText("");
-    setIsLoading(false);
-    setConversationUrl(null);
-  }, [setConversationUrl]);
+    router.push("/");
+  }, [router]);
 
   const handleDeleteConversation = useCallback(
     async (id: string) => {
       try {
-        await fetch(apiUrl(`/api/conversations/${id}`), { method: "DELETE", credentials: "include" });
+        await fetch(apiUrl(`/api/conversations/${id}`), {
+          method: "DELETE",
+          credentials: "include",
+        });
         fetchConversations();
 
         if (activeConversationId === id) {
-          setMessages([]);
-          setActiveConversationId(null);
-          setConversationUrl(null);
+          router.push("/");
         }
       } catch {
         // Failed to delete
       }
     },
-    [activeConversationId, fetchConversations, setConversationUrl],
+    [activeConversationId, fetchConversations, router],
   );
 
   return {
     messages,
     isLoading,
+    isLoadingConversation,
     streamingText,
     sendMessage,
     conversations,

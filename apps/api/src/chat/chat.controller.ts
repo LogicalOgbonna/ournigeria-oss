@@ -6,7 +6,7 @@ import { ChatService } from './chat.service';
 @ApiTags('Chat')
 @Controller('chat')
 export class ChatController {
-  constructor(private chatService: ChatService) {}
+  constructor(readonly chatService: ChatService) {}
 
   @Post()
   @ApiOperation({ summary: 'Send a chat message (SSE stream)' })

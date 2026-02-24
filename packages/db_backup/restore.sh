@@ -11,7 +11,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
-CONTAINER="naija-budget-db"
+# TODO: use the container name from the docker-compose.yml file
+CONTAINER="naija_budget_db"
+# TODO: use the database name from environment file
 DB_NAME="spending"
 DB_USER="spending"
 
@@ -53,6 +55,7 @@ echo "Container:  ${CONTAINER}"
 echo "Database:   ${DB_NAME}"
 echo ""
 
+# TODO: read through the prisma schema and get the table names
 echo "Current key row counts:"
 docker exec "${CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -t -A -c "
   SELECT 'budget_chunks: ' || count(*) FROM budget_chunks

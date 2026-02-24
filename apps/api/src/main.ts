@@ -1,3 +1,4 @@
+import "dotenv/config";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -9,8 +10,8 @@ async function bootstrap() {
 
   app.use(cookieParser());
   app.setGlobalPrefix("api");
-  const allowedOrigins = (process.env.CORS_ORIGINS || process.env.APP_URL || "http://localhost:3000")
-    .split(",")
+  const allowedOrigins = process.env
+    .CORS_ORIGINS!.split(",")
     .map((o) => o.trim());
   app.enableCors({
     origin: allowedOrigins,
@@ -26,7 +27,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`API running on http://localhost:${port}`);
   console.log(`Swagger docs at http://localhost:${port}/docs`);

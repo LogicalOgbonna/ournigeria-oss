@@ -8,7 +8,7 @@ const VALID_TOOLS: Set<string> = new Set(["state-budget", "corruption"]);
 
 @Injectable()
 export class ChatService {
-  constructor(private prisma: PrismaService) {}
+  constructor(readonly prisma: PrismaService) {}
 
   async processChat(
     userId: string,

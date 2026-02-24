@@ -55,7 +55,8 @@ packages/source/federal_budget/
 packages/source/corruption/
 packages/source/govspend/
 
-# db backups
+# db data & backups
+packages/db/
 packages/db_backup/backups/
 
 # pnpm

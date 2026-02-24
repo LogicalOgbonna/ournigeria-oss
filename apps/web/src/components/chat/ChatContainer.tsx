@@ -28,10 +28,43 @@ function StreamingBubble({ text }: { text: string }) {
   );
 }
 
-export function ChatContainer() {
+function MessagesSkeleton() {
+  return (
+    <div className="space-y-6 py-4">
+      <div className="flex justify-end px-4 py-3">
+        <div className="h-10 w-48 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700" />
+      </div>
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="hidden h-8 w-8 shrink-0 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700 md:block" />
+        <div className="max-w-[85%] flex-1 space-y-2">
+          <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        </div>
+      </div>
+      <div className="flex justify-end px-4 py-3">
+        <div className="h-10 w-64 animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-700" />
+      </div>
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="hidden h-8 w-8 shrink-0 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700 md:block" />
+        <div className="max-w-[85%] flex-1 space-y-2">
+          <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+          <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface ChatContainerProps {
+  conversationId?: string;
+}
+
+export function ChatContainer({ conversationId }: ChatContainerProps) {
   const {
     messages,
     isLoading,
+    isLoadingConversation,
     streamingText,
     sendMessage,
     conversations,
@@ -39,7 +72,7 @@ export function ChatContainer() {
     startNewChat,
     loadConversation,
     deleteConversation,
-  } = useChat();
+  } = useChat(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const hasMessages = messages.length > 0 || !!streamingText;
@@ -116,7 +149,9 @@ export function ChatContainer() {
       {/* Content */}
       <div ref={scrollRef} className="custom-scrollbar flex-1 overflow-y-auto">
         <div className="mx-auto max-w-3xl">
-          {!hasMessages ? (
+          {isLoadingConversation ? (
+            <MessagesSkeleton />
+          ) : !hasMessages ? (
             <WelcomeHero onSuggestionClick={handleSend} />
           ) : (
             <div className="py-4">

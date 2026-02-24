@@ -1,19 +1,16 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { PgVector } from "@mastra/pg";
 
-const llmBaseUrl =
-  process.env.LLM_BASE_URL || "https://ollama.local.arinze.online/v1";
-const llmModel = process.env.LLM_MODEL || "llama3.1";
-const llmApiKey = process.env.LLM_API_KEY || "ollama";
+const llmBaseUrl = process.env.LLM_BASE_URL!;
+const llmModel = process.env.LLM_MODEL!;
+const llmApiKey = process.env.LLM_API_KEY!;
 
-const embeddingBaseUrl =
-  process.env.EMBEDDING_BASE_URL || "https://api.openai.com/v1";
-const embeddingModel = process.env.EMBEDDING_MODEL || "text-embedding-3-large";
-const embeddingApiKey = process.env.EMBEDDING_API_KEY || llmApiKey;
+const embeddingProvider_env = process.env.EMBEDDING_PROVIDER!;
+const embeddingBaseUrl = process.env.EMBEDDING_BASE_URL!;
+const embeddingModel = process.env.EMBEDDING_MODEL!;
+const embeddingApiKey = process.env.EMBEDDING_API_KEY!;
 
-const DB_URL =
-  process.env.DATABASE_URL ||
-  "postgresql://spending:spending@localhost:5432/spending";
+const DB_URL = process.env.DATABASE_URL!;
 
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -24,6 +21,44 @@ const fetchWithTimeout: typeof globalThis.fetch = (input, init) => {
   });
 };
 
+function createEmbeddingFetch(provider: string): typeof globalThis.fetch {
+  if (provider === "voyage") {
+    return async (input, init) => {
+      // Strip encoding_format from embedding requests (Voyage AI rejects 'float')
+      if (init?.body && typeof init.body === "string") {
+        try {
+          const parsed = JSON.parse(init.body);
+          if (parsed.encoding_format) {
+            delete parsed.encoding_format;
+            init = { ...init, body: JSON.stringify(parsed) };
+          }
+        } catch {}
+      }
+
+      const resp = await globalThis.fetch(input, {
+        ...init,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+
+      // Patch Voyage AI response to match OpenAI schema (add prompt_tokens)
+      if (resp.ok && String(input).includes("/embeddings")) {
+        const body = await resp.json();
+        if (body.usage && body.usage.prompt_tokens === undefined) {
+          body.usage.prompt_tokens = body.usage.total_tokens ?? 0;
+        }
+        return new Response(JSON.stringify(body), {
+          status: resp.status,
+          headers: resp.headers,
+        });
+      }
+
+      return resp;
+    };
+  }
+
+  return fetchWithTimeout;
+}
+
 export const openaiProvider = createOpenAI({
   baseURL: llmBaseUrl,
   apiKey: llmApiKey,
@@ -33,16 +68,15 @@ export const openaiProvider = createOpenAI({
 export const embeddingProvider = createOpenAI({
   baseURL: embeddingBaseUrl,
   apiKey: embeddingApiKey,
-  fetch: fetchWithTimeout,
+  fetch: createEmbeddingFetch(embeddingProvider_env),
 });
 
 export const RAG_CONFIG = {
-  indexName: process.env.VECTOR_INDEX_BUDGET || "budget_chunks",
-  corruptionIndexName:
-    process.env.VECTOR_INDEX_CORRUPTION || "corruption_chunks",
+  indexName: process.env.VECTOR_INDEX_BUDGET!,
+  corruptionIndexName: process.env.VECTOR_INDEX_CORRUPTION!,
   chunkSize: 512,
   chunkOverlap: 50,
-  embeddingDimension: Number(process.env.EMBEDDING_DIMENSION) || 3072,
+  embeddingDimension: Number(process.env.EMBEDDING_DIMENSION!),
   topK: 10,
 };
 
