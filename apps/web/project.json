@@ -4,37 +4,25 @@
   "sourceRoot": "apps/web/src",
   "targets": {
     "dev": {
-      "command": "next dev",
+      "command": "infisical run --env dev --path /web --watch -- next dev",
       "options": {
         "cwd": "apps/web"
       }
     },
     "build": {
-      "command": "next build",
+      "command": "infisical run --env prod --path /web -- next build",
       "options": {
         "cwd": "apps/web"
       }
     },
     "start": {
-      "command": "next start",
+      "command": "infisical run --env prod --path /web -- watch -- next start",
       "options": {
         "cwd": "apps/web"
       }
     },
     "lint": {
       "command": "eslint",
-      "options": {
-        "cwd": "apps/web"
-      }
-    },
-    "ingest": {
-      "command": "NODE_OPTIONS='--max-old-space-size=8192' tsx --env-file=.env src/mastra/rag/ingest.ts",
-      "options": {
-        "cwd": "apps/web"
-      }
-    },
-    "ingest:corruption": {
-      "command": "NODE_OPTIONS='--max-old-space-size=8192' tsx --env-file=.env src/mastra/rag/ingest-corruption.ts",
       "options": {
         "cwd": "apps/web"
       }

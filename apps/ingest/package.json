@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "infisical run --env dev --watch -- nest start",
     "build": "nest build",
-    "start": "nest start",
-    "start:prod": "node dist/main"
+    "start": "infisical run --env dev -- nest start",
+    "start:prod": "infisical run --env dev -- node dist/main"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.30",

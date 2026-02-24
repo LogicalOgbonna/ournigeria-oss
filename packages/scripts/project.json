@@ -44,6 +44,12 @@
       "options": {
         "cwd": "packages/scripts"
       }
+    },
+    "add-corruption-sources": {
+      "command": "infisical run --env dev -- node add-corruption-sources.mjs",
+      "options": {
+        "cwd": "packages/scripts"
+      }
     }
   }
 }

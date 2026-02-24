@@ -4,7 +4,7 @@
   "sourceRoot": "apps/api/src",
   "targets": {
     "dev": {
-      "command": "nest start --watch",
+      "command": "infisical run --env dev --watch -- nest start --watch",
       "options": {
         "cwd": "apps/api"
       }
@@ -16,13 +16,13 @@
       }
     },
     "start": {
-      "command": "nest start",
+      "command": "infisical run --env prod --watch -- nest start",
       "options": {
         "cwd": "apps/api"
       }
     },
     "prisma:generate": {
-      "command": "prisma generate",
+      "command": "infisical run -- prisma generate",
       "options": {
         "cwd": "apps/api"
       }
