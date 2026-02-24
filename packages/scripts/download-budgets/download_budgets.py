@@ -19,7 +19,7 @@ import ssl
 import json
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent / "source" / "budgets"
+BASE_DIR = Path(__file__).parent.parent.parent / "source" / "budgets"
 
 # Create SSL context that doesn't verify (the NGF repo uses self-signed certs)
 ssl_ctx = ssl.create_default_context()

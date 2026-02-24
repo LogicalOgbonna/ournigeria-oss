@@ -17,7 +17,7 @@ import re
 import sys
 from html.parser import HTMLParser
 
-BUDGETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "source", "budgets")
+BUDGETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source", "budgets")
 BASE_URL = "https://nggovernorsforum.org"
 
 ssl_ctx = ssl.create_default_context()

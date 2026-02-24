@@ -42,7 +42,7 @@ function getArg(name) {
 const DELAY_MS = Number(getArg('--delay') || 300);
 const FORCE_FROM = getArg('--from') ? Number(getArg('--from')) : null;
 
-const OUTPUT_DIR = path.resolve(__dirname, '../source/govspend');
+const OUTPUT_DIR = path.resolve(__dirname, '../../source/govspend');
 const PROGRESS_FILE = path.join(OUTPUT_DIR, '.scrape-progress.json');
 const STATS_FILE = path.join(OUTPUT_DIR, '.scrape-stats.json');
 

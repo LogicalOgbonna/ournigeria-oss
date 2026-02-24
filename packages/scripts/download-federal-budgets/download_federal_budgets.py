@@ -19,7 +19,7 @@ import json
 from pathlib import Path
 from html import unescape
 
-BASE_DIR = Path(__file__).parent.parent / "source" / "federal_budget"
+BASE_DIR = Path(__file__).parent.parent.parent / "source" / "federal_budget"
 BASE_URL = "https://budgetoffice.gov.ng"
 
 # SSL context

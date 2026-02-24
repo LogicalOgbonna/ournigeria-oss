@@ -21,7 +21,7 @@ import ssl
 from html import unescape
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent / "source" / "budgets"
+BASE_DIR = Path(__file__).parent.parent.parent / "source" / "budgets"
 
 # SSL context (some state sites use problematic certs)
 ssl_ctx = ssl.create_default_context()

@@ -16,7 +16,7 @@ import time
 import ssl
 import sys
 
-BUDGETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "source", "budgets")
+BUDGETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source", "budgets")
 PERSON_ROLES = [
     "governor",
     "commissioner_of_finance",

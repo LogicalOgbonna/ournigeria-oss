@@ -4,7 +4,7 @@
   "private": true,
   "description": "Python download and scraping scripts",
   "scripts": {
-    "add-corruption-sources": "infisical run --env dev -- node add-corruption-sources.mjs"
+    "add-corruption-sources": "infisical run --env dev -- node add-corruption-sources/add-corruption-sources.mjs"
   },
   "dependencies": {
     "playwright": "^1.58.2"

@@ -32,7 +32,7 @@ const __dirname = path.dirname(__filename);
 
 // ─── Configuration ─────────────────────────────────────────────
 
-const CORRUPTION_DIR = path.resolve(__dirname, '../source/corruption');
+const CORRUPTION_DIR = path.resolve(__dirname, '../../source/corruption');
 const PROGRESS_FILE = path.resolve(__dirname, '.corruption-sources-progress.json');
 
 const SEARCH_DELAY_MS = 3000;
