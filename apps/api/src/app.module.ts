@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "path";
 import { validateEnv } from "./config/env.validation";
 import { DatabaseModule } from "./database/database.module";
 import { AuthModule } from "./auth/auth.module";
@@ -16,6 +18,10 @@ import { SourcesModule } from "./sources/sources.module";
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, "..", "public"),
+      exclude: ["/api/{*path}", "/docs/{*path}"],
     }),
     DatabaseModule,
     ChartModule,

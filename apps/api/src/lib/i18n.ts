@@ -7,12 +7,12 @@ import type { Language } from "../types";
 const strings = {
   // ─── Equivalents section titles ───
   "equivalents.budget": {
-    en: "What This Budget Could Fund",
-    pcm: "Wetin Dis Budget Fit Fund",
+    en: "What {0} Could Fund",
+    pcm: "Wetin {0} Fit Fund",
   },
   "equivalents.corruption": {
-    en: "What the Looted Funds Could Have Built",
-    pcm: "Wetin Di Money Wey Dem Thief Fit Don Build",
+    en: "What {0} Looted Funds Could Have Built",
+    pcm: "Wetin {0} Money Wey Dem Thief Fit Don Build",
   },
   "equivalents.impact": {
     en: "Real-World Impact",

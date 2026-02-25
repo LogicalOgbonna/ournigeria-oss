@@ -1,17 +1,47 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: ournigeria_db
+    container_name: ournigeria_prod_db
     environment:
       POSTGRES_DB: spending
       POSTGRES_USER: spending
-      POSTGRES_PASSWORD: spending
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./packages/db:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spending -d spending"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        PORT: ${API_PORT:-3000}
+        INFISICAL_TOKEN: ${INFISICAL_TOKEN}
+    ports:
+      - "${API_PORT:-3000}:${API_PORT:-3000}"
+    environment:
+      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
+      - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ingest:
+    build:
+      context: .
+      dockerfile: apps/ingest/Dockerfile
+    ports:
+      - "${INGEST_PORT:-3002}:3002"
+    environment:
+      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
+      - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

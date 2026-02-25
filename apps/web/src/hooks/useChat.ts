@@ -35,6 +35,7 @@ export function useChat(conversationId?: string) {
     string | null
   >(conversationId ?? null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] =
     useState(!!conversationId);
   const [streamingText, setStreamingText] = useState<string>("");
@@ -53,6 +54,10 @@ export function useChat(conversationId?: string) {
       const res = await fetch(apiUrl("/api/conversations"), {
         credentials: "include",
       });
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!res.ok) return;
       const data: ConversationSummary[] = await res.json();
 
@@ -67,32 +72,29 @@ export function useChat(conversationId?: string) {
           updatedAt: new Date(c.updatedAt),
         })),
       );
+      setIsCheckingAuth(false);
     } catch {
       // Silently fail — sidebar just shows empty
+      setIsCheckingAuth(false);
     }
-  }, []);
+  }, [router]);
 
-  // Load the conversation when conversationId is provided
-  const initialized = useRef(false);
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-
-    fetchConversations();
-
-    if (!conversationId) return;
-
-    async function loadInitialConversation() {
+  // Fetch and display a conversation in-place (no navigation)
+  const fetchAndShowConversation = useCallback(
+    async (id: string) => {
+      abortRef.current?.abort();
       setIsLoadingConversation(true);
+      setStreamingText("");
+      setStatusText("");
+
       try {
-        const res = await fetch(
-          apiUrl(`/api/conversations/${conversationId}`),
-          {
-            credentials: "include",
-          },
-        );
+        const res = await fetch(apiUrl(`/api/conversations/${id}`), {
+          credentials: "include",
+        });
         if (!res.ok) {
-          router.replace("/");
+          setMessages([]);
+          setActiveConversationId(null);
+          window.history.replaceState(null, "", "/");
           return;
         }
 
@@ -115,17 +117,53 @@ export function useChat(conversationId?: string) {
         );
 
         setMessages(msgs);
-        setActiveConversationId(conversationId!);
+        setActiveConversationId(id);
       } catch {
-        router.replace("/");
+        setMessages([]);
+        setActiveConversationId(null);
+        window.history.replaceState(null, "", "/");
       } finally {
         setIsLoadingConversation(false);
       }
-    }
+    },
+    [],
+  );
 
-    loadInitialConversation();
+  // Load initial conversation on mount
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    fetchConversations();
+
+    if (conversationId) {
+      fetchAndShowConversation(conversationId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      const id = path !== "/" && path !== "/login" ? path.slice(1) : null;
+
+      if (id) {
+        fetchAndShowConversation(id);
+      } else {
+        abortRef.current?.abort();
+        setMessages([]);
+        setActiveConversationId(null);
+        setStreamingText("");
+        setStatusText("");
+        setIsLoadingConversation(false);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [fetchAndShowConversation]);
 
   const sendMessage = useCallback(
     async (content: string, tool?: ToolId | null, language?: Language) => {
@@ -160,6 +198,10 @@ export function useChat(conversationId?: string) {
           signal: abortController.signal,
         });
 
+        if (res.status === 401) {
+          router.push("/login");
+          return;
+        }
         if (!res.ok || !res.body) {
           throw new Error("Chat request failed");
         }
@@ -192,8 +234,6 @@ export function useChat(conversationId?: string) {
                 case "meta":
                   if (!activeConversationId && event.conversationId) {
                     setActiveConversationId(event.conversationId);
-                    // Update URL without triggering navigation so the
-                    // stream isn't interrupted by a re-mount.
                     window.history.replaceState(
                       null,
                       "",
@@ -259,21 +299,27 @@ export function useChat(conversationId?: string) {
         setIsLoading(false);
       }
     },
-    [activeConversationId, fetchConversations],
+    [activeConversationId, fetchConversations, router],
   );
 
-  // Navigate to a conversation by URL
+  // Navigate to a conversation without full page reload
   const loadConversation = useCallback(
     (id: string) => {
-      router.push(`/${id}`);
+      window.history.pushState(null, "", `/${id}`);
+      fetchAndShowConversation(id);
     },
-    [router],
+    [fetchAndShowConversation],
   );
 
   const startNewChat = useCallback(() => {
     abortRef.current?.abort();
-    router.push("/");
-  }, [router]);
+    setMessages([]);
+    setActiveConversationId(null);
+    setStreamingText("");
+    setStatusText("");
+    setIsLoadingConversation(false);
+    window.history.pushState(null, "", "/");
+  }, []);
 
   const handleDeleteConversation = useCallback(
     async (id: string) => {
@@ -285,18 +331,23 @@ export function useChat(conversationId?: string) {
         fetchConversations();
 
         if (activeConversationId === id) {
-          router.push("/");
+          setMessages([]);
+          setActiveConversationId(null);
+          setStreamingText("");
+          setStatusText("");
+          window.history.pushState(null, "", "/");
         }
       } catch {
         // Failed to delete
       }
     },
-    [activeConversationId, fetchConversations, router],
+    [activeConversationId, fetchConversations],
   );
 
   return {
     messages,
     isLoading,
+    isCheckingAuth,
     isLoadingConversation,
     streamingText,
     statusText,

@@ -75,6 +75,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   const {
     messages,
     isLoading,
+    isCheckingAuth,
     isLoadingConversation,
     streamingText,
     statusText,
@@ -121,6 +122,16 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       });
     }
   }, [isLoading, messages.length]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   const handleSend = (
     message: string,

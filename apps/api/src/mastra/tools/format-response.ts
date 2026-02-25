@@ -25,7 +25,8 @@ export function formatAgentResponse(
   }
 
   if (equivalents.items.length > 0) {
-    equivalents.title = t("equivalents.budget", language);
+    const budgetLabel = extractBudgetLabel(budgetAnalysis);
+    equivalents.title = tf("equivalents.budget", language, budgetLabel);
     response.moneyEquivalents = equivalents;
   }
 
@@ -194,6 +195,40 @@ const AMENITIES = [
   },
 ];
 
+/** Extract a budget context label like "Lagos 2023 Budget" or "2024 Federal Budget" from the analysis text. */
+function extractBudgetLabel(text: string): string {
+  // Try "State YYYY Budget" or "YYYY State Budget"
+  const stateYearPattern =
+    /\b(Lagos|Kano|Rivers|Delta|Ogun|Kaduna|Benue|FCT|Akwa Ibom|Edo|Enugu|Oyo|Imo|Anambra|Abia|Bayelsa|Borno|Cross River|Ebonyi|Ekiti|Gombe|Jigawa|Katsina|Kebbi|Kogi|Kwara|Nasarawa|Niger|Ondo|Osun|Plateau|Sokoto|Taraba|Yobe|Zamfara|Adamawa|Bauchi)\b/i;
+  const yearPattern = /\b(20(?:19|20|21|22|23|24|25|26))\b/;
+
+  const stateMatch = stateYearPattern.exec(text);
+  const yearMatch = yearPattern.exec(text);
+
+  if (stateMatch && yearMatch) {
+    return `${stateMatch[1]} ${yearMatch[1]} Budget`;
+  }
+
+  // Try "Federal Budget YYYY" or "YYYY Federal Budget"
+  const federalPattern = /\b(federal)\s+budget\b/i;
+  if (federalPattern.test(text) && yearMatch) {
+    return `${yearMatch[1]} Federal Budget`;
+  }
+
+  if (stateMatch) return `${stateMatch[1]} Budget`;
+  if (yearMatch) return `${yearMatch[1]} Budget`;
+
+  return "This Budget";
+}
+
+/** Extract the primary official's name from corruption analysis text. */
+function extractOfficialName(text: string): string {
+  const officialPattern =
+    /\b(Yahaya Bello|James Ibori|Diezani Alison-Madueke|Joshua Dariye|Jolly Nyame|Orji Uzor Kalu|Sambo Dasuki|Bukola Saraki|Ayodele Fayose|Rochas Okorocha|Femi Fani-Kayode|Godswill Akpabio|Timipre Sylva|Sule Lamido|Abdulaziz Yari|Stella Oduah|Olisa Metuh|Gabriel Suswam|Bala Mohammed|Lucky Igbinedion|Chimaroke Nnamani|Diepreye Alamieyeseigha|Abdullahi Adamu|Saminu Turaki|Murtala Nyako|Gbenga Daniel|Adebayo Alao-Akala|Rashidi Ladoja|Theodore Orji|Sullivan Chime|Obong Victor Attah|Ahmed Makarfi|Rabiu Kwankwaso|Jonah Jang)\b/i;
+  const match = officialPattern.exec(text);
+  return match ? `${match[1]}'s` : "the";
+}
+
 function extractBudgetAmount(text: string): number {
   const multipliers: Record<string, number> = {
     trillion: 1e12,
@@ -223,7 +258,7 @@ function extractEquivalents(budgetAnalysis: string): EquivalentsResult {
   const amount = extractBudgetAmount(budgetAnalysis);
 
   if (amount === 0) {
-    return { title: "What This Budget Could Fund", amount: 0, items: [] };
+    return { title: "", amount: 0, items: [] };
   }
 
   const computed = AMENITIES.map((a) => ({
@@ -347,7 +382,8 @@ export function formatCorruptionResponse(
   const stats = extractCorruptionStats(corruptionAnalysis);
 
   const amount = extractCorruptionAmount(corruptionAnalysis);
-  const corruptionTitle = t("equivalents.corruption", language);
+  const officialName = extractOfficialName(corruptionAnalysis);
+  const corruptionTitle = tf("equivalents.corruption", language, officialName);
 
   let equivalents: EquivalentsResult = {
     title: corruptionTitle,

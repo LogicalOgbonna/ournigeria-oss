@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@mastra/core", "@mastra/rag", "@mastra/pg"],
+  output: "export",
 };
 
 export default nextConfig;

@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+.git
+*.log
+packages/db
+packages/db_backup
+packages/scripts
+packages/source
+.nx
+.claude
+.devcontainer
+**/*.md
+**/.env
+**/.env.*

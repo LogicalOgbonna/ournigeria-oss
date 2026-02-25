@@ -10,11 +10,59 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
-# TODO: use the container name from the docker-compose.yml file
-CONTAINER="ournigeria_db"
-# TODO: use the database name from environment file
-DB_NAME="spending"
-DB_USER="spending"
+ENV_FILE="${SCRIPT_DIR}/.env"
+
+# ── Load config from .env ────────────────────────────────────
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "ERROR: .env file not found at ${ENV_FILE}"
+  exit 1
+fi
+source "${ENV_FILE}"
+
+CONTAINER="${CONTAINER:?CONTAINER not set in .env}"
+DB_NAME="${DB_NAME:?DB_NAME not set in .env}"
+DB_USER="${DB_USER:?DB_USER not set in .env}"
+PRISMA_SCHEMA="${PRISMA_SCHEMA:?PRISMA_SCHEMA not set in .env}"
+EXTRA_TABLES="${EXTRA_TABLES:-}"
+
+# ── Resolve Prisma schema path ───────────────────────────────
+if [[ "${PRISMA_SCHEMA}" != /* ]]; then
+  PRISMA_SCHEMA="${SCRIPT_DIR}/${PRISMA_SCHEMA}"
+fi
+
+if [[ ! -f "${PRISMA_SCHEMA}" ]]; then
+  echo "ERROR: Prisma schema not found at ${PRISMA_SCHEMA}"
+  exit 1
+fi
+
+# ── Parse table names from Prisma schema ─────────────────────
+# Extracts @@map("table_name") only from model blocks (not enums)
+parse_tables() {
+  awk '
+    /^model /    { in_model = 1 }
+    /^enum /     { in_model = 0 }
+    /^}/         { in_model = 0 }
+    in_model && /@@map\("/ {
+      gsub(/.*@@map\("/, "")
+      gsub(/".*/, "")
+      print
+    }
+  ' "$1"
+}
+
+mapfile -t TABLES < <(parse_tables "${PRISMA_SCHEMA}")
+
+# Append extra tables (pgvector indexes etc.)
+for t in ${EXTRA_TABLES}; do
+  TABLES+=("$t")
+done
+
+if [[ ${#TABLES[@]} -eq 0 ]]; then
+  echo "ERROR: No tables found in Prisma schema"
+  exit 1
+fi
+
+echo "Discovered ${#TABLES[@]} tables from schema"
 
 # ── Validate input ──────────────────────────────────────────
 if [[ $# -lt 1 ]]; then
@@ -44,19 +92,16 @@ echo "Database:   ${DB_NAME}"
 echo "Output:     ${BACKUP_DIR}/${FILENAME}"
 echo ""
 
-# TODO: read through the prisma schema and get the table names
 echo "Key row counts:"
-docker exec "${CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -t -A -c "
-  SELECT 'budget_chunks: ' || count(*) FROM budget_chunks
-  UNION ALL
-  SELECT 'corruption_chunks: ' || count(*) FROM corruption_chunks
-  UNION ALL
-  SELECT 'ingestion_records: ' || count(*) FROM ingestion_records
-  UNION ALL
-  SELECT 'documents: ' || count(*) FROM documents
-  UNION ALL
-  SELECT 'users: ' || count(*) FROM users;
-"
+COUNTS_SQL=""
+for i in "${!TABLES[@]}"; do
+  table="${TABLES[$i]}"
+  if [[ $i -gt 0 ]]; then
+    COUNTS_SQL+=" UNION ALL "
+  fi
+  COUNTS_SQL+="SELECT '${table}: ' || count(*) FROM ${table}"
+done
+docker exec "${CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -t -A -c "${COUNTS_SQL}" 2>/dev/null || echo "  (some tables may not exist yet)"
 echo ""
 
 # ── Run pg_dump inside the container, gzip on host ──────────
