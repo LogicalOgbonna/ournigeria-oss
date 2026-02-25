@@ -2,11 +2,26 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowUp, Loader2, ChevronDown, Sparkles } from "lucide-react";
-import { AVAILABLE_TOOLS, type ToolId } from "@/types";
+import { ArrowUp, Loader2, ChevronDown, Sparkles, Globe } from "lucide-react";
+import { AVAILABLE_TOOLS, type ToolId, type Language } from "@/types";
+
+const LANGUAGE_STORAGE_KEY = "ournigeria-language";
+
+const LANGUAGE_OPTIONS: {
+  id: Language;
+  label: string;
+  description: string;
+}[] = [
+  { id: "en", label: "English", description: "Standard English responses" },
+  {
+    id: "pcm",
+    label: "Pidgin",
+    description: "Nigerian Pidgin English responses",
+  },
+];
 
 interface ChatInputProps {
-  onSend: (message: string, tool?: ToolId | null) => void;
+  onSend: (message: string, tool?: ToolId | null, language?: Language) => void;
   isLoading: boolean;
 }
 
@@ -14,13 +29,28 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (stored === "pcm") return "pcm";
+    }
+    return "en";
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    window.dispatchEvent(new CustomEvent("language-change", { detail: lang }));
+  };
 
   const handleSubmit = () => {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
-    onSend(trimmed, selectedTool);
+    onSend(trimmed, selectedTool, language);
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -43,7 +73,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     }
   }, [input]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -51,6 +81,12 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         !dropdownRef.current.contains(e.target as Node)
       ) {
         setDropdownOpen(false);
+      }
+      if (
+        langDropdownRef.current &&
+        !langDropdownRef.current.contains(e.target as Node)
+      ) {
+        setLangDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -127,6 +163,48 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               )}
             </div>
 
+            {/* Language selector */}
+            <div className="relative" ref={langDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="flex items-center gap-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-700 dark:hover:text-emerald-300"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                <span>
+                  {LANGUAGE_OPTIONS.find((l) => l.id === language)?.label}
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${langDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {langDropdownOpen && (
+                <div className="absolute bottom-full left-0 z-20 mb-1 w-56 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 shadow-lg">
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setLanguage(opt.id);
+                        setLangDropdownOpen(false);
+                      }}
+                      className={`flex w-full flex-col items-start rounded-lg px-3 py-2.5 text-left transition-colors ${
+                        language === opt.id
+                          ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                        {opt.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {selectedTool && (
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
                 Locked to {activeLabel}
@@ -144,8 +222,8 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               placeholder={
                 selectedTool === "corruption"
                   ? "Ask about EFCC corruption cases..."
-                  : selectedTool === "state-budget"
-                    ? "Ask about Nigerian state budgets..."
+                  : selectedTool === "budget"
+                    ? "Ask about Nigerian budgets..."
                     : "Ask about budgets or corruption cases..."
               }
               rows={1}
@@ -166,9 +244,8 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           </div>
         </div>
         <p className="mt-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          NaijaBudget AI analyses real state budget documents and EFCC case
-          files. Data is sourced from official publications but may contain
-          extraction errors.
+          OurNigeria analyses real budget documents and EFCC case files. Data is
+          sourced from official publications but may contain extraction errors.
         </p>
       </div>
     </div>

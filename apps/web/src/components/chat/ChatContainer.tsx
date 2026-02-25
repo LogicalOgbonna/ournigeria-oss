@@ -28,6 +28,17 @@ function StreamingBubble({ text }: { text: string }) {
   );
 }
 
+function StatusBanner({ text }: { text: string }) {
+  return (
+    <div className="animate-fade-in-up flex items-center gap-2 px-4 py-2 md:pl-[3.25rem]">
+      <div className="flex items-center gap-2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        {text}
+      </div>
+    </div>
+  );
+}
+
 function MessagesSkeleton() {
   return (
     <div className="space-y-6 py-4">
@@ -66,6 +77,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     isLoading,
     isLoadingConversation,
     streamingText,
+    statusText,
     sendMessage,
     conversations,
     activeConversationId,
@@ -77,21 +89,45 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const hasMessages = messages.length > 0 || !!streamingText;
 
-  // Auto-scroll to bottom on new messages or streaming text
+  // Scroll once when the user sends a message (so their bubble is visible)
   useEffect(() => {
-    if (scrollRef.current) {
+    if (isLoading && scrollRef.current) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
         behavior: "smooth",
       });
     }
-  }, [messages, isLoading, streamingText]);
+  }, [isLoading]);
+
+  // Scroll to a loaded conversation's bottom once (without animation)
+  useEffect(() => {
+    if (
+      !isLoadingConversation &&
+      conversationId &&
+      messages.length > 0 &&
+      scrollRef.current
+    ) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingConversation]);
+
+  // Scroll once when the final message lands (streaming done)
+  useEffect(() => {
+    if (!isLoading && messages.length > 0 && scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [isLoading, messages.length]);
 
   const handleSend = (
     message: string,
     tool?: import("@/types").ToolId | null,
+    language?: import("@/types").Language,
   ) => {
-    sendMessage(message, tool);
+    sendMessage(message, tool, language);
   };
 
   return (
@@ -115,9 +151,9 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="font-[var(--font-heading)] text-base font-bold text-slate-800 dark:text-slate-100">
-              Naija
+              Our
               <span className="text-emerald-600 dark:text-emerald-400">
-                Budget
+                Nigeria
               </span>
             </span>
           </div>
@@ -163,7 +199,12 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
                 />
               ))}
               {streamingText && <StreamingBubble text={streamingText} />}
-              {isLoading && !streamingText && <TypingIndicator />}
+              {isLoading && !streamingText && (
+                <TypingIndicator statusText={statusText} />
+              )}
+              {isLoading && streamingText && statusText && (
+                <StatusBanner text={statusText} />
+              )}
             </div>
           )}
         </div>

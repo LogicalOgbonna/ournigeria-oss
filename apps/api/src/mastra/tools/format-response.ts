@@ -1,21 +1,22 @@
-import type { AIResponseContent } from '../../types';
+import type { AIResponseContent, SourceCitation, Language } from "../../types";
+import { t, tf } from "../../lib/i18n";
 import {
   extractBarChart,
   extractDonutChart,
   extractTrendLine,
-} from '../../chart/chart-data';
+} from "../../chart/chart-data";
 
 export function formatAgentResponse(
   budgetAnalysis: string,
-  impactAnalysis: string,
+  language: Language = "en",
+  sources?: SourceCitation[],
 ): AIResponseContent {
-  const combinedText = `${budgetAnalysis}\n\n---\n\n**Real-World Impact:**\n${impactAnalysis}`;
   const stats = extractStats(budgetAnalysis);
   const equivalents = extractEquivalents(budgetAnalysis);
-  const followUps = generateFollowUps(budgetAnalysis);
+  const followUps = generateFollowUps(budgetAnalysis, language);
 
   const response: AIResponseContent = {
-    text: combinedText,
+    text: budgetAnalysis,
     followUps,
   };
 
@@ -24,6 +25,7 @@ export function formatAgentResponse(
   }
 
   if (equivalents.items.length > 0) {
+    equivalents.title = t("equivalents.budget", language);
     response.moneyEquivalents = equivalents;
   }
 
@@ -43,6 +45,10 @@ export function formatAgentResponse(
     response.trendLine = trend;
   }
 
+  if (sources && sources.length > 0) {
+    response.sources = sources;
+  }
+
   return response;
 }
 
@@ -50,7 +56,7 @@ interface StatItem {
   label: string;
   value: string;
   subtitle?: string;
-  trend?: 'up' | 'down' | 'neutral';
+  trend?: "up" | "down" | "neutral";
 }
 
 function extractStats(text: string): StatItem[] {
@@ -71,15 +77,15 @@ function extractStats(text: string): StatItem[] {
 
     const startIdx = Math.max(0, match.index - 60);
     const context = text.slice(startIdx, match.index).trim();
-    const label = extractLabel(context) || 'Budget Figure';
+    const label = extractLabel(context) || "Budget Figure";
 
     const normalizedUnit =
-      unit.charAt(0).toUpperCase() === 'T' || unit.toLowerCase() === 'trillion'
-        ? 'T'
-        : unit.charAt(0).toUpperCase() === 'B' ||
-            unit.toLowerCase() === 'billion'
-          ? 'B'
-          : 'M';
+      unit.charAt(0).toUpperCase() === "T" || unit.toLowerCase() === "trillion"
+        ? "T"
+        : unit.charAt(0).toUpperCase() === "B" ||
+            unit.toLowerCase() === "billion"
+          ? "B"
+          : "M";
 
     stats.push({
       label,
@@ -98,7 +104,7 @@ function extractLabel(context: string): string {
   if (lastPart && lastPart.length > 3 && lastPart.length < 50) {
     return lastPart;
   }
-  return '';
+  return "";
 }
 
 interface EquivalentsResult {
@@ -115,76 +121,76 @@ interface EquivalentsResult {
 
 const AMENITIES = [
   {
-    icon: 'school',
-    label: 'Primary Schools',
+    icon: "school",
+    label: "Primary Schools",
     unitCost: 20_000_000,
-    unitLabel: '₦20M per school',
+    unitLabel: "₦20M per school",
   },
   {
-    icon: 'hospital',
-    label: 'Hospitals',
+    icon: "hospital",
+    label: "Hospitals",
     unitCost: 500_000_000,
-    unitLabel: '₦500M per hospital',
+    unitLabel: "₦500M per hospital",
   },
   {
-    icon: 'home',
-    label: 'Houses',
+    icon: "home",
+    label: "Houses",
     unitCost: 25_000_000,
-    unitLabel: '₦25M per house',
+    unitLabel: "₦25M per house",
   },
   {
-    icon: 'road',
-    label: 'Km of Roads',
+    icon: "road",
+    label: "Km of Roads",
     unitCost: 200_000_000,
-    unitLabel: '₦200M per km',
+    unitLabel: "₦200M per km",
   },
   {
-    icon: 'droplet',
-    label: 'Boreholes',
+    icon: "droplet",
+    label: "Boreholes",
     unitCost: 5_000_000,
-    unitLabel: '₦5M per borehole',
+    unitLabel: "₦5M per borehole",
   },
   {
-    icon: 'heart-pulse',
-    label: 'Health Workers (1 yr)',
+    icon: "heart-pulse",
+    label: "Health Workers (1 yr)",
     unitCost: 1_500_000,
-    unitLabel: '₦1.5M annual salary',
+    unitLabel: "₦1.5M annual salary",
   },
   {
-    icon: 'shield',
-    label: 'Police Officers (1 yr)',
+    icon: "shield",
+    label: "Police Officers (1 yr)",
     unitCost: 1_000_000,
-    unitLabel: '₦1M annual salary',
+    unitLabel: "₦1M annual salary",
   },
   {
-    icon: 'swords',
-    label: 'Soldiers (1 yr)',
+    icon: "swords",
+    label: "Soldiers (1 yr)",
     unitCost: 1_200_000,
-    unitLabel: '₦1.2M annual salary',
+    unitLabel: "₦1.2M annual salary",
   },
   {
-    icon: 'book-open',
-    label: 'Lecturers (1 yr)',
+    icon: "book-open",
+    label: "Lecturers (1 yr)",
     unitCost: 3_000_000,
-    unitLabel: '₦3M annual salary',
+    unitLabel: "₦3M annual salary",
   },
   {
-    icon: 'streetlight',
-    label: 'Street Lights',
+    icon: "streetlight",
+    label: "Street Lights",
     unitCost: 350_000,
-    unitLabel: '₦350K per unit',
+    unitLabel: "₦350K per unit",
   },
   {
-    icon: 'graduation',
-    label: 'Scholarships',
+    icon: "graduation",
+    label: "Scholarships",
     unitCost: 500_000,
-    unitLabel: '₦500K per year',
+    unitLabel: "₦500K per year",
   },
   {
-    icon: 'zap',
-    label: 'Solar Power Systems',
+    icon: "zap",
+    label: "Solar Power Systems",
     unitCost: 15_000_000,
-    unitLabel: '₦15M per system',
+    unitLabel: "₦15M per system",
   },
 ];
 
@@ -204,7 +210,7 @@ function extractBudgetAmount(text: string): number {
   let match;
 
   while ((match = pattern.exec(text)) !== null) {
-    const num = parseFloat(match[1].replace(/,/g, ''));
+    const num = parseFloat(match[1].replace(/,/g, ""));
     const unit = match[2].toLowerCase();
     const value = num * (multipliers[unit] ?? 1);
     if (value > largest) largest = value;
@@ -217,7 +223,7 @@ function extractEquivalents(budgetAnalysis: string): EquivalentsResult {
   const amount = extractBudgetAmount(budgetAnalysis);
 
   if (amount === 0) {
-    return { title: 'What This Budget Could Fund', amount: 0, items: [] };
+    return { title: "What This Budget Could Fund", amount: 0, items: [] };
   }
 
   const computed = AMENITIES.map((a) => ({
@@ -229,7 +235,7 @@ function extractEquivalents(budgetAnalysis: string): EquivalentsResult {
   const items = computed.slice(0, 9);
 
   return {
-    title: 'What This Budget Could Fund',
+    title: "What This Budget Could Fund",
     amount,
     items,
   };
@@ -255,7 +261,7 @@ function extractCorruptionAmount(text: string): number {
     /(?:NGN|₦|N)\s*([\d,.]+)\s*(trillion|billion|million|T|B|M)\b/gi;
   let match;
   while ((match = nairaPattern.exec(text)) !== null) {
-    const num = parseFloat(match[1].replace(/,/g, ''));
+    const num = parseFloat(match[1].replace(/,/g, ""));
     const unit = match[2].toLowerCase();
     const value = num * (multipliers[unit] ?? 1);
     if (value > largest) largest = value;
@@ -264,7 +270,7 @@ function extractCorruptionAmount(text: string): number {
   const usdPattern =
     /(?:\$|USD)\s*([\d,.]+)\s*(trillion|billion|million|T|B|M)\b/gi;
   while ((match = usdPattern.exec(text)) !== null) {
-    const num = parseFloat(match[1].replace(/,/g, ''));
+    const num = parseFloat(match[1].replace(/,/g, ""));
     const unit = match[2].toLowerCase();
     const valueNgn = num * (multipliers[unit] ?? 1) * USD_TO_NGN;
     if (valueNgn > largest) largest = valueNgn;
@@ -289,15 +295,15 @@ function extractCorruptionStats(text: string): StatItem[] {
 
     const startIdx = Math.max(0, match.index - 60);
     const context = text.slice(startIdx, match.index).trim();
-    const label = extractLabel(context) || 'Amount Alleged';
+    const label = extractLabel(context) || "Amount Alleged";
 
     const normalizedUnit =
-      unit.charAt(0).toUpperCase() === 'T' || unit.toLowerCase() === 'trillion'
-        ? 'T'
-        : unit.charAt(0).toUpperCase() === 'B' ||
-            unit.toLowerCase() === 'billion'
-          ? 'B'
-          : 'M';
+      unit.charAt(0).toUpperCase() === "T" || unit.toLowerCase() === "trillion"
+        ? "T"
+        : unit.charAt(0).toUpperCase() === "B" ||
+            unit.toLowerCase() === "billion"
+          ? "B"
+          : "M";
 
     stats.push({ label, value: `₦${value}${normalizedUnit}` });
     if (stats.length >= 4) break;
@@ -315,15 +321,14 @@ function extractCorruptionStats(text: string): StatItem[] {
 
       const startIdx = Math.max(0, match.index - 60);
       const context = text.slice(startIdx, match.index).trim();
-      const label = extractLabel(context) || 'Amount Alleged (USD)';
+      const label = extractLabel(context) || "Amount Alleged (USD)";
 
       const normalizedUnit =
-        unit.charAt(0).toUpperCase() === 'B' ||
-        unit.toLowerCase() === 'billion'
-          ? 'B'
-          : unit.charAt(0).toUpperCase() === 'M' ||
-              unit.toLowerCase() === 'million'
-            ? 'M'
+        unit.charAt(0).toUpperCase() === "B" || unit.toLowerCase() === "billion"
+          ? "B"
+          : unit.charAt(0).toUpperCase() === "M" ||
+              unit.toLowerCase() === "million"
+            ? "M"
             : unit.charAt(0).toUpperCase();
 
       stats.push({ label, value: `$${value}${normalizedUnit}` });
@@ -336,15 +341,16 @@ function extractCorruptionStats(text: string): StatItem[] {
 
 export function formatCorruptionResponse(
   corruptionAnalysis: string,
-  impactAnalysis: string,
+  language: Language = "en",
+  sources?: SourceCitation[],
 ): AIResponseContent {
-  const combinedText = `${corruptionAnalysis}\n\n---\n\n**What This Money Could Have Provided for Nigerians:**\n${impactAnalysis}`;
-
   const stats = extractCorruptionStats(corruptionAnalysis);
 
   const amount = extractCorruptionAmount(corruptionAnalysis);
+  const corruptionTitle = t("equivalents.corruption", language);
+
   let equivalents: EquivalentsResult = {
-    title: 'What the Looted Funds Could Have Built',
+    title: corruptionTitle,
     amount: 0,
     items: [],
   };
@@ -358,16 +364,16 @@ export function formatCorruptionResponse(
     computed.sort((a, b) => b.count - a.count);
 
     equivalents = {
-      title: 'What the Looted Funds Could Have Built',
+      title: corruptionTitle,
       amount,
       items: computed.slice(0, 9),
     };
   }
 
-  const followUps = generateCorruptionFollowUps(corruptionAnalysis);
+  const followUps = generateCorruptionFollowUps(corruptionAnalysis, language);
 
   const response: AIResponseContent = {
-    text: combinedText,
+    text: corruptionAnalysis,
     followUps,
   };
 
@@ -384,8 +390,12 @@ export function formatCorruptionResponse(
   if (bar) {
     response.barChart = {
       ...bar,
-      title: bar.title.includes('Sector') ? 'Alleged Amounts' : bar.title,
+      title: bar.title.includes("Sector") ? "Alleged Amounts" : bar.title,
     };
+  }
+
+  if (sources && sources.length > 0) {
+    response.sources = sources;
   }
 
   return response;
@@ -393,6 +403,7 @@ export function formatCorruptionResponse(
 
 function generateCorruptionFollowUps(
   text: string,
+  language: Language = "en",
 ): Array<{ text: string }> {
   const followUps: Array<{ text: string }> = [];
 
@@ -408,32 +419,36 @@ function generateCorruptionFollowUps(
 
   if (officialArr.length > 0) {
     followUps.push({
-      text: `What is the current status of ${officialArr[0]}'s case?`,
+      text: tf("followUp.caseStatus", language, officialArr[0]),
     });
   }
 
   if (officialArr.length >= 2) {
     followUps.push({
-      text: `Compare the cases of ${officialArr[0]} and ${officialArr[1]}`,
+      text: tf(
+        "followUp.compareCases",
+        language,
+        officialArr[0],
+        officialArr[1],
+      ),
     });
   }
 
   if (followUps.length < 3) {
-    followUps.push({
-      text: 'Which governors have been convicted of corruption?',
-    });
+    followUps.push({ text: t("followUp.convictedGovernors", language) });
   }
 
   if (followUps.length < 3) {
-    followUps.push({
-      text: 'What are the largest amounts alleged in EFCC cases?',
-    });
+    followUps.push({ text: t("followUp.largestEFCC", language) });
   }
 
   return followUps.slice(0, 3);
 }
 
-function generateFollowUps(text: string): Array<{ text: string }> {
+function generateFollowUps(
+  text: string,
+  language: Language = "en",
+): Array<{ text: string }> {
   const followUps: Array<{ text: string }> = [];
 
   const statePattern =
@@ -456,7 +471,7 @@ function generateFollowUps(text: string): Array<{ text: string }> {
 
   if (statesArray.length > 0) {
     followUps.push({
-      text: `How does ${statesArray[0]}'s education spending compare to other states?`,
+      text: tf("followUp.educationCompare", language, statesArray[0]),
     });
   }
 
@@ -468,17 +483,77 @@ function generateFollowUps(text: string): Array<{ text: string }> {
 
   if (yearsArray.length > 0 && statesArray.length > 0) {
     followUps.push({
-      text: `Show ${statesArray[0]} budget trends from 2019 to 2025`,
+      text: tf("followUp.budgetTrends", language, statesArray[0]),
     });
   }
 
   if (followUps.length === 0) {
     followUps.push(
-      { text: 'Which state spends the most on education?' },
-      { text: 'Compare Lagos and Kano budgets' },
-      { text: "What could Rivers State's budget buy?" },
+      { text: t("followUp.educationSpending", language) },
+      { text: t("followUp.compareBudgets", language) },
+      { text: t("followUp.budgetBuy", language) },
     );
   }
 
   return followUps.slice(0, 3);
+}
+
+// ─── Impact response formatting ─────────────────────────────
+
+export function formatImpactResponse(
+  impactAnalysis: string,
+  language: Language = "en",
+): AIResponseContent {
+  const budgetAmount = extractBudgetAmount(impactAnalysis);
+  const corruptionAmount = extractCorruptionAmount(impactAnalysis);
+  const amount = Math.max(budgetAmount, corruptionAmount);
+
+  const stats = extractStats(impactAnalysis);
+  if (stats.length === 0) {
+    stats.push(...extractCorruptionStats(impactAnalysis));
+  }
+
+  const impactTitle = t("equivalents.impact", language);
+
+  let equivalents: EquivalentsResult = {
+    title: impactTitle,
+    amount: 0,
+    items: [],
+  };
+
+  if (amount > 0) {
+    const computed = AMENITIES.map((a) => ({
+      ...a,
+      count: Math.floor(amount / a.unitCost),
+    })).filter((a) => a.count > 0);
+
+    computed.sort((a, b) => b.count - a.count);
+
+    equivalents = {
+      title: impactTitle,
+      amount,
+      items: computed.slice(0, 9),
+    };
+  }
+
+  const followUps: Array<{ text: string }> = [
+    { text: t("followUp.compareAnother", language) },
+    { text: t("followUp.educationSpending", language) },
+    { text: t("followUp.biggestCorruption", language) },
+  ];
+
+  const response: AIResponseContent = {
+    text: impactAnalysis,
+    followUps,
+  };
+
+  if (stats.length > 0) {
+    response.stats = stats;
+  }
+
+  if (equivalents.items.length > 0) {
+    response.moneyEquivalents = equivalents;
+  }
+
+  return response;
 }

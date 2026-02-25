@@ -2,9 +2,9 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../database/prisma.service";
 import { routeToAgent } from "../mastra/router";
-import type { ToolId } from "../types";
+import type { ToolId, Language } from "../types";
 
-const VALID_TOOLS: Set<string> = new Set(["state-budget", "corruption"]);
+const VALID_TOOLS: Set<string> = new Set(["budget", "corruption"]);
 
 @Injectable()
 export class ChatService {
@@ -16,6 +16,7 @@ export class ChatService {
     conversationId: string | undefined,
     tool: string | undefined,
     send: (data: Record<string, unknown>) => void,
+    language?: string,
   ) {
     const selectedTool: ToolId | null =
       tool && VALID_TOOLS.has(tool) ? (tool as ToolId) : null;
@@ -79,12 +80,15 @@ export class ChatService {
       .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
       .join("\n\n");
 
+    const validLanguage: Language = language === "pcm" ? "pcm" : "en";
+
     // Route to the correct agent workflow
     const { richContent } = await routeToAgent({
       message,
       historyContext,
       selectedTool,
       send,
+      language: validLanguage,
     });
 
     const processingTimeMs = Date.now() - startTime;

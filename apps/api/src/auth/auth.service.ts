@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import * as crypto from 'crypto';
-import { PrismaService } from '../database/prisma.service';
+import { Injectable } from "@nestjs/common";
+import * as crypto from "crypto";
+import { PrismaService } from "../database/prisma.service";
 
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -41,7 +41,7 @@ export class AuthService {
   generateOTPCode(): string {
     const bytes = crypto.randomBytes(4);
     const num = bytes.readUInt32BE(0) % 1_000_000;
-    return num.toString().padStart(6, '0');
+    return num.toString().padStart(6, "0");
   }
 
   async checkRateLimit(phoneNumber: string): Promise<boolean> {
@@ -89,20 +89,20 @@ export class AuthService {
         verified: false,
         expiresAt: { gt: new Date() },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     if (!otp) {
       return {
         success: false,
-        error: 'No active OTP found. Please request a new code.',
+        error: "No active OTP found. Please request a new code.",
       };
     }
 
     if (otp.attempts >= MAX_ATTEMPTS) {
       return {
         success: false,
-        error: 'Too many attempts. Please request a new code.',
+        error: "Too many attempts. Please request a new code.",
       };
     }
 
@@ -112,16 +112,14 @@ export class AuthService {
       data: { attempts: { increment: 1 } },
     });
 
-    if (
-      !crypto.timingSafeEqual(Buffer.from(otp.code), Buffer.from(code))
-    ) {
+    if (!crypto.timingSafeEqual(Buffer.from(otp.code), Buffer.from(code))) {
       const remaining = MAX_ATTEMPTS - otp.attempts - 1;
       return {
         success: false,
         error:
           remaining > 0
-            ? `Invalid code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
-            : 'Too many attempts. Please request a new code.',
+            ? `Invalid code. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+            : "Too many attempts. Please request a new code.",
       };
     }
 
@@ -144,27 +142,27 @@ export class AuthService {
     const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!phoneNumberId || !accessToken) {
-      console.error('WhatsApp env vars not configured');
-      return { success: false, error: 'WhatsApp not configured' };
+      console.error("WhatsApp env vars not configured");
+      return { success: false, error: "WhatsApp not configured" };
     }
 
-    const to = phoneNumber.replace(/^\+/, '');
+    const to = phoneNumber.replace(/^\+/, "");
 
     try {
       const res = await fetch(
         `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            messaging_product: 'whatsapp',
+            messaging_product: "whatsapp",
             to,
-            type: 'text',
+            type: "text",
             text: {
-              body: `Your NaijaBudget verification code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
+              body: `Your OurNigeria verification code is: ${code}\n\nThis code expires in 10 minutes. Do not share it with anyone.`,
             },
           }),
         },
@@ -172,14 +170,14 @@ export class AuthService {
 
       if (!res.ok) {
         const body = await res.text();
-        console.error('WhatsApp API error:', res.status, body);
-        return { success: false, error: 'Failed to send WhatsApp message' };
+        console.error("WhatsApp API error:", res.status, body);
+        return { success: false, error: "Failed to send WhatsApp message" };
       }
 
       return { success: true };
     } catch (err) {
-      console.error('WhatsApp send error:', err);
-      return { success: false, error: 'Failed to send WhatsApp message' };
+      console.error("WhatsApp send error:", err);
+      return { success: false, error: "Failed to send WhatsApp message" };
     }
   }
 
@@ -190,54 +188,54 @@ export class AuthService {
   ): TelegramVerifyResult | TelegramVerifyError {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
-      return { valid: false, error: 'TELEGRAM_BOT_TOKEN is not configured' };
+      return { valid: false, error: "TELEGRAM_BOT_TOKEN is not configured" };
     }
 
     const hash = params.hash;
     if (!hash) {
-      return { valid: false, error: 'Missing hash parameter' };
+      return { valid: false, error: "Missing hash parameter" };
     }
 
     if (!params.id || !params.auth_date) {
-      return { valid: false, error: 'Missing required parameters' };
+      return { valid: false, error: "Missing required parameters" };
     }
 
     if (!/^\d{1,19}$/.test(params.id)) {
-      return { valid: false, error: 'Invalid Telegram ID format' };
+      return { valid: false, error: "Invalid Telegram ID format" };
     }
 
     const dataCheckString = Object.keys(params)
-      .filter((key) => key !== 'hash')
+      .filter((key) => key !== "hash")
       .sort()
       .map((key) => `${key}=${params[key]}`)
-      .join('\n');
+      .join("\n");
 
-    const secret = crypto.createHash('sha256').update(botToken).digest();
+    const secret = crypto.createHash("sha256").update(botToken).digest();
     const computed = crypto
-      .createHmac('sha256', secret)
+      .createHmac("sha256", secret)
       .update(dataCheckString)
-      .digest('hex');
+      .digest("hex");
 
-    const hashBuffer = Buffer.from(hash, 'hex');
-    const computedBuffer = Buffer.from(computed, 'hex');
+    const hashBuffer = Buffer.from(hash, "hex");
+    const computedBuffer = Buffer.from(computed, "hex");
 
     if (
       hashBuffer.length !== computedBuffer.length ||
       !crypto.timingSafeEqual(hashBuffer, computedBuffer)
     ) {
-      return { valid: false, error: 'Invalid hash' };
+      return { valid: false, error: "Invalid hash" };
     }
 
     const authDate = parseInt(params.auth_date, 10);
     if (isNaN(authDate)) {
-      return { valid: false, error: 'Invalid auth_date' };
+      return { valid: false, error: "Invalid auth_date" };
     }
     const now = Math.floor(Date.now() / 1000);
     if (authDate > now) {
-      return { valid: false, error: 'Invalid auth_date' };
+      return { valid: false, error: "Invalid auth_date" };
     }
     if (now - authDate > MAX_AUTH_AGE_SECONDS) {
-      return { valid: false, error: 'Auth data has expired' };
+      return { valid: false, error: "Auth data has expired" };
     }
 
     return {
@@ -282,14 +280,14 @@ export class AuthService {
   // ─── Phone validation ─────────────────────────────────
 
   normalizeNigerianPhone(raw: string): string {
-    let cleaned = raw.replace(/[\s\-().]/g, '');
+    let cleaned = raw.replace(/[\s\-().]/g, "");
 
-    if (cleaned.startsWith('0') && cleaned.length === 11) {
-      cleaned = '+234' + cleaned.slice(1);
+    if (cleaned.startsWith("0") && cleaned.length === 11) {
+      cleaned = "+234" + cleaned.slice(1);
     }
 
-    if (!cleaned.startsWith('+') && cleaned.startsWith('234')) {
-      cleaned = '+' + cleaned;
+    if (!cleaned.startsWith("+") && cleaned.startsWith("234")) {
+      cleaned = "+" + cleaned;
     }
 
     return cleaned;

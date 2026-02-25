@@ -1,10 +1,11 @@
 {
-  "name": "@naija-budget/scripts",
+  "name": "@ournigeria/scripts",
   "version": "0.0.0",
   "private": true,
   "description": "Python download and scraping scripts",
   "scripts": {
-    "add-corruption-sources": "infisical run --env dev -- node add-corruption-sources/add-corruption-sources.mjs"
+    "add-corruption-sources": "infisical run --env dev -- node add-corruption-sources/add-corruption-sources.mjs",
+    "populate-corruption-cases": "node populate-corruption-cases/populate-corruption-cases.mjs"
   },
   "dependencies": {
     "playwright": "^1.58.2"

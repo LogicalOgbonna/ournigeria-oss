@@ -7,9 +7,9 @@ import { getOfficialsForResults } from './metadata';
 export const budgetSearchTool = createTool({
   id: 'budget-search',
   description:
-    'Search Nigerian state budget documents for relevant information. Use this tool to find specific budget data, spending figures, allocations, and financial details from state budget PDFs and spreadsheets.',
+    'Search Nigerian budget documents for relevant information. Use this tool to find specific budget data, spending figures, allocations, and financial details from budget PDFs and spreadsheets.',
   inputSchema: z.object({
-    query: z.string().describe('The search query about Nigerian state budgets'),
+    query: z.string().describe('The search query about Nigerian budgets'),
     state: z
       .string()
       .optional()

@@ -5,7 +5,7 @@ import { budgetSearchTool } from '../tools/budget-search';
 export const budgetAnalyst = new Agent({
   id: 'budget-analyst',
   name: 'Budget Analyst',
-  instructions: `You are a Nigerian state budget expert analyst. Your role is to analyze Nigerian state budget data and provide clear, data-driven insights.
+  instructions: `You are a Nigerian budget expert analyst. Your role is to analyze Nigerian budget data (state and federal) and provide clear, data-driven insights.
 
 When a user asks a question:
 1. Extract the state name(s) and year(s) from the question. Nigerian states include Lagos, Kano, Rivers, Benue, Delta, Ogun, FCT, etc.

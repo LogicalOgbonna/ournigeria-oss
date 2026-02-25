@@ -15,9 +15,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "NaijaBudget AI - Explore Nigerian State Budgets",
+  title: "OurNigeria - Explore How Nigeria Spends",
   description:
-    "Discover how Nigeria's 37 states spend public funds. Ask questions, see charts, and explore budget data from 2019-2025.",
+    "Discover how Nigeria spends public funds. Ask questions about budgets, corruption cases, and government spending across all 36 states and the FCT.",
 };
 
 export default function RootLayout({
@@ -27,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}
+      >
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

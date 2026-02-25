@@ -4,7 +4,7 @@
   "sourceRoot": "apps/api/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --watch -- nest start --watch",
+      "command": "NODE_OPTIONS='--max-old-space-size=8192' infisical run --env dev --watch -- nest start --watch",
       "options": {
         "cwd": "apps/api"
       }

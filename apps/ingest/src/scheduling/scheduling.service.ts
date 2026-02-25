@@ -12,7 +12,7 @@ export class SchedulingService {
   async weeklyReIngest() {
     this.logger.log('Starting weekly re-ingestion for all pipelines');
 
-    for (const pipeline of ['state-budget', 'corruption', 'federal-budget']) {
+    for (const pipeline of ['budget', 'corruption']) {
       try {
         const result = await this.ingestionService.runPipeline(
           pipeline,

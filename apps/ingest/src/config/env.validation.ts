@@ -8,7 +8,6 @@ export interface EnvConfig {
   OCR_API_KEY: string;
   OCR_MODEL: string;
   VECTOR_INDEX_BUDGET: string;
-  VECTOR_INDEX_FEDERAL_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
 }
 
@@ -22,7 +21,6 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   'OCR_API_KEY',
   'OCR_MODEL',
   'VECTOR_INDEX_BUDGET',
-  'VECTOR_INDEX_FEDERAL_BUDGET',
   'VECTOR_INDEX_CORRUPTION',
 ];
 
@@ -52,7 +50,6 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     OCR_API_KEY: config.OCR_API_KEY as string,
     OCR_MODEL: config.OCR_MODEL as string,
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
-    VECTOR_INDEX_FEDERAL_BUDGET: config.VECTOR_INDEX_FEDERAL_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
   };
 }

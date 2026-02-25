@@ -29,10 +29,13 @@ export default function LoginPage() {
             <Sparkles className="h-8 w-8 text-white" />
           </div>
           <h1 className="font-[var(--font-heading)] text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            Naija<span className="text-emerald-600 dark:text-emerald-400">Budget</span>
+            Our
+            <span className="text-emerald-600 dark:text-emerald-400">
+              Nigeria
+            </span>
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Explore how Nigeria&apos;s 37 states spend your money
+            Explore how Nigeria spends your money
           </p>
         </div>
 

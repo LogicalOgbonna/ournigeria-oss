@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AIResponseContent } from "@/types";
 import { StatHighlight } from "@/components/cards/StatHighlight";
 import { BudgetBarChart } from "@/components/charts/BarChart";
@@ -8,6 +9,8 @@ import { TrendLine } from "@/components/charts/TrendLine";
 import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
 import { Markdown } from "./Markdown";
+import { FileText, ChevronDown, Download } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 interface AIMessageProps {
   content: AIResponseContent;
@@ -15,6 +18,8 @@ interface AIMessageProps {
 }
 
 export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-4">
       {/* Stat Highlights */}
@@ -65,6 +70,53 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
           amount={content.moneyEquivalents.amount}
           items={content.moneyEquivalents.items}
         />
+      )}
+
+      {/* Source Citations — collapsible */}
+      {content.sources && content.sources.length > 0 && (
+        <div>
+          <button
+            onClick={() => setSourcesOpen((o) => !o)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1 text-xs text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+          >
+            <FileText className="h-3 w-3" />
+            <span>
+              {content.sources.length} source
+              {content.sources.length > 1 ? "s" : ""}
+            </span>
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${sourcesOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          {sourcesOpen && (
+            <div className="mt-2 flex flex-col gap-1.5 animate-fade-in max-h-40 overflow-y-auto">
+              {content.sources.map((source, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-800/70 px-2.5 py-1.5 text-xs border border-slate-100 dark:border-slate-700"
+                >
+                  <span className="inline-flex items-center rounded bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-600 dark:text-slate-300 shrink-0">
+                    {source.sourceType}
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200 truncate">
+                    {source.title}
+                  </span>
+                  <a
+                    href={apiUrl(
+                      `/api/sources/download?path=${encodeURIComponent(source.location)}`,
+                    )}
+                    download={source.fileName}
+                    className="shrink-0 ml-auto p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    title={`Download ${source.fileName}`}
+                  >
+                    <Download className="h-3 w-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Follow-up Suggestions */}

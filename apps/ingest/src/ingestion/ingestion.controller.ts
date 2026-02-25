@@ -25,7 +25,7 @@ export class IngestionController {
       type: 'object',
       required: ['pipeline'],
       properties: {
-        pipeline: { type: 'string', example: 'federal-budget' },
+        pipeline: { type: 'string', example: 'budget' },
         concurrency: { type: 'number', example: 5 },
       },
     },
@@ -48,7 +48,7 @@ export class IngestionController {
       type: 'object',
       required: ['pipeline', 'files'],
       properties: {
-        pipeline: { type: 'string', example: 'federal-budget' },
+        pipeline: { type: 'string', example: 'budget' },
         metadata: { type: 'string' },
         files: {
           type: 'array',
@@ -98,7 +98,7 @@ export class IngestionController {
 
   @Get('status')
   @ApiOperation({ summary: 'Get ingestion status' })
-  @ApiQuery({ name: 'pipeline', required: false, example: 'federal-budget' })
+  @ApiQuery({ name: 'pipeline', required: false, example: 'budget' })
   async status(@Query('pipeline') pipeline?: string) {
     return this.ingestionService.getStatus(pipeline);
   }

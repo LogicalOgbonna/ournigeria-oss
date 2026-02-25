@@ -9,6 +9,7 @@ import { ConversationsModule } from "./conversations/conversations.module";
 import { ChatModule } from "./chat/chat.module";
 import { ChartModule } from "./chart/chart.module";
 import { TelegramModule } from "./telegram/telegram.module";
+import { SourcesModule } from "./sources/sources.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TelegramModule } from "./telegram/telegram.module";
     ConversationsModule,
     ChatModule,
     TelegramModule,
+    SourcesModule,
   ],
   providers: [
     {

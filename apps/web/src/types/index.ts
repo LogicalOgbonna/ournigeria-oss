@@ -46,6 +46,18 @@ export interface BudgetOfficials {
   officials: BudgetOfficial[];
 }
 
+export interface SourceCitation {
+  title: string;
+  fileName: string;
+  location: string;
+  sourceType: string;
+  state?: string;
+  year?: number;
+  official?: string;
+  section?: string;
+  score: number;
+}
+
 export interface FollowUpSuggestion {
   text: string;
 }
@@ -77,6 +89,7 @@ export interface AIResponseContent {
     state2: { name: string; budget: number; perCapita: number };
   };
   officials?: BudgetOfficials[];
+  sources?: SourceCitation[];
   followUps: FollowUpSuggestion[];
 }
 
@@ -88,7 +101,9 @@ export interface Message {
   timestamp: Date;
 }
 
-export type ToolId = "state-budget" | "corruption";
+export type ToolId = "budget" | "corruption" | "impact" | "general";
+
+export type Language = "en" | "pcm";
 
 export interface ToolOption {
   id: ToolId;
@@ -98,14 +113,16 @@ export interface ToolOption {
 
 export const AVAILABLE_TOOLS: ToolOption[] = [
   {
-    id: "state-budget",
-    label: "State Budget",
-    description: "Analyze Nigerian state budget documents — spending, allocations, and trends",
+    id: "budget",
+    label: "Budget",
+    description:
+      "Analyze Nigerian state and federal budget documents — spending, allocations, and trends",
   },
   {
     id: "corruption",
     label: "Corruption Tracker",
-    description: "Search EFCC corruption cases — charges, outcomes, and financial details",
+    description:
+      "Search EFCC corruption cases — charges, outcomes, and financial details",
   },
 ];
 

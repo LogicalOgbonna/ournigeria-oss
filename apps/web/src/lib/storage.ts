@@ -1,6 +1,6 @@
 import { Conversation, Message } from "@/types";
 
-const STORAGE_KEY = "naija-budget-conversations";
+const STORAGE_KEY = "ournigeria-conversations";
 
 export function generateTitle(messages: Message[]): string {
   const firstUserMessage = messages.find((m) => m.role === "user");
@@ -36,7 +36,7 @@ export function getConversations(): Conversation[] {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return [];
   return deserialize(raw).sort(
-    (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+    (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
   );
 }
 

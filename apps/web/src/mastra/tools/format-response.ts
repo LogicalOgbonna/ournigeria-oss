@@ -1,4 +1,5 @@
-import type { AIResponseContent } from "@/types";
+import type { AIResponseContent, SourceCitation, Language } from "@/types";
+import { t, tf } from "@/lib/i18n";
 
 /**
  * Formats the combined agent responses into the AIResponseContent shape
@@ -6,11 +7,9 @@ import type { AIResponseContent } from "@/types";
  */
 export function formatAgentResponse(
   budgetAnalysis: string,
-  impactAnalysis: string,
+  language: Language = "en",
+  sources?: SourceCitation[],
 ): AIResponseContent {
-  // Combine both analyses into a cohesive response
-  const combinedText = `${budgetAnalysis}\n\n---\n\n**Real-World Impact:**\n${impactAnalysis}`;
-
   // Extract monetary values for stats
   const stats = extractStats(budgetAnalysis);
 
@@ -18,10 +17,10 @@ export function formatAgentResponse(
   const equivalents = extractEquivalents(budgetAnalysis);
 
   // Generate follow-up suggestions based on content
-  const followUps = generateFollowUps(budgetAnalysis);
+  const followUps = generateFollowUps(budgetAnalysis, language);
 
   const response: AIResponseContent = {
-    text: combinedText,
+    text: budgetAnalysis,
     followUps,
   };
 
@@ -30,7 +29,12 @@ export function formatAgentResponse(
   }
 
   if (equivalents.items.length > 0) {
+    equivalents.title = t("equivalents.budget", language);
     response.moneyEquivalents = equivalents;
+  }
+
+  if (sources && sources.length > 0) {
+    response.sources = sources;
   }
 
   return response;
@@ -68,7 +72,7 @@ function extractStats(text: string): StatItem[] {
       unit.charAt(0).toUpperCase() === "T" || unit.toLowerCase() === "trillion"
         ? "T"
         : unit.charAt(0).toUpperCase() === "B" ||
-          unit.toLowerCase() === "billion"
+            unit.toLowerCase() === "billion"
           ? "B"
           : "M";
 
@@ -301,7 +305,8 @@ function extractCorruptionStats(text: string): StatItem[] {
     const normalizedUnit =
       unit.charAt(0).toUpperCase() === "T" || unit.toLowerCase() === "trillion"
         ? "T"
-        : unit.charAt(0).toUpperCase() === "B" || unit.toLowerCase() === "billion"
+        : unit.charAt(0).toUpperCase() === "B" ||
+            unit.toLowerCase() === "billion"
           ? "B"
           : "M";
 
@@ -327,7 +332,8 @@ function extractCorruptionStats(text: string): StatItem[] {
       const normalizedUnit =
         unit.charAt(0).toUpperCase() === "B" || unit.toLowerCase() === "billion"
           ? "B"
-          : unit.charAt(0).toUpperCase() === "M" || unit.toLowerCase() === "million"
+          : unit.charAt(0).toUpperCase() === "M" ||
+              unit.toLowerCase() === "million"
             ? "M"
             : unit.charAt(0).toUpperCase();
 
@@ -344,15 +350,16 @@ function extractCorruptionStats(text: string): StatItem[] {
  */
 export function formatCorruptionResponse(
   corruptionAnalysis: string,
-  impactAnalysis: string,
+  language: Language = "en",
+  sources?: SourceCitation[],
 ): AIResponseContent {
-  const combinedText = `${corruptionAnalysis}\n\n---\n\n**What This Money Could Have Provided for Nigerians:**\n${impactAnalysis}`;
-
   const stats = extractCorruptionStats(corruptionAnalysis);
 
   const amount = extractCorruptionAmount(corruptionAnalysis);
+  const corruptionTitle = t("equivalents.corruption", language);
+
   let equivalents: EquivalentsResult = {
-    title: "What the Looted Funds Could Have Built",
+    title: corruptionTitle,
     amount: 0,
     items: [],
   };
@@ -366,16 +373,16 @@ export function formatCorruptionResponse(
     computed.sort((a, b) => b.count - a.count);
 
     equivalents = {
-      title: "What the Looted Funds Could Have Built",
+      title: corruptionTitle,
       amount,
       items: computed.slice(0, 9),
     };
   }
 
-  const followUps = generateCorruptionFollowUps(corruptionAnalysis);
+  const followUps = generateCorruptionFollowUps(corruptionAnalysis, language);
 
   const response: AIResponseContent = {
-    text: combinedText,
+    text: corruptionAnalysis,
     followUps,
   };
 
@@ -387,11 +394,16 @@ export function formatCorruptionResponse(
     response.moneyEquivalents = equivalents;
   }
 
+  if (sources && sources.length > 0) {
+    response.sources = sources;
+  }
+
   return response;
 }
 
 function generateCorruptionFollowUps(
   text: string,
+  language: Language = "en",
 ): Array<{ text: string }> {
   const followUps: Array<{ text: string }> = [];
 
@@ -407,26 +419,27 @@ function generateCorruptionFollowUps(
 
   if (officialArr.length > 0) {
     followUps.push({
-      text: `What is the current status of ${officialArr[0]}'s case?`,
+      text: tf("followUp.caseStatus", language, officialArr[0]),
     });
   }
 
   if (officialArr.length >= 2) {
     followUps.push({
-      text: `Compare the cases of ${officialArr[0]} and ${officialArr[1]}`,
+      text: tf(
+        "followUp.compareCases",
+        language,
+        officialArr[0],
+        officialArr[1],
+      ),
     });
   }
 
   if (followUps.length < 3) {
-    followUps.push({
-      text: "Which governors have been convicted of corruption?",
-    });
+    followUps.push({ text: t("followUp.convictedGovernors", language) });
   }
 
   if (followUps.length < 3) {
-    followUps.push({
-      text: "What are the largest amounts alleged in EFCC cases?",
-    });
+    followUps.push({ text: t("followUp.largestEFCC", language) });
   }
 
   return followUps.slice(0, 3);
@@ -434,7 +447,10 @@ function generateCorruptionFollowUps(
 
 // ─── Budget response follow-ups ─────────────────────────────
 
-function generateFollowUps(text: string): Array<{ text: string }> {
+function generateFollowUps(
+  text: string,
+  language: Language = "en",
+): Array<{ text: string }> {
   const followUps: Array<{ text: string }> = [];
 
   const statePattern =
@@ -457,7 +473,7 @@ function generateFollowUps(text: string): Array<{ text: string }> {
 
   if (statesArray.length > 0) {
     followUps.push({
-      text: `How does ${statesArray[0]}'s education spending compare to other states?`,
+      text: tf("followUp.educationCompare", language, statesArray[0]),
     });
   }
 
@@ -469,17 +485,77 @@ function generateFollowUps(text: string): Array<{ text: string }> {
 
   if (yearsArray.length > 0 && statesArray.length > 0) {
     followUps.push({
-      text: `Show ${statesArray[0]} budget trends from 2019 to 2025`,
+      text: tf("followUp.budgetTrends", language, statesArray[0]),
     });
   }
 
   if (followUps.length === 0) {
     followUps.push(
-      { text: "Which state spends the most on education?" },
-      { text: "Compare Lagos and Kano budgets" },
-      { text: "What could Rivers State's budget buy?" },
+      { text: t("followUp.educationSpending", language) },
+      { text: t("followUp.compareBudgets", language) },
+      { text: t("followUp.budgetBuy", language) },
     );
   }
 
   return followUps.slice(0, 3);
+}
+
+// ─── Impact response formatting ─────────────────────────────
+
+export function formatImpactResponse(
+  impactAnalysis: string,
+  language: Language = "en",
+): AIResponseContent {
+  const budgetAmount = extractBudgetAmount(impactAnalysis);
+  const corruptionAmount = extractCorruptionAmount(impactAnalysis);
+  const amount = Math.max(budgetAmount, corruptionAmount);
+
+  const stats = extractStats(impactAnalysis);
+  if (stats.length === 0) {
+    stats.push(...extractCorruptionStats(impactAnalysis));
+  }
+
+  const impactTitle = t("equivalents.impact", language);
+
+  let equivalents: EquivalentsResult = {
+    title: impactTitle,
+    amount: 0,
+    items: [],
+  };
+
+  if (amount > 0) {
+    const computed = AMENITIES.map((a) => ({
+      ...a,
+      count: Math.floor(amount / a.unitCost),
+    })).filter((a) => a.count > 0);
+
+    computed.sort((a, b) => b.count - a.count);
+
+    equivalents = {
+      title: impactTitle,
+      amount,
+      items: computed.slice(0, 9),
+    };
+  }
+
+  const followUps: Array<{ text: string }> = [
+    { text: t("followUp.compareAnother", language) },
+    { text: t("followUp.educationSpending", language) },
+    { text: t("followUp.biggestCorruption", language) },
+  ];
+
+  const response: AIResponseContent = {
+    text: impactAnalysis,
+    followUps,
+  };
+
+  if (stats.length > 0) {
+    response.stats = stats;
+  }
+
+  if (equivalents.items.length > 0) {
+    response.moneyEquivalents = equivalents;
+  }
+
+  return response;
 }

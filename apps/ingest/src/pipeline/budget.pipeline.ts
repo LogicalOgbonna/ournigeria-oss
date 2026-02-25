@@ -12,8 +12,8 @@ import { DiscoveredFile } from './pipeline.types';
 const BUDGETS_DIR = path.resolve(__dirname, '../../../../packages/source/budgets');
 
 @Injectable()
-export class StateBudgetPipeline extends PipelineBase {
-  protected readonly logger = new Logger(StateBudgetPipeline.name);
+export class BudgetPipeline extends PipelineBase {
+  protected readonly logger = new Logger(BudgetPipeline.name);
 
   constructor(
     config: ConfigService,
@@ -25,7 +25,7 @@ export class StateBudgetPipeline extends PipelineBase {
   }
 
   get pipelineType(): string {
-    return 'state-budget';
+    return 'budget';
   }
 
   get indexName(): string {
@@ -67,6 +67,7 @@ export class StateBudgetPipeline extends PipelineBase {
           else if (ext === '.docx' || ext === '.doc') sourceType = 'docx';
           else if (ext === '.json' && filename !== 'download_manifest.json')
             sourceType = 'json';
+          else if (ext === '.md') sourceType = 'md';
 
           if (sourceType) {
             files.push({
@@ -109,7 +110,7 @@ export class StateBudgetPipeline extends PipelineBase {
   protected getExtractContext(file: DiscoveredFile): ExtractContext | undefined {
     if (file.sourceType === 'json') {
       const { state, year } = file.identity as { state: string; year: number };
-      return { header: `${state} State ${year} Budget Metadata` };
+      return { header: `${state} ${year} Budget Metadata` };
     }
     return undefined;
   }

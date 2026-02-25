@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: naija_budget_db
+    container_name: ournigeria_db
     environment:
       POSTGRES_DB: spending
       POSTGRES_USER: spending

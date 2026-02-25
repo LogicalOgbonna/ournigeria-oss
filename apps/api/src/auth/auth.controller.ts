@@ -202,7 +202,7 @@ export class AuthController {
         this.telegramApi
           .sendMessage(
             chatId,
-            `Welcome to NaijaBudget, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian state budgets and EFCC corruption cases.\n\nSend /help to see available commands.`,
+            `Welcome to OurNigeria, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian budgets, government spending, and EFCC corruption cases.\n\nSend /help to see available commands.`,
           )
           .catch((err) =>
             console.error("Failed to send Telegram welcome:", err),

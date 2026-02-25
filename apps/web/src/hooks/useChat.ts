@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Message, AIResponseContent, ToolId } from "@/types";
+import { Message, AIResponseContent, ToolId, Language } from "@/types";
 import { apiUrl } from "@/lib/api";
 
 interface ConversationSummary {
@@ -35,10 +35,10 @@ export function useChat(conversationId?: string) {
     string | null
   >(conversationId ?? null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingConversation, setIsLoadingConversation] = useState(
-    !!conversationId,
-  );
+  const [isLoadingConversation, setIsLoadingConversation] =
+    useState(!!conversationId);
   const [streamingText, setStreamingText] = useState<string>("");
+  const [statusText, setStatusText] = useState<string>("");
   const idCounter = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -85,9 +85,12 @@ export function useChat(conversationId?: string) {
     async function loadInitialConversation() {
       setIsLoadingConversation(true);
       try {
-        const res = await fetch(apiUrl(`/api/conversations/${conversationId}`), {
-          credentials: "include",
-        });
+        const res = await fetch(
+          apiUrl(`/api/conversations/${conversationId}`),
+          {
+            credentials: "include",
+          },
+        );
         if (!res.ok) {
           router.replace("/");
           return;
@@ -125,7 +128,7 @@ export function useChat(conversationId?: string) {
   }, []);
 
   const sendMessage = useCallback(
-    async (content: string, tool?: ToolId | null) => {
+    async (content: string, tool?: ToolId | null, language?: Language) => {
       // Abort any in-flight stream
       abortRef.current?.abort();
       const abortController = new AbortController();
@@ -141,6 +144,7 @@ export function useChat(conversationId?: string) {
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
       setStreamingText("");
+      setStatusText("");
 
       try {
         const res = await fetch(apiUrl("/api/chat"), {
@@ -151,6 +155,7 @@ export function useChat(conversationId?: string) {
             message: content,
             conversationId: activeConversationId,
             ...(tool && { tool }),
+            ...(language && language !== "en" && { language }),
           }),
           signal: abortController.signal,
         });
@@ -200,13 +205,16 @@ export function useChat(conversationId?: string) {
                 case "text":
                   fullText += event.content;
                   setStreamingText(fullText);
+                  setStatusText("");
                   break;
 
                 case "status":
+                  setStatusText(event.content ?? "");
                   break;
 
                 case "done":
                   richContent = event.richContent;
+                  setStatusText("");
                   break;
 
                 case "error":
@@ -230,6 +238,7 @@ export function useChat(conversationId?: string) {
 
         setMessages((prev) => [...prev, assistantMessage]);
         setStreamingText("");
+        setStatusText("");
 
         // Refresh conversation list
         fetchConversations();
@@ -245,6 +254,7 @@ export function useChat(conversationId?: string) {
         };
         setMessages((prev) => [...prev, errorMessage]);
         setStreamingText("");
+        setStatusText("");
       } finally {
         setIsLoading(false);
       }
@@ -289,6 +299,7 @@ export function useChat(conversationId?: string) {
     isLoading,
     isLoadingConversation,
     streamingText,
+    statusText,
     sendMessage,
     conversations,
     activeConversationId,

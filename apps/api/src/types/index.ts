@@ -28,7 +28,7 @@ export interface StatHighlightData {
   label: string;
   value: string;
   subtitle?: string;
-  trend?: 'up' | 'down' | 'neutral';
+  trend?: "up" | "down" | "neutral";
   trendValue?: string;
 }
 
@@ -44,6 +44,18 @@ export interface BudgetOfficials {
   state: string;
   year: number;
   officials: BudgetOfficial[];
+}
+
+export interface SourceCitation {
+  title: string;
+  fileName: string;
+  location: string;
+  sourceType: string;
+  state?: string;
+  year?: number;
+  official?: string;
+  section?: string;
+  score: number;
 }
 
 export interface FollowUpSuggestion {
@@ -77,7 +89,10 @@ export interface AIResponseContent {
     state2: { name: string; budget: number; perCapita: number };
   };
   officials?: BudgetOfficials[];
+  sources?: SourceCitation[];
   followUps: FollowUpSuggestion[];
 }
 
-export type ToolId = 'state-budget' | 'corruption';
+export type ToolId = "budget" | "corruption" | "impact" | "general";
+
+export type Language = "en" | "pcm";

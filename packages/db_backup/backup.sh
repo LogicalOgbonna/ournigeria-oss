@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
 # TODO: use the container name from the docker-compose.yml file
-CONTAINER="naija_budget_db"
+CONTAINER="ournigeria_db"
 # TODO: use the database name from environment file
 DB_NAME="spending"
 DB_USER="spending"

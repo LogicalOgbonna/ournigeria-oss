@@ -18,8 +18,10 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("Naija Budget API")
-    .setDescription("Budget analysis and chat API")
+    .setTitle("OurNigeria API")
+    .setDescription(
+      "Budget analysis, corruption tracking, and government spending API",
+    )
     .setVersion("0.1.0")
     .addCookieAuth("nb_uid")
     .build();
