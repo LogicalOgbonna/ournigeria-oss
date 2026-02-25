@@ -80,3 +80,18 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
     - Support commands (e.g. `/budget Ebonyi 2025`, `/corruption Yari`) as well as freeform text queries
   - Both channels should share the same backend query pipeline as the web chat — a unified API layer that WhatsApp, Telegram, and the web frontend all call into
   - Conversation history should be stored per-user across channels so context is preserved regardless of which platform they use
+- [ ] Shareable public chat conversations
+  - All conversations are **private by default** — only the owner can see them
+  - A user can make a **specific conversation** public via a "Share" action (e.g. toggle or button in the chat UI)
+  - Users **cannot** make their entire chat history public — sharing is per-conversation only
+  - When a conversation is set to public, **all messages** within it become publicly accessible (no per-message visibility control)
+  - Public conversations get a **shareable URL** that anyone can view without authentication
+  - **SEO-optimized public chat pages**:
+    - Generate a slug from the conversation topic/first question (e.g. `/chat/ebonyi-2025-budget-analysis`)
+    - Auto-generate **Open Graph images** (og:image) for each public chat — include the conversation title, key stats, or a summary visual so link previews on Twitter/WhatsApp/Telegram look compelling
+    - Set proper meta tags: `og:title`, `og:description`, `og:image`, `twitter:card`, canonical URL
+    - Server-side render (SSR) the public chat page so search engines can crawl and index the content
+    - Use structured data (JSON-LD) where applicable (e.g. `FAQPage` schema if the chat is Q&A-style)
+  - The owner can **revoke** public access at any time, turning the conversation back to private (the public URL should return a 404 or "conversation not found" page)
+  - Database changes: add a `visibility` column (`private` | `public`) and a `slug` column to the conversations table
+  - API: expose endpoints to toggle conversation visibility and retrieve public conversations by slug
