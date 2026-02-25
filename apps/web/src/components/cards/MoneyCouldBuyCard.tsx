@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import { MoneyEquivalent } from "@/types";
 import { formatNaira, formatNumber } from "@/lib/format";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   Shield,
   Swords,
   BookOpen,
+  Download,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -91,13 +93,52 @@ export function MoneyCouldBuyCard({
   amount,
   items,
 }: MoneyCouldBuyCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    if (!cardRef.current) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 3,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `${title.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Failed to download image:", err);
+    } finally {
+      setDownloading(false);
+    }
+  }, [title]);
+
   return (
-    <Card className="animate-scale-in overflow-hidden border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-0">
-      <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          What {formatNaira(amount)} could fund
-        </p>
+    <Card
+      ref={cardRef}
+      className="animate-scale-in overflow-hidden border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800 p-0"
+    >
+      <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3 flex items-start justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {title}
+          </h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            What {formatNaira(amount)} could fund
+          </p>
+        </div>
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          className="shrink-0 ml-3 mt-0.5 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          title="Download as image"
+        >
+          <Download
+            className={`h-4 w-4 ${downloading ? "animate-pulse" : ""}`}
+          />
+        </button>
       </div>
       <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-3">
         {items.map((item, i) => {
@@ -114,7 +155,9 @@ export function MoneyCouldBuyCard({
               <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
                 <AnimatedCount target={item.count} />
               </p>
-              <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{item.label}</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                {item.label}
+              </p>
               <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
                 {item.unitLabel}
               </p>
