@@ -5,45 +5,62 @@ import {
   extractDonutChart,
   extractTrendLine,
 } from "../../chart/chart-data";
+import { extractChartBlocks } from "../../chart/chart-parser";
 
 export function formatAgentResponse(
   budgetAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
 ): AIResponseContent {
-  const stats = extractStats(budgetAnalysis);
-  const equivalents = extractEquivalents(budgetAnalysis);
-  const followUps = generateFollowUps(budgetAnalysis, language);
+  // Try to parse structured ```chart``` blocks from agent output first
+  const { text: cleanedText, charts } = extractChartBlocks(budgetAnalysis);
+  const hasStructuredCharts = charts.length > 0;
+
+  // Use cleaned text (chart blocks removed) for display and regex extraction
+  const displayText = hasStructuredCharts ? cleanedText : budgetAnalysis;
+
+  // Use cleaned text for regex extraction to avoid picking up raw numbers from chart JSON
+  const textForExtraction = hasStructuredCharts ? cleanedText : budgetAnalysis;
+
+  const stats = extractStats(textForExtraction);
+  const equivalents = extractEquivalents(textForExtraction);
+  const followUps = generateFollowUps(textForExtraction, language);
 
   const response: AIResponseContent = {
-    text: budgetAnalysis,
+    text: displayText,
     followUps,
   };
+
+  if (hasStructuredCharts) {
+    response.charts = charts;
+  }
 
   if (stats.length > 0) {
     response.stats = stats;
   }
 
   if (equivalents.items.length > 0) {
-    const budgetLabel = extractBudgetLabel(budgetAnalysis);
+    const budgetLabel = extractBudgetLabel(textForExtraction);
     equivalents.title = tf("equivalents.budget", language, budgetLabel);
     response.moneyEquivalents = equivalents;
   }
 
-  // Populate chart data from agent analysis text
-  const donut = extractDonutChart(budgetAnalysis);
-  if (donut) {
-    response.donutChart = donut;
-  } else {
-    const bar = extractBarChart(budgetAnalysis);
-    if (bar) {
-      response.barChart = bar;
+  // Legacy chart extraction — fallback when no structured charts found
+  if (!hasStructuredCharts) {
+    const donut = extractDonutChart(budgetAnalysis);
+    if (donut) {
+      response.donutChart = donut;
+    } else {
+      const bar = extractBarChart(budgetAnalysis);
+      if (bar) {
+        response.barChart = bar;
+      }
     }
-  }
 
-  const trend = extractTrendLine(budgetAnalysis);
-  if (trend) {
-    response.trendLine = trend;
+    const trend = extractTrendLine(budgetAnalysis);
+    if (trend) {
+      response.trendLine = trend;
+    }
   }
 
   if (sources && sources.length > 0) {
@@ -379,10 +396,15 @@ export function formatCorruptionResponse(
   language: Language = "en",
   sources?: SourceCitation[],
 ): AIResponseContent {
-  const stats = extractCorruptionStats(corruptionAnalysis);
+  const { text: cleanedText, charts } = extractChartBlocks(corruptionAnalysis);
+  const hasStructuredCharts = charts.length > 0;
+  const displayText = hasStructuredCharts ? cleanedText : corruptionAnalysis;
+  const textForExtraction = hasStructuredCharts ? cleanedText : corruptionAnalysis;
 
-  const amount = extractCorruptionAmount(corruptionAnalysis);
-  const officialName = extractOfficialName(corruptionAnalysis);
+  const stats = extractCorruptionStats(textForExtraction);
+
+  const amount = extractCorruptionAmount(textForExtraction);
+  const officialName = extractOfficialName(textForExtraction);
   const corruptionTitle = tf("equivalents.corruption", language, officialName);
 
   let equivalents: EquivalentsResult = {
@@ -406,12 +428,16 @@ export function formatCorruptionResponse(
     };
   }
 
-  const followUps = generateCorruptionFollowUps(corruptionAnalysis, language);
+  const followUps = generateCorruptionFollowUps(textForExtraction, language);
 
   const response: AIResponseContent = {
-    text: corruptionAnalysis,
+    text: displayText,
     followUps,
   };
+
+  if (hasStructuredCharts) {
+    response.charts = charts;
+  }
 
   if (stats.length > 0) {
     response.stats = stats;
@@ -421,13 +447,15 @@ export function formatCorruptionResponse(
     response.moneyEquivalents = equivalents;
   }
 
-  // Populate chart data from corruption analysis text
-  const bar = extractBarChart(corruptionAnalysis);
-  if (bar) {
-    response.barChart = {
-      ...bar,
-      title: bar.title.includes("Sector") ? "Alleged Amounts" : bar.title,
-    };
+  // Legacy chart extraction — fallback when no structured charts found
+  if (!hasStructuredCharts) {
+    const bar = extractBarChart(corruptionAnalysis);
+    if (bar) {
+      response.barChart = {
+        ...bar,
+        title: bar.title.includes("Sector") ? "Alleged Amounts" : bar.title,
+      };
+    }
   }
 
   if (sources && sources.length > 0) {
@@ -540,13 +568,20 @@ export function formatImpactResponse(
   impactAnalysis: string,
   language: Language = "en",
 ): AIResponseContent {
-  const budgetAmount = extractBudgetAmount(impactAnalysis);
-  const corruptionAmount = extractCorruptionAmount(impactAnalysis);
+  const { text: cleanedText, charts } = extractChartBlocks(impactAnalysis);
+  const hasStructuredCharts = charts.length > 0;
+  const displayText = hasStructuredCharts ? cleanedText : impactAnalysis;
+
+  // Use cleaned text for regex extraction to avoid picking up raw numbers from chart JSON
+  const textForExtraction = hasStructuredCharts ? cleanedText : impactAnalysis;
+
+  const budgetAmount = extractBudgetAmount(textForExtraction);
+  const corruptionAmount = extractCorruptionAmount(textForExtraction);
   const amount = Math.max(budgetAmount, corruptionAmount);
 
-  const stats = extractStats(impactAnalysis);
+  const stats = extractStats(textForExtraction);
   if (stats.length === 0) {
-    stats.push(...extractCorruptionStats(impactAnalysis));
+    stats.push(...extractCorruptionStats(textForExtraction));
   }
 
   const impactTitle = t("equivalents.impact", language);
@@ -579,9 +614,13 @@ export function formatImpactResponse(
   ];
 
   const response: AIResponseContent = {
-    text: impactAnalysis,
+    text: displayText,
     followUps,
   };
+
+  if (hasStructuredCharts) {
+    response.charts = charts;
+  }
 
   if (stats.length > 0) {
     response.stats = stats;

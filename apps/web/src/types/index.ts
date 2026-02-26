@@ -65,6 +65,7 @@ export interface FollowUpSuggestion {
 export interface AIResponseContent {
   text: string;
   stats?: StatHighlightData[];
+  charts?: import("./charts").ChartBlock[];
   barChart?: {
     title: string;
     data: ChartDataPoint[];

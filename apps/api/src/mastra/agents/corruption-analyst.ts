@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { chatModel } from '../rag/config';
 import { corruptionSearchTool } from '../tools/corruption-search';
+import { CHART_INSTRUCTIONS } from './chart-instructions';
 
 export const corruptionAnalyst = new Agent({
   id: 'corruption-analyst',
@@ -34,7 +35,7 @@ Case Sections Available:
 - timeline: Chronological timeline of key events
 - key_players: Prosecutors, judges, defense lawyers, witnesses
 
-Your response should be factual, based on the retrieved case documents, and useful for citizens trying to understand accountability in government.`,
+Your response should be factual, based on the retrieved case documents, and useful for citizens trying to understand accountability in government.` + CHART_INSTRUCTIONS,
   model: chatModel,
   tools: { corruptionSearchTool },
 });

@@ -21,7 +21,10 @@
     "ingest:start": "nx run ingest:start",
     "awanaija:dev": "nx run awanaija:dev",
     "awanaija:build": "nx run awanaija:build",
-    "awanaija:start": "nx run awanaija:start"
+    "awanaija:start": "nx run awanaija:start",
+    "videos:dev": "nx run videos:dev",
+    "videos:build": "nx run videos:build",
+    "videos:start": "nx run videos:dev"
   },
   "devDependencies": {
     "nx": "^21.3.2",

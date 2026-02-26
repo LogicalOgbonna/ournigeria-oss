@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AIResponseContent } from "@/types";
 import { StatHighlight } from "@/components/cards/StatHighlight";
 import { BudgetBarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { TrendLine } from "@/components/charts/TrendLine";
+import { ChartRenderer } from "@/components/charts/ChartRenderer";
 import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
 import { Markdown } from "./Markdown";
 import { FileText, ChevronDown, Download } from "lucide-react";
 import { apiUrl } from "@/lib/api";
+import { extractChartBlocks } from "@/lib/chart-parser";
 
 interface AIMessageProps {
   content: AIResponseContent;
@@ -20,6 +22,20 @@ interface AIMessageProps {
 export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
+  // Parse any chart blocks embedded in the text markdown
+  const { text: cleanedText, charts: inlineCharts } = useMemo(
+    () => extractChartBlocks(content.text),
+    [content.text],
+  );
+
+  // Combine structured charts with inline-parsed charts
+  const allCharts = useMemo(
+    () => [...(content.charts ?? []), ...inlineCharts],
+    [content.charts, inlineCharts],
+  );
+
+  const hasNewCharts = allCharts.length > 0;
+
   return (
     <div className="flex flex-col gap-4">
       {/* Stat Highlights */}
@@ -27,9 +43,9 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
         <StatHighlight stats={content.stats} />
       )}
 
-      {/* Text */}
+      {/* Text (with chart blocks stripped out) */}
       <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-        <Markdown>{content.text}</Markdown>
+        <Markdown>{cleanedText}</Markdown>
       </div>
 
       {/* State Comparison */}
@@ -40,22 +56,28 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
         />
       )}
 
-      {/* Charts */}
-      {content.barChart && (
+      {/* New chart system — render all ChartBlock[] */}
+      {hasNewCharts &&
+        allCharts.map((chart, i) => (
+          <ChartRenderer key={i} block={chart} />
+        ))}
+
+      {/* Legacy chart support (backwards compat) — only when no new charts */}
+      {!hasNewCharts && content.barChart && (
         <BudgetBarChart
           title={content.barChart.title}
           data={content.barChart.data}
         />
       )}
 
-      {content.donutChart && (
+      {!hasNewCharts && content.donutChart && (
         <DonutChart
           title={content.donutChart.title}
           data={content.donutChart.data}
         />
       )}
 
-      {content.trendLine && (
+      {!hasNewCharts && content.trendLine && (
         <TrendLine
           title={content.trendLine.title}
           data={content.trendLine.data}

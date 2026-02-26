@@ -63,5 +63,8 @@ packages/db_backup/backups/
 # pnpm
 .pnpm-store/
 
+# plans
+packages/plans/
+
 # claude
 .claude/**

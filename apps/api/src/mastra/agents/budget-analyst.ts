@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { chatModel } from '../rag/config';
 import { budgetSearchTool } from '../tools/budget-search';
+import { CHART_INSTRUCTIONS } from './chart-instructions';
 
 export const budgetAnalyst = new Agent({
   id: 'budget-analyst',
@@ -27,7 +28,7 @@ Governor & Cabinet Officials:
 - Even when not explicitly asked, briefly mention the Governor's name when discussing a specific state-year budget (e.g. "Under Governor X's administration...").
 - If the user asks to compare budgets across governors or administrations, highlight which governor oversaw each budget period.
 
-Your response should be factual, based on the retrieved budget documents, and useful for citizens trying to understand government spending.`,
+Your response should be factual, based on the retrieved budget documents, and useful for citizens trying to understand government spending.` + CHART_INSTRUCTIONS,
   model: chatModel,
   tools: { budgetSearchTool },
 });

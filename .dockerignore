@@ -7,6 +7,7 @@ packages/db
 packages/db_backup
 packages/scripts
 packages/source
+packages/plans
 .nx
 .claude
 .devcontainer

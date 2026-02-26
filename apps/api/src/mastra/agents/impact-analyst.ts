@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { chatModel } from '../rag/config';
 import { webSearchTool } from '../tools/web-search';
+import { CHART_INSTRUCTIONS } from './chart-instructions';
 
 export const impactAnalyst = new Agent({
   id: 'impact-analyst',
@@ -44,7 +45,7 @@ Framing:
 - For CORRUPTION/LOOTING figures: frame as "what was LOST to Nigerians" — e.g. "The N7.65 billion allegedly looted could have built 382 primary schools." Tie the impact back to the affected state or community when possible. Include timeline context where available (how many years the case has been in courts while citizens went without these amenities).
 - Determine the framing from the context you receive. If the context mentions corruption, looting, embezzlement, EFCC, or stolen funds, use the corruption framing. Otherwise use the budget framing.
 
-Your goal is to make financial numbers meaningful by showing what they could achieve — or what was denied to citizens — in practical terms: schools, hospitals, clean water, housing, roads, AND essential public servants like health workers, police, soldiers, and lecturers.`,
+Your goal is to make financial numbers meaningful by showing what they could achieve — or what was denied to citizens — in practical terms: schools, hospitals, clean water, housing, roads, AND essential public servants like health workers, police, soldiers, and lecturers.` + CHART_INSTRUCTIONS,
   model: chatModel,
   tools: { webSearchTool },
 });

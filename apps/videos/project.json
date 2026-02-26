@@ -1,0 +1,25 @@
+{
+  "name": "videos",
+  "projectType": "application",
+  "sourceRoot": "apps/videos/src",
+  "targets": {
+    "dev": {
+      "command": "remotion studio",
+      "options": {
+        "cwd": "apps/videos"
+      }
+    },
+    "build": {
+      "command": "remotion render",
+      "options": {
+        "cwd": "apps/videos"
+      }
+    },
+    "lint": {
+      "command": "eslint",
+      "options": {
+        "cwd": "apps/videos"
+      }
+    }
+  }
+}

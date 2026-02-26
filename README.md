@@ -37,19 +37,21 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## TODO
 
-- [ ] Create a Google Drive folder to house budget documents
-  - Create a **public-facing** folder (e.g. `budget_uploads`) where users can drop budget documents (PDF, XLSX)
-  - Create three **private** folders for pipeline state management:
-    - `ingesting_budgets` — files currently being processed
-    - `ingested_budgets` — files that were successfully ingested
-    - `ingestion_failed` — files that failed during ingestion
-  - Set up a **cron job** that periodically scans the public folder:
+- [ ] Set up AWS S3 bucket for budget document storage
+  - Create an S3 bucket with prefix-based organization (e.g. `budgets/{state}/{year}/{filename}`)
+  - Create three **prefixes** for pipeline state management:
+    - `ingesting/` — files currently being processed
+    - `ingested/` — files that were successfully ingested
+    - `ingestion-failed/` — files that failed during ingestion
+  - Set up **S3 Event Notifications** (→ SQS or Lambda) to auto-detect new files in the upload prefix:
     1. For each new file, compute the SHA-256 hash and check the `ingested_documents` table
-    2. If already ingested, skip it and append `[already-ingested]` to the filename in the public folder
-    3. If not ingested, move the file to `ingesting_budgets` and begin the ingestion pipeline
-    4. On success, move the file to `ingested_budgets`
-    5. On failure, move the file to `ingestion_failed` for manual review
-- [ ] Create a connection that syncs and ingests budget documents from the Google Drive folder
+    2. If already ingested, skip it and move to `ingested/` with a `duplicate: true` tag
+    3. If not ingested, move the file to `ingesting/` and begin the ingestion pipeline
+    4. On success, move the file to `ingested/`
+    5. On failure, move the file to `ingestion-failed/` for manual review
+  - Use **presigned URLs** for user-facing file access (time-limited, no public bucket needed)
+- [ ] Upload existing source documents to S3 and wire up the ingestion pipeline
+- [ ] Create a script (`packages/scripts/upload-to-s3`) to bulk-upload all documents in `packages/source/` (budgets, govspend, corruption) to S3 with matching prefix structure
 - [x] User-selectable tools with automatic agent routing
   - Add a **tool selector** in the UI (user dashboard) that lets users explicitly choose which tool to use for their query
   - If the user selects a tool, the backend uses that specific tool and its corresponding agent workflow
