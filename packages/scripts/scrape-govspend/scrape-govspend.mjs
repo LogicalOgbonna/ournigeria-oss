@@ -9,9 +9,10 @@
  *   packages/source/govspend/{year}/{month}/{day}/{beneficiary_slug}/{payment_no}.json
  *
  * Usage:
- *   node packages/scripts/scrape-govspend.mjs              # full run (resumes automatically)
- *   node packages/scripts/scrape-govspend.mjs --from 100   # start from page 100
- *   node packages/scripts/scrape-govspend.mjs --delay 500  # 500ms between requests
+ *   node packages/scripts/scrape-govspend.mjs                    # full run (resumes automatically)
+ *   node packages/scripts/scrape-govspend.mjs --from 100         # start from page 100
+ *   node packages/scripts/scrape-govspend.mjs --delay 500        # 500ms between batches
+ *   node packages/scripts/scrape-govspend.mjs --concurrency 10   # fetch 10 pages at a time
  *
  * Features:
  *  - Resumable: tracks the last page scraped in a progress file
@@ -40,6 +41,7 @@ function getArg(name) {
 }
 
 const DELAY_MS = Number(getArg('--delay') || 300);
+const CONCURRENCY = Number(getArg('--concurrency') || 5);
 const FORCE_FROM = getArg('--from') ? Number(getArg('--from')) : null;
 
 const OUTPUT_DIR = path.resolve(__dirname, '../../source/govspend');
@@ -196,7 +198,7 @@ function savePayment(payment) {
 async function main() {
   console.log('=== GovSpend.ng Scraper ===');
   console.log(`Output: ${OUTPUT_DIR}`);
-  console.log(`Per page: ${PER_PAGE} | Delay: ${DELAY_MS}ms\n`);
+  console.log(`Per page: ${PER_PAGE} | Delay: ${DELAY_MS}ms | Concurrency: ${CONCURRENCY}\n`);
 
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
@@ -249,35 +251,42 @@ async function main() {
   const skipCount = firstResponse.results.length - newCount;
   console.log(`Page ${startPage}/${totalPages} — ${newCount} new, ${skipCount} skipped`);
 
-  // Process remaining pages
-  for (let page = startPage + 1; page <= totalPages; page++) {
+  // Process remaining pages in concurrent batches
+  for (let page = startPage + 1; page <= totalPages; page += CONCURRENCY) {
     await sleep(DELAY_MS);
 
+    const batch = [];
+    for (let i = 0; i < CONCURRENCY && page + i <= totalPages; i++) {
+      batch.push(page + i);
+    }
+
     try {
-      const response = await fetchPage(page);
-      newCount = 0;
-      for (const payment of response.results) {
-        if (savePayment(payment)) newCount++;
-      }
-      progress.totalSaved += newCount;
-      progress.lastPage = page;
+      const responses = await Promise.all(batch.map((p) => fetchPage(p)));
 
-      // Save progress every 10 pages
-      if (page % 10 === 0) {
-        saveProgress(progress);
+      for (let i = 0; i < responses.length; i++) {
+        const response = responses[i];
+        const p = batch[i];
+        newCount = 0;
+        for (const payment of response.results) {
+          if (savePayment(payment)) newCount++;
+        }
+        progress.totalSaved += newCount;
+        progress.lastPage = p;
       }
 
-      const pct = ((page / totalPages) * 100).toFixed(1);
+      const lastInBatch = batch[batch.length - 1];
+      const pct = ((lastInBatch / totalPages) * 100).toFixed(1);
 
-      // Print every 5 pages (or last page)
-      if (page % 5 === 0 || page === totalPages) {
-        console.log(`Page ${page}/${totalPages} (${pct}%) — ${progress.totalSaved.toLocaleString()} total saved`);
-      }
+      // Save progress after each batch
+      saveProgress(progress);
+
+      // Print after each batch
+      console.log(`Pages ${batch[0]}-${lastInBatch}/${totalPages} (${pct}%) — ${progress.totalSaved.toLocaleString()} total saved`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`\n*** Error on page ${page}: ${msg}`);
+      console.error(`\n*** Error in batch starting at page ${page}: ${msg}`);
       saveProgress(progress);
-      console.log(`Progress saved at page ${page}. Run again to resume.\n`);
+      console.log(`Progress saved at page ${progress.lastPage}. Run again to resume.\n`);
       process.exit(1);
     }
   }

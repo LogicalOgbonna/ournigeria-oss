@@ -30,6 +30,17 @@ services:
       postgres:
         condition: service_healthy
 
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        INFISICAL_TOKEN: ${INFISICAL_TOKEN}
+    ports:
+      - "${WEB_PORT:-3001}:3001"
+    depends_on:
+      - api
+
   ingest:
     build:
       context: .

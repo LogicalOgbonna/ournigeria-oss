@@ -26,6 +26,13 @@ enum ConversationStatus {
   @@map("conversation_status")
 }
 
+enum ConversationVisibility {
+  private
+  public
+
+  @@map("conversation_visibility")
+}
+
 enum DocumentStatus {
   unprocessed
   parsing
@@ -92,19 +99,23 @@ model OtpVerification {
 }
 
 model Conversation {
-  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId          String             @map("user_id") @db.Uuid
-  title           String             @default("New Conversation") @db.VarChar(200)
-  status          ConversationStatus @default(active)
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
-  mentionedStates String[]           @default([]) @map("mentioned_states")
-  mentionedYears  Int[]              @default([]) @map("mentioned_years") @db.SmallInt
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                 @map("user_id") @db.Uuid
+  title           String                 @default("New Conversation") @db.VarChar(200)
+  status          ConversationStatus     @default(active)
+  visibility      ConversationVisibility @default(private)
+  slug            String?                @unique @db.VarChar(250)
+  sharedAt        DateTime?              @map("shared_at") @db.Timestamptz()
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  mentionedStates String[]               @default([]) @map("mentioned_states")
+  mentionedYears  Int[]                  @default([]) @map("mentioned_years") @db.SmallInt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
 
   @@index([userId, status, createdAt(sort: Desc)], map: "idx_conversations_user_active")
+  @@index([visibility, status], map: "idx_conversations_public")
   @@map("conversations")
 }
 

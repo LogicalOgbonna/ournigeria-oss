@@ -15,6 +15,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://spending.arinze.online",
+  ),
   title: "OurNigeria - Explore How Nigeria Spends",
   description:
     "Discover how Nigeria spends public funds. Ask questions about budgets, corruption cases, and government spending across all 36 states and the FCT.",

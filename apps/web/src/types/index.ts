@@ -135,6 +135,8 @@ export interface SuggestedQuestion {
 export interface Conversation {
   id: string;
   title: string;
+  visibility: "private" | "public";
+  slug: string | null;
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;

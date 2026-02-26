@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const USER_COOKIE = "nb_uid";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/"];
+const PUBLIC_PATHS = ["/login", "/api/auth/", "/chat/"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));

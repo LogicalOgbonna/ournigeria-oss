@@ -9,32 +9,14 @@ WORKDIR /app
 # Copy workspace root config
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 
-# Copy only the workspace package.jsons needed for this image
+# Copy only the workspace package.json needed
 COPY apps/api/package.json apps/api/package.json
-COPY apps/web/package.json apps/web/package.json
 
-# Hoisted layout + install only api & web workspaces (skip ingest, scripts, source)
+# Hoisted layout + install only api workspace
 RUN echo "node-linker=hoisted" > .npmrc \
- && pnpm install --frozen-lockfile --filter @ournigeria/api... --filter @ournigeria/web...
+ && pnpm install --frozen-lockfile --filter @ournigeria/api...
 
-# ── Stage 2: Build web (static export) ──
-FROM deps AS web-build
-
-RUN apt-get update && apt-get install -y curl bash gnupg \
- && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
- && apt-get update && apt-get install -y infisical \
- && rm -rf /var/lib/apt/lists/*
-
-ARG INFISICAL_TOKEN
-ENV INFISICAL_TOKEN=${INFISICAL_TOKEN}
-
-COPY apps/web/.infisical.json .infisical.json
-COPY apps/web/ apps/web/
-
-# Inject NEXT_PUBLIC_* env vars from Infisical so they are inlined into the static bundle
-RUN infisical run --env prod --path /web -- pnpm --filter @ournigeria/web exec next build
-
-# ── Stage 3: Build API ──
+# ── Stage 2: Build API ──
 FROM deps AS api-build
 
 COPY apps/api/ apps/api/
@@ -42,7 +24,7 @@ COPY apps/api/ apps/api/
 RUN pnpm --filter @ournigeria/api exec prisma generate \
  && pnpm --filter @ournigeria/api exec nest build
 
-# ── Stage 4: Prune to production deps only ──
+# ── Stage 3: Prune to production deps only ──
 FROM deps AS prod-deps
 
 # Re-install with production only — removes typescript, prisma CLI, nest CLI, etc.
@@ -89,7 +71,7 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
     node_modules/pdf-parse \
     node_modules/xlsx
 
-# ── Stage 5: Production runner ──
+# ── Stage 4: Production runner ──
 FROM node:22-slim AS runner
 
 RUN apt-get update && apt-get install -y openssl curl bash gnupg \
@@ -110,9 +92,6 @@ COPY --from=api-build /app/node_modules/@prisma/client/ node_modules/@prisma/cli
 COPY --from=api-build /app/apps/api/dist/ dist/
 COPY --from=api-build /app/apps/api/prisma/ prisma/
 COPY --from=api-build /app/apps/api/prisma.config.ts prisma.config.ts
-
-# Copy static web export
-COPY --from=web-build /app/apps/web/out/ public/
 
 # Copy Infisical config
 COPY apps/api/.infisical.json .infisical.json

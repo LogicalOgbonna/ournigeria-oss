@@ -8,6 +8,8 @@ import { apiUrl } from "@/lib/api";
 interface ConversationSummary {
   id: string;
   title: string;
+  visibility: "private" | "public";
+  slug: string | null;
   createdAt: string;
   updatedAt: string;
   lastMessage: string | null;
@@ -19,6 +21,8 @@ interface ConversationSummary {
 export interface ConversationForUI {
   id: string;
   title: string;
+  visibility: "private" | "public";
+  slug: string | null;
   lastMessage: string | null;
   lastMessageRole: string | null;
   messageCount: number;
@@ -36,6 +40,7 @@ export function useChat(conversationId?: string) {
   >(conversationId ?? null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] =
     useState(!!conversationId);
   const [streamingText, setStreamingText] = useState<string>("");
@@ -51,6 +56,7 @@ export function useChat(conversationId?: string) {
   // Fetch conversation list from API
   const fetchConversations = useCallback(async () => {
     try {
+      setLoadError(false);
       const res = await fetch(apiUrl("/api/conversations"), {
         credentials: "include",
       });
@@ -58,13 +64,19 @@ export function useChat(conversationId?: string) {
         router.push("/login");
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        setLoadError(true);
+        setIsCheckingAuth(false);
+        return;
+      }
       const data: ConversationSummary[] = await res.json();
 
       setConversations(
         data.map((c) => ({
           id: c.id,
           title: c.title,
+          visibility: c.visibility ?? "private",
+          slug: c.slug ?? null,
           lastMessage: c.lastMessage,
           lastMessageRole: c.lastMessageRole,
           messageCount: c.messageCount,
@@ -74,7 +86,7 @@ export function useChat(conversationId?: string) {
       );
       setIsCheckingAuth(false);
     } catch {
-      // Silently fail — sidebar just shows empty
+      setLoadError(true);
       setIsCheckingAuth(false);
     }
   }, [router]);
@@ -344,11 +356,21 @@ export function useChat(conversationId?: string) {
     [activeConversationId, fetchConversations],
   );
 
+  const updateConversationLocally = useCallback(
+    (id: string, updates: Partial<Pick<ConversationForUI, "visibility" | "slug">>) => {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+      );
+    },
+    [],
+  );
+
   return {
     messages,
     isLoading,
     isCheckingAuth,
     isLoadingConversation,
+    loadError,
     streamingText,
     statusText,
     sendMessage,
@@ -357,5 +379,7 @@ export function useChat(conversationId?: string) {
     startNewChat,
     loadConversation,
     deleteConversation: handleDeleteConversation,
+    updateConversationLocally,
+    retryLoad: fetchConversations,
   };
 }

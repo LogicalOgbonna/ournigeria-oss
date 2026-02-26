@@ -7,7 +7,8 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatSidebar } from "./ChatSidebar";
-import { Sparkles, RotateCcw, Menu } from "lucide-react";
+import { Sparkles, RotateCcw, Menu, Share2, RefreshCw, WifiOff } from "lucide-react";
+import { ShareDialog } from "./ShareDialog";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Markdown } from "./Markdown";
@@ -67,6 +68,71 @@ function MessagesSkeleton() {
   );
 }
 
+function ConnectionError({ onRetry }: { onRetry: () => void }) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleRetry = () => {
+    setIsRetrying(true);
+    onRetry();
+    setTimeout(() => setIsRetrying(false), 2000);
+  };
+
+  return (
+    <div className="flex h-dvh flex-col items-center justify-center bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-6">
+      {/* Floating background circles */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full bg-emerald-100/40 dark:bg-emerald-900/10 blur-3xl animate-pulse" />
+        <div
+          className="absolute -bottom-20 -right-20 h-72 w-72 rounded-full bg-emerald-100/30 dark:bg-emerald-900/10 blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-6 text-center max-w-sm">
+        {/* Animated icon */}
+        <div className="relative">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 shadow-lg">
+            <WifiOff className="h-9 w-9 text-slate-400 dark:text-slate-500" />
+          </div>
+          {/* Little bouncing dot */}
+          <div
+            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-400 shadow-md animate-bounce"
+            style={{ animationDuration: "1.5s" }}
+          />
+        </div>
+
+        {/* Text */}
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Omo, server dey sleep!
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            Our servers are taking a quick break. Don&apos;t worry, your budget
+            questions aren&apos;t going anywhere.
+          </p>
+        </div>
+
+        {/* Retry button */}
+        <Button
+          onClick={handleRetry}
+          disabled={isRetrying}
+          className="gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-5 text-sm font-medium text-white shadow-md transition-all hover:from-emerald-500 hover:to-emerald-600 hover:shadow-lg disabled:opacity-70"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${isRetrying ? "animate-spin" : ""}`}
+          />
+          {isRetrying ? "Checking..." : "Try again"}
+        </Button>
+
+        {/* Subtle footer */}
+        <p className="text-[11px] text-slate-400 dark:text-slate-600">
+          If this persists, check your internet connection
+        </p>
+      </div>
+    </div>
+  );
+}
+
 interface ChatContainerProps {
   conversationId?: string;
 }
@@ -85,9 +151,13 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     startNewChat,
     loadConversation,
     deleteConversation,
+    updateConversationLocally,
+    loadError,
+    retryLoad,
   } = useChat(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const hasMessages = messages.length > 0 || !!streamingText;
 
   // Scroll once when the user sends a message (so their bubble is visible)
@@ -122,6 +192,10 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       });
     }
   }, [isLoading, messages.length]);
+
+  if (loadError) {
+    return <ConnectionError onRetry={retryLoad} />;
+  }
 
   if (isCheckingAuth) {
     return (
@@ -169,6 +243,17 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             </span>
           </div>
           <div className="flex items-center gap-1">
+            {hasMessages && activeConversationId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShareDialogOpen(true)}
+                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              >
+                <Share2 className="mr-1 h-3 w-3" />
+                Share
+              </Button>
+            )}
             {hasMessages && (
               <Button
                 variant="ghost"
@@ -223,6 +308,22 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
 
       {/* Input */}
       <ChatInput onSend={handleSend} isLoading={isLoading} />
+
+      {/* Share Dialog */}
+      {shareDialogOpen && activeConversationId && (() => {
+        const activeConv = conversations.find((c) => c.id === activeConversationId);
+        return (
+          <ShareDialog
+            conversationId={activeConversationId}
+            visibility={activeConv?.visibility ?? "private"}
+            slug={activeConv?.slug ?? null}
+            onVisibilityChange={(visibility, slug) => {
+              updateConversationLocally(activeConversationId, { visibility, slug });
+            }}
+            onClose={() => setShareDialogOpen(false)}
+          />
+        );
+      })()}
     </div>
   );
 }
