@@ -2,6 +2,7 @@ export interface DiscoveredFile {
   filePath: string;
   sourceType: string;
   identity: Record<string, unknown>;
+  s3Key?: string;
 }
 
 export interface PipelineConfig {

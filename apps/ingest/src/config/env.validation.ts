@@ -9,6 +9,10 @@ export interface EnvConfig {
   OCR_MODEL: string;
   VECTOR_INDEX_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
+  AWS_REGION: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  S3_BUCKET: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -22,6 +26,10 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   'OCR_MODEL',
   'VECTOR_INDEX_BUDGET',
   'VECTOR_INDEX_CORRUPTION',
+  'AWS_REGION',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'S3_BUCKET',
 ];
 
 export function validateEnv(config: Record<string, unknown>): EnvConfig {
@@ -51,5 +59,9 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     OCR_MODEL: config.OCR_MODEL as string,
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
+    AWS_REGION: config.AWS_REGION as string,
+    AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
+    AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
+    S3_BUCKET: config.S3_BUCKET as string,
   };
 }

@@ -17,7 +17,7 @@ export class VectorService implements OnModuleDestroy {
       connectionString: this.config.getOrThrow<string>('DATABASE_URL'),
     });
 
-    const timeoutMs = 15 * 60 * 1000;
+    const timeoutMs = 2 * 60 * 1000;
     const fetchWithTimeout: typeof globalThis.fetch = async (input, init) => {
       // Strip encoding_format from embedding requests (Voyage AI rejects 'float')
       if (init?.body && typeof init.body === 'string') {
@@ -59,6 +59,26 @@ export class VectorService implements OnModuleDestroy {
     this.embeddingDimension = this.config.getOrThrow<number>('EMBEDDING_DIMENSION');
   }
 
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    label: string,
+    maxRetries = 3,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (attempt === maxRetries) throw err;
+        const delayMs = Math.min(1000 * 2 ** (attempt - 1), 30_000);
+        this.logger.warn(
+          `${label} attempt ${attempt}/${maxRetries} failed, retrying in ${delayMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+    throw new Error('unreachable');
+  }
+
   async ensureIndex(indexName: string): Promise<void> {
     try {
       await this.pgVector.createIndex({
@@ -66,7 +86,10 @@ export class VectorService implements OnModuleDestroy {
         dimension: this.embeddingDimension,
         metric: 'cosine',
         vectorType: 'halfvec',
-        indexConfig: { type: 'hnsw' },
+        indexConfig: {
+          type: 'hnsw',
+          hnsw: { m: 16, efConstruction: 128 },
+        },
       });
       this.logger.log(`Index "${indexName}" created`);
     } catch (err: unknown) {
@@ -80,16 +103,18 @@ export class VectorService implements OnModuleDestroy {
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
-    const { embeddings: raw } = await embedMany({
-      model: this.embeddingModel,
-      values: texts,
-    });
+    return this.withRetry(async () => {
+      const { embeddings: raw } = await embedMany({
+        model: this.embeddingModel,
+        values: texts,
+      });
 
-    return raw.map((e) =>
-      e.length > this.embeddingDimension
-        ? e.slice(0, this.embeddingDimension)
-        : e,
-    );
+      return raw.map((e) =>
+        e.length > this.embeddingDimension
+          ? e.slice(0, this.embeddingDimension)
+          : e,
+      );
+    }, 'embedBatch');
   }
 
   async upsert(
@@ -97,11 +122,10 @@ export class VectorService implements OnModuleDestroy {
     vectors: number[][],
     metadata: Record<string, unknown>[],
   ): Promise<void> {
-    await this.pgVector.upsert({
-      indexName,
-      vectors,
-      metadata,
-    });
+    await this.withRetry(
+      () => this.pgVector.upsert({ indexName, vectors, metadata }),
+      'upsert',
+    );
   }
 
   async onModuleDestroy() {

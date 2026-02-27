@@ -95,7 +95,9 @@ export function ChatSidebar({
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 dark:border-slate-700/80 px-4">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">History</h2>
+            <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              History
+            </h2>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -202,7 +204,9 @@ export function ChatSidebar({
                     {/* Meta row */}
                     <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
                       <span>{formatRelativeTime(conv.updatedAt)}</span>
-                      <span className="text-slate-300 dark:text-slate-600">&middot;</span>
+                      <span className="text-slate-300 dark:text-slate-600">
+                        &middot;
+                      </span>
                       <span>
                         {msgCount} {msgCount === 1 ? "message" : "messages"}
                       </span>
@@ -218,7 +222,15 @@ export function ChatSidebar({
         <div className="shrink-0 border-t border-slate-200/80 dark:border-slate-700/80 p-3">
           <button
             onClick={async () => {
-              await fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" });
+              // Clear API-domain cookie
+              await fetch(apiUrl("/api/auth/logout"), {
+                method: "POST",
+                credentials: "include",
+              });
+              // Clear web-domain httpOnly cookie via server route
+              await fetch("/api/logout", { method: "POST" });
+              // Clear conversation data (preserve preferences like language)
+              localStorage.removeItem("ournigeria-conversations");
               router.push("/login");
             }}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"

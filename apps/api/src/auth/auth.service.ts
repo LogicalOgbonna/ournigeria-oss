@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import * as crypto from "crypto";
-import { PrismaService } from "../database/prisma.service";
+import { PrismaService } from "@ournigeria/database";
 
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;

@@ -1,99 +1,327 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/OurNigeria-Budget_Transparency_Platform-10b981?style=for-the-badge&labelColor=0d1117&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiI+PHBhdGggZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01eiIvPjxwYXRoIGQ9Ik0xMiAyMnYtMTAiLz48cGF0aCBkPSJNMTIgMTJMMy43IDciLz48cGF0aCBkPSJNMjAuMyA3TDEyIDEyIi8+PC9zdmc+">
+  <img alt="OurNigeria" src="https://img.shields.io/badge/OurNigeria-Budget_Transparency_Platform-10b981?style=for-the-badge&labelColor=ffffff&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxMGI5ODEiIHN0cm9rZS13aWR0aD0iMiI+PHBhdGggZD0iTTEyIDJMMyA3djEwbDkgNSA5LTVWN2wtOS01eiIvPjxwYXRoIGQ9Ik0xMiAyMnYtMTAiLz48cGF0aCBkPSJNMTIgMTJMMy43IDciLz48cGF0aCBkPSJNMjAuMyA3TDEyIDEyIi8+PC9zdmc+">
+</picture>
+
+### AI-powered Nigerian budget analysis and corruption tracking
+
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://core.telegram.org/bots)
+[![pnpm](https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Nx](https://img.shields.io/badge/Nx_Monorepo-143055?style=flat-square&logo=nx&logoColor=white)](https://nx.dev/)
+
+---
+
+**700+ budget documents** across **37 Nigerian states** ingested and indexed with **708,000+ vector embeddings** - enabling citizens to ask questions about public spending in plain English or Pidgin.
+
+[Live App](#) &nbsp;&middot;&nbsp; [API Docs](#) &nbsp;&middot;&nbsp; [Landing Page](#)
+
+</div>
+
+---
+
+## What is OurNigeria?
+
+OurNigeria is an open-source platform that makes Nigerian government budgets and corruption data accessible through conversational AI. Instead of parsing dense PDF documents, citizens can simply ask:
+
+> *"How much did Ebonyi State allocate to education in 2025?"*
+>
+> *"Wetin be the total capital expenditure for Lagos this year?"*
+
+The platform processes the question through specialized AI agents, searches across 700+ vectorized budget documents, and returns an answer with interactive charts - all in seconds.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        CLIENTS                              │
+│  ┌───────────┐  ┌───────────────┐  ┌──────────────────────┐ │
+│  │  Next.js   │  │  Telegram Bot │  │  Landing Page        │ │
+│  │  Web App   │  │  @ournigeria  │  │  (Awanaija)          │ │
+│  │  :3001     │  │               │  │  :3003               │ │
+│  └─────┬─────┘  └───────┬───────┘  └──────────────────────┘ │
+└────────┼────────────────┼───────────────────────────────────┘
+         │                │
+         ▼                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     NestJS API :3000                         │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │   Auth   │ │   Chat   │ │  Charts  │ │  Telegram     │  │
+│  │  (OTP)   │ │  (SSE)   │ │ (Parser) │ │  (Webhook)    │  │
+│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Mastra AI Agent Pipeline                 │   │
+│  │  Router → Budget Analyst → Impact Analyst            │   │
+│  │         → Corruption Analyst                         │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+         ┌────────────────┼────────────────┐
+         ▼                ▼                ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────────┐
+│  PostgreSQL  │ │   pgvector   │ │   Voyage AI      │
+│   (Prisma)   │ │  708K chunks │ │  Embeddings      │
+│              │ │  1024-dim    │ │  voyage-3-large  │
+└──────────────┘ └──────────────┘ └──────────────────┘
+```
+
+---
+
+## Monorepo Structure
+
+```
+ournigeria/
+├── apps/
+│   ├── api/          # NestJS backend — auth, chat, agents, charts, Telegram
+│   ├── web/          # Next.js frontend — chat UI, 22 chart types, public pages
+│   ├── ingest/       # Document ingestion pipeline — PDF, XLSX, DOCX, JSON
+│   ├── awanaija/     # Marketing landing page with animations
+│   └── videos/       # Remotion — programmatic video generation
+│
+├── packages/
+│   ├── source/       # Raw budget data
+│   │   ├── budgets/      # 37 states × multiple years (959 files)
+│   │   ├── corruption/   # High-profile case files
+│   │   └── govspend/     # Government spending data (2018–2025)
+│   ├── scripts/      # Scraping and ingestion utilities
+│   └── db/           # Database volumes and backups
+│
+├── docker-compose.yml      # Production stack
+├── docker-compose.dev.yml  # Development database
+└── nx.json                 # Monorepo orchestration
+```
+
+---
+
+## Key Features
+
+### AI Chat with Budget Analysis
+
+Conversational interface powered by a multi-agent pipeline:
+
+| Agent | Role |
+|-------|------|
+| **Router** | Detects intent and routes to the right specialist |
+| **Budget Analyst** | Searches vector-indexed budget documents |
+| **Corruption Analyst** | Searches corruption case files |
+| **Impact Analyst** | Translates budget figures into real-world equivalents |
+
+- Streaming responses via **Server-Sent Events (SSE)**
+- Tool selector lets users pick budget or corruption analysis
+- Supports **English** and **Pidgin English**
+- Conversation history with automatic titling
+
+### Interactive Data Visualization
+
+22 chart types rendered inline within chat responses:
+
+`bar` · `column` · `line` · `area` · `stacked-area` · `stacked-bar` · `pie` · `donut` · `radar` · `scatter` · `bubble` · `treemap` · `funnel` · `waterfall` · `histogram` · `heatmap` · `gauge` · `polar` · `trend`
+
+Charts are auto-generated from AI responses — the agent outputs structured JSON, and the frontend renders the appropriate visualization with Naira formatting.
+
+### Phone-Only Authentication
+
+No passwords. Users authenticate with their phone number:
+
+1. Enter phone number (+234 or local format)
+2. Receive a 6-digit OTP
+3. Verify and get a long-lived session (5-year cookie)
+
+Also supports **Telegram OAuth** as an alternative login method.
+
+### Telegram Bot
+
+Full chat capabilities available through Telegram:
+
+- Webhook-based message handling
+- Automatic user creation on first contact
+- Same AI pipeline as the web app
+- Command support (`/help`, etc.)
+
+### Shareable Public Conversations
+
+- Conversations are **private by default**
+- Toggle any conversation to public with a single click
+- SEO-optimized public pages with:
+  - Slug-based URLs (`/chat/ebonyi-2025-budget-analysis`)
+  - Open Graph metadata for social link previews
+  - JSON-LD structured data (`FAQPage` schema)
+  - Server-side rendering for search engine indexing
+- Revoke public access at any time
+
+### Document Ingestion Pipeline
+
+Automated pipeline that processes raw budget documents into searchable vector embeddings:
+
+| Metric | Value |
+|--------|-------|
+| Documents processed | **700+** |
+| States covered | **37** |
+| Vector chunks | **708,309** |
+| Embedding model | Voyage AI `voyage-3-large` |
+| Dimensions | 1024 |
+| Errors | **0** |
+
+Supported formats: **PDF** (with OCR) · **XLSX/XLS** · **DOCX** · **JSON** · **Markdown**
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **API** | NestJS, Mastra AI, Prisma |
+| **Frontend** | Next.js, Tailwind CSS v4, Recharts |
+| **Database** | PostgreSQL 16, pgvector |
+| **Embeddings** | Voyage AI (voyage-3-large) |
+| **Auth** | OTP + Session cookies, Telegram OAuth |
+| **Streaming** | Server-Sent Events |
+| **Bot** | Telegram Bot API (webhook) |
+| **Monorepo** | Nx, pnpm |
+| **Secrets** | Infisical |
+| **Videos** | Remotion |
+| **Deployment** | Docker Compose |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+- PostgreSQL 16 with pgvector
+- [Infisical CLI](https://infisical.com/docs/cli/overview) (for secrets management)
+
+### Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+pnpm install
+
+# Start the development database
+docker compose -f docker-compose.dev.yml up -d
+
+# Generate Prisma client and run migrations
+pnpm prisma:generate
+pnpm prisma:migrate
+
+# Start services (in separate terminals)
+pnpm api:dev       # API on :3000
+pnpm web:dev       # Web on :3001
+pnpm ingest:dev    # Ingestion on :3002
+pnpm awanaija:dev  # Landing page on :3003
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Production
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+docker compose up -d
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This starts PostgreSQL, the API (with auto-migration), and the web frontend.
 
-## Learn More
+### API Documentation
 
-To learn more about Next.js, take a look at the following resources:
+Swagger UI is available at `/api/docs` when the API is running.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Roadmap
 
-## Deploy on Vercel
+- [x] Multi-agent AI pipeline (Router, Budget, Corruption, Impact analysts)
+- [x] 700+ budget documents ingested across 37 states (708K vector chunks)
+- [x] Interactive chart generation (22 chart types)
+- [x] Phone-number OTP authentication
+- [x] Telegram bot integration
+- [x] User-selectable tool routing
+- [x] Shareable public conversations with SEO optimization
+- [x] Pidgin English language support
+- [x] Conversation history and management
+- [x] "Money Could Buy" real-world impact cards
+- [ ] AWS S3 document storage with lifecycle prefixes (`ingesting/` → `ingested/` → `failed/`)
+- [ ] S3 event-driven auto-ingestion pipeline
+- [ ] Presigned URLs for secure document access
+- [ ] WhatsApp channel integration
+- [ ] Bulk upload script for `packages/source/` → S3 migration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure Deep Dive
 
-## TODO
+<details>
+<summary><strong>apps/api</strong> — Backend API</summary>
 
-- [ ] Set up AWS S3 bucket for budget document storage
-  - Create an S3 bucket with prefix-based organization (e.g. `budgets/{state}/{year}/{filename}`)
-  - Create three **prefixes** for pipeline state management:
-    - `ingesting/` — files currently being processed
-    - `ingested/` — files that were successfully ingested
-    - `ingestion-failed/` — files that failed during ingestion
-  - Set up **S3 Event Notifications** (→ SQS or Lambda) to auto-detect new files in the upload prefix:
-    1. For each new file, compute the SHA-256 hash and check the `ingested_documents` table
-    2. If already ingested, skip it and move to `ingested/` with a `duplicate: true` tag
-    3. If not ingested, move the file to `ingesting/` and begin the ingestion pipeline
-    4. On success, move the file to `ingested/`
-    5. On failure, move the file to `ingestion-failed/` for manual review
-  - Use **presigned URLs** for user-facing file access (time-limited, no public bucket needed)
-- [ ] Upload existing source documents to S3 and wire up the ingestion pipeline
-- [ ] Create a script (`packages/scripts/upload-to-s3`) to bulk-upload all documents in `packages/source/` (budgets, govspend, corruption) to S3 with matching prefix structure
-- [x] User-selectable tools with automatic agent routing
-  - Add a **tool selector** in the UI (user dashboard) that lets users explicitly choose which tool to use for their query
-  - If the user selects a tool, the backend uses that specific tool and its corresponding agent workflow
-  - If the user does **not** select a tool, the AI infers from the question which tool(s) are needed
-  - Each tool maps to a different agent flow:
-    - **Budget tool** — uses the existing budget analyst + impact analyst pipeline (current flow)
-    - Other tools — route to their own dedicated agent workflows
-  - The chat API should accept an optional `tool` parameter from the frontend
-  - Agent routing logic: match the selected (or inferred) tool to the correct agent(s), then execute that agent's specific flow
-  - Tools should be extensible — adding a new tool means defining its agent workflow and registering it in the router
-- [ ] Add phone-number-only authentication via WhatsApp OTP
-  - No username or password — the only credential is a phone number
-  - On login, send a one-time passcode (OTP) to the user's WhatsApp number (number must be registered on WhatsApp)
-  - User enters the OTP to verify and create a session
-  - Sessions should be long-lived (effectively "forever")
-  - If a session expires for any reason, re-authenticate by sending a new OTP — no password reset flow needed
-  - Use a WhatsApp Business API provider (e.g. Twilio, Meta Cloud API) for OTP delivery
-- [ ] Multi-channel access via WhatsApp and Telegram
-  - Users should be able to interact with the application through **WhatsApp** and **Telegram** — meeting them in environments they already use daily
-  - Expose the same AI-powered query capabilities (budget analysis, corruption case lookup, tool routing) through chat messages on both platforms
-  - **WhatsApp integration**:
-    - Use the WhatsApp Business API (e.g. Meta Cloud API, Twilio) to receive and respond to user messages
-    - Support text queries and return formatted responses (with limits appropriate for WhatsApp message length)
-    - Tie into the existing phone-number auth — a user messaging from a verified number is already authenticated
-  - **Telegram integration**:
-    - Create a Telegram Bot via BotFather
-    - Use the Telegram Bot API to receive and respond to messages
-    - Support commands (e.g. `/budget Ebonyi 2025`, `/corruption Yari`) as well as freeform text queries
-  - Both channels should share the same backend query pipeline as the web chat — a unified API layer that WhatsApp, Telegram, and the web frontend all call into
-  - Conversation history should be stored per-user across channels so context is preserved regardless of which platform they use
-- [ ] Shareable public chat conversations
-  - All conversations are **private by default** — only the owner can see them
-  - A user can make a **specific conversation** public via a "Share" action (e.g. toggle or button in the chat UI)
-  - Users **cannot** make their entire chat history public — sharing is per-conversation only
-  - When a conversation is set to public, **all messages** within it become publicly accessible (no per-message visibility control)
-  - Public conversations get a **shareable URL** that anyone can view without authentication
-  - **SEO-optimized public chat pages**:
-    - Generate a slug from the conversation topic/first question (e.g. `/chat/ebonyi-2025-budget-analysis`)
-    - Auto-generate **Open Graph images** (og:image) for each public chat — include the conversation title, key stats, or a summary visual so link previews on Twitter/WhatsApp/Telegram look compelling
-    - Set proper meta tags: `og:title`, `og:description`, `og:image`, `twitter:card`, canonical URL
-    - Server-side render (SSR) the public chat page so search engines can crawl and index the content
-    - Use structured data (JSON-LD) where applicable (e.g. `FAQPage` schema if the chat is Q&A-style)
-  - The owner can **revoke** public access at any time, turning the conversation back to private (the public URL should return a 404 or "conversation not found" page)
-  - Database changes: add a `visibility` column (`private` | `public`) and a `slug` column to the conversations table
-  - API: expose endpoints to toggle conversation visibility and retrieve public conversations by slug
+```
+apps/api/src/
+├── auth/              # OTP + Telegram OAuth, session cookies
+├── chat/              # SSE streaming, message persistence, tool selection
+├── chart/             # Chart JSON parsing and validation
+├── conversations/     # CRUD, public/private toggle, slug generation
+├── mastra/
+│   ├── agents/        # Router, Budget, Corruption, Impact analysts
+│   └── tools/         # Vector search, formatting utilities
+├── sources/           # Budget document file serving
+├── telegram/          # Webhook handler, bot commands, user sync
+└── prisma/
+    └── schema.prisma  # 15+ tables, pgvector, enums
+```
+
+</details>
+
+<details>
+<summary><strong>apps/web</strong> — Frontend</summary>
+
+```
+apps/web/src/
+├── app/
+│   ├── page.tsx                    # Main chat interface
+│   ├── login/                      # Phone + Telegram auth
+│   ├── [conversationId]/           # Conversation view
+│   └── chat/[slug]/                # Public conversation pages (SSR)
+├── components/
+│   ├── chat/                       # ChatContainer, ChatInput, Sidebar, ShareDialog
+│   └── charts/                     # 22 chart components + ChartRenderer
+├── hooks/                          # useChartTheme, custom hooks
+└── lib/                            # Constants, utilities, i18n
+```
+
+</details>
+
+<details>
+<summary><strong>apps/ingest</strong> — Ingestion Pipeline</summary>
+
+```
+apps/ingest/src/
+├── extractors/        # PDF (OCR), Excel, DOCX, JSON, Markdown parsers
+├── pipeline/          # Budget + Corruption pipelines, chunking
+├── vector/            # Voyage AI embeddings, pgvector storage
+└── scheduling/        # Automated run management, progress tracking
+```
+
+</details>
+
+<details>
+<summary><strong>packages/source</strong> — Raw Data</summary>
+
+```
+packages/source/
+├── budgets/           # 37 states: Abia → Zamfara + FCT (959 files)
+├── corruption/        # Case files: Tinubu, Abacha, Bello
+└── govspend/          # Government spending 2018–2025
+```
+
+</details>
+
+---
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).

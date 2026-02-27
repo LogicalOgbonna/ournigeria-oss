@@ -1,0 +1,31 @@
+{
+  "name": "database",
+  "projectType": "library",
+  "sourceRoot": "packages/database/src",
+  "targets": {
+    "build": {
+      "command": "prisma generate && tsc",
+      "options": {
+        "cwd": "packages/database"
+      }
+    },
+    "prisma:generate": {
+      "command": "prisma generate",
+      "options": {
+        "cwd": "packages/database"
+      }
+    },
+    "prisma:migrate": {
+      "command": "infisical run -- prisma migrate dev",
+      "options": {
+        "cwd": "packages/database"
+      }
+    },
+    "prisma:studio": {
+      "command": "infisical run -- prisma studio",
+      "options": {
+        "cwd": "packages/database"
+      }
+    }
+  }
+}

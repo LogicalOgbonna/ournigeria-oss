@@ -77,7 +77,8 @@ export const RAG_CONFIG = {
   chunkSize: 512,
   chunkOverlap: 50,
   embeddingDimension: Number(process.env.EMBEDDING_DIMENSION!),
-  topK: 10,
+  topK: Number(process.env.RAG_TOP_K) || 10,
+  searchEf: Number(process.env.RAG_SEARCH_EF) || 100,
 };
 
 export const chatModel = openaiProvider.chat(llmModel);

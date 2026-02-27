@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Message, AIResponseContent, ToolId, Language } from "@/types";
 import { apiUrl } from "@/lib/api";
 
@@ -31,8 +30,6 @@ export interface ConversationForUI {
 }
 
 export function useChat(conversationId?: string) {
-  const router = useRouter();
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<ConversationForUI[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -61,7 +58,10 @@ export function useChat(conversationId?: string) {
         credentials: "include",
       });
       if (res.status === 401) {
-        router.push("/login");
+        setIsCheckingAuth(false);
+        if (window.location.pathname !== "/login") {
+          window.location.replace("/login");
+        }
         return;
       }
       if (!res.ok) {
@@ -89,57 +89,54 @@ export function useChat(conversationId?: string) {
       setLoadError(true);
       setIsCheckingAuth(false);
     }
-  }, [router]);
+  }, []);
 
   // Fetch and display a conversation in-place (no navigation)
-  const fetchAndShowConversation = useCallback(
-    async (id: string) => {
-      abortRef.current?.abort();
-      setIsLoadingConversation(true);
-      setStreamingText("");
-      setStatusText("");
+  const fetchAndShowConversation = useCallback(async (id: string) => {
+    abortRef.current?.abort();
+    setIsLoadingConversation(true);
+    setStreamingText("");
+    setStatusText("");
 
-      try {
-        const res = await fetch(apiUrl(`/api/conversations/${id}`), {
-          credentials: "include",
-        });
-        if (!res.ok) {
-          setMessages([]);
-          setActiveConversationId(null);
-          window.history.replaceState(null, "", "/");
-          return;
-        }
-
-        const data = await res.json();
-
-        const msgs: Message[] = data.messages.map(
-          (m: {
-            id: string;
-            role: "user" | "assistant";
-            content: string;
-            richContent?: AIResponseContent;
-            createdAt: string;
-          }) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            richContent: m.richContent ?? undefined,
-            timestamp: new Date(m.createdAt),
-          }),
-        );
-
-        setMessages(msgs);
-        setActiveConversationId(id);
-      } catch {
+    try {
+      const res = await fetch(apiUrl(`/api/conversations/${id}`), {
+        credentials: "include",
+      });
+      if (!res.ok) {
         setMessages([]);
         setActiveConversationId(null);
         window.history.replaceState(null, "", "/");
-      } finally {
-        setIsLoadingConversation(false);
+        return;
       }
-    },
-    [],
-  );
+
+      const data = await res.json();
+
+      const msgs: Message[] = data.messages.map(
+        (m: {
+          id: string;
+          role: "user" | "assistant";
+          content: string;
+          richContent?: AIResponseContent;
+          createdAt: string;
+        }) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          richContent: m.richContent ?? undefined,
+          timestamp: new Date(m.createdAt),
+        }),
+      );
+
+      setMessages(msgs);
+      setActiveConversationId(id);
+    } catch {
+      setMessages([]);
+      setActiveConversationId(null);
+      window.history.replaceState(null, "", "/");
+    } finally {
+      setIsLoadingConversation(false);
+    }
+  }, []);
 
   // Load initial conversation on mount
   const initialized = useRef(false);
@@ -211,7 +208,9 @@ export function useChat(conversationId?: string) {
         });
 
         if (res.status === 401) {
-          router.push("/login");
+          if (window.location.pathname !== "/login") {
+            window.location.replace("/login");
+          }
           return;
         }
         if (!res.ok || !res.body) {
@@ -311,7 +310,7 @@ export function useChat(conversationId?: string) {
         setIsLoading(false);
       }
     },
-    [activeConversationId, fetchConversations, router],
+    [activeConversationId, fetchConversations],
   );
 
   // Navigate to a conversation without full page reload
@@ -357,7 +356,10 @@ export function useChat(conversationId?: string) {
   );
 
   const updateConversationLocally = useCallback(
-    (id: string, updates: Partial<Pick<ConversationForUI, "visibility" | "slug">>) => {
+    (
+      id: string,
+      updates: Partial<Pick<ConversationForUI, "visibility" | "slug">>,
+    ) => {
       setConversations((prev) =>
         prev.map((c) => (c.id === id ? { ...c, ...updates } : c)),
       );

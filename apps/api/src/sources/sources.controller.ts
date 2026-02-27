@@ -4,60 +4,62 @@ import {
   Query,
   Res,
   BadRequestException,
-  NotFoundException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Response } from "express";
-import { resolve, normalize, join, dirname, basename } from "path";
-import { existsSync } from "fs";
-
-/**
- * Walk up from the current directory until we find `packages/source`.
- * Works whether cwd is the monorepo root or apps/api/.
- */
-function findSourcesRoot(): string {
-  let dir = process.cwd();
-  for (let i = 0; i < 5; i++) {
-    const candidate = resolve(dir, "packages/source");
-    if (existsSync(candidate)) return candidate;
-    dir = resolve(dir, "..");
-  }
-  // Final fallback — assume monorepo root
-  return resolve(process.cwd(), "packages/source");
-}
-
-const SOURCES_ROOT = findSourcesRoot();
+import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 @Controller("sources")
 export class SourcesController {
+  private readonly s3: S3Client;
+  private readonly bucket: string;
+
+  constructor(private readonly config: ConfigService) {
+    this.bucket = this.config.getOrThrow<string>("S3_BUCKET");
+    this.s3 = new S3Client({
+      region: this.config.getOrThrow<string>("AWS_REGION"),
+      credentials: {
+        accessKeyId: this.config.getOrThrow<string>("AWS_ACCESS_KEY_ID"),
+        secretAccessKey: this.config.getOrThrow<string>(
+          "AWS_SECRET_ACCESS_KEY",
+        ),
+      },
+    });
+  }
+
   @Get("download")
-  download(@Query("path") filePath: string, @Res() res: Response) {
+  async download(@Query("path") filePath: string, @Res() res: Response) {
     if (!filePath) {
       throw new BadRequestException("Missing path query parameter");
     }
 
-    const normalized = normalize(filePath);
-    if (normalized.includes("..")) {
+    // Security: reject path traversal
+    if (filePath.includes("..")) {
       throw new BadRequestException("Invalid path");
     }
 
-    // Directory parts may have spaces that map to underscores on disk
-    // (e.g. "Akwa Ibom" → "Akwa_Ibom"), but filenames keep their original form
-    const dir = dirname(normalized)
-      .split("/")
-      .map((seg) => seg.replaceAll(" ", "_"))
-      .join("/");
-    const file = basename(normalized);
-    const diskPath = join(dir, file);
-
-    const absolute = resolve(SOURCES_ROOT, diskPath);
-    if (!absolute.startsWith(SOURCES_ROOT)) {
+    // Must start with a known prefix
+    if (!filePath.startsWith("budgets/") && !filePath.startsWith("corruption/")) {
       throw new BadRequestException("Invalid path");
     }
 
-    if (!existsSync(absolute)) {
-      throw new NotFoundException("File not found");
-    }
+    // Map spaces to underscores in directory segments (matches S3 key convention)
+    const parts = filePath.split("/");
+    const filename = parts[parts.length - 1];
+    const dirParts = parts.slice(0, -1).map((seg) => seg.replaceAll(" ", "_"));
+    const s3Key = [...dirParts, filename].join("/");
 
-    return res.download(absolute, file);
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: s3Key,
+      ResponseContentDisposition: `attachment; filename="${filename}"`,
+    });
+
+    const presignedUrl = await getSignedUrl(this.s3, command, {
+      expiresIn: 3600,
+    });
+
+    return res.redirect(presignedUrl);
   }
 }

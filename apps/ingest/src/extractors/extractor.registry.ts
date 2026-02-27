@@ -5,6 +5,8 @@ import { ExcelExtractor } from './excel.extractor';
 import { DocxExtractor } from './docx.extractor';
 import { JsonExtractor } from './json.extractor';
 import { MarkdownExtractor } from './markdown.extractor';
+import { XpsExtractor } from './xps.extractor';
+import { PptxExtractor } from './pptx.extractor';
 
 @Injectable()
 export class ExtractorRegistry {
@@ -16,8 +18,10 @@ export class ExtractorRegistry {
     docx: DocxExtractor,
     json: JsonExtractor,
     markdown: MarkdownExtractor,
+    xps: XpsExtractor,
+    pptx: PptxExtractor,
   ) {
-    for (const extractor of [pdf, excel, docx, json, markdown]) {
+    for (const extractor of [pdf, excel, docx, json, markdown, xps, pptx]) {
       for (const type of extractor.supportedTypes) {
         this.map.set(type, extractor);
       }

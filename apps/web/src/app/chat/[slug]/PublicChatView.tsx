@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Sparkles, Link2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Message, AIResponseContent } from "@/types";
+import { SystemBanners } from "@/components/notifications/SystemBanner";
 
 interface PublicConversation {
   id: string;
@@ -63,10 +65,11 @@ export function PublicChatView({ conversation }: PublicChatViewProps) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <SystemBanners />
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
@@ -76,7 +79,7 @@ export function PublicChatView({ conversation }: PublicChatViewProps) {
                 Nigeria
               </span>
             </span>
-          </a>
+          </Link>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
@@ -129,13 +132,13 @@ export function PublicChatView({ conversation }: PublicChatViewProps) {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Want to explore Nigerian budgets yourself?
           </p>
-          <a
+          <Link
             href="/"
             className="mt-2 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-5 py-2 text-sm font-medium text-white shadow-sm transition-all hover:from-emerald-500 hover:to-emerald-600 hover:shadow-md"
           >
             <Sparkles className="h-4 w-4" />
             Ask your own question on OurNigeria
-          </a>
+          </Link>
         </div>
       </footer>
     </div>

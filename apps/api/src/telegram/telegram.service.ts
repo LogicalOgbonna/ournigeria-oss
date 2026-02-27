@@ -1,7 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import type { Prisma, MessageRole } from "@prisma/client";
-import { PrismaService } from "../database/prisma.service";
+import { PrismaService, type Prisma, type MessageRole } from "@ournigeria/database";
 import { TelegramApiService } from "./telegram-api.service";
 import { formatForTelegram } from "./telegram-formatter";
 import { routeToAgent, inferTool } from "../mastra/router";

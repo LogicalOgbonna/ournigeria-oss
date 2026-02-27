@@ -1,14 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { PrismaService } from '../database/prisma.service';
+import { PrismaService } from '@ournigeria/database';
 import { VectorService } from '../vector/vector.service';
 import { ExtractorRegistry } from '../extractors/extractor.registry';
+import { S3Service } from '../s3/s3.service';
 import { PipelineBase } from './pipeline.base';
 import { DiscoveredFile } from './pipeline.types';
-
-const CORRUPTION_DIR = path.resolve(__dirname, '../../../../packages/source/corruption');
 
 @Injectable()
 export class CorruptionPipeline extends PipelineBase {
@@ -19,8 +16,9 @@ export class CorruptionPipeline extends PipelineBase {
     prisma: PrismaService,
     vector: VectorService,
     extractors: ExtractorRegistry,
+    s3: S3Service,
   ) {
-    super(config, prisma, vector, extractors);
+    super(config, prisma, vector, extractors, s3);
   }
 
   get pipelineType(): string {
@@ -31,40 +29,41 @@ export class CorruptionPipeline extends PipelineBase {
     return this.config.getOrThrow<string>('VECTOR_INDEX_CORRUPTION');
   }
 
-  discoverFiles(): DiscoveredFile[] {
+  async discoverFiles(): Promise<DiscoveredFile[]> {
     const files: DiscoveredFile[] = [];
 
-    if (!fs.existsSync(CORRUPTION_DIR)) {
-      this.logger.error(`Corruption directory not found: ${CORRUPTION_DIR}`);
-      return files;
-    }
+    this.logger.log('Listing S3 objects under corruption/');
+    const objects = await this.s3.listObjects('corruption/');
+    this.logger.log(`Found ${objects.length} objects in S3`);
 
-    this.logger.log(`Scanning: ${CORRUPTION_DIR}`);
-    const entries = fs.readdirSync(CORRUPTION_DIR).filter((entry) => {
-      const entryPath = path.join(CORRUPTION_DIR, entry);
-      return fs.statSync(entryPath).isDirectory();
-    });
-    this.logger.log(`Found ${entries.length} official directories`);
+    for (const obj of objects) {
+      if (!obj.key.endsWith('.md')) continue;
+      if (obj.size === 0) continue;
 
-    for (const officialDir of entries) {
-      const officialPath = path.join(CORRUPTION_DIR, officialDir);
-      const mdFiles = fs
-        .readdirSync(officialPath)
-        .filter((f) => f.endsWith('.md'));
+      const parts = obj.key.split('/');
 
-      for (const filename of mdFiles) {
-        const filePath = path.join(officialPath, filename);
-        const stat = fs.statSync(filePath);
-
-        if (stat.size === 0) {
-          this.logger.log(`Skipping empty file: ${officialDir}/${filename}`);
-          continue;
-        }
-
-        const section = path.basename(filename, '.md');
+      if (parts.length === 2 && parts[1] === 'INDEX.md') {
+        // Top-level INDEX.md: corruption/INDEX.md
         files.push({
-          filePath,
+          filePath: obj.key,
           sourceType: 'md',
+          s3Key: obj.key,
+          identity: {
+            official: '_index',
+            section: 'index',
+            filename: 'INDEX.md',
+          },
+        });
+      } else if (parts.length >= 3) {
+        // corruption/{OFFICIAL}/{filename}.md
+        const officialDir = parts[1];
+        const filename = parts.slice(2).join('/');
+        const section = filename.replace(/\.md$/, '');
+
+        files.push({
+          filePath: obj.key,
+          sourceType: 'md',
+          s3Key: obj.key,
           identity: {
             official: officialDir.replaceAll('_', ' '),
             section,
@@ -72,20 +71,6 @@ export class CorruptionPipeline extends PipelineBase {
           },
         });
       }
-    }
-
-    // Also pick up the top-level INDEX.md
-    const indexPath = path.join(CORRUPTION_DIR, 'INDEX.md');
-    if (fs.existsSync(indexPath) && fs.statSync(indexPath).size > 0) {
-      files.push({
-        filePath: indexPath,
-        sourceType: 'md',
-        identity: {
-          official: '_index',
-          section: 'index',
-          filename: 'INDEX.md',
-        },
-      });
     }
 
     return files;
@@ -108,6 +93,7 @@ export class CorruptionPipeline extends PipelineBase {
       filename,
       source_type: 'md',
       chunk_index: chunkIndex,
+      s3_key: file.s3Key ?? file.filePath,
     };
   }
 }

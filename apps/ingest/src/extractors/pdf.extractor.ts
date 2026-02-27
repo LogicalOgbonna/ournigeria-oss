@@ -4,11 +4,33 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import * as fs from 'node:fs';
 import { PDFParse } from 'pdf-parse';
-import Tesseract from 'tesseract.js';
 import { elapsed } from '../lib/timing.utils';
 import { ITextExtractor, ExtractContext } from './extractor.interface';
 
 const MIN_TEXT_THRESHOLD = 100;
+
+/**
+ * Strip common PDF noise that inflates char count without carrying real content:
+ * page markers like "-- 1 of 7 --", form-feed chars, and runs of whitespace.
+ */
+function meaningfulText(raw: string): string {
+  return raw
+    .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+    .replace(/page\s*\d+\s*(of\s*\d+)?/gi, '')
+    .replace(/\f/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const VISION_OCR_PROMPT = `You are a precise document OCR system. Extract ALL text from this document page image exactly as written.
+
+Rules:
+- Preserve the original structure: headings, subheadings, paragraphs, lists, and line breaks.
+- For tables: reproduce them in a readable plain-text format using aligned columns or markdown table syntax. Include ALL rows and columns — do not summarize or truncate.
+- Preserve all numbers, currency amounts, percentages, and codes exactly as they appear (e.g. "₦1,234,567.89", "N/A", "0.00").
+- Keep hierarchical indentation for budget line items and nested categories.
+- If text is partially obscured or unclear, transcribe your best reading and mark uncertain portions with [unclear].
+- Do not add any commentary, explanation, or interpretation — return only the extracted text.`;
 
 @Injectable()
 export class PdfExtractor implements ITextExtractor {
@@ -44,33 +66,34 @@ export class PdfExtractor implements ITextExtractor {
     try {
       const result = await pdf.getText();
       const text = result.text.trim();
-      if (text.length > MIN_TEXT_THRESHOLD) {
+      const useful = meaningfulText(text);
+      if (useful.length > MIN_TEXT_THRESHOLD) {
         this.logger.log(
-          `getText() extracted ${text.length} chars (${elapsed(pdfStart)}) — using digital text`,
+          `getText() extracted ${useful.length} meaningful chars (${elapsed(pdfStart)}) — using digital text`,
         );
         await pdf.destroy();
         return text;
       }
       this.logger.log(
-        `getText() returned only ${text.length} chars, falling back to OCR`,
+        `getText() returned only ${useful.length} meaningful chars (${text.length} raw), falling back to vision model`,
       );
     } catch {
-      this.logger.log(`getText() failed, falling back to OCR`);
+      this.logger.log(`getText() failed, falling back to vision model`);
     }
 
-    // --- Tier 2 & 3: Page-by-page OCR ---
+    // --- Tier 2: Page-by-page Vision OCR ---
     const info = await pdf.getInfo();
     const totalPages = info.total;
-    this.logger.log(`Total pages: ${totalPages}, starting page-by-page OCR`);
+    this.logger.log(
+      `Total pages: ${totalPages}, starting page-by-page vision OCR`,
+    );
 
-    const worker = await Tesseract.createWorker('eng');
     const pageTexts: string[] = [];
 
     for (let page = 1; page <= totalPages; page++) {
       const screenshots = await pdf.getScreenshot({
         partial: [page],
         imageDataUrl: true,
-        imageBuffer: true,
         scale: 2,
       });
 
@@ -83,29 +106,6 @@ export class PdfExtractor implements ITextExtractor {
 
       const pageData = screenshots.pages[0];
 
-      // Tier 2: Tesseract.js
-      try {
-        const ocrStart = Date.now();
-        const {
-          data: { text },
-        } = await worker.recognize(Buffer.from(pageData.data));
-        if (text.trim().length > 20) {
-          pageTexts.push(text.trim());
-          this.logger.log(
-            `Page ${page}/${totalPages} Tesseract OK (${elapsed(ocrStart)}, ${text.trim().length} chars)`,
-          );
-          continue;
-        }
-        this.logger.log(
-          `Page ${page}/${totalPages} Tesseract returned too little text, trying vision model`,
-        );
-      } catch {
-        this.logger.log(
-          `Page ${page}/${totalPages} Tesseract failed, trying vision model`,
-        );
-      }
-
-      // Tier 3: Vision model
       try {
         const ocrStart = Date.now();
         const { text } = await generateText({
@@ -116,7 +116,7 @@ export class PdfExtractor implements ITextExtractor {
               content: [
                 {
                   type: 'text',
-                  text: 'Extract all text from this document page exactly as written. Preserve the structure including headers, tables, line items, and numbers. Return only the extracted text, no commentary.',
+                  text: VISION_OCR_PROMPT,
                 },
                 {
                   type: 'image',
@@ -133,18 +133,16 @@ export class PdfExtractor implements ITextExtractor {
           );
           continue;
         }
+        this.logger.warn(
+          `Page ${page}/${totalPages} Vision returned empty text, skipping`,
+        );
       } catch (err) {
         this.logger.warn(
           `Page ${page}/${totalPages} Vision failed: ${err instanceof Error ? err.message : err}`,
         );
       }
-
-      this.logger.warn(
-        `Page ${page}/${totalPages} all methods failed, skipping`,
-      );
     }
 
-    await worker.terminate();
     await pdf.destroy();
     const fullText = pageTexts.join('\n\n--- Page Break ---\n\n');
     this.logger.log(

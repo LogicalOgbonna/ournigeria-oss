@@ -66,6 +66,7 @@ export const corruptionSearchTool = createTool({
       queryVector: truncateEmbedding(embedding),
       topK: RAG_CONFIG.topK,
       filter,
+      ef: RAG_CONFIG.searchEf,
     });
 
     const results = queryResults.map((r) => ({

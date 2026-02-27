@@ -1,13 +1,16 @@
 import { MDocument } from '@mastra/rag';
 
-const MAX_CHUNK_INPUT_SIZE = 500_000;
+const MAX_CHUNK_INPUT_SIZE = 150_000;
 
 /**
  * Strip characters that PostgreSQL cannot store in JSON/text columns.
  * Specifically, \u0000 (null byte) causes: "unsupported Unicode escape sequence".
  */
 export function sanitizeText(text: string): string {
-  return text.replace(/\0/g, '');
+  return text
+    .replace(/\0/g, '')
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
 }
 
 /**

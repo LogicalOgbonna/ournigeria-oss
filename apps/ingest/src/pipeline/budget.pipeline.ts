@@ -1,15 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { PrismaService } from '../database/prisma.service';
+import { PrismaService } from '@ournigeria/database';
 import { VectorService } from '../vector/vector.service';
 import { ExtractorRegistry } from '../extractors/extractor.registry';
+import { S3Service } from '../s3/s3.service';
 import { ExtractContext } from '../extractors/extractor.interface';
 import { PipelineBase } from './pipeline.base';
 import { DiscoveredFile } from './pipeline.types';
 
-const BUDGETS_DIR = path.resolve(__dirname, '../../../../packages/source/budgets');
+const EXT_TO_SOURCE_TYPE: Record<string, string> = {
+  '.pdf': 'pdf',
+  '.xlsx': 'xlsx',
+  '.xls': 'xlsx',
+  '.docx': 'docx',
+  '.doc': 'docx',
+  '.json': 'json',
+  '.md': 'md',
+  '.xps': 'xps',
+  '.pptx': 'pptx',
+};
 
 @Injectable()
 export class BudgetPipeline extends PipelineBase {
@@ -20,8 +29,9 @@ export class BudgetPipeline extends PipelineBase {
     prisma: PrismaService,
     vector: VectorService,
     extractors: ExtractorRegistry,
+    s3: S3Service,
   ) {
-    super(config, prisma, vector, extractors);
+    super(config, prisma, vector, extractors, s3);
   }
 
   get pipelineType(): string {
@@ -32,56 +42,40 @@ export class BudgetPipeline extends PipelineBase {
     return this.config.getOrThrow<string>('VECTOR_INDEX_BUDGET');
   }
 
-  discoverFiles(): DiscoveredFile[] {
+  async discoverFiles(): Promise<DiscoveredFile[]> {
     const files: DiscoveredFile[] = [];
 
-    if (!fs.existsSync(BUDGETS_DIR)) {
-      this.logger.error(`Budgets directory not found: ${BUDGETS_DIR}`);
-      return files;
-    }
+    this.logger.log('Listing S3 objects under budgets/');
+    const objects = await this.s3.listObjects('budgets/');
+    this.logger.log(`Found ${objects.length} objects in S3`);
 
-    this.logger.log(`Scanning: ${BUDGETS_DIR}`);
-    const states = fs.readdirSync(BUDGETS_DIR).filter((entry) => {
-      const entryPath = path.join(BUDGETS_DIR, entry);
-      return fs.statSync(entryPath).isDirectory();
-    });
-    this.logger.log(`Found ${states.length} state directories`);
+    for (const obj of objects) {
+      // Expected key format: budgets/{STATE}/{YEAR}/{filename}
+      const parts = obj.key.split('/');
+      if (parts.length < 4) continue;
 
-    for (const state of states) {
-      const statePath = path.join(BUDGETS_DIR, state);
-      const years = fs.readdirSync(statePath).filter((entry) => {
-        const entryPath = path.join(statePath, entry);
-        return fs.statSync(entryPath).isDirectory() && /^\d{4}$/.test(entry);
+      const stateDir = parts[1];
+      const yearStr = parts[2];
+      const filename = parts.slice(3).join('/');
+
+      if (!filename || !/^\d{4}$/.test(yearStr)) continue;
+
+      const extMatch = filename.match(/\.[^.]+$/);
+      if (!extMatch) continue;
+      const ext = extMatch[0].toLowerCase();
+      const sourceType = EXT_TO_SOURCE_TYPE[ext];
+      if (!sourceType) continue;
+
+      files.push({
+        filePath: obj.key,
+        sourceType,
+        s3Key: obj.key,
+        identity: {
+          state: stateDir.replaceAll('_', ' '),
+          year: Number.parseInt(yearStr, 10),
+          filename,
+        },
       });
-
-      for (const year of years) {
-        const yearPath = path.join(statePath, year);
-        const entries = fs.readdirSync(yearPath);
-
-        for (const filename of entries) {
-          const ext = path.extname(filename).toLowerCase();
-          let sourceType: string | null = null;
-
-          if (ext === '.pdf') sourceType = 'pdf';
-          else if (ext === '.xlsx' || ext === '.xls') sourceType = 'xlsx';
-          else if (ext === '.docx' || ext === '.doc') sourceType = 'docx';
-          else if (ext === '.json' && filename !== 'download_manifest.json')
-            sourceType = 'json';
-          else if (ext === '.md') sourceType = 'md';
-
-          if (sourceType) {
-            files.push({
-              filePath: path.join(yearPath, filename),
-              sourceType,
-              identity: {
-                state: state.replaceAll('_', ' '),
-                year: Number.parseInt(year, 10),
-                filename,
-              },
-            });
-          }
-        }
-      }
     }
 
     return files;
@@ -104,6 +98,7 @@ export class BudgetPipeline extends PipelineBase {
       filename,
       source_type: file.sourceType,
       chunk_index: chunkIndex,
+      s3_key: file.s3Key ?? file.filePath,
     };
   }
 

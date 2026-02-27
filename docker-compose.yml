@@ -54,5 +54,18 @@ services:
       postgres:
         condition: service_healthy
 
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    ports:
+      - "${DASHBOARD_PORT:-3003}:3003"
+    environment:
+      - API_URL=http://api:${API_PORT:-3000}
+      - INGEST_URL=http://ingest:${INGEST_PORT:-3002}
+    depends_on:
+      - api
+      - ingest
+
 volumes:
   pgdata:

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../database/prisma.service';
+import { PrismaService } from '@ournigeria/database';
 import { slugify, slugifyWithSuffix } from '../lib/slugify';
 import { randomUUID } from 'crypto';
 

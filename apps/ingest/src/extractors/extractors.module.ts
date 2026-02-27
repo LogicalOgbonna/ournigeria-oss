@@ -4,6 +4,8 @@ import { ExcelExtractor } from './excel.extractor';
 import { DocxExtractor } from './docx.extractor';
 import { JsonExtractor } from './json.extractor';
 import { MarkdownExtractor } from './markdown.extractor';
+import { XpsExtractor } from './xps.extractor';
+import { PptxExtractor } from './pptx.extractor';
 import { ExtractorRegistry } from './extractor.registry';
 
 @Module({
@@ -13,6 +15,8 @@ import { ExtractorRegistry } from './extractor.registry';
     DocxExtractor,
     JsonExtractor,
     MarkdownExtractor,
+    XpsExtractor,
+    PptxExtractor,
     ExtractorRegistry,
   ],
   exports: [ExtractorRegistry],

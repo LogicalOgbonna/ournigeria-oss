@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { PrismaService } from '../database/prisma.service';
+import { PrismaService } from '@ournigeria/database';
 import { PipelineRegistry } from '../pipeline/pipeline.registry';
 import { PipelineResult } from '../pipeline/pipeline.types';
 
@@ -70,10 +70,11 @@ export class IngestionService {
         this.logger.log(`Pipeline ${pipelineType} (run: ${run.id}) completed`);
       })
       .catch(async (err) => {
+        const errMsg = err instanceof Error ? err.message : String(err);
         this.logger.error(`Pipeline ${pipelineType} (run: ${run.id}) failed`, err);
         await this.prisma.ingestionRun.update({
           where: { id: run.id },
-          data: { completedAt: new Date() },
+          data: { completedAt: new Date(), errorMsg: errMsg },
         });
       })
       .finally(() => {

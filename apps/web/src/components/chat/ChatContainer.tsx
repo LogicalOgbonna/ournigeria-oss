@@ -18,6 +18,8 @@ import {
 import { ShareDialog } from "./ShareDialog";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SystemBanners } from "@/components/notifications/SystemBanner";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Markdown } from "./Markdown";
 
 function StreamingBubble({ text }: { text: string }) {
@@ -235,6 +237,8 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
         onClose={() => setSidebarOpen(false)}
       />
 
+      <SystemBanners />
+
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
@@ -275,6 +279,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
               </Button>
             )}
             <ThemeToggle />
+            <NotificationCenter />
             <Button
               variant="ghost"
               size="icon"

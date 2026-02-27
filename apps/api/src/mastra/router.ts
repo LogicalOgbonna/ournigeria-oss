@@ -16,9 +16,10 @@ import {
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
+  chatModel,
 } from "./rag/config";
 import { t } from "../lib/i18n";
-import { embed } from "ai";
+import { embed, generateText } from "ai";
 import { z } from "zod";
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
@@ -193,23 +194,82 @@ type SendFn = (data: Record<string, unknown>) => void;
 
 interface RouteResult {
   richContent: AIResponseContent;
+  /** The agent type that handled this turn (for follow_up tracking). */
+  resolvedTool: ToolId;
 }
+
+// ─── Phase 3: Context-aware RAG query rewriting ─────────────────
+
+/**
+ * Rewrite an ambiguous user query using conversation context so that
+ * the vector search embedding captures the full intent.
+ * e.g. "Compare that with 2023" → "Compare Lagos State 2024 education budget with Lagos State 2023 education budget"
+ */
+async function rewriteQueryForRAG(
+  message: string,
+  context: ConversationContext,
+): Promise<string> {
+  // Skip rewriting if the message is already specific enough
+  if (message.split(/\s+/).length > 12) return message;
+  // Skip if no context available
+  if (
+    !context.summary &&
+    context.mentionedStates.length === 0 &&
+    context.mentionedYears.length === 0
+  ) {
+    return message;
+  }
+
+  try {
+    const contextParts: string[] = [];
+    if (context.mentionedStates.length > 0) {
+      contextParts.push(`States discussed: ${context.mentionedStates.join(", ")}`);
+    }
+    if (context.mentionedYears.length > 0) {
+      contextParts.push(`Years discussed: ${context.mentionedYears.join(", ")}`);
+    }
+    if (context.summary) {
+      contextParts.push(`Conversation summary: ${context.summary}`);
+    }
+
+    const { text } = await generateText({
+      model: chatModel,
+      system: `You are a query rewriter. Given a short/ambiguous user message and conversation context, rewrite it as a specific, self-contained search query. Keep it concise (under 30 words). Output ONLY the rewritten query, nothing else.`,
+      prompt: `Context:\n${contextParts.join("\n")}\n\nUser message: "${message}"`,
+      maxOutputTokens: 100,
+    });
+
+    const rewritten = text.trim();
+    return rewritten.length > 0 ? rewritten : message;
+  } catch {
+    return message;
+  }
+}
+
+// ─── Agent flow functions ───────────────────────────────────────
 
 async function runBudgetFlow(
   message: string,
   augmentedMessage: string,
   send: SendFn,
   language: Language = "en",
+  context?: ConversationContext,
 ): Promise<RouteResult> {
+  // Phase 3: Rewrite query for better RAG retrieval
+  const searchQuery = context
+    ? await rewriteQueryForRAG(message, context)
+    : message;
+
   const { embedding } = await embed({
     model: embeddingModelInstance,
-    value: message,
+    value: searchQuery,
   });
 
   const ragResults = await getPgVector().query({
     indexName: RAG_CONFIG.indexName,
     queryVector: truncateEmbedding(embedding),
     topK: RAG_CONFIG.topK,
+    ef: RAG_CONFIG.searchEf,
   });
 
   const ragParsed = ragResults.map((r) => ({
@@ -284,7 +344,7 @@ async function runBudgetFlow(
     richContent.officials = officials;
   }
 
-  return { richContent };
+  return { richContent, resolvedTool: "budget" };
 }
 
 async function runCorruptionFlow(
@@ -292,16 +352,23 @@ async function runCorruptionFlow(
   augmentedMessage: string,
   send: SendFn,
   language: Language = "en",
+  context?: ConversationContext,
 ): Promise<RouteResult> {
+  // Phase 3: Rewrite query for better RAG retrieval
+  const searchQuery = context
+    ? await rewriteQueryForRAG(message, context)
+    : message;
+
   const { embedding } = await embed({
     model: embeddingModelInstance,
-    value: message,
+    value: searchQuery,
   });
 
   const ragResults = await getPgVector().query({
     indexName: CORRUPTION_INDEX,
     queryVector: truncateEmbedding(embedding),
     topK: RAG_CONFIG.topK,
+    ef: RAG_CONFIG.searchEf,
   });
 
   const ragParsed = ragResults.map((r) => ({
@@ -381,7 +448,7 @@ async function runCorruptionFlow(
     relevantSources,
   );
 
-  return { richContent };
+  return { richContent, resolvedTool: "corruption" };
 }
 
 async function runImpactFlow(
@@ -411,7 +478,17 @@ async function runImpactFlow(
 
   const richContent = formatImpactResponse(impactAnalysis, language);
 
-  return { richContent };
+  return { richContent, resolvedTool: "impact" };
+}
+
+// ─── Conversation context passed from chat service ──────────────
+
+export interface ConversationContext {
+  summary: string | null;
+  mentionedStates: string[];
+  mentionedYears: number[];
+  lastAgentType: string | null;
+  userProfile: string | null;
 }
 
 export interface RouteOptions {
@@ -420,19 +497,60 @@ export interface RouteOptions {
   selectedTool: ToolId | null;
   send: SendFn;
   language?: Language;
+  /** Conversation metadata for smarter routing & RAG. */
+  context?: ConversationContext;
 }
 
 const routerSchema = z.object({
-  intent: z.enum(["general", "budget", "corruption", "impact"]),
+  intent: z.enum(["general", "budget", "corruption", "impact", "follow_up"]),
   response: z.string(),
 });
 
+type RouterIntent = z.infer<typeof routerSchema>["intent"];
+
+/**
+ * Classify user intent with conversation context so follow-ups
+ * like "What about Kano?" route correctly.
+ */
 async function classifyIntent(
   message: string,
-): Promise<{ intent: ToolId; response: string }> {
+  context?: ConversationContext,
+): Promise<{ intent: RouterIntent; response: string }> {
   try {
     const router = mastra.getAgent(AgentNames.routerAgent);
-    const result = await router.generate(message);
+
+    // Build context-aware prompt for the router
+    let routerPrompt = "";
+
+    if (context) {
+      const ctxParts: string[] = [];
+      if (context.mentionedStates.length > 0) {
+        ctxParts.push(
+          `States discussed so far: ${context.mentionedStates.join(", ")}`,
+        );
+      }
+      if (context.mentionedYears.length > 0) {
+        ctxParts.push(
+          `Years discussed so far: ${context.mentionedYears.join(", ")}`,
+        );
+      }
+      if (context.lastAgentType) {
+        ctxParts.push(
+          `Last agent used: ${context.lastAgentType}`,
+        );
+      }
+      if (context.summary) {
+        ctxParts.push(`Conversation summary: ${context.summary}`);
+      }
+
+      if (ctxParts.length > 0) {
+        routerPrompt += `Conversation context:\n${ctxParts.join("\n")}\n\n`;
+      }
+    }
+
+    routerPrompt += `User message: ${message}`;
+
+    const result = await router.generate(routerPrompt);
     const parsed = routerSchema.parse(JSON.parse(result.text));
     return { intent: parsed.intent, response: parsed.response ?? "" };
   } catch {
@@ -448,6 +566,7 @@ export async function routeToAgent({
   selectedTool,
   send,
   language = "en",
+  context,
 }: RouteOptions): Promise<RouteResult> {
   let tool: ToolId;
   let generalResponse = "";
@@ -455,10 +574,34 @@ export async function routeToAgent({
   if (selectedTool) {
     tool = selectedTool;
   } else {
-    const classification = await classifyIntent(message);
-    tool = classification.intent;
-    generalResponse = classification.response;
+    const classification = await classifyIntent(message, context);
+
+    if (classification.intent === "follow_up") {
+      // Resolve follow_up to the previous agent type, defaulting to budget
+      tool = (context?.lastAgentType as ToolId) || "budget";
+    } else {
+      tool = classification.intent;
+      generalResponse = classification.response;
+    }
   }
+
+  // Build the augmented message with summary + recent history
+  // Phase 1: Use summary for compressed older context
+  let augmentedMessage = "";
+
+  if (context?.userProfile) {
+    augmentedMessage += `${context.userProfile}\n\n---\n\n`;
+  }
+
+  if (context?.summary) {
+    augmentedMessage += `Conversation summary (earlier context):\n${context.summary}\n\n---\n\n`;
+  }
+
+  if (historyContext) {
+    augmentedMessage += `Recent conversation:\n${historyContext}\n\n---\n\n`;
+  }
+
+  augmentedMessage += `Current user message: ${message}`;
 
   // General intent — respond directly, no RAG
   if (tool === "general") {
@@ -484,19 +627,24 @@ export async function routeToAgent({
         text,
         followUps: pickRandomFollowUps(3, language),
       },
+      resolvedTool: "general",
     };
   }
 
   // Impact intent — use conversation history as context
   if (tool === "impact") {
-    return runImpactFlow(historyContext, message, send, language);
+    let impactContext = "";
+    if (context?.userProfile) {
+      impactContext += `${context.userProfile}\n\n---\n\n`;
+    }
+    if (context?.summary) {
+      impactContext += `Conversation summary (earlier context):\n${context.summary}\n\n---\n\n`;
+    }
+    if (historyContext) {
+      impactContext += `Recent conversation:\n${historyContext}`;
+    }
+    return runImpactFlow(impactContext.trim(), message, send, language);
   }
-
-  let augmentedMessage = "";
-  if (historyContext) {
-    augmentedMessage += `Previous conversation:\n${historyContext}\n\n---\n\n`;
-  }
-  augmentedMessage += message;
 
   send({
     type: "status",
@@ -508,9 +656,15 @@ export async function routeToAgent({
 
   switch (tool) {
     case "corruption":
-      return runCorruptionFlow(message, augmentedMessage, send, language);
+      return runCorruptionFlow(
+        message,
+        augmentedMessage,
+        send,
+        language,
+        context,
+      );
     case "budget":
     default:
-      return runBudgetFlow(message, augmentedMessage, send, language);
+      return runBudgetFlow(message, augmentedMessage, send, language, context);
   }
 }

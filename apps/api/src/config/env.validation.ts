@@ -14,6 +14,10 @@ export interface EnvConfig {
   APP_URL: string;
   CORS_ORIGINS: string;
   TELEGRAM_BOT_TOKEN: string;
+  AWS_REGION: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  S3_BUCKET: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -32,6 +36,10 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   "APP_URL",
   "CORS_ORIGINS",
   "TELEGRAM_BOT_TOKEN",
+  "AWS_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "S3_BUCKET",
 ];
 
 export function validateEnv(config: Record<string, unknown>): EnvConfig {
@@ -66,5 +74,9 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     APP_URL: config.APP_URL as string,
     CORS_ORIGINS: config.CORS_ORIGINS as string,
     TELEGRAM_BOT_TOKEN: config.TELEGRAM_BOT_TOKEN as string,
+    AWS_REGION: config.AWS_REGION as string,
+    AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
+    AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
+    S3_BUCKET: config.S3_BUCKET as string,
   };
 }
