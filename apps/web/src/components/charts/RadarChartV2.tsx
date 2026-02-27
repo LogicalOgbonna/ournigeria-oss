@@ -41,6 +41,8 @@ export default function RadarChartV2({ block }: { block: ChartBlock }) {
         />
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number, name: string) => {
             const s = series.find((l) => l.key === name);
             return [formatChartValue(value, fmt), s?.label ?? name];

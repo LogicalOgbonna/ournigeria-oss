@@ -7,7 +7,14 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatSidebar } from "./ChatSidebar";
-import { Sparkles, RotateCcw, Menu, Share2, RefreshCw, WifiOff } from "lucide-react";
+import {
+  Sparkles,
+  MessageSquarePlus,
+  Menu,
+  Share2,
+  RefreshCw,
+  WifiOff,
+} from "lucide-react";
 import { ShareDialog } from "./ShareDialog";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -246,23 +253,25 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             {hasMessages && activeConversationId && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setShareDialogOpen(true)}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 md:w-auto md:px-2"
+                title="Share"
               >
-                <Share2 className="mr-1 h-3 w-3" />
-                Share
+                <Share2 className="h-4 w-4 md:mr-1 md:h-3 md:w-3" />
+                <span className="hidden text-xs md:inline">Share</span>
               </Button>
             )}
             {hasMessages && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={startNewChat}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 md:w-auto md:px-2"
+                title="New chat"
               >
-                <RotateCcw className="mr-1 h-3 w-3" />
-                New chat
+                <MessageSquarePlus className="h-4 w-4 md:mr-1 md:h-3 md:w-3" />
+                <span className="hidden text-xs md:inline">New chat</span>
               </Button>
             )}
             <ThemeToggle />
@@ -310,20 +319,27 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       <ChatInput onSend={handleSend} isLoading={isLoading} />
 
       {/* Share Dialog */}
-      {shareDialogOpen && activeConversationId && (() => {
-        const activeConv = conversations.find((c) => c.id === activeConversationId);
-        return (
-          <ShareDialog
-            conversationId={activeConversationId}
-            visibility={activeConv?.visibility ?? "private"}
-            slug={activeConv?.slug ?? null}
-            onVisibilityChange={(visibility, slug) => {
-              updateConversationLocally(activeConversationId, { visibility, slug });
-            }}
-            onClose={() => setShareDialogOpen(false)}
-          />
-        );
-      })()}
+      {shareDialogOpen &&
+        activeConversationId &&
+        (() => {
+          const activeConv = conversations.find(
+            (c) => c.id === activeConversationId,
+          );
+          return (
+            <ShareDialog
+              conversationId={activeConversationId}
+              visibility={activeConv?.visibility ?? "private"}
+              slug={activeConv?.slug ?? null}
+              onVisibilityChange={(visibility, slug) => {
+                updateConversationLocally(activeConversationId, {
+                  visibility,
+                  slug,
+                });
+              }}
+              onClose={() => setShareDialogOpen(false)}
+            />
+          );
+        })()}
     </div>
   );
 }

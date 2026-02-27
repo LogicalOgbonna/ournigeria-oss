@@ -1,16 +1,43 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { GraduationCap, HeartPulse, Building2 } from "lucide-react";
-import { SHUFFLER_ITEMS, TYPEWRITER_MESSAGES, GEO_ZONES } from "@/lib/constants";
+import {
+  GraduationCap,
+  HeartPulse,
+  Building2,
+  ShieldAlert,
+  Siren,
+  Users,
+  Wheat,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  SHUFFLER_ITEMS,
+  TYPEWRITER_MESSAGES,
+  GEO_ZONES,
+} from "@/lib/constants";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
 
-const shufflerIcons = [GraduationCap, HeartPulse, Building2];
+const iconMap: Record<string, LucideIcon> = {
+  ShieldAlert,
+  GraduationCap,
+  HeartPulse,
+  Building2,
+  Siren,
+  Users,
+  Wheat,
+};
+
+// Progress bar widths proportional to amounts (Defence ₦3.25T is largest)
+const BAR_WIDTHS = [100, 67, 41, 41, 30, 16, 11];
 
 // ═══ Card 1: Budget Category Shuffler ═══
 function ShufflerCard() {
-  const [order, setOrder] = useState([0, 1, 2]);
+  const total = SHUFFLER_ITEMS.length;
+  const [order, setOrder] = useState(() =>
+    Array.from({ length: total }, (_, i) => i),
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,6 +51,8 @@ function ShufflerCard() {
     return () => clearInterval(interval);
   }, []);
 
+  const visible = order.slice(0, 3);
+
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
@@ -31,13 +60,13 @@ function ShufflerCard() {
           Budget Categories
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Real-time allocation tracking across all sectors
+          2024 Federal Budget — sector allocations
         </p>
       </div>
       <div className="flex flex-1 flex-col gap-3">
-        {order.map((itemIndex, stackPos) => {
+        {visible.map((itemIndex, stackPos) => {
           const item = SHUFFLER_ITEMS[itemIndex];
-          const Icon = shufflerIcons[itemIndex];
+          const Icon = iconMap[item.icon];
           return (
             <div
               key={item.label}
@@ -45,7 +74,7 @@ function ShufflerCard() {
                 "rounded-2xl border p-4 transition-all duration-500",
                 stackPos === 0
                   ? "bg-card shadow-md border-emerald-200/60 dark:border-emerald-700/40"
-                  : "bg-card/60 shadow-sm"
+                  : "bg-card/60 shadow-sm",
               )}
               style={{
                 transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -53,18 +82,24 @@ function ShufflerCard() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-500",
-                    stackPos === 0
-                      ? "bg-emerald-600 dark:bg-emerald-500"
-                      : "bg-emerald-100 dark:bg-emerald-900/40"
-                  )}>
-                    <Icon className={cn(
-                      "h-4 w-4 transition-colors duration-500",
+                  <div
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-500",
                       stackPos === 0
-                        ? "text-white"
-                        : "text-emerald-600 dark:text-emerald-400"
-                    )} />
+                        ? "bg-emerald-600 dark:bg-emerald-500"
+                        : "bg-emerald-100 dark:bg-emerald-900/40",
+                    )}
+                  >
+                    {Icon && (
+                      <Icon
+                        className={cn(
+                          "h-4 w-4 transition-colors duration-500",
+                          stackPos === 0
+                            ? "text-white"
+                            : "text-emerald-600 dark:text-emerald-400",
+                        )}
+                      />
+                    )}
                   </div>
                   <span className="font-semibold">{item.label}</span>
                 </div>
@@ -77,7 +112,7 @@ function ShufflerCard() {
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
                     style={{
-                      width: itemIndex === 0 ? "78%" : itemIndex === 1 ? "65%" : "52%",
+                      width: `${BAR_WIDTHS[itemIndex]}%`,
                       transition: "width 0.6s ease",
                     }}
                   />
@@ -166,7 +201,9 @@ function TypewriterCard() {
       <div className="flex-1 rounded-xl bg-[oklch(0.12_0.01_160)] dark:bg-[oklch(0.08_0.01_160)] p-4 font-[family-name:var(--font-mono)] text-xs overflow-hidden">
         <div className="space-y-1.5">
           {completedLines.map((line, i) => (
-            <div key={i} className="text-emerald-400/80">{line}</div>
+            <div key={i} className="text-emerald-400/80">
+              {line}
+            </div>
           ))}
           {currentLine && (
             <div className="text-emerald-400">
@@ -216,7 +253,7 @@ function ExplorerCard() {
                 "relative rounded-xl p-3 text-center transition-all duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
                 activeZone === i
                   ? "bg-emerald-600 text-white scale-[0.96] shadow-lg shadow-emerald-500/30 dark:bg-emerald-500"
-                  : "bg-muted/60 hover:bg-muted"
+                  : "bg-muted/60 hover:bg-muted",
               )}
             >
               <span className="font-[family-name:var(--font-mono)] text-sm font-bold block">
@@ -225,7 +262,7 @@ function ExplorerCard() {
               <span
                 className={cn(
                   "block text-[10px] mt-0.5 transition-colors duration-300",
-                  activeZone === i ? "text-white/70" : "text-muted-foreground"
+                  activeZone === i ? "text-white/70" : "text-muted-foreground",
                 )}
               >
                 {zone.states} states
@@ -248,7 +285,9 @@ function ExplorerCard() {
                 <span className="font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground uppercase tracking-wider">
                   Selected Zone
                 </span>
-                <p className="text-sm font-semibold">{GEO_ZONES[activeZone].full}</p>
+                <p className="text-sm font-semibold">
+                  {GEO_ZONES[activeZone].full}
+                </p>
               </div>
               <div className="text-right">
                 <span className="font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground uppercase tracking-wider">
@@ -291,7 +330,7 @@ export function Features() {
             duration: 0.7,
             stagger: 0.15,
             ease: "power3.out",
-          }
+          },
         );
       }, sectionRef);
     };

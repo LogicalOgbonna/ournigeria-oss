@@ -14,6 +14,37 @@ import type { ChartBlock } from "@/types/charts";
 import { useChartTheme } from "@/hooks/useChartTheme";
 import { formatChartValue, getChartColors } from "./chart-theme";
 
+const MAX_LABEL = 14;
+
+function truncate(str: string): string {
+  if (str.length <= MAX_LABEL) return str;
+  return str.slice(0, MAX_LABEL - 1) + "…";
+}
+
+/** Custom Y-axis tick: truncated label + native tooltip on hover */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function LabelTick(props: any) {
+  const { x, y, payload } = props;
+  const full = String(payload?.value ?? "");
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <title>{full}</title>
+      <text
+        x={0}
+        y={0}
+        dy={4}
+        textAnchor="end"
+        fill={props.fill}
+        fontSize={11}
+        fontWeight={500}
+        style={{ cursor: "default" }}
+      >
+        {truncate(full)}
+      </text>
+    </g>
+  );
+}
+
 export default function BarChartV2({ block }: { block: ChartBlock }) {
   const chart = useChartTheme();
   const fmt = block.config?.formatValue ?? "naira";
@@ -47,8 +78,12 @@ export default function BarChartV2({ block }: { block: ChartBlock }) {
             width={65}
           />
           <Tooltip
-            formatter={((value: number) => [formatChartValue(value, fmt), ""]) as any}
+            formatter={
+              ((value: number) => [formatChartValue(value, fmt), ""]) as any
+            }
             contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           />
           <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={36}>
             {block.data.map((_, i) => (
@@ -61,10 +96,7 @@ export default function BarChartV2({ block }: { block: ChartBlock }) {
   }
 
   return (
-    <ResponsiveContainer
-      width="100%"
-      height={block.data.length * 52 + 20}
-    >
+    <ResponsiveContainer width="100%" height={block.data.length * 52 + 20}>
       <BarChart
         data={block.data}
         layout="vertical"
@@ -85,18 +117,22 @@ export default function BarChartV2({ block }: { block: ChartBlock }) {
         <YAxis
           type="category"
           dataKey="name"
-          tick={{
-            fontSize: 12,
-            fill: chart.tickFillStrong,
-            fontWeight: 500,
-          }}
-          width={90}
+          tick={LabelTick}
+          width={100}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          formatter={((value: number) => [formatChartValue(value, fmt), ""]) as any}
+          formatter={
+            ((
+              value: number,
+              _key: string,
+              entry: { payload: { name: string } },
+            ) => [formatChartValue(value, fmt), entry.payload.name]) as any
+          }
           contentStyle={chart.tooltipStyle}
+          itemStyle={chart.tooltipItemStyle}
+          labelStyle={chart.tooltipLabelStyle}
         />
         <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={28}>
           {block.data.map((_, i) => (

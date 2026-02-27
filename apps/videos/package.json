@@ -8,13 +8,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@remotion/animated-emoji": "4.0.429",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/rive": "4.0.429",
+    "@remotion/shapes": "4.0.429",
+    "@remotion/tailwind-v4": "^4.0.0",
+    "@remotion/three": "4.0.429",
+    "@remotion/webcodecs": "4.0.429",
     "clsx": "^2.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "^4.0.0",
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
-    "@remotion/tailwind-v4": "^4.0.0",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

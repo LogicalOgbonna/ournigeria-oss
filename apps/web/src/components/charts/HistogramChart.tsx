@@ -17,10 +17,24 @@ export default function HistogramChart({ block }: { block: ChartBlock }) {
   const chart = useChartTheme();
   const fmt = block.config?.formatValue ?? "number";
 
-  const histData = block.data.map((d) => ({
-    bin: d.name ?? d.label ?? d.bin,
-    count: Number(d.value ?? d.count) || 0,
-  }));
+  const histData = block.data.map((d) => {
+    // Try common numeric fields, then fall back to first numeric value found
+    let count = d.value ?? d.count ?? d.frequency ?? d.y ?? d.amount ?? d.total;
+    if (count == null || isNaN(Number(count))) {
+      // Search for any numeric field (skip name/label/bin)
+      const skip = new Set(["name", "label", "bin", "category", "x"]);
+      for (const [k, v] of Object.entries(d)) {
+        if (!skip.has(k) && typeof v === "number" && !isNaN(v)) {
+          count = v;
+          break;
+        }
+      }
+    }
+    return {
+      bin: String(d.name ?? d.label ?? d.bin ?? ""),
+      count: Number(count) || 0,
+    };
+  });
 
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -70,10 +84,11 @@ export default function HistogramChart({ block }: { block: ChartBlock }) {
         />
         <Tooltip
           contentStyle={chart.tooltipStyle}
-          formatter={((value: number) => [
-            formatChartValue(value, fmt),
-            "Count",
-          ]) as any}
+          itemStyle={chart.tooltipItemStyle}
+          labelStyle={chart.tooltipLabelStyle}
+          formatter={
+            ((value: number) => [formatChartValue(value, fmt), "Count"]) as any
+          }
         />
         <Bar
           dataKey="count"

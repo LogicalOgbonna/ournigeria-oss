@@ -44,9 +44,11 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
       )}
 
       {/* Text (with chart blocks stripped out) */}
-      <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-        <Markdown>{cleanedText}</Markdown>
-      </div>
+      {cleanedText.trim() && (
+        <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+          <Markdown>{cleanedText}</Markdown>
+        </div>
+      )}
 
       {/* State Comparison */}
       {content.stateComparison && (
@@ -58,9 +60,7 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
 
       {/* New chart system — render all ChartBlock[] */}
       {hasNewCharts &&
-        allCharts.map((chart, i) => (
-          <ChartRenderer key={i} block={chart} />
-        ))}
+        allCharts.map((chart, i) => <ChartRenderer key={i} block={chart} />)}
 
       {/* Legacy chart support (backwards compat) — only when no new charts */}
       {!hasNewCharts && content.barChart && (

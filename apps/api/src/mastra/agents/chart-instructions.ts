@@ -62,7 +62,15 @@ To render a chart, output a fenced code block with the language tag "chart" cont
      ]
    }
    \`\`\`
-4. Include 3-15 data points for readability. Aggregate if you have more.
+4. For histogram charts, each data point must have \`name\` (bin label) and \`value\` (numeric count/frequency):
+   \`\`\`json
+   "data": [
+     { "name": "0-100B", "value": 5 },
+     { "name": "100B-500B", "value": 12 },
+     { "name": "500B-1T", "value": 8 }
+   ]
+   \`\`\`
+5. Include 3-15 data points for readability. Aggregate if you have more.
 5. You may include multiple chart blocks in one response if the analysis warrants it.
 
 ### When the user explicitly requests a chart:

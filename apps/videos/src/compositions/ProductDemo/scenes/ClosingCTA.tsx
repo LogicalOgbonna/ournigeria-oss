@@ -83,7 +83,7 @@ export const ClosingCTA: React.FC = () => {
                 letterSpacing: "0.02em",
               }}
             >
-              awanaija.ng
+                ournaigeria.ng
             </span>
           </div>
         </div>

@@ -62,6 +62,8 @@ export default function TreemapChart({ block }: { block: ChartBlock }) {
       >
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",

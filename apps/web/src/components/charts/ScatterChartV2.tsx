@@ -68,6 +68,8 @@ export default function ScatterChartV2({ block }: { block: ChartBlock }) {
         )}
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number) => formatChartValue(value, fmt)) as any}
           labelFormatter={((label: string) => {
             const point = block.data.find(

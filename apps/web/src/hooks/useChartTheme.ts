@@ -16,8 +16,15 @@ export function useChartTheme() {
         ? "0 4px 12px rgba(0,0,0,0.3)"
         : "0 4px 12px rgba(0,0,0,0.08)",
       backgroundColor: isDark ? "#1e293b" : "#ffffff",
-      color: isDark ? "#e2e8f0" : "#1e293b",
+      color: isDark ? "#f1f5f9" : "#1e293b",
       fontSize: "12px",
+    },
+    tooltipItemStyle: {
+      color: isDark ? "#f1f5f9" : "#1e293b",
+    },
+    tooltipLabelStyle: {
+      color: isDark ? "#f8fafc" : "#0f172a",
+      fontWeight: 600,
     },
     dotBackground: isDark ? "#1e293b" : "#ffffff",
   };

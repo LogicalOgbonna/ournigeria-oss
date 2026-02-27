@@ -46,6 +46,8 @@ export default function DonutChartV2({ block }: { block: ChartBlock }) {
                 "",
               ]) as any}
               contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
             />
           </PieChart>
         </ResponsiveContainer>

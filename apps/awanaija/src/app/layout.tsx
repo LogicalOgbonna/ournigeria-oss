@@ -28,7 +28,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://awanaija.ng"),
+  metadataBase: new URL("https://ournigeria.ng"),
   title: "Our Nigeria - See Where Nigeria Money Dey Go",
   description:
     "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states. Ask questions in plain English or Pidgin and get clear, sourced answers.",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     title: "Our Nigeria - See Where Nigeria Money Dey Go",
     description:
       "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states.",
-    url: "https://awanaija.ng",
+    url: "https://ournigeria.ng",
     siteName: "Our Nigeria",
     type: "website",
     locale: "en_NG",

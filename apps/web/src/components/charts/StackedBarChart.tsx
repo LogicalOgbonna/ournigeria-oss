@@ -68,6 +68,8 @@ export default function StackedBarChart({ block }: { block: ChartBlock }) {
               return [formatChartValue(value, fmt), s?.label ?? name];
             }) as any}
             contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           />
           <Legend
             iconType="circle"
@@ -128,6 +130,8 @@ export default function StackedBarChart({ block }: { block: ChartBlock }) {
             return [formatChartValue(value, fmt), s?.label ?? name];
           }) as any}
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
         />
         <Legend
           iconType="circle"

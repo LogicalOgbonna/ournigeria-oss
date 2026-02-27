@@ -51,7 +51,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ children, style }) => {
             letterSpacing: "0.05em",
           }}
         >
-          awanaija.ng
+          ournaigeria.ng
         </div>
         <div className="w-14" />
       </div>

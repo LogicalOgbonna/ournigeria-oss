@@ -42,6 +42,8 @@ export function DonutChart({ title, data }: DonutChartProps) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(value: any) => [formatNaira(Number(value)), ""]}
                 contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
               />
             </PieChart>
           </ResponsiveContainer>

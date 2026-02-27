@@ -66,6 +66,8 @@ export default function WaterfallChart({ block }: { block: ChartBlock }) {
         />
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number, name: string) => {
             if (name === "base") return [null, null];
             return [formatChartValue(value, fmt), ""];

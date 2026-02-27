@@ -6,13 +6,28 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const APP_URL = "https://app.awanaija.ng";
+export const APP_URL = "https://app.ournigeria.ng";
 
 // ═══ Stats ═══
 export const STATS = [
-  { value: 36, suffix: "+", label: "States Covered", pidgin: "All 36 states plus FCT" },
-  { value: 700, suffix: "+", label: "Budget Documents", pidgin: "PDFs, spreadsheets, and more" },
-  { value: 708000, suffix: "+", label: "Data Points", pidgin: "Analyzed and ready to query" },
+  {
+    value: 36,
+    suffix: "+",
+    label: "States Covered",
+    pidgin: "All 36 states plus FCT",
+  },
+  {
+    value: 700,
+    suffix: "+",
+    label: "Budget Documents",
+    pidgin: "PDFs, spreadsheets, and more",
+  },
+  {
+    value: 708000,
+    suffix: "+",
+    label: "Data Points",
+    pidgin: "Analyzed and ready to query",
+  },
 ] as const;
 
 // ═══ Features ═══
@@ -54,11 +69,25 @@ export const FEATURES: Feature[] = [
   },
 ];
 
-// ═══ Shuffler Card items ═══
+// ═══ Shuffler Card items (2024 Federal Budget sector allocations) ═══
 export const SHUFFLER_ITEMS = [
-  { label: "Education", amount: "₦150.2B", change: "+12.4%", icon: "GraduationCap" },
-  { label: "Healthcare", amount: "₦132.8B", change: "+8.7%", icon: "HeartPulse" },
-  { label: "Infrastructure", amount: "₦89.4B", change: "+15.2%", icon: "Building2" },
+  { label: "Defence", amount: "₦3.25T", change: "12.0%", icon: "ShieldAlert" },
+  {
+    label: "Education",
+    amount: "₦2.18T",
+    change: "7.9%",
+    icon: "GraduationCap",
+  },
+  { label: "Health", amount: "₦1.33T", change: "5.0%", icon: "HeartPulse" },
+  {
+    label: "Infrastructure",
+    amount: "₦1.32T",
+    change: "5.0%",
+    icon: "Building2",
+  },
+  { label: "Security", amount: "₦969.6B", change: "3.6%", icon: "Siren" },
+  { label: "Social Dev.", amount: "₦534B", change: "2.0%", icon: "Users" },
+  { label: "Agriculture", amount: "₦362.9B", change: "1.4%", icon: "Wheat" },
 ] as const;
 
 // ═══ Typewriter Card messages ═══
@@ -140,6 +169,7 @@ export const SHOWCASE_QUESTIONS: ShowcaseQuestion[] = [
 
 export const LOTTIE_URLS = {
   hero: "https://lottie.host/4db68bbd-31f6-4cd8-84eb-189571bc1ba7/MKIVFowKKi.lottie",
-  aiSearch: "https://lottie.host/f4eb0b92-3661-4670-870c-9786-6f5f0000/WxMUjKKZ9V.lottie",
+  aiSearch:
+    "https://lottie.host/f4eb0b92-3661-4670-870c-9786-6f5f0000/WxMUjKKZ9V.lottie",
   data: "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/example.lottie",
 } as const;

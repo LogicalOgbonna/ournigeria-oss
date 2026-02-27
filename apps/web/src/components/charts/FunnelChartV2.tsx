@@ -28,6 +28,8 @@ export default function FunnelChartV2({ block }: { block: ChartBlock }) {
       <FunnelChart>
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",

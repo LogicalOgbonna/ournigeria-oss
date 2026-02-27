@@ -38,6 +38,8 @@ export default function PolarChart({ block }: { block: ChartBlock }) {
         />
         <Tooltip
           contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",

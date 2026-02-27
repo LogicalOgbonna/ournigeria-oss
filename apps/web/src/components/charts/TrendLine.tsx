@@ -56,6 +56,8 @@ export function TrendLine({ title, data, lines }: TrendLineProps) {
                 return [formatNaira(Number(value)), line?.label || name];
               }}
               contentStyle={chart.tooltipStyle}
+            itemStyle={chart.tooltipItemStyle}
+            labelStyle={chart.tooltipLabelStyle}
             />
             <Legend
               iconType="circle"
