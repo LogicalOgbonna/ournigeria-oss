@@ -1,18 +1,18 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import type { BudgetOfficial, BudgetOfficials } from '../../types';
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import type { BudgetOfficial, BudgetOfficials } from "../../types";
 
 const BUDGETS_DIR = path.resolve(
   __dirname,
-  '../../../../../../packages/source/budgets',
+  "../../../../../../packages/source/budgets",
 );
 
 const ROLE_LABELS: Record<string, string> = {
-  governor: 'Governor',
-  commissioner_of_finance: 'Commissioner of Finance',
-  house_of_assembly_speaker: 'Speaker, House of Assembly',
-  appropriation_committee_chair: 'Appropriation Committee Chair',
-  accountant_general: 'Accountant General',
+  governor: "Governor",
+  commissioner_of_finance: "Commissioner of Finance",
+  house_of_assembly_speaker: "Speaker, House of Assembly",
+  appropriation_committee_chair: "Appropriation Committee Chair",
+  accountant_general: "Accountant General",
 };
 
 interface MetadataFile {
@@ -29,24 +29,20 @@ interface OfficialEntry {
   image_blob?: string;
 }
 
-export function getOfficials(
+export async function getOfficials(
   state: string,
   year: number,
-): BudgetOfficials | null {
-  const dirName = state.replace(/ /g, '_');
+): Promise<BudgetOfficials | null> {
+  const dirName = state.replace(/ /g, "_");
   const metadataPath = path.join(
     BUDGETS_DIR,
     dirName,
     String(year),
-    'metadata.json',
+    "metadata.json",
   );
 
-  if (!fs.existsSync(metadataPath)) {
-    return null;
-  }
-
   try {
-    const raw = fs.readFileSync(metadataPath, 'utf-8');
+    const raw = await fs.readFile(metadataPath, "utf-8");
     const data: MetadataFile = JSON.parse(raw);
 
     const officials: BudgetOfficial[] = [];
@@ -76,22 +72,19 @@ export function getOfficials(
   }
 }
 
-export function getOfficialsForResults(
+export async function getOfficialsForResults(
   results: Array<{ state: string; year: number }>,
-): BudgetOfficials[] {
+): Promise<BudgetOfficials[]> {
   const seen = new Set<string>();
-  const allOfficials: BudgetOfficials[] = [];
+  const promises: Promise<BudgetOfficials | null>[] = [];
 
   for (const { state, year } of results) {
     const key = `${state}|${year}`;
     if (seen.has(key)) continue;
     seen.add(key);
-
-    const officials = getOfficials(state, year);
-    if (officials) {
-      allOfficials.push(officials);
-    }
+    promises.push(getOfficials(state, year));
   }
 
-  return allOfficials;
+  const results_ = await Promise.all(promises);
+  return results_.filter((o): o is BudgetOfficials => o !== null);
 }

@@ -36,6 +36,14 @@ const strings = {
     en: "Reviewing case details...",
     pcm: "I dey review di case...",
   },
+  "status.searchingGovspend": {
+    en: "Searching government payment records...",
+    pcm: "I dey search government payment records...",
+  },
+  "status.analyzingGovspend": {
+    en: "Analyzing payment data...",
+    pcm: "I dey analyze di payment data...",
+  },
   "status.calculatingImpact": {
     en: "Calculating real-world impact...",
     pcm: "I dey calculate wetin di money fit do...",
@@ -77,6 +85,19 @@ const strings = {
     pcm: "Wetin be di biggest corruption cases for Nigeria?",
   },
 
+  "followUp.govspendJuliusBerger": {
+    en: "How much was paid to Julius Berger?",
+    pcm: "How much dem pay Julius Berger?",
+  },
+  "followUp.govspendMinistryWorks": {
+    en: "Show me payments by the Ministry of Works",
+    pcm: "Show me payments by Ministry of Works",
+  },
+  "followUp.govspendTopMDA": {
+    en: "Which MDA spends the most money?",
+    pcm: "Which MDA dey spend the most money?",
+  },
+
   // ─── Dynamic follow-ups (use {0}, {1} for interpolation) ───
   "followUp.caseStatus": {
     en: "What is the current status of {0}'s case?",
@@ -93,6 +114,20 @@ const strings = {
   "followUp.budgetTrends": {
     en: "Show {0} budget trends from 2019 to 2025",
     pcm: "Show me {0} budget trends from 2019 to 2025",
+  },
+
+  // ─── No data messages ───
+  "noData.budget": {
+    en: 'I don\'t have budget data that matches your question in our records yet. Our database covers state and federal budgets from 2019 to 2025 — try asking about a specific state and year, for example: "What is Lagos State\'s 2024 budget?" or "Compare Kano and Rivers education spending."',
+    pcm: 'I no get budget data wey match your question for our records yet. Our database cover state and federal budgets from 2019 to 2025 — try ask about specific state and year, like: "Wetin be Lagos State 2024 budget?" or "Compare Kano and Rivers education spending."',
+  },
+  "noData.corruption": {
+    en: 'I don\'t have EFCC case data that matches your question in our records. Our database covers cases involving former governors and officials investigated by the EFCC. Try asking about a specific official, for example: "What happened to James Ibori?" or "Tell me about Diezani\'s case."',
+    pcm: 'I no get EFCC case data wey match your question for our records. Our database cover cases wey involve former governors and officials wey EFCC investigate. Try ask about specific official, like: "Wetin happen to James Ibori?" or "Tell me about Diezani case."',
+  },
+  "noData.govspend": {
+    en: 'I don\'t have government payment records that match your question. Our database contains over 891,000 payment records across MDAs. Try asking about a specific ministry, contractor, or beneficiary — for example: "How much was paid to Julius Berger?" or "Show me payments by the Ministry of Works."',
+    pcm: 'I no get government payment records wey match your question. Our database get over 891,000 payment records across MDAs. Try ask about specific ministry, contractor, or beneficiary — like: "How much dem pay Julius Berger?" or "Show me payments by Ministry of Works."',
   },
 
   // ─── Language directive (for agent prompts) ───

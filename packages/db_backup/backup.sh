@@ -50,7 +50,10 @@ parse_tables() {
   ' "$1"
 }
 
-mapfile -t TABLES < <(parse_tables "${PRISMA_SCHEMA}")
+TABLES=()
+while IFS= read -r line; do
+  TABLES+=("$line")
+done < <(parse_tables "${PRISMA_SCHEMA}")
 
 # Append extra tables (pgvector indexes etc.)
 for t in ${EXTRA_TABLES}; do

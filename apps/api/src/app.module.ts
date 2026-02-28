@@ -10,6 +10,9 @@ import { ChatModule } from "./chat/chat.module";
 import { ChartModule } from "./chart/chart.module";
 import { TelegramModule } from "./telegram/telegram.module";
 import { SourcesModule } from "./sources/sources.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { AdminModule } from "./admin/admin.module";
+import { FeedbackModule } from "./feedback/feedback.module";
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { SourcesModule } from "./sources/sources.module";
     ChatModule,
     TelegramModule,
     SourcesModule,
+    NotificationsModule,
+    AdminModule,
+    FeedbackModule,
   ],
   providers: [
     {

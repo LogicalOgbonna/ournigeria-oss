@@ -50,10 +50,8 @@ export abstract class PipelineBase {
 
     this.logger.log(`=== ${this.pipelineType} Ingestion Pipeline ===`);
 
-    // Ensure vector index exists
     await this.vector.ensureIndex(this.indexName);
 
-    // Discover files
     const files = await this.discoverFiles();
     this.logger.log(`Discovered ${files.length} files`);
 
@@ -69,40 +67,56 @@ export abstract class PipelineBase {
       };
     }
 
-    // Build work queue (hash is computed inside processItem after S3 download)
-    const queue: Array<{ file: DiscoveredFile }> = files.map((file) => ({
-      file,
-    }));
+    this.logger.log(
+      `Processing ${files.length} files with ${Math.min(config.concurrency, files.length)} workers`,
+    );
 
-    const totalToProcess = queue.length;
-    const workerCount = Math.min(config.concurrency, totalToProcess);
+    const result = await this.processFiles(files, config);
 
-    // Shared counters
-    let totalChunks = 0;
-    let processedFiles = 0;
-    let skippedFiles = 0;
-    let errorFiles = 0;
+    const durationMs = Date.now() - pipelineStart;
+    this.logger.log(`=== ${this.pipelineType} Complete ===`);
+    this.logger.log(`Total time: ${elapsed(pipelineStart)}`);
+    this.logger.log(
+      `Processed: ${result.processed}, Skipped: ${result.skipped}, Errors: ${result.errors}, Chunks: ${result.chunks}`,
+    );
+
+    return {
+      pipeline: this.pipelineType,
+      totalFiles: files.length,
+      processedFiles: result.processed,
+      skippedFiles: result.skipped,
+      errorFiles: result.errors,
+      totalChunks: result.chunks,
+      durationMs,
+    };
+  }
+
+  protected async processFiles(
+    files: DiscoveredFile[],
+    config: PipelineConfig,
+  ): Promise<{
+    processed: number;
+    skipped: number;
+    errors: number;
+    chunks: number;
+  }> {
+    const queue = [...files];
+    const workerCount = Math.min(config.concurrency, queue.length);
+
+    let processed = 0;
+    let skipped = 0;
+    let errors = 0;
+    let chunks = 0;
 
     const processItem = async (
-      item: { file: DiscoveredFile },
+      file: DiscoveredFile,
       workerId: number,
     ): Promise<void> => {
       const tag = `[W${workerId}]`;
-      const { file } = item;
       let localFilePath: string | undefined;
 
       try {
-        // Download from S3 if needed
-        if (file.s3Key) {
-          localFilePath = await this.s3.downloadToTemp(file.s3Key);
-        } else {
-          localFilePath = file.filePath;
-        }
-
-        // Compute hash from local file
-        const hash = fileHash(localFilePath);
-
-        // Dedup check
+        // --- ETag-based dedup: check BEFORE downloading ---
         const existing = await this.prisma.ingestionRecord.findUnique({
           where: {
             pipeline_filePath: {
@@ -112,21 +126,66 @@ export abstract class PipelineBase {
           },
         });
 
-        if (existing?.status === "done" && existing.fileHash === hash) {
-          this.logger.log(`${tag} Skipping (already ingested): ${file.filePath}`);
-          skippedFiles++;
+        if (existing?.status === "done" && file.s3Etag) {
+          if (existing.s3Etag === file.s3Etag) {
+            // ETag matches — skip without downloading
+            this.logger.log(
+              `${tag} Skipping (ETag unchanged): ${file.filePath}`,
+            );
+            skipped++;
+            return;
+          }
+          if (!existing.s3Etag) {
+            // Record exists but has no ETag yet — backfill and skip without downloading
+            await this.prisma.ingestionRecord.update({
+              where: {
+                pipeline_filePath: {
+                  pipeline: this.pipelineType,
+                  filePath: file.filePath,
+                },
+              },
+              data: { s3Etag: file.s3Etag },
+            });
+            this.logger.log(
+              `${tag} Skipping (backfilled ETag): ${file.filePath}`,
+            );
+            skipped++;
+            return;
+          }
+        }
+
+        // Need to download — file is new, changed, or previously failed
+        if (file.s3Key) {
+          localFilePath = await this.s3.downloadToTemp(file.s3Key);
+        } else {
+          localFilePath = file.filePath;
+        }
+
+        const hash = fileHash(localFilePath);
+
+        // Fallback dedup for local files without ETag
+        if (
+          !file.s3Etag &&
+          existing?.status === "done" &&
+          existing.fileHash === hash
+        ) {
+          this.logger.log(`${tag} Skipping (hash unchanged): ${file.filePath}`);
+          skipped++;
           return;
         }
 
-        if (existing?.fileHash && existing.fileHash !== hash) {
+        if (existing?.s3Etag && existing.s3Etag !== file.s3Etag) {
+          this.logger.log(`${tag} Processing (ETag changed): ${file.filePath}`);
+        } else if (existing?.fileHash && existing.fileHash !== hash) {
           this.logger.log(`${tag} Processing (file changed): ${file.filePath}`);
         } else if (existing?.status === "error") {
-          this.logger.log(`${tag} Processing (retrying failed): ${file.filePath}`);
+          this.logger.log(
+            `${tag} Processing (retrying failed): ${file.filePath}`,
+          );
         } else {
           this.logger.log(`${tag} Processing: ${file.filePath}`);
         }
 
-        // Mark as processing
         await this.prisma.ingestionRecord.upsert({
           where: {
             pipeline_filePath: {
@@ -138,6 +197,7 @@ export abstract class PipelineBase {
             pipeline: this.pipelineType,
             filePath: file.filePath,
             fileHash: hash,
+            s3Etag: file.s3Etag || null,
             sourceType: file.sourceType,
             identity: file.identity as any,
             status: "processing",
@@ -145,6 +205,7 @@ export abstract class PipelineBase {
           },
           update: {
             fileHash: hash,
+            s3Etag: file.s3Etag || null,
             sourceType: file.sourceType,
             identity: file.identity as any,
             status: "processing",
@@ -153,10 +214,15 @@ export abstract class PipelineBase {
           },
         });
 
-        const count = await this.ingestFile(file, localFilePath, config);
-        totalChunks += count;
-        processedFiles++;
+        const { upserted, failed } = await this.ingestFile(
+          file,
+          localFilePath,
+          config,
+        );
+        chunks += upserted;
+        processed++;
 
+        const status = failed > 0 ? "partial" : "done";
         await this.prisma.ingestionRecord.update({
           where: {
             pipeline_filePath: {
@@ -164,47 +230,51 @@ export abstract class PipelineBase {
               filePath: file.filePath,
             },
           },
-          data: { status: "done", chunks: count, fileHash: hash },
+          data: {
+            status,
+            chunks: upserted,
+            fileHash: hash,
+            s3Etag: file.s3Etag || null,
+            ...(failed > 0 && {
+              errorMsg: `${failed} batch(es) failed during embedding/upsert`,
+            }),
+          },
         });
 
-        this.logger.log(`${tag} DONE: ${file.filePath} (${count} chunks)`);
+        this.logger.log(
+          `${tag} ${status.toUpperCase()}: ${file.filePath} (${upserted} chunks${failed > 0 ? `, ${failed} batches failed` : ""})`,
+        );
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
         this.logger.error(`${tag} FAILED: ${file.filePath}`, errMsg);
 
-        await this.prisma.ingestionRecord.update({
-          where: {
-            pipeline_filePath: {
-              pipeline: this.pipelineType,
-              filePath: file.filePath,
+        await this.prisma.ingestionRecord
+          .update({
+            where: {
+              pipeline_filePath: {
+                pipeline: this.pipelineType,
+                filePath: file.filePath,
+              },
             },
-          },
-          data: { status: "error", errorMsg: errMsg },
-        }).catch(() => {
-          // Record may not exist yet if download failed before upsert
-        });
+            data: { status: "error", errorMsg: errMsg },
+          })
+          .catch(() => {});
 
-        errorFiles++;
+        errors++;
       } finally {
-        // Always clean up S3 temp files
         if (file.s3Key && localFilePath) {
           this.s3.cleanupTempFile(localFilePath);
         }
       }
     };
 
-    // Launch concurrent workers
     const worker = async (workerId: number): Promise<void> => {
       while (queue.length > 0) {
-        const item = queue.shift();
-        if (!item) break;
-        await processItem(item, workerId);
+        const file = queue.shift();
+        if (!file) break;
+        await processItem(file, workerId);
       }
     };
-
-    this.logger.log(
-      `Processing ${totalToProcess} files with ${workerCount} workers`,
-    );
 
     if (workerCount > 0) {
       await Promise.all(
@@ -212,29 +282,14 @@ export abstract class PipelineBase {
       );
     }
 
-    const durationMs = Date.now() - pipelineStart;
-    this.logger.log(`=== ${this.pipelineType} Complete ===`);
-    this.logger.log(`Total time: ${elapsed(pipelineStart)}`);
-    this.logger.log(
-      `Processed: ${processedFiles}, Skipped: ${skippedFiles}, Errors: ${errorFiles}, Chunks: ${totalChunks}`,
-    );
-
-    return {
-      pipeline: this.pipelineType,
-      totalFiles: files.length,
-      processedFiles,
-      skippedFiles,
-      errorFiles,
-      totalChunks,
-      durationMs,
-    };
+    return { processed, skipped, errors, chunks };
   }
 
   private async ingestFile(
     file: DiscoveredFile,
     localFilePath: string,
     config: PipelineConfig,
-  ): Promise<number> {
+  ): Promise<{ upserted: number; failed: number }> {
     const fileStart = Date.now();
     this.logger.log(`Processing [${file.sourceType}]: ${file.filePath}`);
 
@@ -250,7 +305,7 @@ export abstract class PipelineBase {
 
     if (!text || text.trim().length === 0) {
       this.logger.warn(`Skipping empty file: ${file.filePath}`);
-      return 0;
+      return { upserted: 0, failed: 0 };
     }
 
     this.logger.log(
@@ -265,13 +320,14 @@ export abstract class PipelineBase {
 
     if (!chunkTexts || chunkTexts.length === 0) {
       this.logger.warn(`No chunks produced for: ${file.filePath}`);
-      return 0;
+      return { upserted: 0, failed: 0 };
     }
 
     this.logger.log(`Produced ${chunkTexts.length} chunks`);
 
     // Embed + upsert in batches
     let totalUpserted = 0;
+    let failedBatches = 0;
     const totalBatches = Math.ceil(chunkTexts.length / config.batchSize);
 
     for (let i = 0; i < chunkTexts.length; i += config.batchSize) {
@@ -293,6 +349,7 @@ export abstract class PipelineBase {
           `Batch ${batchNum}/${totalBatches}: embedded + upserted ${batch.length} chunks (${elapsed(batchStart)})`,
         );
       } catch (err) {
+        failedBatches++;
         this.logger.error(
           `Batch ${batchNum}/${totalBatches} failed after retries, skipping: ${err instanceof Error ? err.message : err}`,
         );
@@ -302,6 +359,6 @@ export abstract class PipelineBase {
     this.logger.log(
       `Done: ${file.filePath} -> ${totalUpserted} chunks (${elapsed(fileStart)})`,
     );
-    return totalUpserted;
+    return { upserted: totalUpserted, failed: failedBatches };
   }
 }

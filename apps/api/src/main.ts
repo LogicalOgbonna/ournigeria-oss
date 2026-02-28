@@ -1,8 +1,13 @@
+import { initOtel } from "./lib/otel";
+initOtel();
+
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
+import { closePgVector } from "./mastra/rag/config";
+import { closeBudgetSearchPool } from "./mastra/tools/budget-search";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -27,6 +32,12 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
+
+  // Graceful shutdown: close standalone DB pools
+  app.enableShutdownHooks();
+  process.on("SIGTERM", async () => {
+    await Promise.all([closePgVector(), closeBudgetSearchPool()]);
+  });
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);

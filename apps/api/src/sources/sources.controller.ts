@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Response } from "express";
+import * as path from "path";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -34,15 +35,22 @@ export class SourcesController {
       throw new BadRequestException("Missing path query parameter");
     }
 
-    // Security: reject path traversal
-    if (filePath.includes("..")) {
+    // Security: decode, normalize, and reject path traversal
+    const decoded = decodeURIComponent(filePath);
+    const normalized = path.posix.normalize(decoded);
+    if (normalized.includes("..") || normalized.startsWith("/")) {
       throw new BadRequestException("Invalid path");
     }
 
-    // Must start with a known prefix
-    if (!filePath.startsWith("budgets/") && !filePath.startsWith("corruption/")) {
+    // Must start with a known prefix (case-insensitive)
+    const ALLOWED_PREFIXES = ["budgets/", "corruption/", "govspend/"];
+    const lower = normalized.toLowerCase();
+    if (!ALLOWED_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
       throw new BadRequestException("Invalid path");
     }
+
+    // Use the normalized path from here on
+    filePath = normalized;
 
     // Map spaces to underscores in directory segments (matches S3 key convention)
     const parts = filePath.split("/");

@@ -5,10 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Play, Pause, Trash2, Search, ArrowDown } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Trash2,
+  Search,
+  ArrowDown,
+  RefreshCw,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { adminFetch } from "@/lib/api";
 
 interface LogEntry {
   id: string;
@@ -28,7 +42,15 @@ const levelColors: Record<string, string> = {
 // Generate realistic-looking placeholder logs
 function generateLogs(count: number): LogEntry[] {
   const services = ["api", "ingest", "auth", "chat", "vector"];
-  const levels: LogEntry["level"][] = ["info", "info", "info", "warn", "error", "debug", "debug"];
+  const levels: LogEntry["level"][] = [
+    "info",
+    "info",
+    "info",
+    "warn",
+    "error",
+    "debug",
+    "debug",
+  ];
   const messages = [
     "Request processed successfully",
     "User authenticated via Telegram",
@@ -57,23 +79,62 @@ function generateLogs(count: number): LogEntry[] {
 }
 
 export default function LogsPage() {
-  const [logs, setLogs] = useState<LogEntry[]>(() => generateLogs(50));
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [streaming, setStreaming] = useState(true);
   const [filter, setFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [autoScroll, setAutoScroll] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const [useApi, setUseApi] = useState(true);
 
-  // Simulate streaming logs
+  // Load initial logs from API
+  useEffect(() => {
+    adminFetch("/system/logs?limit=100")
+      .then((data) => {
+        const entries = Array.isArray(data) ? data : [];
+        if (entries.length > 0) {
+          setLogs(entries.reverse());
+        } else {
+          setLogs(generateLogs(50));
+          setUseApi(false);
+        }
+      })
+      .catch(() => {
+        setLogs(generateLogs(50));
+        setUseApi(false);
+      });
+  }, []);
+
+  // Poll for new logs or simulate streaming
   useEffect(() => {
     if (!streaming) return;
     const interval = setInterval(() => {
-      const newLogs = generateLogs(1).map((l) => ({ ...l, id: `log-${Date.now()}` }));
-      setLogs((prev) => [...prev.slice(-500), ...newLogs]);
-    }, 2000);
+      if (useApi) {
+        adminFetch("/system/logs?limit=10")
+          .then((data) => {
+            const entries: LogEntry[] = Array.isArray(data) ? data : [];
+            if (entries.length > 0) {
+              setLogs((prev) => {
+                const ids = new Set(prev.map((l) => l.id));
+                const newOnes = entries.reverse().filter((l) => !ids.has(l.id));
+                return newOnes.length > 0
+                  ? [...prev.slice(-490), ...newOnes]
+                  : prev;
+              });
+            }
+          })
+          .catch(() => {});
+      } else {
+        const newLogs = generateLogs(1).map((l) => ({
+          ...l,
+          id: `log-${Date.now()}`,
+        }));
+        setLogs((prev) => [...prev.slice(-500), ...newLogs]);
+      }
+    }, 3000);
     return () => clearInterval(interval);
-  }, [streaming]);
+  }, [streaming, useApi]);
 
   useEffect(() => {
     if (autoScroll) logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,7 +143,8 @@ export default function LogsPage() {
   const filtered = logs.filter((l) => {
     if (levelFilter !== "all" && l.level !== levelFilter) return false;
     if (serviceFilter !== "all" && l.service !== serviceFilter) return false;
-    if (filter && !l.message.toLowerCase().includes(filter.toLowerCase())) return false;
+    if (filter && !l.message.toLowerCase().includes(filter.toLowerCase()))
+      return false;
     return true;
   });
 
@@ -91,15 +153,28 @@ export default function LogsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">Live Logs</h1>
-          <p className="text-muted-foreground text-sm mt-1">Real-time log streaming from API and Ingest services</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {useApi
+              ? "Log entries from API service"
+              : "Simulated log streaming (API unavailable)"}
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant={streaming ? "secondary" : "default"} size="sm" onClick={() => setStreaming((s) => !s)}>
-            {streaming ? <Pause className="h-3.5 w-3.5 mr-1.5" /> : <Play className="h-3.5 w-3.5 mr-1.5" />}
+          <Button
+            variant={streaming ? "secondary" : "default"}
+            size="sm"
+            onClick={() => setStreaming((s) => !s)}
+          >
+            {streaming ? (
+              <Pause className="h-3.5 w-3.5 mr-1.5" />
+            ) : (
+              <Play className="h-3.5 w-3.5 mr-1.5" />
+            )}
             {streaming ? "Pause" : "Resume"}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setLogs([])}>
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />Clear
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Clear
           </Button>
         </div>
       </div>
@@ -107,10 +182,17 @@ export default function LogsPage() {
       <div className="flex gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Filter logs..." value={filter} onChange={(e) => setFilter(e.target.value)} className="pl-9" />
+          <Input
+            placeholder="Filter logs..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="pl-9"
+          />
         </div>
         <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Levels</SelectItem>
             <SelectItem value="info">Info</SelectItem>
@@ -120,7 +202,9 @@ export default function LogsPage() {
           </SelectContent>
         </Select>
         <Select value={serviceFilter} onValueChange={setServiceFilter}>
-          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Services</SelectItem>
             <SelectItem value="api">API</SelectItem>
@@ -130,7 +214,12 @@ export default function LogsPage() {
             <SelectItem value="vector">Vector</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant={autoScroll ? "default" : "outline"} size="icon" className="h-9 w-9 shrink-0" onClick={() => setAutoScroll((a) => !a)}>
+        <Button
+          variant={autoScroll ? "default" : "outline"}
+          size="icon"
+          className="h-9 w-9 shrink-0"
+          onClick={() => setAutoScroll((a) => !a)}
+        >
           <ArrowDown className="h-4 w-4" />
         </Button>
       </div>
@@ -140,17 +229,32 @@ export default function LogsPage() {
           <ScrollArea className="h-[600px] custom-scrollbar">
             <div className="font-mono text-xs p-3 space-y-0.5">
               {filtered.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No logs matching filters</p>
+                <p className="text-muted-foreground text-center py-8">
+                  No logs matching filters
+                </p>
               ) : (
                 filtered.map((log) => (
-                  <div key={log.id} className="flex gap-3 py-1 px-2 rounded hover:bg-muted/50 transition-colors">
+                  <div
+                    key={log.id}
+                    className="flex gap-3 py-1 px-2 rounded hover:bg-muted/50 transition-colors"
+                  >
                     <span className="text-muted-foreground shrink-0 w-[180px]">
                       {new Date(log.timestamp).toLocaleString()}
                     </span>
-                    <span className={cn("shrink-0 w-[45px] uppercase font-semibold", levelColors[log.level])}>
+                    <span
+                      className={cn(
+                        "shrink-0 w-[45px] uppercase font-semibold",
+                        levelColors[log.level],
+                      )}
+                    >
                       {log.level}
                     </span>
-                    <Badge variant="outline" className="text-[10px] shrink-0 h-5">{log.service}</Badge>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] shrink-0 h-5"
+                    >
+                      {log.service}
+                    </Badge>
                     <span className="text-foreground">{log.message}</span>
                   </div>
                 ))
@@ -162,8 +266,15 @@ export default function LogsPage() {
       </Card>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{filtered.length} entries shown (of {logs.length} total)</span>
-        {streaming && <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-chart-1 animate-pulse" /> Streaming</span>}
+        <span>
+          {filtered.length} entries shown (of {logs.length} total)
+        </span>
+        {streaming && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-chart-1 animate-pulse" />{" "}
+            Streaming
+          </span>
+        )}
       </div>
     </div>
   );

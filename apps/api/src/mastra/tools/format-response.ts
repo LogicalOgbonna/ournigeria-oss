@@ -399,7 +399,9 @@ export function formatCorruptionResponse(
   const { text: cleanedText, charts } = extractChartBlocks(corruptionAnalysis);
   const hasStructuredCharts = charts.length > 0;
   const displayText = hasStructuredCharts ? cleanedText : corruptionAnalysis;
-  const textForExtraction = hasStructuredCharts ? cleanedText : corruptionAnalysis;
+  const textForExtraction = hasStructuredCharts
+    ? cleanedText
+    : corruptionAnalysis;
 
   const stats = extractCorruptionStats(textForExtraction);
 
@@ -557,6 +559,107 @@ function generateFollowUps(
       { text: t("followUp.compareBudgets", language) },
       { text: t("followUp.budgetBuy", language) },
     );
+  }
+
+  return followUps.slice(0, 3);
+}
+
+// ─── GovSpend response formatting ───────────────────────────
+
+export function formatGovspendResponse(
+  govspendAnalysis: string,
+  language: Language = "en",
+  sources?: SourceCitation[],
+): AIResponseContent {
+  const { text: cleanedText, charts } = extractChartBlocks(govspendAnalysis);
+  const hasStructuredCharts = charts.length > 0;
+  const displayText = hasStructuredCharts ? cleanedText : govspendAnalysis;
+  const textForExtraction = hasStructuredCharts
+    ? cleanedText
+    : govspendAnalysis;
+
+  const stats = extractStats(textForExtraction);
+  const followUps = generateGovspendFollowUps(textForExtraction, language);
+
+  const response: AIResponseContent = {
+    text: displayText,
+    followUps,
+  };
+
+  if (hasStructuredCharts) {
+    response.charts = charts;
+  }
+
+  if (stats.length > 0) {
+    response.stats = stats;
+  }
+
+  // Legacy chart extraction — fallback when no structured charts found
+  if (!hasStructuredCharts) {
+    const bar = extractBarChart(govspendAnalysis);
+    if (bar) {
+      response.barChart = bar;
+    }
+  }
+
+  if (sources && sources.length > 0) {
+    response.sources = sources;
+  }
+
+  return response;
+}
+
+function generateGovspendFollowUps(
+  text: string,
+  language: Language = "en",
+): Array<{ text: string }> {
+  const followUps: Array<{ text: string }> = [];
+
+  // Look for MDA names mentioned
+  const mdaPattern =
+    /\b(Federal Ministry of \w+|Nigeria [\w\s]+ Service|National [\w\s]+ Commission|Federal [\w\s]+ Authority)\b/gi;
+  const mdasFound = new Set<string>();
+  let m;
+  while ((m = mdaPattern.exec(text)) !== null) {
+    mdasFound.add(m[1]);
+  }
+
+  const mdaArr = Array.from(mdasFound);
+
+  if (mdaArr.length > 0) {
+    followUps.push({
+      text:
+        language === "pcm"
+          ? `Show me all payments wey ${mdaArr[0]} make`
+          : `Show me all payments by ${mdaArr[0]}`,
+    });
+  }
+
+  if (followUps.length < 3) {
+    followUps.push({
+      text:
+        language === "pcm"
+          ? "Who be di biggest government contractors?"
+          : "Who are the biggest government contractors?",
+    });
+  }
+
+  if (followUps.length < 3) {
+    followUps.push({
+      text:
+        language === "pcm"
+          ? "Show me di largest single payments"
+          : "Show me the largest single government payments",
+    });
+  }
+
+  if (followUps.length < 3) {
+    followUps.push({
+      text:
+        language === "pcm"
+          ? "Which MDA dey spend di most money?"
+          : "Which MDA spends the most money?",
+    });
   }
 
   return followUps.slice(0, 3);

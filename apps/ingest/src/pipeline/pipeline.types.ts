@@ -3,6 +3,7 @@ export interface DiscoveredFile {
   sourceType: string;
   identity: Record<string, unknown>;
   s3Key?: string;
+  s3Etag?: string;
 }
 
 export interface PipelineConfig {

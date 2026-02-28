@@ -10,6 +10,7 @@ export interface EnvConfig {
   EMBEDDING_DIMENSION: number;
   VECTOR_INDEX_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
+  VECTOR_INDEX_GOVSPEND: string;
   TAVILY_API_KEY: string;
   APP_URL: string;
   CORS_ORIGINS: string;
@@ -18,6 +19,10 @@ export interface EnvConfig {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
+  ADMIN_SESSION_SECRET: string;
+  LANGFUSE_PUBLIC_KEY?: string;
+  LANGFUSE_SECRET_KEY?: string;
+  LANGFUSE_BASE_URL?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -32,6 +37,7 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   "EMBEDDING_DIMENSION",
   "VECTOR_INDEX_BUDGET",
   "VECTOR_INDEX_CORRUPTION",
+  "VECTOR_INDEX_GOVSPEND",
   "TAVILY_API_KEY",
   "APP_URL",
   "CORS_ORIGINS",
@@ -40,6 +46,7 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "S3_BUCKET",
+  "ADMIN_SESSION_SECRET",
 ];
 
 export function validateEnv(config: Record<string, unknown>): EnvConfig {
@@ -70,6 +77,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     EMBEDDING_DIMENSION: dimension,
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
+    VECTOR_INDEX_GOVSPEND: config.VECTOR_INDEX_GOVSPEND as string,
     TAVILY_API_KEY: config.TAVILY_API_KEY as string,
     APP_URL: config.APP_URL as string,
     CORS_ORIGINS: config.CORS_ORIGINS as string,
@@ -78,5 +86,9 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
     S3_BUCKET: config.S3_BUCKET as string,
+    ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
+    LANGFUSE_PUBLIC_KEY: (config.LANGFUSE_PUBLIC_KEY as string) || undefined,
+    LANGFUSE_SECRET_KEY: (config.LANGFUSE_SECRET_KEY as string) || undefined,
+    LANGFUSE_BASE_URL: (config.LANGFUSE_BASE_URL as string) || undefined,
   };
 }

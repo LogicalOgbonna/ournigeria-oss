@@ -94,6 +94,11 @@ export interface AIResponseContent {
   followUps: FollowUpSuggestion[];
 }
 
-export type ToolId = "budget" | "corruption" | "impact" | "general";
+export type ToolId =
+  | "budget"
+  | "corruption"
+  | "govspend"
+  | "impact"
+  | "general";
 
 export type Language = "en" | "pcm";

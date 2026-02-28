@@ -1,11 +1,19 @@
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "admin";
+import { ADMIN_COOKIE } from "./constants";
+
+function getAdminToken(): string {
+  if (typeof document === "undefined") return "";
+  // Cookie is httpOnly, so we can't read it from JS.
+  // The browser sends it automatically via the Next.js rewrite proxy.
+  // We also read from a meta tag set during SSR if needed.
+  return "";
+}
 
 export async function adminFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api/admin${path}`, {
     ...opts,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      "X-Admin-Key": ADMIN_API_KEY,
       ...opts?.headers,
     },
   });

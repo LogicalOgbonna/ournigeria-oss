@@ -9,17 +9,7 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { adminFetch } from "@/lib/api";
 
-const PAGE_SIZE = 20;
-
-// Placeholder data while backend is being built
-const placeholderUsers: UserRow[] = Array.from({ length: 12 }, (_, i) => ({
-  id: `user-${i + 1}`,
-  phoneNumber: `+234${String(8000000000 + i * 1111111).slice(0, 10)}`,
-  telegramId: i % 3 === 0 ? `tg_user_${i}` : null,
-  createdAt: new Date(Date.now() - i * 86400000 * 3).toISOString(),
-  lastSeenAt: i < 6 ? new Date(Date.now() - i * 3600000).toISOString() : null,
-  _count: { conversations: Math.floor(Math.random() * 20) + 1 },
-}));
+const PAGE_SIZE = 25;
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -38,18 +28,11 @@ export default function UsersPage() {
       });
       if (debouncedSearch) params.set("q", debouncedSearch);
       const res = await adminFetch(`/users?${params}`);
-      setUsers(res.data ?? res);
-      setTotal(res.total ?? res.length ?? 0);
+      setUsers(res.data ?? []);
+      setTotal(res.total ?? 0);
     } catch {
-      // Fall back to placeholder data filtered by search
-      const filtered = placeholderUsers.filter(
-        (u) =>
-          !debouncedSearch ||
-          u.phoneNumber?.includes(debouncedSearch) ||
-          u.telegramId?.includes(debouncedSearch)
-      );
-      setUsers(filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
-      setTotal(filtered.length);
+      setUsers([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -77,7 +60,7 @@ export default function UsersPage() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search by phone or telegram ID..."
+          placeholder="Search by name, phone, email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -92,7 +75,7 @@ export default function UsersPage() {
           ))}
         </div>
       ) : (
-        <UserTable users={users} />
+        <UserTable users={users} onRefresh={fetchUsers} />
       )}
 
       <div className="flex items-center justify-between">

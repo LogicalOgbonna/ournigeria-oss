@@ -7,13 +7,7 @@
 
 ### AI-powered Nigerian budget analysis and corruption tracking
 
-[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://core.telegram.org/bots)
-[![pnpm](https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Nx](https://img.shields.io/badge/Nx_Monorepo-143055?style=flat-square&logo=nx&logoColor=white)](https://nx.dev/)
+[![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white)](https://nestjs.com/) [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://www.prisma.io/) [![Telegram](https://img.shields.io/badge/Telegram_Bot-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://core.telegram.org/bots) [![pnpm](https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/) [![Nx](https://img.shields.io/badge/Nx_Monorepo-143055?style=flat-square&logo=nx&logoColor=white)](https://nx.dev/)
 
 ---
 
@@ -47,7 +41,12 @@ The platform processes the question through specialized AI agents, searches acro
 │  │  Web App   │  │  @ournigeria  │  │  (Awanaija)          │ │
 │  │  :3001     │  │               │  │  :3003               │ │
 │  └─────┬─────┘  └───────┬───────┘  └──────────────────────┘ │
-└────────┼────────────────┼───────────────────────────────────┘
+│                                                             │
+│  ┌──────────────────────┐                                   │
+│  │  Admin Dashboard      │                                   │
+│  │  :3004               │                                   │
+│  └───────────┬──────────┘                                   │
+└──────────────┼──────────────────────────────────────────────┘
          │                │
          ▼                ▼
 ┌─────────────────────────────────────────────────────────────┐
@@ -81,6 +80,7 @@ ournigeria/
 ├── apps/
 │   ├── api/          # NestJS backend — auth, chat, agents, charts, Telegram
 │   ├── web/          # Next.js frontend — chat UI, 22 chart types, public pages
+│   ├── dashboard/    # Next.js admin interface — usage analytics, ingestion tracking
 │   ├── ingest/       # Document ingestion pipeline — PDF, XLSX, DOCX, JSON
 │   ├── awanaija/     # Marketing landing page with animations
 │   └── videos/       # Remotion — programmatic video generation
@@ -218,6 +218,7 @@ pnpm api:dev       # API on :3000
 pnpm web:dev       # Web on :3001
 pnpm ingest:dev    # Ingestion on :3002
 pnpm awanaija:dev  # Landing page on :3003
+pnpm dashboard:dev # Admin dashboard on :3004
 ```
 
 ### Production
@@ -246,11 +247,17 @@ Swagger UI is available at `/api/docs` when the API is running.
 - [x] Pidgin English language support
 - [x] Conversation history and management
 - [x] "Money Could Buy" real-world impact cards
-- [ ] AWS S3 document storage with lifecycle prefixes (`ingesting/` → `ingested/` → `failed/`)
-- [ ] S3 event-driven auto-ingestion pipeline
 - [ ] Presigned URLs for secure document access
 - [ ] WhatsApp channel integration
-- [ ] Bulk upload script for `packages/source/` → S3 migration
+- [x] Bulk upload script for `packages/source/` → S3 migration
+- [x] Create a journey using React Journey to give a user thought on what they can actually do on the landing page when they visit the site
+- [x] End-to-end feedback system for users to drop feedback (text, images, videos) on the web app, visible to admins on the backend dashboard
+- [x] Add sector/category metadata during ingestion — classify each chunk by budget sector (education, health, defense, etc.) using an LLM classification step or rule-based extraction (RC-7)
+- [x] Create summary chunks — generate aggregate-level chunks per state/year/sector that contain total figures, reducing the need for the agent to sum across fragments (RC-7)
+- [ ] Implement incremental S3 ingestion strategy (Option E: Hybrid):
+  - Start with ETag checking as an immediate improvement to eliminate downloading unchanged files
+  - Move to SQS events for ongoing real-time ingestion
+  - Keep ETag-based scan as a periodic consistency check
 
 ---
 

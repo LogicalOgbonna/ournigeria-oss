@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { PipelineBase } from './pipeline.base';
-import { BudgetPipeline } from './budget.pipeline';
-import { CorruptionPipeline } from './corruption.pipeline';
+import { Injectable } from "@nestjs/common";
+import { PipelineBase } from "./pipeline.base";
+import { BudgetPipeline } from "./budget.pipeline";
+import { CorruptionPipeline } from "./corruption.pipeline";
+import { GovspendPipeline } from "./govspend.pipeline";
 
 @Injectable()
 export class PipelineRegistry {
@@ -10,8 +11,9 @@ export class PipelineRegistry {
   constructor(
     budget: BudgetPipeline,
     corruption: CorruptionPipeline,
+    govspend: GovspendPipeline,
   ) {
-    for (const pipeline of [budget, corruption]) {
+    for (const pipeline of [budget, corruption, govspend]) {
       this.map.set(pipeline.pipelineType, pipeline);
     }
   }

@@ -1,105 +1,106 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, XCircle, FileText, Loader2, Clock } from "lucide-react";
-import { useSSE } from "@/lib/hooks/use-sse";
-import { PauseResumeButton } from "./pause-resume-button";
+import {
+  CheckCircle,
+  AlertTriangle,
+  Database,
+  Loader2,
+  Clock,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ingestFetch } from "@/lib/api";
 
-interface PipelineEvent {
-  type: "file_start" | "file_done" | "file_error" | "pipeline_done" | "paused" | "resumed";
+interface PipelineData {
+  total: number;
+  done: number;
+  error: number;
+  processing: number;
+  chunks: number;
+}
+
+export function RunProgress({
+  runId,
+  pipeline,
+}: {
   runId: string;
-  filePath?: string;
-  chunks?: number;
-  error?: string;
-  timestamp: string;
-}
-
-interface FileEntry {
-  path: string;
-  status: "processing" | "done" | "error";
-  chunks?: number;
-  error?: string;
-}
-
-export function RunProgress({ runId }: { runId: string }) {
-  const { events, connected } = useSSE<PipelineEvent>(
-    `/api/ingest/events?runId=${runId}`,
-  );
-  const [files, setFiles] = useState<Map<string, FileEntry>>(new Map());
-  const [done, setDone] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  pipeline?: string;
+}) {
+  const [data, setData] = useState<PipelineData | null>(null);
+  const [isActive, setIsActive] = useState(false);
+  const [pipelineName, setPipelineName] = useState(pipeline);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
-  const logEndRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
 
-  // Update elapsed time
+  const load = useCallback(async () => {
+    try {
+      const query = pipelineName ? `?pipeline=${pipelineName}` : "";
+      const res = await ingestFetch(`/status${query}`);
+      const active: string[] = res.active ?? [];
+      const pipelines = res.pipelines ?? {};
+
+      // If we know the pipeline name, use it directly
+      if (pipelineName && pipelines[pipelineName]) {
+        setData(pipelines[pipelineName]);
+        setIsActive(active.includes(pipelineName));
+      } else {
+        // Try to find the pipeline from the run's recent runs
+        const run = (res.recentRuns ?? []).find(
+          (r: { id: string }) => r.id === runId,
+        );
+        if (run) {
+          setPipelineName(run.pipeline);
+          if (pipelines[run.pipeline]) {
+            setData(pipelines[run.pipeline]);
+            setIsActive(active.includes(run.pipeline));
+          }
+        } else {
+          // Show aggregated data across all pipelines
+          const agg: PipelineData = {
+            total: 0,
+            done: 0,
+            error: 0,
+            processing: 0,
+            chunks: 0,
+          };
+          for (const p of Object.values(pipelines) as PipelineData[]) {
+            agg.total += p.total;
+            agg.done += p.done;
+            agg.error += p.error;
+            agg.processing += p.processing;
+            agg.chunks += p.chunks;
+          }
+          setData(agg);
+          setIsActive(active.length > 0);
+        }
+      }
+      setError(null);
+    } catch {
+      setError("Failed to connect to ingestion service");
+    }
+  }, [runId, pipelineName]);
+
+  // Initial load + polling every 5s
   useEffect(() => {
-    if (done) return;
+    load();
+    intervalRef.current = setInterval(load, 5_000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [load]);
+
+  // Elapsed timer
+  useEffect(() => {
     const timer = setInterval(() => setElapsed(Date.now() - startTime), 1000);
     return () => clearInterval(timer);
-  }, [done, startTime]);
-
-  // Process SSE events
-  useEffect(() => {
-    if (events.length === 0) return;
-    const latest = events[events.length - 1];
-
-    setFiles((prev) => {
-      const next = new Map(prev);
-      switch (latest.type) {
-        case "file_start":
-          if (latest.filePath) {
-            next.set(latest.filePath, { path: latest.filePath, status: "processing" });
-          }
-          break;
-        case "file_done":
-          if (latest.filePath) {
-            next.set(latest.filePath, {
-              path: latest.filePath,
-              status: "done",
-              chunks: latest.chunks,
-            });
-          }
-          break;
-        case "file_error":
-          if (latest.filePath) {
-            next.set(latest.filePath, {
-              path: latest.filePath,
-              status: "error",
-              error: latest.error,
-            });
-          }
-          break;
-        case "pipeline_done":
-          setDone(true);
-          break;
-        case "paused":
-          setIsPaused(true);
-          break;
-        case "resumed":
-          setIsPaused(false);
-          break;
-      }
-      return next;
-    });
-  }, [events]);
-
-  // Auto-scroll log
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [files.size]);
-
-  const fileArr = Array.from(files.values());
-  const processed = fileArr.filter((f) => f.status !== "processing").length;
-  const errors = fileArr.filter((f) => f.status === "error").length;
-  const totalChunks = fileArr.reduce((sum, f) => sum + (f.chunks || 0), 0);
-  const total = fileArr.length;
-  const progress = total > 0 ? (processed / total) * 100 : 0;
+  }, [startTime]);
 
   function formatElapsed(ms: number) {
     const s = Math.floor(ms / 1000);
@@ -110,122 +111,133 @@ export function RunProgress({ runId }: { runId: string }) {
     return `${s}s`;
   }
 
+  if (!data && !error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-muted-foreground text-sm">{error}</p>
+          <Button variant="outline" size="sm" className="mt-3" onClick={load}>
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { total, done, error: errors, processing, chunks } = data!;
+  const progress = total > 0 ? (done / total) * 100 : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-heading font-semibold">Run Progress</h2>
-          {connected ? (
+          <h2 className="text-lg font-heading font-semibold capitalize">
+            {pipelineName ?? "Pipeline"} Progress
+          </h2>
+          {isActive ? (
             <Badge variant="secondary" className="text-xs gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-chart-1 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live
             </Badge>
           ) : (
-            <Badge variant="outline" className="text-xs">Disconnected</Badge>
-          )}
-          {done && (
-            <Badge variant="default" className="text-xs">Complete</Badge>
+            <Badge variant="outline" className="text-xs">
+              Idle
+            </Badge>
           )}
         </div>
-        <PauseResumeButton
-          pipeline="budget"
-          isPaused={isPaused}
-          isRunning={!done}
-          onToggle={() => setIsPaused((p) => !p)}
-        />
+        <Button variant="outline" size="sm" onClick={load}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </div>
 
+      {/* Progress bar */}
       <Card>
         <CardContent className="py-4 space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">
-              {processed} / {total} files
+            <span className="text-muted-foreground">
+              {done.toLocaleString()} / {total.toLocaleString()} files
             </span>
+            <span className="font-medium">{progress.toFixed(1)}%</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-2.5" />
+          {processing > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {processing} files currently processing
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-4 gap-4">
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <CardContent className="py-3 text-center">
-            <p className="text-xl font-bold font-heading">{processed}</p>
-            <p className="text-xs text-muted-foreground">Processed</p>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <CheckCircle className="h-4 w-4 text-emerald-500" />
+            </div>
+            <p className="text-xl font-bold font-heading">
+              {done.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">Done</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-3 text-center">
-            <p className={cn("text-xl font-bold font-heading", errors > 0 && "text-destructive")}>{errors}</p>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <AlertTriangle
+                className={cn(
+                  "h-4 w-4",
+                  errors > 0 ? "text-destructive" : "text-muted-foreground",
+                )}
+              />
+            </div>
+            <p
+              className={cn(
+                "text-xl font-bold font-heading",
+                errors > 0 && "text-destructive",
+              )}
+            >
+              {errors.toLocaleString()}
+            </p>
             <p className="text-xs text-muted-foreground">Errors</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-3 text-center">
-            <p className="text-xl font-bold font-heading">{totalChunks.toLocaleString()}</p>
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Database className="h-4 w-4 text-violet-500" />
+            </div>
+            <p className="text-xl font-bold font-heading">
+              {chunks.toLocaleString()}
+            </p>
             <p className="text-xs text-muted-foreground">Chunks</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="py-3 text-center flex flex-col items-center">
-            <div className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-              <p className="text-xl font-bold font-heading">{formatElapsed(elapsed)}</p>
+          <CardContent className="py-3 text-center">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
-            <p className="text-xs text-muted-foreground">Elapsed</p>
+            <p className="text-xl font-bold font-heading">
+              {formatElapsed(elapsed)}
+            </p>
+            <p className="text-xs text-muted-foreground">Viewing</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">File Log</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[400px] custom-scrollbar">
-            <div className="space-y-1 pr-3">
-              {fileArr.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Waiting for events...
-                </p>
-              ) : (
-                fileArr.map((file) => {
-                  const name = file.path.split("/").pop() || file.path;
-                  return (
-                    <div
-                      key={file.path}
-                      className="flex items-center gap-2 py-1.5 px-2 rounded text-sm"
-                    >
-                      {file.status === "processing" && (
-                        <Loader2 className="h-3.5 w-3.5 text-chart-2 animate-spin shrink-0" />
-                      )}
-                      {file.status === "done" && (
-                        <CheckCircle className="h-3.5 w-3.5 text-chart-1 shrink-0" />
-                      )}
-                      {file.status === "error" && (
-                        <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
-                      )}
-                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <span className="truncate flex-1">{name}</span>
-                      {file.chunks !== undefined && (
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {file.chunks} chunks
-                        </Badge>
-                      )}
-                      {file.error && (
-                        <span className="text-xs text-destructive truncate max-w-[200px]">
-                          {file.error}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-              <div ref={logEndRef} />
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      {error && (
+        <p className="text-xs text-destructive text-center">{error}</p>
+      )}
     </div>
   );
 }

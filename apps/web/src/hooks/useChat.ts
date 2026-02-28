@@ -64,6 +64,16 @@ export function useChat(conversationId?: string) {
         }
         return;
       }
+      if (res.status === 403) {
+        try {
+          const body = await res.json();
+          if (body.error === "banned") {
+            sessionStorage.setItem("ban_reason", body.reason || "");
+            window.location.replace("/banned");
+            return;
+          }
+        } catch {}
+      }
       if (!res.ok) {
         setLoadError(true);
         setIsCheckingAuth(false);
@@ -212,6 +222,16 @@ export function useChat(conversationId?: string) {
             window.location.replace("/login");
           }
           return;
+        }
+        if (res.status === 403) {
+          try {
+            const body = await res.json();
+            if (body.error === "banned") {
+              sessionStorage.setItem("ban_reason", body.reason || "");
+              window.location.replace("/banned");
+              return;
+            }
+          } catch {}
         }
         if (!res.ok || !res.body) {
           throw new Error("Chat request failed");

@@ -1,5 +1,7 @@
+# syntax=docker/dockerfile:1
+
 # ── Stage 1: Install dependencies ──
-FROM node:22-slim AS deps
+FROM node:22.14.0-slim AS deps
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
@@ -77,7 +79,7 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/ingest... --prod \
     node_modules/@prisma/fetch-engine
 
 # ── Stage 4: Production runner ──
-FROM node:22-slim AS runner
+FROM node:22.14.0-slim AS runner
 
 RUN apt-get update && apt-get install -y openssl curl bash gnupg \
  && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
@@ -85,6 +87,9 @@ RUN apt-get update && apt-get install -y openssl curl bash gnupg \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser
 
 # Copy production-only node_modules
 COPY --from=prod-deps /app/node_modules/ node_modules/
@@ -100,6 +105,10 @@ COPY --from=build /app/apps/ingest/prisma/ prisma/
 # Copy Infisical config
 COPY apps/ingest/.infisical.json .infisical.json
 
+USER appuser
+
 EXPOSE 3002
 
-CMD ["infisical", "run", "--env", "prod", "--", "node", "dist/main.js"]
+STOPSIGNAL SIGTERM
+
+CMD infisical run --env "${INFISICAL_ENV:-prod}" -- node dist/main.js

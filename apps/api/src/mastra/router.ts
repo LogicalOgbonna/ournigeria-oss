@@ -8,6 +8,7 @@ import { mastra, AgentNames } from "./index";
 import {
   formatAgentResponse,
   formatCorruptionResponse,
+  formatGovspendResponse,
   formatImpactResponse,
 } from "./tools/format-response";
 import { getOfficialsForResults } from "./tools/metadata";
@@ -21,8 +22,42 @@ import {
 import { t } from "../lib/i18n";
 import { embed, generateText } from "ai";
 import { z } from "zod";
+import { tracingMetadata, getPrompt } from "../lib/langfuse";
+import {
+  analyzeQueryComplexity,
+  decomposeQuery,
+  type SubQuery,
+} from "./rag/query-analysis";
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
+const GOVSPEND_INDEX = RAG_CONFIG.govspendIndexName;
+
+/** Minimum cosine similarity score for a RAG result to be considered relevant. */
+const MIN_RELEVANCE_SCORE = 0.2;
+
+/** Maximum number of source citations returned to the frontend. */
+const MAX_SOURCES = 5;
+
+/** Turn raw filenames like "APPROVED_2024_BUDGET_BREAKDOWN.xlsx" into "Approved 2024 Budget Breakdown" */
+function humanizeFilename(filename: string): string {
+  // Strip extension
+  const name = filename.replace(/\.[^.]+$/, "");
+  // Replace underscores/hyphens with spaces, then title-case
+  return name
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** Title-case a state name: "akwa ibom" → "Akwa Ibom", "fct" → "FCT" */
+function titleCaseState(state: string): string {
+  const s = state.toLowerCase();
+  if (s === "fct") return "FCT";
+  return s
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 const GENERAL_FOLLOW_UPS = [
   { text: "What is Lagos 2023 budget?" },
@@ -43,6 +78,9 @@ const GENERAL_FOLLOW_UPS = [
   { text: "What is the FCT 2025 budget?" },
   { text: "How much did Orji Uzor Kalu allegedly embezzle?" },
   { text: "Show me infrastructure spending in Enugu State" },
+  { text: "Who are the biggest government contractors?" },
+  { text: "Show me payments by Nigeria Correctional Service" },
+  { text: "Which MDA spends the most money?" },
 ];
 
 const GENERAL_FOLLOW_UPS_PCM = [
@@ -63,6 +101,9 @@ const GENERAL_FOLLOW_UPS_PCM = [
   { text: "Wetin be FCT 2025 budget?" },
   { text: "How much Orji Uzor Kalu allegedly embezzle?" },
   { text: "Show me infrastructure spending for Enugu State" },
+  { text: "Who be di biggest government contractors?" },
+  { text: "Show me payments wey Nigeria Correctional Service make" },
+  { text: "Which MDA dey spend di most money?" },
 ];
 
 function pickRandomFollowUps(
@@ -72,6 +113,30 @@ function pickRandomFollowUps(
   const list = language === "pcm" ? GENERAL_FOLLOW_UPS_PCM : GENERAL_FOLLOW_UPS;
   const shuffled = [...list].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
+}
+
+function getFollowUps(
+  language: Language,
+  intent: "budget" | "corruption" | "govspend",
+): Array<{ text: string }> {
+  const suggestions: Record<string, Array<{ text: string }>> = {
+    budget: [
+      { text: t("followUp.educationSpending", language) },
+      { text: t("followUp.compareBudgets", language) },
+      { text: t("followUp.budgetBuy", language) },
+    ],
+    corruption: [
+      { text: t("followUp.convictedGovernors", language) },
+      { text: t("followUp.biggestCorruption", language) },
+      { text: t("followUp.largestEFCC", language) },
+    ],
+    govspend: [
+      { text: t("followUp.govspendJuliusBerger", language) },
+      { text: t("followUp.govspendMinistryWorks", language) },
+      { text: t("followUp.govspendTopMDA", language) },
+    ],
+  };
+  return suggestions[intent];
 }
 
 function getLanguageDirective(language: Language): string {
@@ -138,6 +203,29 @@ const BUDGET_KEYWORDS = [
   "infrastructure spending",
 ];
 
+const GOVSPEND_KEYWORDS = [
+  "payment",
+  "payments",
+  "paid",
+  "disbursement",
+  "disbursed",
+  "contractor",
+  "contractors",
+  "beneficiary",
+  "beneficiaries",
+  "mda",
+  "govspend",
+  "vendor",
+  "supplier",
+  "contract",
+  "remittance",
+  "payee",
+  "who received",
+  "who got paid",
+  "government payments",
+  "payment records",
+];
+
 const IMPACT_KEYWORDS = [
   "what could",
   "what can",
@@ -160,7 +248,10 @@ const IMPACT_KEYWORDS = [
   "impact of that",
 ];
 
-export function inferTool(message: string): ToolId {
+export function inferTool(
+  message: string,
+  isFirstTurn: boolean = false,
+): ToolId | "follow_up" {
   const lower = message.toLowerCase();
 
   const impactScore = IMPACT_KEYWORDS.reduce(
@@ -180,11 +271,46 @@ export function inferTool(message: string): ToolId {
     0,
   );
 
-  if (corruptionScore > 0 && budgetScore === 0) return "corruption";
-  if (budgetScore > 0 && corruptionScore === 0) return "budget";
+  const govspendScore = GOVSPEND_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
 
-  if (corruptionScore > 0 && budgetScore > 0) {
-    return corruptionScore >= budgetScore ? "corruption" : "budget";
+  // Find the highest-scoring intent
+  const scores = [
+    { tool: "corruption" as const, score: corruptionScore },
+    { tool: "budget" as const, score: budgetScore },
+    { tool: "govspend" as const, score: govspendScore },
+  ];
+
+  const maxScore = Math.max(...scores.map((s) => s.score));
+  if (maxScore > 0) {
+    const winner = scores.find((s) => s.score === maxScore)!;
+    return winner.tool;
+  }
+
+  // Check if the message looks like a general/greeting/meta message
+  const GENERAL_PATTERNS = [
+    /^(hi|hello|hey|good\s+(morning|afternoon|evening)|howdy)\b/,
+    /^(thanks?|thank\s+you|cheers|nice\s+one|great|awesome)\b/,
+    /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you|how\s+do\s+you)/,
+    /^(help|i\s+don'?t\s+understand|what\s+do\s+you\s+do)/,
+    /^(bye|goodbye|see\s+you|later)\b/,
+  ];
+  if (GENERAL_PATTERNS.some((p) => p.test(lower))) {
+    return "general";
+  }
+
+  // Only check follow-up heuristics after keywords and general patterns found no match
+  if (!isFirstTurn) {
+    if (
+      lower.startsWith("what about") ||
+      lower.startsWith("how about") ||
+      lower.startsWith("and ") ||
+      message.split(" ").length <= 4
+    ) {
+      return "follow_up";
+    }
   }
 
   return "budget";
@@ -208,9 +334,9 @@ interface RouteResult {
 async function rewriteQueryForRAG(
   message: string,
   context: ConversationContext,
+  sessionId?: string,
+  userId?: string,
 ): Promise<string> {
-  // Skip rewriting if the message is already specific enough
-  if (message.split(/\s+/).length > 12) return message;
   // Skip if no context available
   if (
     !context.summary &&
@@ -223,10 +349,14 @@ async function rewriteQueryForRAG(
   try {
     const contextParts: string[] = [];
     if (context.mentionedStates.length > 0) {
-      contextParts.push(`States discussed: ${context.mentionedStates.join(", ")}`);
+      contextParts.push(
+        `States discussed: ${context.mentionedStates.join(", ")}`,
+      );
     }
     if (context.mentionedYears.length > 0) {
-      contextParts.push(`Years discussed: ${context.mentionedYears.join(", ")}`);
+      contextParts.push(
+        `Years discussed: ${context.mentionedYears.join(", ")}`,
+      );
     }
     if (context.summary) {
       contextParts.push(`Conversation summary: ${context.summary}`);
@@ -237,6 +367,7 @@ async function rewriteQueryForRAG(
       system: `You are a query rewriter. Given a short/ambiguous user message and conversation context, rewrite it as a specific, self-contained search query. Keep it concise (under 30 words). Output ONLY the rewritten query, nothing else.`,
       prompt: `Context:\n${contextParts.join("\n")}\n\nUser message: "${message}"`,
       maxOutputTokens: 100,
+      ...tracingMetadata({ functionId: "rewrite-query", sessionId, userId }),
     });
 
     const rewritten = text.trim();
@@ -248,44 +379,189 @@ async function rewriteQueryForRAG(
 
 // ─── Agent flow functions ───────────────────────────────────────
 
+async function runMultiSearch(
+  searchQuery: string,
+  indexName: string,
+  sessionId?: string,
+  userId?: string,
+) {
+  try {
+    const analysis = analyzeQueryComplexity(searchQuery);
+    const subQueries = await decomposeQuery(
+      searchQuery,
+      analysis,
+      sessionId,
+      userId,
+    );
+
+    if (subQueries.length <= 1) {
+      // Single search with dynamic topK
+      const { embedding } = await embed({
+        model: embeddingModelInstance,
+        value: searchQuery,
+        ...tracingMetadata({
+          functionId: "rag-embedding",
+          sessionId,
+          userId,
+        }),
+      });
+      return await getPgVector().query({
+        indexName,
+        queryVector: truncateEmbedding(embedding),
+        topK: analysis.topK,
+        ef: RAG_CONFIG.searchEf,
+      });
+    }
+
+    // Multi-search: run targeted sub-queries in parallel
+    const perQueryTopK = Math.max(
+      10,
+      Math.ceil(analysis.topK / subQueries.length),
+    );
+
+    const searchResults = await Promise.all(
+      subQueries.map(async (sq: SubQuery) => {
+        const { embedding } = await embed({
+          model: embeddingModelInstance,
+          value: sq.query,
+          ...tracingMetadata({
+            functionId: "rag-embedding-sub",
+            sessionId,
+            userId,
+          }),
+        });
+
+        // Only apply state/year/sector metadata filters for budget index
+        // (corruption uses 'official'/'section', govspend uses 'organization_name'/'beneficiary_name')
+        const isBudgetIndex = indexName === RAG_CONFIG.indexName;
+        const conditions: Array<Record<string, { $eq: string | number }>> = [];
+        if (isBudgetIndex && sq.state) {
+          // DB stores states as Title Case (e.g. "Lagos", "Akwa Ibom") except "federal" and "FCT"
+          const s = sq.state.toLowerCase();
+          const titleCased =
+            s === "fct"
+              ? "FCT"
+              : s
+                  .split(" ")
+                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                  .join(" ");
+          conditions.push({ state: { $eq: titleCased } });
+        }
+        if (isBudgetIndex && sq.year)
+          conditions.push({ year: { $eq: sq.year } });
+        if (isBudgetIndex && sq.sector)
+          conditions.push({ sector: { $eq: sq.sector } });
+        const filter = conditions.length > 0 ? { $and: conditions } : undefined;
+
+        return getPgVector().query({
+          indexName,
+          queryVector: truncateEmbedding(embedding),
+          topK: perQueryTopK,
+          filter,
+          ef: RAG_CONFIG.searchEf,
+        });
+      }),
+    );
+
+    // Flatten and deduplicate by vector ID
+    const seen = new Set<string>();
+    return searchResults.flat().filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  } catch (err: any) {
+    if (isTableNotExistError(err)) {
+      return [];
+    }
+    throw err;
+  }
+}
+
+function isTableNotExistError(err: any): boolean {
+  if (!err) return false;
+  const msg = err.message ?? String(err);
+  if (msg.includes("does not exist")) return true;
+  if (err.id === "MASTRA_VECTOR_PG_QUERY_FAILED") return true;
+  if (err.cause && isTableNotExistError(err.cause)) return true;
+  return false;
+}
+
 async function runBudgetFlow(
   message: string,
   augmentedMessage: string,
   send: SendFn,
   language: Language = "en",
   context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
 ): Promise<RouteResult> {
-  // Phase 3: Rewrite query for better RAG retrieval
+  // Rewrite query for better RAG retrieval
   const searchQuery = context
-    ? await rewriteQueryForRAG(message, context)
+    ? await rewriteQueryForRAG(message, context, sessionId, userId)
     : message;
 
-  const { embedding } = await embed({
-    model: embeddingModelInstance,
-    value: searchQuery,
-  });
+  // Multi-search with dynamic topK based on query complexity
+  const ragResults = await runMultiSearch(
+    searchQuery,
+    RAG_CONFIG.indexName,
+    sessionId,
+    userId,
+  );
 
-  const ragResults = await getPgVector().query({
-    indexName: RAG_CONFIG.indexName,
-    queryVector: truncateEmbedding(embedding),
-    topK: RAG_CONFIG.topK,
-    ef: RAG_CONFIG.searchEf,
-  });
+  const ragParsed = ragResults
+    .map((r) => ({
+      state: (r.metadata?.state as string) ?? "Unknown",
+      year: (r.metadata?.year as number) ?? 0,
+      text: (r.metadata?.text as string) ?? "",
+      filename: (r.metadata?.filename as string) ?? "",
+      s3_key: (r.metadata?.s3_key as string) ?? "",
+      source_type: (r.metadata?.source_type as string) ?? "",
+      sector: (r.metadata?.sector as string) ?? "",
+      budget_category: (r.metadata?.budget_category as string) ?? "",
+      score: typeof r.score === "number" ? r.score : 0,
+    }))
+    .filter((r) => r.score >= MIN_RELEVANCE_SCORE);
 
-  const ragParsed = ragResults.map((r) => ({
-    state: (r.metadata?.state as string) ?? "Unknown",
-    year: (r.metadata?.year as number) ?? 0,
-    text: (r.metadata?.text as string) ?? "",
-    filename: (r.metadata?.filename as string) ?? "",
-    source_type: (r.metadata?.source_type as string) ?? "",
-    score: typeof r.score === "number" ? r.score : 0,
-  }));
+  // When pre-search finds no results, let the agent use its own search tool
+  // instead of returning a "no data" message. The agent's tool has explicit
+  // state/year/sector filters and availableYears discovery that perform better
+  // for targeted or comparative queries.
+  if (ragParsed.length === 0) {
+    send({ type: "status", content: t("status.analyzingBudget", language) });
+
+    let agentPrompt = getLanguageDirective(language);
+    agentPrompt += augmentedMessage;
+    agentPrompt += getLanguageReminder(language);
+
+    const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
+    const budgetStream = await budgetAgent.stream(agentPrompt, {
+      maxSteps: 10,
+    });
+
+    let budgetAnalysis = "";
+    for await (const chunk of budgetStream.textStream) {
+      budgetAnalysis += chunk;
+      send({ type: "text", content: chunk });
+    }
+
+    const richContent = formatAgentResponse(budgetAnalysis, language);
+    return { richContent, resolvedTool: "budget" };
+  }
 
   const ragContext = ragParsed
-    .map((r) => `[${r.state} ${r.year}]\n${r.text}`)
+    .map((r) => {
+      const sectorLabel =
+        r.sector && r.sector !== "general" ? ` [${r.sector}]` : "";
+      const categoryLabel =
+        r.budget_category && r.budget_category !== "general"
+          ? ` (${r.budget_category})`
+          : "";
+      return `[${r.state} ${r.year}${sectorLabel}${categoryLabel}]\n${r.text}`;
+    })
     .join("\n\n---\n\n");
 
-  const officials = getOfficialsForResults(ragParsed);
+  const officials = await getOfficialsForResults(ragParsed);
 
   // Build deduplicated source citations
   const sourceMap = new Map<string, SourceCitation>();
@@ -294,12 +570,13 @@ async function runBudgetFlow(
     const key = `${r.state}/${r.year}/${r.filename}`;
     const existing = sourceMap.get(key);
     if (!existing || r.score > existing.score) {
-      const stateName = r.state.charAt(0).toUpperCase() + r.state.slice(1);
+      const stateName = titleCaseState(r.state);
+      const ext = r.filename.split(".").pop() || "";
       sourceMap.set(key, {
-        title: `${stateName} ${r.year} — ${r.filename}`,
+        title: `${stateName} ${r.year} — ${humanizeFilename(r.filename)}`,
         fileName: r.filename,
-        location: `budgets/${r.state}/${r.year}/${r.filename}`,
-        sourceType: r.source_type || r.filename.split(".").pop() || "unknown",
+        location: r.s3_key || `budgets/${r.state}/${r.year}/${r.filename}`,
+        sourceType: r.source_type || ext || "unknown",
         state: r.state,
         year: r.year,
         score: r.score,
@@ -311,16 +588,16 @@ async function runBudgetFlow(
   );
 
   let prompt = getLanguageDirective(language);
-  if (ragContext) {
-    prompt += `Here are relevant budget document excerpts:\n\n${ragContext}\n\n---\n\n`;
-  }
+  prompt += `[SYSTEM-RETRIEVED DATA — The following excerpts were automatically retrieved from our budget database. The user did NOT paste or upload these.]\n\n${ragContext}\n\n[END SYSTEM-RETRIEVED DATA]\n\n---\n\n`;
   prompt += augmentedMessage;
   prompt += getLanguageReminder(language);
 
   send({ type: "status", content: t("status.analyzingBudget", language) });
 
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
-  const budgetStream = await budgetAgent.stream(prompt, { maxSteps: 3 });
+  const budgetStream = await budgetAgent.stream(prompt, {
+    maxSteps: 10,
+  });
 
   let budgetAnalysis = "";
   for await (const chunk of budgetStream.textStream) {
@@ -328,11 +605,16 @@ async function runBudgetFlow(
     send({ type: "text", content: chunk });
   }
 
-  // Only keep sources actually referenced in the response
+  // Only keep sources whose state AND year are referenced in the response
   const responseLower = budgetAnalysis.toLowerCase();
-  const relevantSources = sources.filter(
-    (s) => s.state && responseLower.includes(s.state.toLowerCase()),
-  );
+  const relevantSources = sources
+    .filter((s) => {
+      if (!s.state) return false;
+      const stateMatch = responseLower.includes(s.state.toLowerCase());
+      const yearMatch = s.year ? responseLower.includes(String(s.year)) : true;
+      return stateMatch && yearMatch;
+    })
+    .slice(0, MAX_SOURCES);
 
   const richContent = formatAgentResponse(
     budgetAnalysis,
@@ -353,32 +635,46 @@ async function runCorruptionFlow(
   send: SendFn,
   language: Language = "en",
   context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
 ): Promise<RouteResult> {
-  // Phase 3: Rewrite query for better RAG retrieval
+  // Rewrite query for better RAG retrieval
   const searchQuery = context
-    ? await rewriteQueryForRAG(message, context)
+    ? await rewriteQueryForRAG(message, context, sessionId, userId)
     : message;
 
-  const { embedding } = await embed({
-    model: embeddingModelInstance,
-    value: searchQuery,
-  });
+  // Multi-search with dynamic topK based on query complexity
+  const rawResults = await runMultiSearch(
+    searchQuery,
+    CORRUPTION_INDEX,
+    sessionId,
+    userId,
+  );
 
-  const ragResults = await getPgVector().query({
-    indexName: CORRUPTION_INDEX,
-    queryVector: truncateEmbedding(embedding),
-    topK: RAG_CONFIG.topK,
-    ef: RAG_CONFIG.searchEf,
-  });
+  const ragParsed = rawResults
+    .map((r) => ({
+      official: (r.metadata?.official as string) ?? "Unknown",
+      section: (r.metadata?.section as string) ?? "",
+      text: (r.metadata?.text as string) ?? "",
+      filename: (r.metadata?.filename as string) ?? "",
+      s3_key: (r.metadata?.s3_key as string) ?? "",
+      source_type: (r.metadata?.source_type as string) ?? "",
+      score: typeof r.score === "number" ? r.score : 0,
+    }))
+    .filter((r) => r.score >= MIN_RELEVANCE_SCORE);
 
-  const ragParsed = ragResults.map((r) => ({
-    official: (r.metadata?.official as string) ?? "Unknown",
-    section: (r.metadata?.section as string) ?? "",
-    text: (r.metadata?.text as string) ?? "",
-    filename: (r.metadata?.filename as string) ?? "",
-    source_type: (r.metadata?.source_type as string) ?? "",
-    score: typeof r.score === "number" ? r.score : 0,
-  }));
+  // Early exit: no relevant data found
+  if (ragParsed.length === 0) {
+    const noDataMsg = t("noData.corruption", language);
+    send({ type: "text", content: noDataMsg });
+    return {
+      richContent: {
+        text: noDataMsg,
+        followUps: getFollowUps(language, "corruption"),
+      },
+      resolvedTool: "corruption",
+    };
+  }
 
   const ragContext = ragParsed
     .map((r) => `[${r.official} — ${r.section}]\n${r.text}`)
@@ -401,7 +697,7 @@ async function runCorruptionFlow(
       sourceMap.set(key, {
         title: `${officialName} — ${sectionName}`,
         fileName: r.filename,
-        location: `corruption/${r.official}/${r.filename}`,
+        location: r.s3_key || `corruption/${r.official}/${r.filename}`,
         sourceType: r.source_type || "md",
         official: r.official,
         section: r.section,
@@ -414,16 +710,16 @@ async function runCorruptionFlow(
   );
 
   let prompt = getLanguageDirective(language);
-  if (ragContext) {
-    prompt += `Here are relevant EFCC corruption case excerpts:\n\n${ragContext}\n\n---\n\n`;
-  }
+  prompt += `[SYSTEM-RETRIEVED DATA — The following excerpts were automatically retrieved from our EFCC case database. The user did NOT paste or upload these.]\n\n${ragContext}\n\n[END SYSTEM-RETRIEVED DATA]\n\n---\n\n`;
   prompt += augmentedMessage;
   prompt += getLanguageReminder(language);
 
   send({ type: "status", content: t("status.reviewingCorruption", language) });
 
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
-  const stream = await corruptionAgent.stream(prompt, { maxSteps: 3 });
+  const stream = await corruptionAgent.stream(prompt, {
+    maxSteps: 10,
+  });
 
   let corruptionAnalysis = "";
   for await (const chunk of stream.textStream) {
@@ -431,16 +727,20 @@ async function runCorruptionFlow(
     send({ type: "text", content: chunk });
   }
 
-  // Only keep sources whose official is actually mentioned in the response
+  // Only keep sources whose official's last name (or full slug) appears in the response
   const responseLower = corruptionAnalysis.toLowerCase();
-  const relevantSources = sources.filter((s) => {
-    if (!s.official) return false;
-    // Match by last name or full name (handles "Ibori", "James Ibori", etc.)
-    const parts = s.official.toLowerCase().split(/[\s-]+/);
-    return parts.some(
-      (part) => part.length > 2 && responseLower.includes(part),
-    );
-  });
+  const relevantSources = sources
+    .filter((s) => {
+      if (!s.official) return false;
+      const slug = s.official.toLowerCase();
+      // Check full slug first (e.g. "james-ibori")
+      if (responseLower.includes(slug.replace(/-/g, " "))) return true;
+      // Fall back to last name only (e.g. "ibori") — must be 4+ chars to avoid false positives
+      const parts = slug.split("-");
+      const lastName = parts[parts.length - 1];
+      return lastName.length >= 4 && responseLower.includes(lastName);
+    })
+    .slice(0, MAX_SOURCES);
 
   const richContent = formatCorruptionResponse(
     corruptionAnalysis,
@@ -449,6 +749,150 @@ async function runCorruptionFlow(
   );
 
   return { richContent, resolvedTool: "corruption" };
+}
+
+async function runGovspendFlow(
+  message: string,
+  augmentedMessage: string,
+  send: SendFn,
+  language: Language = "en",
+  context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
+): Promise<RouteResult> {
+  const searchQuery = context
+    ? await rewriteQueryForRAG(message, context, sessionId, userId)
+    : message;
+
+  // Multi-search with dynamic topK based on query complexity
+  const rawResults = await runMultiSearch(
+    searchQuery,
+    GOVSPEND_INDEX,
+    sessionId,
+    userId,
+  );
+
+  const ragParsed = rawResults
+    .map((r) => ({
+      organization: (r.metadata?.organization_name as string) ?? "Unknown",
+      beneficiary: (r.metadata?.beneficiary_name as string) ?? "Unknown",
+      amount: (r.metadata?.amount as string) ?? "",
+      amount_numeric: (r.metadata?.amount_numeric as number) ?? 0,
+      description: (r.metadata?.description as string) ?? "",
+      year: (r.metadata?.year as string) ?? "",
+      text: (r.metadata?.text as string) ?? "",
+      filename: (r.metadata?.filename as string) ?? "",
+      s3_key: (r.metadata?.s3_key as string) ?? "",
+      score: typeof r.score === "number" ? r.score : 0,
+    }))
+    .filter((r) => r.score >= MIN_RELEVANCE_SCORE);
+
+  // Early exit: no relevant data found
+  if (ragParsed.length === 0) {
+    const noDataMsg = t("noData.govspend", language);
+    send({ type: "text", content: noDataMsg });
+    return {
+      richContent: {
+        text: noDataMsg,
+        followUps: getFollowUps(language, "govspend"),
+      },
+      resolvedTool: "govspend",
+    };
+  }
+
+  const ragContext = ragParsed
+    .map((r) => {
+      const amountLabel =
+        r.amount_numeric > 0
+          ? `₦${r.amount_numeric.toLocaleString()}`
+          : r.amount;
+      const descLabel = r.description ? ` | ${r.description}` : "";
+      return `[${r.organization} → ${r.beneficiary} | ${amountLabel}${descLabel}]\n${r.text}`;
+    })
+    .join("\n\n---\n\n");
+
+  // Build deduplicated source citations
+  // Store org/beneficiary separately for relevance filtering (not in title)
+  const sourceMap = new Map<
+    string,
+    SourceCitation & { _org: string; _beneficiary: string }
+  >();
+  for (const r of ragParsed) {
+    if (!r.filename) continue;
+    const key = `${r.organization}/${r.beneficiary}/${r.filename}`;
+    const existing = sourceMap.get(key);
+    if (!existing || r.score > existing.score) {
+      // Format amount for display
+      const amountDisplay =
+        r.amount_numeric > 0
+          ? `₦${r.amount_numeric.toLocaleString()}`
+          : r.amount || "";
+      // Build a clean, concise title (strip ** PDF extraction artifacts)
+      const orgShort = titleCaseState(
+        r.organization.replace(/\*+/g, "").trim().toLowerCase(),
+      );
+      const beneShort = titleCaseState(
+        r.beneficiary.replace(/\*+/g, "").trim().toLowerCase(),
+      );
+      const amountSuffix = amountDisplay ? ` — ${amountDisplay}` : "";
+      sourceMap.set(key, {
+        title: `${orgShort} → ${beneShort}${amountSuffix}`,
+        fileName: r.filename,
+        location: r.s3_key || `govspend/${r.year}/${r.filename}`,
+        sourceType: "payment",
+        year: r.year ? Number(r.year) : undefined,
+        score: r.score,
+        _org: r.organization.toLowerCase(),
+        _beneficiary: r.beneficiary.toLowerCase(),
+      });
+    }
+  }
+  const sources = Array.from(sourceMap.values()).sort(
+    (a, b) => b.score - a.score,
+  );
+
+  let prompt = getLanguageDirective(language);
+  prompt += `[SYSTEM-RETRIEVED DATA — The following excerpts were automatically retrieved from our government payment records database. The user did NOT paste or upload these.]\n\n${ragContext}\n\n[END SYSTEM-RETRIEVED DATA]\n\n---\n\n`;
+  prompt += augmentedMessage;
+  prompt += getLanguageReminder(language);
+
+  send({ type: "status", content: t("status.analyzingGovspend", language) });
+
+  const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
+  const stream = await govspendAgent.stream(prompt, {
+    maxSteps: 10,
+  });
+
+  let govspendAnalysis = "";
+  for await (const chunk of stream.textStream) {
+    govspendAnalysis += chunk;
+    send({ type: "text", content: chunk });
+  }
+
+  // Only keep sources whose organization or beneficiary name significantly appears in the response
+  // Use words 5+ chars to avoid false positives from common short words like "federal", "the", etc.
+  const responseLower = govspendAnalysis.toLowerCase();
+  const relevantSources = sources
+    .filter((s) => {
+      const org = (s as (typeof sources)[number])._org;
+      const bene = (s as (typeof sources)[number])._beneficiary;
+      // Check if a significant word from org or beneficiary name appears
+      const significantMatch = (name: string) => {
+        const words = name.split(/[\s,]+/).filter((w) => w.length >= 5);
+        return words.some((word) => responseLower.includes(word));
+      };
+      return significantMatch(org) || significantMatch(bene);
+    })
+    .map(({ _org: _, _beneficiary: __, ...rest }) => rest)
+    .slice(0, MAX_SOURCES);
+
+  const richContent = formatGovspendResponse(
+    govspendAnalysis,
+    language,
+    relevantSources,
+  );
+
+  return { richContent, resolvedTool: "govspend" };
 }
 
 async function runImpactFlow(
@@ -468,7 +912,9 @@ async function runImpactFlow(
   prompt += message;
   prompt += getLanguageReminder(language);
 
-  const stream = await impactAgent.stream(prompt, { maxSteps: 3 });
+  const stream = await impactAgent.stream(prompt, {
+    maxSteps: 10,
+  });
 
   let impactAnalysis = "";
   for await (const chunk of stream.textStream) {
@@ -499,10 +945,21 @@ export interface RouteOptions {
   language?: Language;
   /** Conversation metadata for smarter routing & RAG. */
   context?: ConversationContext;
+  /** Langfuse session ID (= conversation ID). */
+  sessionId?: string;
+  /** Langfuse user ID. */
+  userId?: string;
 }
 
 const routerSchema = z.object({
-  intent: z.enum(["general", "budget", "corruption", "impact", "follow_up"]),
+  intent: z.enum([
+    "general",
+    "budget",
+    "corruption",
+    "govspend",
+    "impact",
+    "follow_up",
+  ]),
   response: z.string(),
 });
 
@@ -515,6 +972,8 @@ type RouterIntent = z.infer<typeof routerSchema>["intent"];
 async function classifyIntent(
   message: string,
   context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
 ): Promise<{ intent: RouterIntent; response: string }> {
   try {
     const router = mastra.getAgent(AgentNames.routerAgent);
@@ -535,9 +994,7 @@ async function classifyIntent(
         );
       }
       if (context.lastAgentType) {
-        ctxParts.push(
-          `Last agent used: ${context.lastAgentType}`,
-        );
+        ctxParts.push(`Last agent used: ${context.lastAgentType}`);
       }
       if (context.summary) {
         ctxParts.push(`Conversation summary: ${context.summary}`);
@@ -550,14 +1007,36 @@ async function classifyIntent(
 
     routerPrompt += `User message: ${message}`;
 
-    const result = await router.generate(routerPrompt);
-    const parsed = routerSchema.parse(JSON.parse(result.text));
+    // Try Langfuse-managed prompt; fall back to the agent's built-in instructions
+    const langfuseSystemPrompt = await getPrompt("router-agent-system", "");
+    let resultText: string;
+
+    if (langfuseSystemPrompt) {
+      const { text } = await generateText({
+        model: chatModel,
+        system: langfuseSystemPrompt,
+        prompt: routerPrompt,
+        ...tracingMetadata({
+          functionId: "classify-intent",
+          sessionId,
+          userId,
+        }),
+      });
+      resultText = text;
+    } else {
+      const result = await router.generate(routerPrompt);
+      resultText = result.text;
+    }
+
+    const parsed = routerSchema.parse(JSON.parse(resultText));
     return { intent: parsed.intent, response: parsed.response ?? "" };
   } catch {
     // Fall through to keyword-based fallback
   }
 
-  return { intent: inferTool(message), response: "" };
+  const isFirstTurn = !context?.lastAgentType;
+  const inferred = inferTool(message, isFirstTurn);
+  return { intent: inferred, response: "" };
 }
 
 export async function routeToAgent({
@@ -567,6 +1046,8 @@ export async function routeToAgent({
   send,
   language = "en",
   context,
+  sessionId,
+  userId,
 }: RouteOptions): Promise<RouteResult> {
   let tool: ToolId;
   let generalResponse = "";
@@ -574,11 +1055,23 @@ export async function routeToAgent({
   if (selectedTool) {
     tool = selectedTool;
   } else {
-    const classification = await classifyIntent(message, context);
+    const classification = await classifyIntent(
+      message,
+      context,
+      sessionId,
+      userId,
+    );
 
     if (classification.intent === "follow_up") {
-      // Resolve follow_up to the previous agent type, defaulting to budget
-      tool = (context?.lastAgentType as ToolId) || "budget";
+      // Resolve follow_up to the previous specialist agent type.
+      // "general" has no RAG pipeline, so treat it as no prior context.
+      const lastAgent = context?.lastAgentType;
+      if (lastAgent && lastAgent !== "general") {
+        tool = lastAgent as ToolId;
+      } else {
+        const inferred = inferTool(message, false);
+        tool = inferred === "follow_up" ? "budget" : inferred;
+      }
     } else {
       tool = classification.intent;
       generalResponse = classification.response;
@@ -646,12 +1139,13 @@ export async function routeToAgent({
     return runImpactFlow(impactContext.trim(), message, send, language);
   }
 
+  const statusMessages: Record<string, string> = {
+    corruption: t("status.searchingCorruption", language),
+    govspend: t("status.searchingGovspend", language),
+  };
   send({
     type: "status",
-    content:
-      tool === "corruption"
-        ? t("status.searchingCorruption", language)
-        : t("status.searchingBudget", language),
+    content: statusMessages[tool] ?? t("status.searchingBudget", language),
   });
 
   switch (tool) {
@@ -662,9 +1156,29 @@ export async function routeToAgent({
         send,
         language,
         context,
+        sessionId,
+        userId,
+      );
+    case "govspend":
+      return runGovspendFlow(
+        message,
+        augmentedMessage,
+        send,
+        language,
+        context,
+        sessionId,
+        userId,
       );
     case "budget":
     default:
-      return runBudgetFlow(message, augmentedMessage, send, language, context);
+      return runBudgetFlow(
+        message,
+        augmentedMessage,
+        send,
+        language,
+        context,
+        sessionId,
+        userId,
+      );
   }
 }

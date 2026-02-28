@@ -71,7 +71,7 @@ To render a chart, output a fenced code block with the language tag "chart" cont
    ]
    \`\`\`
 5. Include 3-15 data points for readability. Aggregate if you have more.
-5. You may include multiple chart blocks in one response if the analysis warrants it.
+6. You may include multiple chart blocks in one response if the analysis warrants it.
 
 ### When the user explicitly requests a chart:
 

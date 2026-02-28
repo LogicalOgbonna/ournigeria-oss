@@ -105,7 +105,9 @@ export async function loadUserProfile(
         break;
       }
       case MEMORY_KEYS.preferredLanguage:
-        parts.push(`Preferred language: ${mem.value}`);
+        // Language is controlled per-request via the UI dropdown;
+        // injecting a stored preference here overrides the user's
+        // current selection, so we intentionally skip it.
         break;
     }
   }

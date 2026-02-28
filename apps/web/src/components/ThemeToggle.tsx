@@ -23,9 +23,14 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
+      data-tour="theme-toggle"
       className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      title={
+        resolvedTheme === "dark"
+          ? "Switch to light mode"
+          : "Switch to dark mode"
+      }
     >
       {resolvedTheme === "dark" ? (
         <Sun className="h-4 w-4" />

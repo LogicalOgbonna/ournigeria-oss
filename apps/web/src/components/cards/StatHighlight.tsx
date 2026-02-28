@@ -17,18 +17,20 @@ export function StatHighlight({ stats }: StatHighlightProps) {
           style={{ animationDelay: `${i * 100}ms` }}
         >
           <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            {stat.label}
+            {stat.label.replace(/\*\*/g, "").replace(/^-\s*/, "")}
           </p>
           <div className="mt-1 flex items-baseline gap-2">
-            <p className="text-xl font-bold text-slate-900 dark:text-slate-50">{stat.value}</p>
+            <p className="text-xl font-bold text-slate-900 dark:text-slate-50">
+              {stat.value}
+            </p>
             {stat.trend && (
               <span
                 className={`flex items-center gap-0.5 text-xs font-medium ${
                   stat.trend === "up"
                     ? "text-emerald-600 dark:text-emerald-400"
                     : stat.trend === "down"
-                    ? "text-red-500 dark:text-red-400"
-                    : "text-slate-400 dark:text-slate-500"
+                      ? "text-red-500 dark:text-red-400"
+                      : "text-slate-400 dark:text-slate-500"
                 }`}
               >
                 {stat.trend === "up" && <TrendingUp className="h-3 w-3" />}
@@ -39,7 +41,9 @@ export function StatHighlight({ stats }: StatHighlightProps) {
             )}
           </div>
           {stat.subtitle && (
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{stat.subtitle}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {stat.subtitle}
+            </p>
           )}
         </div>
       ))}

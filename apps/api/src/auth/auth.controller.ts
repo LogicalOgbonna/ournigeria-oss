@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Req,
   Res,
   Body,
@@ -10,13 +11,27 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBody, ApiQuery } from "@nestjs/swagger";
 import { Request, Response } from "express";
+import * as crypto from "crypto";
 import { z } from "zod";
 import { AuthService } from "./auth.service";
 import { TelegramApiService } from "../telegram/telegram-api.service";
 import { Public } from "./decorators/public";
+import { CurrentUser } from "./decorators/current-user";
 
 const USER_COOKIE = "nb_uid";
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5; // 5 years
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+/** Sign a user ID for the nb_auth callback so the web proxy can verify it wasn't forged. */
+function signAuthToken(userId: string): string {
+  const ts = Date.now().toString(36);
+  const secret = process.env.TELEGRAM_BOT_TOKEN || "";
+  const sig = crypto
+    .createHmac("sha256", secret)
+    .update(`${userId}:${ts}`)
+    .digest("hex")
+    .slice(0, 16);
+  return `${userId}.${ts}.${sig}`;
+}
 
 const phoneNumberSchema = z
   .string()
@@ -136,6 +151,14 @@ export class AuthController {
 
       const user = await this.authService.upsertUserByPhone(phoneNumber);
 
+      const banStatus = await this.authService.checkBanStatus(user.id);
+      if (banStatus.banned) {
+        return res.status(HttpStatus.FORBIDDEN).json({
+          error: "banned",
+          reason: banStatus.reason || "Your account has been suspended.",
+        });
+      }
+
       res.cookie(USER_COOKIE, user.id, {
         httpOnly: true,
         secure: true,
@@ -150,6 +173,64 @@ export class AuthController {
       });
     } catch (err) {
       console.error("verify-otp error:", err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
+    }
+  }
+
+  @Get("profile")
+  @ApiOperation({ summary: "Get current user profile" })
+  async getProfile(@CurrentUser() userId: string, @Res() res: Response) {
+    try {
+      const profile = await this.authService.getProfile(userId);
+      if (!profile) {
+        return res
+          .status(HttpStatus.NOT_FOUND)
+          .json({ error: "User not found" });
+      }
+      return res.json(profile);
+    } catch (err) {
+      console.error("get-profile error:", err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
+    }
+  }
+
+  @Patch("profile")
+  @ApiOperation({ summary: "Update current user profile" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: { type: "string", example: "Arinze" },
+        email: { type: "string", example: "user@example.com" },
+      },
+    },
+  })
+  async updateProfile(
+    @CurrentUser() userId: string,
+    @Body() body: unknown,
+    @Res() res: Response,
+  ) {
+    try {
+      const schema = z.object({
+        name: z.string().min(1).max(100).optional(),
+        email: z.string().email().max(255).optional(),
+      });
+
+      const parsed = schema.safeParse(body);
+      if (!parsed.success) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: parsed.error.errors[0].message });
+      }
+
+      const profile = await this.authService.updateProfile(userId, parsed.data);
+      return res.json(profile);
+    } catch (err) {
+      console.error("update-profile error:", err);
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: "Internal server error" });
@@ -186,6 +267,11 @@ export class AuthController {
       ));
       const user = await this.authService.upsertUserByTelegram(telegramUser.id);
 
+      const banStatus = await this.authService.checkBanStatus(user.id);
+      if (banStatus.banned) {
+        return res.redirect(`${baseUrl}/banned`);
+      }
+
       // Set cookie on the API domain so subsequent cross-origin requests are authenticated
       res.cookie(USER_COOKIE, user.id, {
         httpOnly: true,
@@ -209,8 +295,8 @@ export class AuthController {
           );
       }
 
-      // Pass user ID via query param so the web app can set its own cookie
-      return res.redirect(`${baseUrl}/?nb_auth=${user.id}`);
+      // Pass signed auth token via query param so the web app can verify + set cookie
+      return res.redirect(`${baseUrl}/?nb_auth=${signAuthToken(user.id)}`);
     } catch (err) {
       console.error("Telegram auth error:", err);
       return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);

@@ -16,7 +16,11 @@ export function summarizeRichContent(rich: unknown): string {
     );
   }
 
-  if (r.moneyEquivalents && typeof r.moneyEquivalents.amount === "number" && r.moneyEquivalents.amount > 0) {
+  if (
+    r.moneyEquivalents &&
+    typeof r.moneyEquivalents.amount === "number" &&
+    r.moneyEquivalents.amount > 0
+  ) {
     const amt = r.moneyEquivalents.amount;
     const formatted =
       amt >= 1e12
@@ -36,9 +40,13 @@ export function summarizeRichContent(rich: unknown): string {
 
   if (r.sources?.length) {
     const unique = new Set(
-      r.sources.map((s) => [s.state, s.year].filter(Boolean).join(" ")),
+      r.sources
+        .map((s) => [s.state, s.year].filter(Boolean).join(" "))
+        .filter(Boolean),
     );
-    parts.push(`Sources referenced: ${Array.from(unique).join(", ")}`);
+    if (unique.size > 0) {
+      parts.push(`Sources referenced: ${Array.from(unique).join(", ")}`);
+    }
   }
 
   if (r.charts?.length) {

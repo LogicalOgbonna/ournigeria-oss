@@ -6,7 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const APP_URL = "https://app.ournigeria.ng";
+export const APP_URL = "https://spending.arinze.online";
 
 // ═══ Stats ═══
 export const STATS = [

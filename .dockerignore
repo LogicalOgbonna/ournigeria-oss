@@ -14,3 +14,31 @@ packages/plans
 **/*.md
 **/.env
 **/.env.*
+
+# IDE / tooling
+.github/
+.vscode/
+.idea/
+.husky/
+
+# Test files
+**/*.spec.ts
+**/*.test.ts
+**/__tests__/
+jest.config.*
+coverage/
+
+# Lint / format config
+.eslintrc*
+.prettierrc*
+
+# Build artifacts
+**/*.map
+.turbo/
+
+# Docker files (prevent recursive context)
+docker-compose*.yml
+Dockerfile*
+
+# Docs
+docs/

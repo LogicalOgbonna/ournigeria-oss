@@ -1,32 +1,130 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { PipelineStatusCards, type PipelineStatus } from "@/components/ingestion/pipeline-status-cards";
+import {
+  PipelineStatusCards,
+  type PipelineStatus,
+} from "@/components/ingestion/pipeline-status-cards";
 import { PauseResumeButton } from "@/components/ingestion/pause-resume-button";
-import { IngestionRunsTable, type IngestionRun } from "@/components/ingestion/ingestion-runs-table";
+import {
+  IngestionRunsTable,
+  type IngestionRun,
+} from "@/components/ingestion/ingestion-runs-table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus } from "lucide-react";
-import { ingestFetch, adminFetch } from "@/lib/api";
+import { Plus, RefreshCw } from "lucide-react";
+import { ingestFetch } from "@/lib/api";
 
-const placeholderPipelines: PipelineStatus[] = [
-  { name: "budget", isRunning: false, isPaused: false, processed: 700, errors: 0, totalChunks: 708309 },
-  { name: "corruption", isRunning: false, isPaused: false, processed: 0, errors: 0, totalChunks: 0 },
+const FALLBACK_PIPELINES: PipelineStatus[] = [
+  {
+    name: "budget",
+    isRunning: false,
+    isPaused: false,
+    processed: 937,
+    errors: 1,
+    totalChunks: 696222,
+  },
+  {
+    name: "govspend",
+    isRunning: false,
+    isPaused: false,
+    processed: 320258,
+    errors: 0,
+    totalChunks: 320040,
+  },
+  {
+    name: "corruption",
+    isRunning: false,
+    isPaused: false,
+    processed: 0,
+    errors: 0,
+    totalChunks: 0,
+  },
 ];
 
-const placeholderRuns: IngestionRun[] = [
+const FALLBACK_RUNS: IngestionRun[] = [
   {
     id: "fb323dc0",
     pipeline: "budget",
     trigger: "manual",
-    totalFiles: 700,
-    totalChunks: 708309,
+    totalFiles: 941,
+    totalChunks: 696222,
     duration: 10200,
-    startedAt: "2026-02-23T10:00:00Z",
+    startedAt: "2026-02-27T10:00:00Z",
     status: "completed",
   },
+  {
+    id: "89b5b4ff",
+    pipeline: "govspend",
+    trigger: "manual",
+    totalFiles: 891400,
+    totalChunks: 320040,
+    duration: null,
+    startedAt: "2026-02-27T14:31:18Z",
+    status: "running",
+  },
 ];
+
+/** Map the ingest API response into the shapes our components expect */
+function mapPipelines(
+  pipelinesObj: Record<
+    string,
+    {
+      total: number;
+      done: number;
+      error: number;
+      processing: number;
+      chunks: number;
+    }
+  >,
+  active: string[],
+): PipelineStatus[] {
+  return Object.entries(pipelinesObj).map(([name, p]) => ({
+    name,
+    isRunning: active.includes(name),
+    isPaused: false,
+    processed: p.done,
+    errors: p.error,
+    totalChunks: p.chunks,
+  }));
+}
+
+function mapRuns(
+  runs: Array<{
+    id: string;
+    pipeline: string;
+    trigger: string;
+    totalFiles: number;
+    processedFiles: number;
+    skippedFiles: number;
+    errorFiles: number;
+    totalChunks: number;
+    durationMs: number | null;
+    startedAt: string;
+    completedAt: string | null;
+    errorMsg: string | null;
+  }>,
+  active: string[],
+): IngestionRun[] {
+  return runs.map((r) => {
+    let status: string;
+    if (r.errorMsg) status = "failed";
+    else if (r.completedAt) status = "completed";
+    else if (active.includes(r.pipeline)) status = "running";
+    else status = "stalled";
+    return {
+      id: r.id,
+      pipeline: r.pipeline,
+      trigger: r.trigger,
+      totalFiles: r.totalFiles,
+      totalChunks: r.totalChunks,
+      duration: r.durationMs ? Math.round(r.durationMs / 1000) : null,
+      startedAt: r.startedAt,
+      status,
+    };
+  });
+}
 
 export default function IngestionPage() {
   const [pipelines, setPipelines] = useState<PipelineStatus[] | null>(null);
@@ -35,27 +133,33 @@ export default function IngestionPage() {
 
   const load = useCallback(async () => {
     try {
-      const [statusRes, runsRes] = await Promise.allSettled([
-        ingestFetch("/status"),
-        adminFetch("/ingestion-runs?limit=10"),
-      ]);
-      setPipelines(
-        statusRes.status === "fulfilled" ? statusRes.value.pipelines ?? statusRes.value : placeholderPipelines,
-      );
-      setRuns(
-        runsRes.status === "fulfilled" ? (runsRes.value.data ?? runsRes.value) : placeholderRuns,
-      );
+      const data = await ingestFetch("/status");
+      setPipelines(mapPipelines(data.pipelines ?? {}, data.active ?? []));
+      setRuns(mapRuns(data.recentRuns ?? [], data.active ?? []));
     } catch {
-      setPipelines(placeholderPipelines);
-      setRuns(placeholderRuns);
+      setPipelines(FALLBACK_PIPELINES);
+      setRuns(FALLBACK_RUNS);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const hasActive = pipelines?.some((p) => p.isRunning) ?? false;
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(null);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  // Auto-refresh every 10s when a pipeline is running
+  useEffect(() => {
+    if (hasActive) {
+      intervalRef.current = setInterval(load, 10_000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [hasActive, load]);
 
   if (loading) {
     return (
@@ -78,14 +182,21 @@ export default function IngestionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">Ingestion</h1>
-          <p className="text-muted-foreground text-sm mt-1">Pipeline status and management</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Pipeline status and management
+          </p>
         </div>
-        <Button asChild size="sm">
-          <Link href="/dashboard/ingestion/new">
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Run
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={load}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/dashboard/ingestion/new">
+              <Plus className="h-4 w-4 mr-1.5" />
+              New Run
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <PipelineStatusCards pipelines={pipelines!} />

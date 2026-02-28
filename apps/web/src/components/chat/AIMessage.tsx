@@ -10,17 +10,33 @@ import { ChartRenderer } from "@/components/charts/ChartRenderer";
 import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
 import { Markdown } from "./Markdown";
-import { FileText, ChevronDown, Download } from "lucide-react";
+import {
+  FileText,
+  ChevronDown,
+  Download,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import { apiUrl } from "@/lib/api";
 import { extractChartBlocks } from "@/lib/chart-parser";
 
 interface AIMessageProps {
   content: AIResponseContent;
+  messageId?: string;
+  conversationId?: string;
   onFollowUpClick: (text: string) => void;
 }
 
-export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
+export function AIMessage({
+  content,
+  messageId,
+  conversationId,
+  onFollowUpClick,
+}: AIMessageProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [feedback, setFeedback] = useState<"positive" | "negative" | null>(
+    null,
+  );
 
   // Parse any chart blocks embedded in the text markdown
   const { text: cleanedText, charts: inlineCharts } = useMemo(
@@ -138,6 +154,68 @@ export function AIMessage({ content, onFollowUpClick }: AIMessageProps) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Feedback buttons */}
+      {messageId && conversationId && (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={async () => {
+              if (feedback === "positive") return;
+              setFeedback("positive");
+              try {
+                await fetch(apiUrl("/api/chat/feedback"), {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    messageId,
+                    conversationId,
+                    score: "positive",
+                  }),
+                });
+              } catch {}
+            }}
+            className={`p-1 rounded transition-colors ${
+              feedback === "positive"
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            }`}
+            title="Good response"
+          >
+            <ThumbsUp
+              className={`h-3.5 w-3.5 ${feedback === "positive" ? "fill-current" : ""}`}
+            />
+          </button>
+          <button
+            onClick={async () => {
+              if (feedback === "negative") return;
+              setFeedback("negative");
+              try {
+                await fetch(apiUrl("/api/chat/feedback"), {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    messageId,
+                    conversationId,
+                    score: "negative",
+                  }),
+                });
+              } catch {}
+            }}
+            className={`p-1 rounded transition-colors ${
+              feedback === "negative"
+                ? "text-red-500 dark:text-red-400"
+                : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            }`}
+            title="Poor response"
+          >
+            <ThumbsDown
+              className={`h-3.5 w-3.5 ${feedback === "negative" ? "fill-current" : ""}`}
+            />
+          </button>
         </div>
       )}
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +29,9 @@ export function MessageThread({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{messages.length} messages</p>
+        <p className="text-sm text-muted-foreground">
+          {messages.length} messages
+        </p>
         {onToggleFlag && (
           <Button
             variant={flagged ? "destructive" : "outline"}
@@ -35,9 +39,15 @@ export function MessageThread({
             onClick={onToggleFlag}
           >
             {flagged ? (
-              <><FlagOff className="h-3.5 w-3.5 mr-1.5" />Unflag</>
+              <>
+                <FlagOff className="h-3.5 w-3.5 mr-1.5" />
+                Unflag
+              </>
             ) : (
-              <><Flag className="h-3.5 w-3.5 mr-1.5" />Flag for review</>
+              <>
+                <Flag className="h-3.5 w-3.5 mr-1.5" />
+                Flag for review
+              </>
             )}
           </Button>
         )}
@@ -68,19 +78,33 @@ export function MessageThread({
               </div>
               <div className="flex-1 space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium capitalize">{msg.role}</span>
+                  <span className="text-xs font-medium capitalize">
+                    {msg.role}
+                  </span>
                   <span className="text-xs text-muted-foreground">
                     {new Date(msg.createdAt).toLocaleString()}
                   </span>
                 </div>
                 <Card>
                   <CardContent className="py-3 px-4">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-1 prose-li:my-0.5 prose-ul:my-1 prose-ol:my-1 prose-table:text-xs">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                        {msg.content}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Sources cited:</p>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Sources cited:
+                    </p>
                     {msg.sources.map((src, i) => (
                       <div
                         key={i}
@@ -88,7 +112,10 @@ export function MessageThread({
                       >
                         <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                         <span className="truncate flex-1">{src.title}</span>
-                        <Badge variant="outline" className="text-[10px] shrink-0">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] shrink-0"
+                        >
                           {(src.score * 100).toFixed(0)}%
                         </Badge>
                       </div>

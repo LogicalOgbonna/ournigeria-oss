@@ -54,7 +54,7 @@ export function NotificationCenter() {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" data-tour="notification-center">
       <Button
         variant="ghost"
         size="icon"

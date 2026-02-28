@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '@ournigeria/database';
-import { VectorService } from '../vector/vector.service';
-import { ExtractorRegistry } from '../extractors/extractor.registry';
-import { S3Service } from '../s3/s3.service';
-import { PipelineBase } from './pipeline.base';
-import { DiscoveredFile } from './pipeline.types';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "@ournigeria/database";
+import { VectorService } from "../vector/vector.service";
+import { ExtractorRegistry } from "../extractors/extractor.registry";
+import { S3Service } from "../s3/s3.service";
+import { PipelineBase } from "./pipeline.base";
+import { DiscoveredFile } from "./pipeline.types";
 
 @Injectable()
 export class CorruptionPipeline extends PipelineBase {
@@ -22,50 +22,52 @@ export class CorruptionPipeline extends PipelineBase {
   }
 
   get pipelineType(): string {
-    return 'corruption';
+    return "corruption";
   }
 
   get indexName(): string {
-    return this.config.getOrThrow<string>('VECTOR_INDEX_CORRUPTION');
+    return this.config.getOrThrow<string>("VECTOR_INDEX_CORRUPTION");
   }
 
   async discoverFiles(): Promise<DiscoveredFile[]> {
     const files: DiscoveredFile[] = [];
 
-    this.logger.log('Listing S3 objects under corruption/');
-    const objects = await this.s3.listObjects('corruption/');
+    this.logger.log("Listing S3 objects under corruption/");
+    const objects = await this.s3.listObjects("corruption/");
     this.logger.log(`Found ${objects.length} objects in S3`);
 
     for (const obj of objects) {
-      if (!obj.key.endsWith('.md')) continue;
+      if (!obj.key.endsWith(".md")) continue;
       if (obj.size === 0) continue;
 
-      const parts = obj.key.split('/');
+      const parts = obj.key.split("/");
 
-      if (parts.length === 2 && parts[1] === 'INDEX.md') {
+      if (parts.length === 2 && parts[1] === "INDEX.md") {
         // Top-level INDEX.md: corruption/INDEX.md
         files.push({
           filePath: obj.key,
-          sourceType: 'md',
+          sourceType: "md",
           s3Key: obj.key,
+          s3Etag: obj.etag,
           identity: {
-            official: '_index',
-            section: 'index',
-            filename: 'INDEX.md',
+            official: "_index",
+            section: "index",
+            filename: "INDEX.md",
           },
         });
       } else if (parts.length >= 3) {
         // corruption/{OFFICIAL}/{filename}.md
         const officialDir = parts[1];
-        const filename = parts.slice(2).join('/');
-        const section = filename.replace(/\.md$/, '');
+        const filename = parts.slice(2).join("/");
+        const section = filename.replace(/\.md$/, "");
 
         files.push({
           filePath: obj.key,
-          sourceType: 'md',
+          sourceType: "md",
           s3Key: obj.key,
+          s3Etag: obj.etag,
           identity: {
-            official: officialDir.replaceAll('_', ' '),
+            official: officialDir.replaceAll("_", " "),
             section,
             filename,
           },
@@ -91,7 +93,7 @@ export class CorruptionPipeline extends PipelineBase {
       official,
       section,
       filename,
-      source_type: 'md',
+      source_type: "md",
       chunk_index: chunkIndex,
       s3_key: file.s3Key ?? file.filePath,
     };

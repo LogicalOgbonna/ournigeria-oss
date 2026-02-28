@@ -3,7 +3,15 @@
 import { useState } from "react";
 import type { ConversationForUI } from "@/hooks/useChat";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, MessageSquare, X, Clock, LogOut } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  MessageSquare,
+  X,
+  Clock,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 
@@ -218,25 +226,33 @@ export function ChatSidebar({
           )}
         </div>
 
-        {/* Logout footer */}
-        <div className="shrink-0 border-t border-slate-200/80 dark:border-slate-700/80 p-3">
+        {/* Footer */}
+        <div className="flex shrink-0 items-center justify-between border-t border-slate-200/80 dark:border-slate-700/80 px-3 py-2.5">
+          <button
+            data-tour="profile-button"
+            onClick={() => {
+              onClose();
+              router.push("/profile");
+            }}
+            className="rounded-lg p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+            title="Profile settings"
+          >
+            <User className="h-4 w-4" />
+          </button>
           <button
             onClick={async () => {
-              // Clear API-domain cookie
               await fetch(apiUrl("/api/auth/logout"), {
                 method: "POST",
                 credentials: "include",
               });
-              // Clear web-domain httpOnly cookie via server route
               await fetch("/api/logout", { method: "POST" });
-              // Clear conversation data (preserve preferences like language)
               localStorage.removeItem("ournigeria-conversations");
               router.push("/login");
             }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"
+            className="rounded-lg p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"
+            title="Log out"
           >
             <LogOut className="h-4 w-4" />
-            Log out
           </button>
         </div>
       </aside>

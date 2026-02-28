@@ -7,11 +7,12 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import type { SystemBanner, Notification } from "@/types/notifications";
-import { dummyBanners, dummyNotifications } from "@/data/dummy-notifications";
+import { apiUrl } from "@/lib/api";
 
-const DISMISSED_KEY = "ournigeria:dismissed-banners";
+const POLL_INTERVAL = 60_000; // 1 minute
 
 interface NotificationContextValue {
   banners: SystemBanner[];
@@ -24,59 +25,102 @@ interface NotificationContextValue {
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 
-function getDismissedIds(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
 export function NotificationProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
-  const [notifications, setNotifications] =
-    useState<Notification[]>(dummyNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [banners, setBanners] = useState<SystemBanner[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/notifications"), {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setNotifications(data.notifications ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
+    } catch {
+      // silently fail — user may not be logged in
+    }
+  }, []);
+
+  const fetchBanners = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/notifications/banners"), {
+        credentials: "include",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setBanners(data.banners ?? []);
+    } catch {
+      // silently fail
+    }
+  }, []);
+
+  const fetchAll = useCallback(() => {
+    fetchNotifications();
+    fetchBanners();
+  }, [fetchNotifications, fetchBanners]);
 
   useEffect(() => {
-    setDismissedIds(getDismissedIds());
-  }, []);
+    fetchAll();
+    intervalRef.current = setInterval(fetchAll, POLL_INTERVAL);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchAll]);
 
-  const banners = useMemo(() => {
-    const now = new Date();
-    return dummyBanners.filter((b) => {
-      if (dismissedIds.includes(b.id)) return false;
-      if (b.expiresAt && new Date(b.expiresAt) < now) return false;
-      return true;
-    });
-  }, [dismissedIds]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications],
+  const dismissBanner = useCallback(
+    async (id: string) => {
+      setBanners((prev) => prev.filter((b) => b.id !== id));
+      try {
+        await fetch(apiUrl(`/api/notifications/banners/${id}/dismiss`), {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch {
+        // revert on error by re-fetching
+        fetchBanners();
+      }
+    },
+    [fetchBanners],
   );
 
-  const dismissBanner = useCallback((id: string) => {
-    setDismissedIds((prev) => {
-      const next = [...prev, id];
-      localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const markAsRead = useCallback(
+    async (id: string) => {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      try {
+        await fetch(apiUrl(`/api/notifications/${id}/read`), {
+          method: "PATCH",
+          credentials: "include",
+        });
+      } catch {
+        fetchNotifications();
+      }
+    },
+    [fetchNotifications],
+  );
 
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    );
-  }, []);
-
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    setUnreadCount(0);
+    try {
+      await fetch(apiUrl("/api/notifications/read-all"), {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
 
   const value = useMemo(
     () => ({

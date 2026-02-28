@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, User } from "lucide-react";
-import { MessageThread, type ChatMessage } from "@/components/conversations/message-thread";
+import {
+  MessageThread,
+  type ChatMessage,
+} from "@/components/conversations/message-thread";
 import { ExportButton } from "@/components/conversations/export-button";
 import { adminFetch } from "@/lib/api";
 
@@ -21,61 +23,18 @@ interface ConversationDetail {
   messages: ChatMessage[];
 }
 
-const placeholderConversation: ConversationDetail = {
-  id: "conv-1",
-  title: "What is Lagos state budget for education?",
-  userId: "user-1",
-  userIdentifier: "+2348012345678",
-  flagged: false,
-  createdAt: new Date(Date.now() - 3600000).toISOString(),
-  messages: [
-    {
-      id: "msg-1",
-      role: "user",
-      content: "What is Lagos state budget for education in 2025?",
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: "msg-2",
-      role: "assistant",
-      content:
-        "Based on the 2025 Lagos State budget, the allocation for education is approximately N215.8 billion. This represents about 15.2% of the total state budget.\n\nKey allocations include:\n- Basic Education: N82.3 billion\n- Secondary Education: N65.1 billion\n- Tertiary Education: N45.2 billion\n- SUBEB Fund: N23.2 billion\n\nThis is a 12% increase from the 2024 education budget of N192.7 billion.",
-      createdAt: new Date(Date.now() - 3500000).toISOString(),
-      sources: [
-        { title: "Lagos 2025 Approved Budget - Education Sector", filePath: "budgets/lagos/2025-approved.pdf", score: 0.94 },
-        { title: "Lagos 2024 Budget Performance Report", filePath: "budgets/lagos/2024-performance.pdf", score: 0.82 },
-      ],
-    },
-    {
-      id: "msg-3",
-      role: "user",
-      content: "How does that compare to Kano state?",
-      createdAt: new Date(Date.now() - 3000000).toISOString(),
-    },
-    {
-      id: "msg-4",
-      role: "assistant",
-      content:
-        "Kano State allocated approximately N98.4 billion to education in 2025, which represents about 18.6% of its total budget.\n\nWhile Lagos spends more in absolute terms (N215.8B vs N98.4B), Kano actually allocates a higher percentage of its budget to education (18.6% vs 15.2%).\n\nKey differences:\n- Lagos focuses more on tertiary education infrastructure\n- Kano has higher per-student spending on basic education\n- Both states increased education budgets from 2024",
-      createdAt: new Date(Date.now() - 2800000).toISOString(),
-      sources: [
-        { title: "Kano 2025 Approved Budget", filePath: "budgets/kano/2025-approved.pdf", score: 0.91 },
-        { title: "Lagos 2025 Approved Budget - Education Sector", filePath: "budgets/lagos/2025-approved.pdf", score: 0.87 },
-      ],
-    },
-  ],
-};
-
 export default function ConversationDetailPage() {
   const params = useParams();
   const conversationId = params.conversationId as string;
-  const [conversation, setConversation] = useState<ConversationDetail | null>(null);
+  const [conversation, setConversation] = useState<ConversationDetail | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     adminFetch(`/conversations/${conversationId}`)
       .then(setConversation)
-      .catch(() => setConversation({ ...placeholderConversation, id: conversationId }))
+      .catch(() => setConversation(null))
       .finally(() => setLoading(false));
   }, [conversationId]);
 
@@ -88,13 +47,24 @@ export default function ConversationDetailPage() {
     );
   }
 
-  if (!conversation) return null;
+  if (!conversation) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-muted-foreground">Conversation not found</p>
+        <Button variant="outline" size="sm" className="mt-4" asChild>
+          <Link href="/dashboard/conversations">Back to conversations</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-          <Link href="/dashboard/conversations"><ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/dashboard/conversations">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-heading font-bold truncate max-w-xl">
@@ -124,7 +94,7 @@ export default function ConversationDetailPage() {
         messages={conversation.messages}
         flagged={conversation.flagged}
         onToggleFlag={() => {
-          setConversation((c) => c ? { ...c, flagged: !c.flagged } : c);
+          setConversation((c) => (c ? { ...c, flagged: !c.flagged } : c));
           adminFetch(`/conversations/${conversationId}/flag`, {
             method: "POST",
             body: JSON.stringify({ flagged: !conversation.flagged }),

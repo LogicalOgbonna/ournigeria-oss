@@ -21,6 +21,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { SystemBanners } from "@/components/notifications/SystemBanner";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Markdown } from "./Markdown";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 function StreamingBubble({ text }: { text: string }) {
   return (
@@ -258,6 +259,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                data-tour="share-button"
                 onClick={() => setShareDialogOpen(true)}
                 className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 md:w-auto md:px-2"
                 title="Share"
@@ -270,6 +272,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                data-tour="new-chat-button"
                 onClick={startNewChat}
                 className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 md:w-auto md:px-2"
                 title="New chat"
@@ -283,6 +286,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             <Button
               variant="ghost"
               size="icon"
+              data-tour="menu-button"
               className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
@@ -305,6 +309,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
                 <MessageBubble
                   key={message.id}
                   message={message}
+                  conversationId={activeConversationId}
                   onFollowUpClick={handleSend}
                 />
               ))}
@@ -345,6 +350,12 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             />
           );
         })()}
+
+      <OnboardingTour
+        hasMessages={hasMessages}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+      />
     </div>
   );
 }

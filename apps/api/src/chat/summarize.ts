@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { chatModel } from "../mastra/rag/config";
 import { estimateTokens } from "./token-utils";
+import { tracingMetadata } from "../lib/langfuse";
 
 /**
  * Minimum number of messages beyond the summary boundary before
@@ -22,6 +23,8 @@ Do NOT include greetings, filler, or repetitive details. Be factual and dense.`;
 interface SummarizeInput {
   existingSummary: string | null;
   messages: Array<{ role: string; content: string }>;
+  sessionId?: string;
+  userId?: string;
 }
 
 /**
@@ -31,6 +34,8 @@ interface SummarizeInput {
 export async function generateSummary({
   existingSummary,
   messages,
+  sessionId,
+  userId,
 }: SummarizeInput): Promise<string> {
   const parts: string[] = [];
 
@@ -49,6 +54,11 @@ export async function generateSummary({
     system: SUMMARIZE_PROMPT,
     prompt: parts.join("\n\n---\n\n"),
     maxOutputTokens: MAX_SUMMARY_TOKENS,
+    ...tracingMetadata({
+      functionId: "conversation-summarization",
+      sessionId,
+      userId,
+    }),
   });
 
   return text.trim();
@@ -67,8 +77,17 @@ export async function maybeSummarize(opts: {
     fromSeq: number,
     toSeq: number,
   ) => Promise<Array<{ role: string; content: string }>>;
+  sessionId?: string;
+  userId?: string;
 }): Promise<{ summary: string; summaryUpTo: number } | null> {
-  const { existingSummary, summaryUpTo, currentSeq, getMessages } = opts;
+  const {
+    existingSummary,
+    summaryUpTo,
+    currentSeq,
+    getMessages,
+    sessionId,
+    userId,
+  } = opts;
   const boundary = summaryUpTo ?? 0;
 
   // Number of messages beyond the summary that are NOT in the recent window
@@ -93,7 +112,12 @@ export async function maybeSummarize(opts: {
   );
   if (totalTokens < 200) return null;
 
-  const summary = await generateSummary({ existingSummary, messages });
+  const summary = await generateSummary({
+    existingSummary,
+    messages,
+    sessionId,
+    userId,
+  });
 
   return { summary, summaryUpTo: summarizeUpTo };
 }

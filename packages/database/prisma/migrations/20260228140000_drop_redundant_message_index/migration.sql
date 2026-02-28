@@ -1,0 +1,2 @@
+-- DropIndex
+DROP INDEX IF EXISTS "idx_messages_conversation_seq";

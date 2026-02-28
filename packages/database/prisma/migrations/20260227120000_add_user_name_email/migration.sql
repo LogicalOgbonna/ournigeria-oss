@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "name" VARCHAR(100),
+ADD COLUMN "email" VARCHAR(255);

@@ -74,10 +74,11 @@ export const embeddingProvider = createOpenAI({
 export const RAG_CONFIG = {
   indexName: process.env.VECTOR_INDEX_BUDGET!,
   corruptionIndexName: process.env.VECTOR_INDEX_CORRUPTION!,
+  govspendIndexName: process.env.VECTOR_INDEX_GOVSPEND!,
   chunkSize: 512,
   chunkOverlap: 50,
   embeddingDimension: Number(process.env.EMBEDDING_DIMENSION!),
-  topK: Number(process.env.RAG_TOP_K) || 10,
+  topK: Number(process.env.RAG_TOP_K) || 15,
   searchEf: Number(process.env.RAG_SEARCH_EF) || 100,
 };
 
@@ -100,4 +101,11 @@ export function getPgVector(): PgVector {
     connectionString: DB_URL,
   });
   return _pgVector;
+}
+
+export async function closePgVector(): Promise<void> {
+  if (_pgVector) {
+    await _pgVector.disconnect();
+    _pgVector = null;
+  }
 }

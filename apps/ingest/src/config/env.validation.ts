@@ -9,6 +9,7 @@ export interface EnvConfig {
   OCR_MODEL: string;
   VECTOR_INDEX_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
+  VECTOR_INDEX_GOVSPEND: string;
   AWS_REGION: string;
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
@@ -16,20 +17,21 @@ export interface EnvConfig {
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
-  'DATABASE_URL',
-  'EMBEDDING_API_KEY',
-  'EMBEDDING_MODEL',
-  'EMBEDDING_BASE_URL',
-  'EMBEDDING_DIMENSION',
-  'OCR_BASE_URL',
-  'OCR_API_KEY',
-  'OCR_MODEL',
-  'VECTOR_INDEX_BUDGET',
-  'VECTOR_INDEX_CORRUPTION',
-  'AWS_REGION',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'S3_BUCKET',
+  "DATABASE_URL",
+  "EMBEDDING_API_KEY",
+  "EMBEDDING_MODEL",
+  "EMBEDDING_BASE_URL",
+  "EMBEDDING_DIMENSION",
+  "OCR_BASE_URL",
+  "OCR_API_KEY",
+  "OCR_MODEL",
+  "VECTOR_INDEX_BUDGET",
+  "VECTOR_INDEX_CORRUPTION",
+  "VECTOR_INDEX_GOVSPEND",
+  "AWS_REGION",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_SECRET_ACCESS_KEY",
+  "S3_BUCKET",
 ];
 
 export function validateEnv(config: Record<string, unknown>): EnvConfig {
@@ -37,7 +39,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables:\n  ${missing.join('\n  ')}`,
+      `Missing required environment variables:\n  ${missing.join("\n  ")}`,
     );
   }
 
@@ -59,6 +61,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     OCR_MODEL: config.OCR_MODEL as string,
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
+    VECTOR_INDEX_GOVSPEND: config.VECTOR_INDEX_GOVSPEND as string,
     AWS_REGION: config.AWS_REGION as string,
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,

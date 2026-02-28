@@ -1,5 +1,7 @@
+# syntax=docker/dockerfile:1
+
 # ── Stage 1: Install dependencies ──
-FROM node:22-slim AS deps
+FROM node:22.14.0-slim AS deps
 
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -34,14 +36,17 @@ COPY apps/web/ apps/web/
 RUN infisical run --env prod --path /web -- pnpm --filter @ournigeria/web exec next build
 
 # ── Stage 3: Production runner ──
-FROM node:22-slim AS runner
+FROM node:22.14.0-slim AS runner
 
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3001
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser
 
 # Copy standalone server
 COPY --from=build /app/apps/web/.next/standalone ./
@@ -50,6 +55,10 @@ COPY --from=build /app/apps/web/.next/static apps/web/.next/static
 # Copy public assets (if any)
 COPY --from=build /app/apps/web/public apps/web/public
 
+USER appuser
+
 EXPOSE 3001
+
+STOPSIGNAL SIGTERM
 
 CMD ["node", "apps/web/server.js"]

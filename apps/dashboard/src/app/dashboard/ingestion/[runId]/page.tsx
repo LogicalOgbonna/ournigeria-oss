@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -8,7 +8,9 @@ import { RunProgress } from "@/components/ingestion/run-progress";
 
 export default function RunProgressPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const runId = params.runId as string;
+  const pipeline = searchParams.get("pipeline") ?? undefined;
 
   return (
     <div className="space-y-6">
@@ -19,12 +21,20 @@ export default function RunProgressPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-heading font-bold">Run {runId.slice(0, 8)}</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Live ingestion progress</p>
+          <h1 className="text-2xl font-heading font-bold">
+            {pipeline ? (
+              <span className="capitalize">{pipeline}</span>
+            ) : (
+              <>Run {runId.slice(0, 8)}</>
+            )}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Live ingestion progress
+          </p>
         </div>
       </div>
 
-      <RunProgress runId={runId} />
+      <RunProgress runId={runId} pipeline={pipeline} />
     </div>
   );
 }

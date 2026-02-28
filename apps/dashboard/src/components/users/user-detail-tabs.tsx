@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, ChevronRight } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import Link from "next/link";
 
 interface UserDetailTabsProps {
   userId: string;
@@ -35,7 +36,9 @@ interface Analytics {
 }
 
 export function UserDetailTabs({ userId }: UserDetailTabsProps) {
-  const [conversations, setConversations] = useState<Conversation[] | null>(null);
+  const [conversations, setConversations] = useState<Conversation[] | null>(
+    null,
+  );
   const [memories, setMemories] = useState<Memory[] | null>(null);
   const [analytics, setAnalytics] = useState<Analytics[] | null>(null);
   const [preferences, setPreferences] = useState<string>("");
@@ -60,7 +63,9 @@ export function UserDetailTabs({ userId }: UserDetailTabsProps) {
     }
     if (activeTab === "preferences" && !preferences) {
       adminFetch(`/users/${userId}`)
-        .then((res) => setPreferences(JSON.stringify(res.preferences ?? {}, null, 2)))
+        .then((res) =>
+          setPreferences(JSON.stringify(res.preferences ?? {}, null, 2)),
+        )
         .catch(() => setPreferences("{}"));
     }
   }, [activeTab, userId, conversations, memories, analytics, preferences]);
@@ -97,23 +102,32 @@ export function UserDetailTabs({ userId }: UserDetailTabsProps) {
             ))}
           </div>
         ) : conversations.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No conversations</p>
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No conversations
+          </p>
         ) : (
           <div className="space-y-2">
             {conversations.map((c) => (
-              <Card key={c.id}>
-                <CardContent className="flex items-center justify-between py-3 px-4">
-                  <div>
-                    <p className="text-sm font-medium">{c.title || "Untitled conversation"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(c.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    {c._count.messages} messages
-                  </Badge>
-                </CardContent>
-              </Card>
+              <Link key={c.id} href={`/dashboard/conversations/${c.id}`}>
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                  <CardContent className="flex items-center justify-between py-3 px-4">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {c.title || "Untitled conversation"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {c._count.messages} messages
+                      </Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
@@ -127,7 +141,9 @@ export function UserDetailTabs({ userId }: UserDetailTabsProps) {
             ))}
           </div>
         ) : memories.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No memories</p>
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No memories
+          </p>
         ) : (
           <div className="space-y-2">
             {memories.map((m) => (
@@ -152,7 +168,9 @@ export function UserDetailTabs({ userId }: UserDetailTabsProps) {
             ))}
           </div>
         ) : analytics.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">No analytics data</p>
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No analytics data
+          </p>
         ) : (
           <div className="space-y-2">
             {analytics.map((a) => (
@@ -179,7 +197,9 @@ export function UserDetailTabs({ userId }: UserDetailTabsProps) {
       <TabsContent value="preferences" className="mt-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">User Preferences (JSON)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              User Preferences (JSON)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Textarea

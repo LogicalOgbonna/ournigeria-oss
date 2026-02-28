@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   async rewrites() {
-    const apiUrl = process.env.API_URL || "http://localhost:3000";
+    const apiUrl = process.env.API_URL || "http://localhost:3001";
     const ingestUrl = process.env.INGEST_URL || "http://localhost:3002";
     return [
       {

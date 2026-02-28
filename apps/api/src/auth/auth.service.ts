@@ -5,6 +5,7 @@ import { PrismaService } from "@ournigeria/database";
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 const MAX_OTPS_PER_HOUR = 5;
+const MAX_TOTAL_VERIFY_ATTEMPTS_PER_HOUR = 15;
 
 interface VerifyResult {
   success: boolean;
@@ -82,7 +83,29 @@ export class AuthService {
     return code;
   }
 
+  async checkVerifyRateLimit(phoneNumber: string): Promise<boolean> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const result = await this.prisma.otpVerification.aggregate({
+      where: {
+        phoneNumber,
+        createdAt: { gte: oneHourAgo },
+      },
+      _sum: { attempts: true },
+    });
+    return (result._sum.attempts ?? 0) >= MAX_TOTAL_VERIFY_ATTEMPTS_PER_HOUR;
+  }
+
   async verifyOTP(phoneNumber: string, code: string): Promise<VerifyResult> {
+    // Check global verification rate limit across all OTPs
+    const verifyLimited = await this.checkVerifyRateLimit(phoneNumber);
+    if (verifyLimited) {
+      return {
+        success: false,
+        error:
+          "Too many verification attempts. Please wait before trying again.",
+      };
+    }
+
     const otp = await this.prisma.otpVerification.findFirst({
       where: {
         phoneNumber,
@@ -274,6 +297,34 @@ export class AuthService {
       where: { telegramId },
       update: { lastSeenAt: new Date() },
       create: { telegramId },
+    });
+  }
+
+  // ─── Profile ─────────────────────────────────────────
+
+  async checkBanStatus(
+    userId: string,
+  ): Promise<{ banned: boolean; reason?: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { banned: true, banReason: true },
+    });
+    if (!user) return { banned: false };
+    return { banned: user.banned, reason: user.banReason ?? undefined };
+  }
+
+  async getProfile(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, phoneNumber: true },
+    });
+  }
+
+  async updateProfile(userId: string, data: { name?: string; email?: string }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, name: true, email: true, phoneNumber: true },
     });
   }
 

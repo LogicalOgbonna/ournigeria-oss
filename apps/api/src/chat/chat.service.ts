@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type Prisma } from "@ournigeria/database";
 import { routeToAgent } from "../mastra/router";
-import type { ToolId, Language } from "../types";
+import type { ToolId, Language, AIResponseContent } from "../types";
 import { summarizeRichContent } from "./rich-content-summary";
 import {
   estimateTokens,
@@ -10,8 +10,9 @@ import {
 } from "./token-utils";
 import { maybeSummarize } from "./summarize";
 import { extractAndSaveMemory, loadUserProfile } from "./user-memory";
+import { getLangfuse } from "../lib/langfuse";
 
-const VALID_TOOLS: Set<string> = new Set(["budget", "corruption"]);
+const VALID_TOOLS: Set<string> = new Set(["budget", "corruption", "govspend"]);
 
 @Injectable()
 export class ChatService {
@@ -79,14 +80,12 @@ export class ChatService {
       };
     }
 
-    // Persist user message
-    await this.prisma.message.create({
-      data: {
-        conversationId: convId,
-        sequenceNumber: nextSeq,
-        role: "user",
-        content: message,
-      },
+    // Persist user message (with retry on sequence collision)
+    nextSeq = await this.createMessageWithSeqRetry({
+      conversationId: convId,
+      sequenceNumber: nextSeq,
+      role: "user",
+      content: message,
     });
 
     // Send conversation ID immediately
@@ -136,7 +135,8 @@ export class ChatService {
       ? estimateTokens(conversationMeta.summary)
       : 0;
     const messageTokenBudget = Math.max(
-      CONTEXT_BUDGET.recentMessages - Math.max(0, summaryTokens - CONTEXT_BUDGET.summary),
+      CONTEXT_BUDGET.recentMessages -
+        Math.max(0, summaryTokens - CONTEXT_BUDGET.summary),
       2000,
     );
 
@@ -145,15 +145,10 @@ export class ChatService {
       messageTokenBudget,
     );
 
-    const historyContext = selectedMessages
-      .map((m) => m.content)
-      .join("\n\n");
+    const historyContext = selectedMessages.map((m) => m.content).join("\n\n");
 
     // Phase 6: Load user profile from memory
-    const userProfile = await loadUserProfile(
-      this.prisma,
-      userId,
-    );
+    const userProfile = await loadUserProfile(this.prisma, userId);
 
     // Build conversation context for router
     const context = {
@@ -174,50 +169,140 @@ export class ChatService {
       send,
       language: validLanguage,
       context,
+      sessionId: convId,
+      userId,
     });
 
     const processingTimeMs = Date.now() - startTime;
 
-    // Persist assistant message
-    await this.prisma.message.create({
-      data: {
-        conversationId: convId,
-        sequenceNumber: nextSeq + 1,
-        role: "assistant",
-        content: (richContent as { text?: string }).text ?? "",
-        richContent: structuredClone(
-          richContent,
-        ) as unknown as Prisma.InputJsonValue,
-        processingTimeMs,
-      },
+    // Persist assistant message (with retry on sequence collision)
+    const assistantSeq = await this.createMessageWithSeqRetry({
+      conversationId: convId,
+      sequenceNumber: nextSeq + 1,
+      role: "assistant",
+      content: (richContent as { text?: string }).text ?? "",
+      richContent: structuredClone(
+        richContent,
+      ) as unknown as Prisma.InputJsonValue,
+      processingTimeMs,
     });
 
-    // Update conversation: timestamp + lastAgentType
+    // Extract newly mentioned states and years from the current interaction
+    const newStates = new Set<string>(conversationMeta.mentionedStates);
+    const newYears = new Set<number>(conversationMeta.mentionedYears);
+
+    if (richContent.sources) {
+      for (const source of richContent.sources) {
+        if (source.state) newStates.add(source.state);
+        if (source.year) newYears.add(source.year);
+      }
+    }
+    if (richContent.officials) {
+      for (const official of richContent.officials) {
+        if (official.state) newStates.add(official.state);
+        if (official.year) newYears.add(official.year);
+      }
+    }
+
+    const updatedStates = Array.from(newStates);
+    const updatedYears = Array.from(newYears);
+
+    // Update conversation: timestamp + lastAgentType + mentioned facts
     await this.prisma.conversation.update({
       where: { id: convId },
       data: {
         updatedAt: new Date(),
         lastAgentType: resolvedTool,
+        mentionedStates: updatedStates,
+        mentionedYears: updatedYears,
       },
     });
 
     // Send final event with rich content
     send({ type: "done", richContent });
 
+    // ─── Langfuse automated scores (non-blocking) ───────────────
+    const langfuse = getLangfuse();
+    if (langfuse) {
+      try {
+        langfuse.score({
+          name: "latency_ms",
+          value: processingTimeMs,
+          sessionId: convId,
+          dataType: "NUMERIC",
+        });
+        langfuse.score({
+          name: "has_sources",
+          value: richContent.sources && richContent.sources.length > 0 ? 1 : 0,
+          sessionId: convId,
+          dataType: "BOOLEAN",
+        });
+        langfuse.score({
+          name: "agent_type",
+          value: resolvedTool,
+          sessionId: convId,
+          dataType: "CATEGORICAL",
+        });
+        langfuse
+          .flushAsync()
+          .catch((err) => console.error("Langfuse flush error:", err));
+      } catch (err) {
+        console.error("Langfuse score error:", err);
+      }
+    }
+
     // ─── Post-response async tasks (non-blocking) ───────────────
 
     // Phase 1: Summarize older messages if needed
-    this.runSummarization(convId, nextSeq + 1, conversationMeta).catch(
+    this.runSummarization(convId, assistantSeq, conversationMeta, userId).catch(
       (err) => console.error("Summarization error:", err),
     );
 
     // Phase 6: Extract user memory
     extractAndSaveMemory(this.prisma, userId, {
-      mentionedStates: conversationMeta.mentionedStates,
-      mentionedYears: conversationMeta.mentionedYears,
+      mentionedStates: updatedStates,
+      mentionedYears: updatedYears,
       language: validLanguage,
-      messageCount: nextSeq + 1,
+      messageCount: assistantSeq,
     }).catch((err) => console.error("Memory extraction error:", err));
+  }
+
+  /**
+   * Create a message with retry on unique constraint violation (sequence number collision).
+   * Returns the actual sequence number used.
+   */
+  private async createMessageWithSeqRetry(
+    data: {
+      conversationId: string;
+      sequenceNumber: number;
+      role: string;
+      content: string;
+      richContent?: unknown;
+      processingTimeMs?: number;
+    },
+    maxRetries = 3,
+  ): Promise<number> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await this.prisma.message.create({
+          data: data as any,
+        });
+        return data.sequenceNumber;
+      } catch (err: any) {
+        if (err?.code === "P2002" && attempt < maxRetries - 1) {
+          // Unique constraint violation — re-calculate sequence number
+          const lastMsg = await this.prisma.message.findFirst({
+            where: { conversationId: data.conversationId },
+            orderBy: { sequenceNumber: "desc" },
+          });
+          data.sequenceNumber = (lastMsg?.sequenceNumber ?? 0) + 1;
+          continue;
+        }
+        throw err;
+      }
+    }
+    // Unreachable, but satisfies TypeScript
+    throw new Error("Failed to create message after retries");
   }
 
   /**
@@ -228,11 +313,14 @@ export class ChatService {
     convId: string,
     currentSeq: number,
     meta: { summary: string | null; summaryUpTo: number | null },
+    userId?: string,
   ) {
     const result = await maybeSummarize({
       existingSummary: meta.summary,
       summaryUpTo: meta.summaryUpTo,
       currentSeq,
+      sessionId: convId,
+      userId,
       getMessages: async (fromSeq, toSeq) => {
         const messages = await this.prisma.message.findMany({
           where: {

@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Rocket, Loader2, X } from "lucide-react";
 import { ingestFetch } from "@/lib/api";
@@ -55,6 +61,7 @@ export function NewRunForm({
             <SelectContent>
               <SelectItem value="budget">Budget</SelectItem>
               <SelectItem value="corruption">Corruption</SelectItem>
+              <SelectItem value="govspend">Govspend</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -64,7 +71,7 @@ export function NewRunForm({
           <Input
             type="number"
             min="1"
-            max="20"
+            max="50"
             value={concurrency}
             onChange={(e) => setConcurrency(e.target.value)}
           />

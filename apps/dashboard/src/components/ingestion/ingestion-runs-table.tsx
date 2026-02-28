@@ -26,10 +26,16 @@ export interface IngestionRun {
 
 function statusVariant(status: string) {
   switch (status) {
-    case "completed": return "default" as const;
-    case "running": return "secondary" as const;
-    case "failed": return "destructive" as const;
-    default: return "outline" as const;
+    case "completed":
+      return "default" as const;
+    case "running":
+      return "secondary" as const;
+    case "failed":
+      return "destructive" as const;
+    case "stalled":
+      return "outline" as const;
+    default:
+      return "outline" as const;
   }
 }
 
@@ -62,29 +68,52 @@ export function IngestionRunsTable({ runs }: { runs: IngestionRun[] }) {
         <TableBody>
           {runs.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell
+                colSpan={8}
+                className="text-center text-muted-foreground py-8"
+              >
                 No ingestion runs found
               </TableCell>
             </TableRow>
           ) : (
             runs.map((run) => (
               <TableRow key={run.id}>
-                <TableCell className="font-medium capitalize">{run.pipeline}</TableCell>
-                <TableCell className="text-sm text-muted-foreground capitalize">{run.trigger}</TableCell>
-                <TableCell className="text-right text-sm">{run.totalFiles}</TableCell>
-                <TableCell className="text-right text-sm">{run.totalChunks.toLocaleString()}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{formatDuration(run.duration)}</TableCell>
+                <TableCell className="font-medium capitalize">
+                  {run.pipeline}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground capitalize">
+                  {run.trigger}
+                </TableCell>
+                <TableCell className="text-right text-sm">
+                  {run.totalFiles}
+                </TableCell>
+                <TableCell className="text-right text-sm">
+                  {run.totalChunks.toLocaleString()}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatDuration(run.duration)}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {new Date(run.startedAt).toLocaleString()}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariant(run.status)} className="text-xs capitalize">
+                  <Badge
+                    variant={statusVariant(run.status)}
+                    className="text-xs capitalize"
+                  >
                     {run.status}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                    <Link href={`/dashboard/ingestion/${run.id}`}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    asChild
+                  >
+                    <Link
+                      href={`/dashboard/ingestion/${run.id}?pipeline=${run.pipeline}`}
+                    >
                       <Eye className="h-3.5 w-3.5" />
                     </Link>
                   </Button>

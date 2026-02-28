@@ -7,11 +7,13 @@ import { User, Sparkles } from "lucide-react";
 
 interface MessageBubbleProps {
   message: Message;
+  conversationId?: string | null;
   onFollowUpClick: (text: string) => void;
 }
 
 export function MessageBubble({
   message,
+  conversationId,
   onFollowUpClick,
 }: MessageBubbleProps) {
   if (message.role === "user") {
@@ -36,6 +38,8 @@ export function MessageBubble({
         {message.richContent ? (
           <AIMessage
             content={message.richContent}
+            messageId={message.id}
+            conversationId={conversationId ?? undefined}
             onFollowUpClick={onFollowUpClick}
           />
         ) : (

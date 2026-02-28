@@ -7,6 +7,20 @@ import { AVAILABLE_TOOLS, type ToolId, type Language } from "@/types";
 
 const LANGUAGE_STORAGE_KEY = "ournigeria-language";
 
+const AUTO_DESCRIPTION: Record<Language, string> = {
+  en: "AI picks the best tool based on your question",
+  pcm: "AI go pick the best tool based on your question",
+};
+
+const PLACEHOLDER: Record<ToolId | "default", string> = {
+  corruption: "Ask about EFCC corruption cases...",
+  budget: "Ask about Nigerian budgets...",
+  govspend: "Ask about government payments...",
+  impact: "Ask about the real-world impact of spending...",
+  general: "Ask anything about Nigeria...",
+  default: "Ask about budgets, corruption cases, or government payments...",
+};
+
 const LANGUAGE_OPTIONS: {
   id: Language;
   label: string;
@@ -104,7 +118,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         <div className="relative rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-all focus-within:border-emerald-300 dark:focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:shadow-md">
           {/* Tool selector row */}
           <div className="flex items-center gap-2 px-4 pt-2" ref={dropdownRef}>
-            <div className="relative">
+            <div className="relative" data-tour="tool-selector">
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -133,7 +147,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
                   >
                     <span className="text-sm font-medium">Auto</span>
                     <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                      AI picks the best tool based on your question
+                      {AUTO_DESCRIPTION[language]}
                     </span>
                   </button>
 
@@ -155,7 +169,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
                     >
                       <span className="text-sm font-medium">{tool.label}</span>
                       <span className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                        {tool.description}
+                        {tool.description[language] ?? tool.description.en}
                       </span>
                     </button>
                   ))}
@@ -164,7 +178,11 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
             </div>
 
             {/* Language selector */}
-            <div className="relative" ref={langDropdownRef}>
+            <div
+              className="relative"
+              ref={langDropdownRef}
+              data-tour="language-selector"
+            >
               <button
                 type="button"
                 onClick={() => setLangDropdownOpen(!langDropdownOpen)}
@@ -220,11 +238,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                selectedTool === "corruption"
-                  ? "Ask about EFCC corruption cases..."
-                  : selectedTool === "budget"
-                    ? "Ask about Nigerian budgets..."
-                    : "Ask about budgets or corruption cases..."
+                selectedTool ? PLACEHOLDER[selectedTool] : PLACEHOLDER.default
               }
               rows={1}
               className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
@@ -244,8 +258,9 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           </div>
         </div>
         <p className="mt-2 text-center text-[11px] text-slate-400 dark:text-slate-500">
-          OurNigeria analyses real budget documents and EFCC case files. Data is
-          sourced from official publications but may contain extraction errors.
+          OurNigeria analyses real budget documents, EFCC case files, and
+          government payment records. Data is sourced from official publications
+          but may contain extraction errors.
         </p>
       </div>
     </div>

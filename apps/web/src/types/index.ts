@@ -102,28 +102,45 @@ export interface Message {
   timestamp: Date;
 }
 
-export type ToolId = "budget" | "corruption" | "impact" | "general";
+export type ToolId =
+  | "budget"
+  | "corruption"
+  | "govspend"
+  | "impact"
+  | "general";
 
 export type Language = "en" | "pcm";
 
 export interface ToolOption {
   id: ToolId;
   label: string;
-  description: string;
+  description: Record<Language, string>;
 }
 
 export const AVAILABLE_TOOLS: ToolOption[] = [
   {
+    id: "govspend",
+    label: "GovSpend",
+    description: {
+      en: "Search government payment records — contractors, beneficiaries, and MDA disbursements",
+      pcm: "Search govment payment records — contractors, who collect money, and MDA payments",
+    },
+  },
+  {
     id: "budget",
     label: "Budget",
-    description:
-      "Analyze Nigerian state and federal budget documents — spending, allocations, and trends",
+    description: {
+      en: "Analyze Nigerian state and federal budget documents — spending, allocations, and trends",
+      pcm: "Check Nigerian state and federal budget documents — how dem spend, allocations, and trends",
+    },
   },
   {
     id: "corruption",
     label: "Corruption Tracker",
-    description:
-      "Search EFCC corruption cases — charges, outcomes, and financial details",
+    description: {
+      en: "Search EFCC corruption cases — charges, outcomes, and financial details",
+      pcm: "Search EFCC corruption cases — charges, wetin happen, and money details",
+    },
   },
 ];
 
