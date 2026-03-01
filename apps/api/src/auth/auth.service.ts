@@ -305,19 +305,21 @@ export class AuthService {
       where: { telegramId },
     });
 
-    if (existing && existing.id !== userId) {
-      // If telegram account is linked to another user, unlink it first
-      // to avoid unique constraint violation.
-      // (Optional: we could merge users here, but unlinking is simpler for now)
-      await this.prisma.user.update({
-        where: { id: existing.id },
-        data: { telegramId: null },
-      });
-    }
+    // Use a transaction to ensure atomic unlinking and linking
+    return this.prisma.$transaction(async (tx) => {
+      if (existing && existing.id !== userId) {
+        // If telegram account is linked to another user, unlink it first
+        // to avoid unique constraint violation.
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { telegramId: null },
+        });
+      }
 
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { telegramId, lastSeenAt: new Date() },
+      return tx.user.update({
+        where: { id: userId },
+        data: { telegramId, lastSeenAt: new Date() },
+      });
     });
   }
 

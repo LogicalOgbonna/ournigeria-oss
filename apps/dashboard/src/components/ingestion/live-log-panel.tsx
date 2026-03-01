@@ -33,8 +33,14 @@ export function LiveLogPanel({ runId, pipeline, onClose }: LiveLogPanelProps) {
   const [connected, setConnected] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(paused);
   const containerRef = useRef<HTMLDivElement>(null);
   const bufferRef = useRef<LogEntry[]>([]);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const eventSource = new EventSource(
@@ -46,7 +52,7 @@ export function LiveLogPanel({ runId, pipeline, onClose }: LiveLogPanelProps) {
     eventSource.onmessage = (event) => {
       try {
         const entry: LogEntry = JSON.parse(event.data);
-        if (paused) {
+        if (pausedRef.current) {
           bufferRef.current.push(entry);
           return;
         }
@@ -66,7 +72,7 @@ export function LiveLogPanel({ runId, pipeline, onClose }: LiveLogPanelProps) {
     return () => {
       eventSource.close();
     };
-  }, [runId, paused]);
+  }, [runId]);
 
   // Flush buffer when unpausing
   useEffect(() => {

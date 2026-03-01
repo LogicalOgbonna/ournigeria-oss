@@ -263,12 +263,13 @@ export class AuthController {
       }
 
       const { telegramUser } = result;
-      const isNewUser = !(await this.authService.telegramUserExists(
-        telegramUser.id,
-      ));
-
       const currentUserId = req.cookies?.[USER_COOKIE];
       let user;
+
+      // Only consider them "new to Telegram" if they don't have a Telegram ID linked AND they aren't currently logged in
+      const isNewUser =
+        !currentUserId &&
+        !(await this.authService.telegramUserExists(telegramUser.id));
 
       if (currentUserId) {
         try {
