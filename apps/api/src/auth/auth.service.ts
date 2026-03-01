@@ -300,6 +300,27 @@ export class AuthService {
     });
   }
 
+  async linkTelegramAccount(userId: string, telegramId: string) {
+    const existing = await this.prisma.user.findUnique({
+      where: { telegramId },
+    });
+
+    if (existing && existing.id !== userId) {
+      // If telegram account is linked to another user, unlink it first
+      // to avoid unique constraint violation.
+      // (Optional: we could merge users here, but unlinking is simpler for now)
+      await this.prisma.user.update({
+        where: { id: existing.id },
+        data: { telegramId: null },
+      });
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { telegramId, lastSeenAt: new Date() },
+    });
+  }
+
   // ─── Profile ─────────────────────────────────────────
 
   async checkBanStatus(

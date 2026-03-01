@@ -72,6 +72,12 @@ export const budgetSearchTool = createTool({
       .describe(
         "Filter by budget category, e.g. 'capital', 'recurrent', 'personnel', 'overhead'",
       ),
+    is_summary: z
+      .boolean()
+      .optional()
+      .describe(
+        "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false or leave undefined for specific line items.",
+      ),
     topK: z
       .number()
       .optional()
@@ -116,7 +122,15 @@ export const budgetSearchTool = createTool({
         "When a state filter is provided, lists ALL budget years available in our database for that state. Use this to ensure you search every available year — do not skip any.",
       ),
   }),
-  execute: async ({ query, state, year, sector, budget_category, topK }) => {
+  execute: async ({
+    query,
+    state,
+    year,
+    sector,
+    budget_category,
+    is_summary,
+    topK,
+  }) => {
     try {
       const { embedding } = await embed({
         model: embeddingModelInstance,
@@ -125,7 +139,9 @@ export const budgetSearchTool = createTool({
 
       // Title-case the state for DB queries
       let titleCased: string | undefined;
-      const conditions: Array<Record<string, { $eq: string | number }>> = [];
+      const conditions: Array<
+        Record<string, { $eq: string | number | boolean }>
+      > = [];
       if (state) {
         // DB stores states as Title Case (e.g. "Lagos", "Akwa Ibom") except "FCT"
         const s = state.toLowerCase();
@@ -146,6 +162,9 @@ export const budgetSearchTool = createTool({
       }
       if (budget_category) {
         conditions.push({ budget_category: { $eq: budget_category } });
+      }
+      if (is_summary !== undefined) {
+        conditions.push({ is_summary: { $eq: is_summary } });
       }
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;

@@ -1,5 +1,6 @@
 export interface EnvConfig {
   DATABASE_URL: string;
+  ADMIN_SESSION_SECRET: string;
   EMBEDDING_API_KEY: string;
   EMBEDDING_MODEL: string;
   EMBEDDING_BASE_URL: string;
@@ -14,10 +15,12 @@ export interface EnvConfig {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
+  SQS_QUEUE_URL?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
   "DATABASE_URL",
+  "ADMIN_SESSION_SECRET",
   "EMBEDDING_API_KEY",
   "EMBEDDING_MODEL",
   "EMBEDDING_BASE_URL",
@@ -52,6 +55,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
 
   return {
     DATABASE_URL: config.DATABASE_URL as string,
+    ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
     EMBEDDING_API_KEY: config.EMBEDDING_API_KEY as string,
     EMBEDDING_MODEL: config.EMBEDDING_MODEL as string,
     EMBEDDING_BASE_URL: config.EMBEDDING_BASE_URL as string,
@@ -66,5 +70,6 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
     S3_BUCKET: config.S3_BUCKET as string,
+    SQS_QUEUE_URL: (config.SQS_QUEUE_URL as string) || undefined,
   };
 }

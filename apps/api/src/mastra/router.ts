@@ -18,6 +18,7 @@ import {
   RAG_CONFIG,
   truncateEmbedding,
   chatModel,
+  chatModelSmall,
 } from "./rag/config";
 import { t } from "../lib/i18n";
 import { embed, generateText } from "ai";
@@ -28,6 +29,12 @@ import {
   decomposeQuery,
   type SubQuery,
 } from "./rag/query-analysis";
+import {
+  analyzeCorruptionQueryComplexity,
+  decomposeCorruptionQuery,
+  type CorruptionQueryAnalysis,
+  type CorruptionSubQuery,
+} from "./rag/corruption-query-analysis";
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
 const GOVSPEND_INDEX = RAG_CONFIG.govspendIndexName;
@@ -44,8 +51,8 @@ function humanizeFilename(filename: string): string {
   const name = filename.replace(/\.[^.]+$/, "");
   // Replace underscores/hyphens with spaces, then title-case
   return name
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/\b\w/g, (c) => c.toUpperCase())
     .trim();
 }
 
@@ -363,7 +370,7 @@ async function rewriteQueryForRAG(
     }
 
     const { text } = await generateText({
-      model: chatModel,
+      model: chatModelSmall,
       system: `You are a query rewriter. Given a short/ambiguous user message and conversation context, rewrite it as a specific, self-contained search query. Keep it concise (under 30 words). Output ONLY the rewritten query, nothing else.`,
       prompt: `Context:\n${contextParts.join("\n")}\n\nUser message: "${message}"`,
       maxOutputTokens: 100,
@@ -384,17 +391,38 @@ async function runMultiSearch(
   indexName: string,
   sessionId?: string,
   userId?: string,
+  corruptionAnalysis?: CorruptionQueryAnalysis,
 ) {
   try {
-    const analysis = analyzeQueryComplexity(searchQuery);
-    const subQueries = await decomposeQuery(
-      searchQuery,
-      analysis,
-      sessionId,
-      userId,
-    );
+    const isBudgetIndex = indexName === RAG_CONFIG.indexName;
+    const isCorruptionIndex = indexName === CORRUPTION_INDEX;
 
-    if (subQueries.length <= 1) {
+    // Use corruption-specific analysis if provided, otherwise generic
+    let topK: number;
+    let subQueries: SubQuery[];
+    let corruptionSubQueries: CorruptionSubQuery[] | undefined;
+
+    if (isCorruptionIndex && corruptionAnalysis) {
+      topK = corruptionAnalysis.topK;
+      corruptionSubQueries = decomposeCorruptionQuery(
+        searchQuery,
+        corruptionAnalysis,
+      );
+    } else {
+      const analysis = analyzeQueryComplexity(searchQuery);
+      topK = analysis.topK;
+      subQueries = await decomposeQuery(
+        searchQuery,
+        analysis,
+        sessionId,
+        userId,
+      );
+    }
+
+    // Determine effective sub-queries
+    const effectiveQueries = corruptionSubQueries ?? subQueries!;
+
+    if (effectiveQueries.length <= 1) {
       // Single search with dynamic topK
       const { embedding } = await embed({
         model: embeddingModelInstance,
@@ -405,10 +433,24 @@ async function runMultiSearch(
           userId,
         }),
       });
+
+      // Build filter for single corruption query
+      const singleConditions: Array<Record<string, { $eq: string }>> = [];
+      if (isCorruptionIndex && corruptionSubQueries?.[0]) {
+        const sq = corruptionSubQueries[0];
+        if (sq.official)
+          singleConditions.push({ official: { $eq: sq.official } });
+        if (sq.status) singleConditions.push({ status: { $eq: sq.status } });
+        if (sq.agency) singleConditions.push({ agency: { $eq: sq.agency } });
+      }
+      const singleFilter =
+        singleConditions.length > 0 ? { $and: singleConditions } : undefined;
+
       return await getPgVector().query({
         indexName,
         queryVector: truncateEmbedding(embedding),
-        topK: analysis.topK,
+        topK,
+        filter: singleFilter,
         ef: RAG_CONFIG.searchEf,
       });
     }
@@ -416,14 +458,15 @@ async function runMultiSearch(
     // Multi-search: run targeted sub-queries in parallel
     const perQueryTopK = Math.max(
       10,
-      Math.ceil(analysis.topK / subQueries.length),
+      Math.ceil(topK / effectiveQueries.length),
     );
 
     const searchResults = await Promise.all(
-      subQueries.map(async (sq: SubQuery) => {
+      effectiveQueries.map(async (sq) => {
+        const queryText = sq.query;
         const { embedding } = await embed({
           model: embeddingModelInstance,
-          value: sq.query,
+          value: queryText,
           ...tracingMetadata({
             functionId: "rag-embedding-sub",
             sessionId,
@@ -431,26 +474,35 @@ async function runMultiSearch(
           }),
         });
 
-        // Only apply state/year/sector metadata filters for budget index
-        // (corruption uses 'official'/'section', govspend uses 'organization_name'/'beneficiary_name')
-        const isBudgetIndex = indexName === RAG_CONFIG.indexName;
         const conditions: Array<Record<string, { $eq: string | number }>> = [];
-        if (isBudgetIndex && sq.state) {
-          // DB stores states as Title Case (e.g. "Lagos", "Akwa Ibom") except "federal" and "FCT"
-          const s = sq.state.toLowerCase();
-          const titleCased =
-            s === "fct"
-              ? "FCT"
-              : s
-                  .split(" ")
-                  .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                  .join(" ");
-          conditions.push({ state: { $eq: titleCased } });
+
+        // Budget index filters
+        if (isBudgetIndex) {
+          const bsq = sq as SubQuery;
+          if (bsq.state) {
+            const s = bsq.state.toLowerCase();
+            const titleCased =
+              s === "fct"
+                ? "FCT"
+                : s
+                    .split(" ")
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ");
+            conditions.push({ state: { $eq: titleCased } });
+          }
+          if (bsq.year) conditions.push({ year: { $eq: bsq.year } });
+          if (bsq.sector) conditions.push({ sector: { $eq: bsq.sector } });
         }
-        if (isBudgetIndex && sq.year)
-          conditions.push({ year: { $eq: sq.year } });
-        if (isBudgetIndex && sq.sector)
-          conditions.push({ sector: { $eq: sq.sector } });
+
+        // Corruption index filters
+        if (isCorruptionIndex) {
+          const csq = sq as CorruptionSubQuery;
+          if (csq.official)
+            conditions.push({ official: { $eq: csq.official } });
+          if (csq.status) conditions.push({ status: { $eq: csq.status } });
+          if (csq.agency) conditions.push({ agency: { $eq: csq.agency } });
+        }
+
         const filter = conditions.length > 0 ? { $and: conditions } : undefined;
 
         return getPgVector().query({
@@ -643,12 +695,16 @@ async function runCorruptionFlow(
     ? await rewriteQueryForRAG(message, context, sessionId, userId)
     : message;
 
-  // Multi-search with dynamic topK based on query complexity
+  // Corruption-specific query analysis for smarter topK and sub-query decomposition
+  const corruptionAnalysis = analyzeCorruptionQueryComplexity(searchQuery);
+
+  // Multi-search with dynamic topK based on corruption-specific complexity
   const rawResults = await runMultiSearch(
     searchQuery,
     CORRUPTION_INDEX,
     sessionId,
     userId,
+    corruptionAnalysis,
   );
 
   const ragParsed = rawResults
@@ -659,6 +715,12 @@ async function runCorruptionFlow(
       filename: (r.metadata?.filename as string) ?? "",
       s3_key: (r.metadata?.s3_key as string) ?? "",
       source_type: (r.metadata?.source_type as string) ?? "",
+      status: (r.metadata?.status as string) ?? "",
+      position: (r.metadata?.position as string) ?? "",
+      state: (r.metadata?.state as string) ?? "",
+      party: (r.metadata?.party as string) ?? "",
+      agency: (r.metadata?.agency as string) ?? "",
+      amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) ?? 0,
       score: typeof r.score === "number" ? r.score : 0,
     }))
     .filter((r) => r.score >= MIN_RELEVANCE_SCORE);
@@ -677,7 +739,11 @@ async function runCorruptionFlow(
   }
 
   const ragContext = ragParsed
-    .map((r) => `[${r.official} — ${r.section}]\n${r.text}`)
+    .map((r) => {
+      const posLabel = r.position ? ` (${r.position})` : "";
+      const statusLabel = r.status ? ` [${r.status}]` : "";
+      return `[${r.official}${posLabel} — ${r.section}${statusLabel}]\n${r.text}`;
+    })
     .join("\n\n---\n\n");
 
   // Build deduplicated source citations
@@ -692,8 +758,9 @@ async function runCorruptionFlow(
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ");
       const sectionName = r.section
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
+        .replaceAll("-", " ")
+        .replaceAll(/\b\w/g, (c) => c.toUpperCase())
+        .trim();
       sourceMap.set(key, {
         title: `${officialName} — ${sectionName}`,
         fileName: r.filename,
@@ -721,29 +788,31 @@ async function runCorruptionFlow(
     maxSteps: 10,
   });
 
-  let corruptionAnalysis = "";
+  let corruptionResponse = "";
   for await (const chunk of stream.textStream) {
-    corruptionAnalysis += chunk;
+    corruptionResponse += chunk;
     send({ type: "text", content: chunk });
   }
 
   // Only keep sources whose official's last name (or full slug) appears in the response
-  const responseLower = corruptionAnalysis.toLowerCase();
+  const responseLower = corruptionResponse.toLowerCase();
   const relevantSources = sources
     .filter((s) => {
       if (!s.official) return false;
       const slug = s.official.toLowerCase();
       // Check full slug first (e.g. "james-ibori")
-      if (responseLower.includes(slug.replace(/-/g, " "))) return true;
+      if (responseLower.includes(slug.replaceAll("-", " "))) return true;
       // Fall back to last name only (e.g. "ibori") — must be 4+ chars to avoid false positives
       const parts = slug.split("-");
-      const lastName = parts[parts.length - 1];
-      return lastName.length >= 4 && responseLower.includes(lastName);
+      const lastName = parts.at(-1);
+      return (
+        !!lastName && lastName.length >= 4 && responseLower.includes(lastName)
+      );
     })
     .slice(0, MAX_SOURCES);
 
   const richContent = formatCorruptionResponse(
-    corruptionAnalysis,
+    corruptionResponse,
     language,
     relevantSources,
   );
@@ -829,10 +898,10 @@ async function runGovspendFlow(
           : r.amount || "";
       // Build a clean, concise title (strip ** PDF extraction artifacts)
       const orgShort = titleCaseState(
-        r.organization.replace(/\*+/g, "").trim().toLowerCase(),
+        r.organization.replaceAll(/\*+/g, "").trim().toLowerCase(),
       );
       const beneShort = titleCaseState(
-        r.beneficiary.replace(/\*+/g, "").trim().toLowerCase(),
+        r.beneficiary.replaceAll(/\*+/g, "").trim().toLowerCase(),
       );
       const amountSuffix = amountDisplay ? ` — ${amountDisplay}` : "";
       sourceMap.set(key, {
@@ -874,8 +943,8 @@ async function runGovspendFlow(
   const responseLower = govspendAnalysis.toLowerCase();
   const relevantSources = sources
     .filter((s) => {
-      const org = (s as (typeof sources)[number])._org;
-      const bene = (s as (typeof sources)[number])._beneficiary;
+      const org = s._org;
+      const bene = s._beneficiary;
       // Check if a significant word from org or beneficiary name appears
       const significantMatch = (name: string) => {
         const words = name.split(/[\s,]+/).filter((w) => w.length >= 5);
@@ -1013,7 +1082,7 @@ async function classifyIntent(
 
     if (langfuseSystemPrompt) {
       const { text } = await generateText({
-        model: chatModel,
+        model: chatModelSmall,
         system: langfuseSystemPrompt,
         prompt: routerPrompt,
         ...tracingMetadata({

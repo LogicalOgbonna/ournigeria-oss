@@ -7,6 +7,7 @@ import { S3Service } from "../s3/s3.service";
 import { ExtractContext } from "../extractors/extractor.interface";
 import { PipelineBase } from "./pipeline.base";
 import { DiscoveredFile } from "./pipeline.types";
+import { BudgetSummarizerService } from "./budget-summarizer.service";
 import {
   classifySector,
   classifyBudgetCategory,
@@ -36,6 +37,7 @@ export class BudgetPipeline extends PipelineBase {
     vector: VectorService,
     extractors: ExtractorRegistry,
     s3: S3Service,
+    private readonly budgetSummarizer: BudgetSummarizerService,
   ) {
     super(config, prisma, vector, extractors, s3);
   }
@@ -51,9 +53,9 @@ export class BudgetPipeline extends PipelineBase {
   async discoverFiles(): Promise<DiscoveredFile[]> {
     const files: DiscoveredFile[] = [];
 
-    this.logger.log("Listing S3 objects under budgets/");
+    this.emitLog("log", "Listing S3 objects under budgets/");
     const objects = await this.s3.listObjects("budgets/");
-    this.logger.log(`Found ${objects.length} objects in S3`);
+    this.emitLog("log", `Found ${objects.length} objects in S3`);
 
     for (const obj of objects) {
       // Expected key format: budgets/{STATE}/{YEAR}/{filename}
@@ -88,6 +90,76 @@ export class BudgetPipeline extends PipelineBase {
     return files;
   }
 
+  buildFileFromS3Key(key: string, etag: string): DiscoveredFile | null {
+    const parts = key.split("/");
+    if (parts.length < 4) return null;
+    const stateDir = parts[1];
+    const yearStr = parts[2];
+    const filename = parts.slice(3).join("/");
+    if (!filename || !/^\d{4}$/.test(yearStr)) return null;
+    const extMatch = filename.match(/\.[^.]+$/);
+    if (!extMatch) return null;
+    const ext = extMatch[0].toLowerCase();
+    const sourceType = EXT_TO_SOURCE_TYPE[ext];
+    if (!sourceType) return null;
+    return {
+      filePath: key,
+      sourceType,
+      s3Key: key,
+      s3Etag: etag,
+      identity: {
+        state: stateDir.replaceAll("_", " "),
+        year: Number.parseInt(yearStr, 10),
+        filename,
+      },
+    };
+  }
+
+  protected async enhanceChunks(
+    file: DiscoveredFile,
+    text: string,
+    currentChunks: string[],
+  ): Promise<string[]> {
+    const enhancedChunks = [...currentChunks];
+
+    try {
+      const totals = await this.budgetSummarizer.extractTotals(text);
+      const { state, year } = file.identity as { state: string; year: number };
+
+      if (totals.overallStateBudget) {
+        const overallSummary = `Summary Chunk: The total aggregate approved budget for ${state} State for the year ${year} is ₦${totals.overallStateBudget.toLocaleString()}. This encompasses the entire state budget across all sectors.`;
+        enhancedChunks.push(overallSummary);
+      }
+
+      if (totals.sectors && totals.sectors.length > 0) {
+        for (const sector of totals.sectors) {
+          if (!sector.grandTotal) continue;
+          let sectorSummary = `Summary Chunk: The total aggregate approved budget for the ${sector.sectorName} sector in ${state} State for the year ${year} is ₦${sector.grandTotal.toLocaleString()}.`;
+          if (sector.totalCapitalExpenditure) {
+            sectorSummary += ` Capital expenditure is ₦${sector.totalCapitalExpenditure.toLocaleString()}.`;
+          }
+          if (sector.totalRecurrentExpenditure) {
+            sectorSummary += ` Recurrent expenditure is ₦${sector.totalRecurrentExpenditure.toLocaleString()}.`;
+          }
+          enhancedChunks.push(sectorSummary);
+        }
+      }
+
+      this.emitLog(
+        "log",
+        `Generated synthetic summary chunks for ${state} ${year}`,
+      );
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.emitLog(
+        "warn",
+        `Failed to generate summary chunks for ${file.filePath}: ${errMsg}`,
+      );
+    }
+
+    return enhancedChunks;
+  }
+
   buildChunkMetadata(
     file: DiscoveredFile,
     chunkText: string,
@@ -98,6 +170,11 @@ export class BudgetPipeline extends PipelineBase {
       year: number;
       filename: string;
     };
+
+    const isSummary = chunkText.startsWith("Summary Chunk:");
+
+    // For summary chunks, we might have the sector name in the text
+    // We can rely on classifySector as it will likely pick up the sector name
     const sector = classifySector(chunkText);
     const budget_category = classifyBudgetCategory(chunkText);
     const document_type = classifyDocumentType(chunkText, filename);
@@ -114,6 +191,7 @@ export class BudgetPipeline extends PipelineBase {
       sector,
       budget_category,
       document_type,
+      is_summary: isSummary,
       ...(mda && { mda }),
     };
   }

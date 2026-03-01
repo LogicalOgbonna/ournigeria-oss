@@ -23,9 +23,22 @@ export async function adminFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
+export async function adminUpload(path: string, formData: FormData) {
+  const res = await fetch(`/api/admin${path}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error(`Admin API error: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function ingestFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api/ingest${path}`, {
     ...opts,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...opts?.headers,

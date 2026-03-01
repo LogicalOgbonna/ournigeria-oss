@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryState, parseAsStringEnum } from "nuqs";
 import {
   ArrowLeft,
   Loader2,
@@ -15,8 +16,10 @@ import {
   Paperclip,
   Clock,
   Reply,
+  CreditCard,
 } from "lucide-react";
 import { apiUrl } from "@/lib/api";
+import { PricingPlans } from "@/components/pricing/PricingPlans";
 
 interface Profile {
   id: string;
@@ -36,7 +39,7 @@ interface FeedbackItem {
   createdAt: string;
 }
 
-type Tab = "profile" | "feedback";
+type Tab = "profile" | "feedback" | "billing";
 
 const categoryIcons: Record<string, typeof Bug> = {
   bug: Bug,
@@ -61,8 +64,27 @@ function formatDate(iso: string) {
 }
 
 export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center bg-slate-50 dark:bg-slate-950">
+          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+        </div>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
+  );
+}
+
+function ProfilePageContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useQueryState<Tab>(
+    "tab",
+    parseAsStringEnum<Tab>(["profile", "feedback", "billing"]).withDefault(
+      "profile",
+    ),
+  );
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -160,7 +182,9 @@ export default function ProfilePage() {
     <div className="flex min-h-dvh flex-col bg-slate-50 dark:bg-slate-950">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-lg items-center gap-3 px-4">
+        <div
+          className={`mx-auto flex h-14 items-center gap-3 px-4 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+        >
           <button
             onClick={() => router.push("/")}
             className="rounded-lg p-1.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -175,10 +199,13 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-        <div className="mx-auto flex max-w-lg px-4">
+        <div
+          className={`mx-auto flex px-4 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+        >
           {(
             [
               { key: "profile", label: "Profile", icon: User },
+              { key: "billing", label: "Billing", icon: CreditCard },
               { key: "feedback", label: "Feedback", icon: MessageSquare },
             ] as const
           ).map(({ key, label, icon: Icon }) => (
@@ -199,7 +226,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Content */}
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6">
+      <main
+        className={`mx-auto w-full flex-1 px-4 py-6 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+      >
         {tab === "profile" && (
           <>
             {loading ? (
@@ -372,6 +401,26 @@ export default function ProfilePage() {
               </div>
             )}
           </>
+        )}
+
+        {tab === "billing" && (
+          <div className="py-2">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+                Billing & Plans
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Manage your subscription and upgrade your plan to unlock more
+                features.
+              </p>
+            </div>
+            <PricingPlans
+              onUpgrade={(plan) => {
+                console.log(`User initiated upgrade from profile to ${plan}`);
+                // TODO: Handle billing portal/checkout redirect
+              }}
+            />
+          </div>
         )}
       </main>
     </div>

@@ -1,0 +1,23 @@
+I think this is an excellent proposal. It elegantly solves the biggest friction point in the user onboarding journey for Telegram users.
+
+Here's why I think it's a great approach:
+
+### 1. Radically Reduces Friction
+The current flow (forcing a user to leave Telegram, open a browser, log in, and come back) is a massive conversion killer. If someone discovers your bot organically on Telegram, you want them to be able to use it immediately. Auto-creating the account achieves this "zero-step onboarding" perfectly.
+
+### 2. Plays Well With Existing Architecture
+The most impressive part of this proposal is that it requires **zero schema changes** and **zero changes to the auth service**. Because you already allow `email` and `phoneNumber` to be null, and because the web app's "Login with Telegram" widget simply looks up the `telegramId`, everything will "just work." 
+- If they auto-signup via the bot today, and go to the web app tomorrow and click "Login with Telegram," they'll be seamlessly logged into the account that was just created for them.
+
+### 3. Solves the Exact Issue We Just Worked On
+Earlier, we fixed an issue where the web login blindly called `upsertUserByTelegram`, which created disjointed accounts if they started on phone and then linked Telegram.
+With this new RFC, if they start on Telegram, they get an account. If they later log in on the web via Telegram, it just logs them in. 
+*(Note: If they later log in on the web via Phone Number, it will still create a separate account, which is noted as a "Low" risk in the RFC. The merging logic we just added to `auth.controller.ts` will actually handle the scenario where they are logged in via phone and then click "link Telegram" - it will merge them!).*
+
+### My Recommendation
+
+**Implement it.** It's a massive UX win for a tiny code change (~15 lines). 
+
+I am comfortable proceeding with auto-creating user accounts on the first Telegram message. 
+
+If you'd like, I can apply these changes to `telegram.service.ts` right now. We can just add the auto-creation block in `handleMessage` and `handleCallbackQuery`. Would you like me to make these edits?

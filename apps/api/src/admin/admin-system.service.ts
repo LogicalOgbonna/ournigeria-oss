@@ -192,10 +192,30 @@ export class AdminSystemService {
   }
 
   async getLogs(level?: string, service?: string, limit = 100, offset = 0) {
-    // Use messages + query_analytics as log sources
+    // Build processing-time filter based on level
+    const processingTimeFilter: Record<string, any> = {};
+    if (level === "error") {
+      processingTimeFilter.processingTimeMs = { gt: 120000 };
+    } else if (level === "warn") {
+      processingTimeFilter.processingTimeMs = { gt: 60000, lte: 120000 };
+    } else if (level === "info") {
+      processingTimeFilter.OR = [
+        { processingTimeMs: { lte: 60000 } },
+        { processingTimeMs: null },
+      ];
+    }
+
+    // Build model filter based on service
+    const serviceFilter: Record<string, any> = {};
+    if (service && service !== "all") {
+      serviceFilter.modelUsed = { contains: service, mode: "insensitive" };
+    }
+
     const entries = await this.prisma.message.findMany({
       where: {
         role: "assistant",
+        ...serviceFilter,
+        ...processingTimeFilter,
       },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -219,7 +239,7 @@ export class AdminSystemService {
         id: e.id,
         timestamp: e.createdAt.toISOString(),
         level: isError ? "error" : isSlow ? "warn" : ("info" as string),
-        service: "chat",
+        service: e.modelUsed || "chat",
         message: `Response in ${ms}ms (${e.modelUsed || "unknown"}, ${e.totalTokens || 0} tokens): "${snippet}..."`,
       };
     });

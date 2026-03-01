@@ -1,6 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService, type Prisma, type MessageRole } from "@ournigeria/database";
+import {
+  PrismaService,
+  type Prisma,
+  type MessageRole,
+} from "@ournigeria/database";
 import { TelegramApiService } from "./telegram-api.service";
 import { formatForTelegram } from "./telegram-formatter";
 import { routeToAgent, inferTool } from "../mastra/router";
@@ -54,16 +58,22 @@ export class TelegramService {
     const telegramId = String(from.id);
     const chatId = chat.id as number;
 
-    const user = await this.prisma.user.findUnique({
-      where: { telegramId },
-    });
+    const { user, isNew } = await this.findOrCreateUser(from, telegramId);
 
-    if (!user) {
+    if (user.banned) {
+      const reason =
+        user.banReason ||
+        "Your account has been suspended due to a violation of our usage policies.";
+      const messageText = `Account Suspended\n\nReason: ${reason}\n\nIf you believe this is a mistake, please contact us at support@ournigeria.ng`;
+      await this.telegramApi.sendMessage(chatId, messageText);
+      return;
+    }
+
+    if (isNew) {
       await this.telegramApi.sendMessage(
         chatId,
-        `Please register first at ${this.appUrl} using Telegram login to link your account.`,
+        `Welcome to OurNigeria! Your account has been created.\n\nYou can also access your chat history on the web at ${this.appUrl} — just click "Login with Telegram".\n\nNow, ask me anything about Nigerian budgets or corruption cases.`,
       );
-      return;
     }
 
     // Update lastSeenAt
@@ -177,13 +187,45 @@ export class TelegramService {
 
     if (!chatId) return;
 
-    const user = await this.prisma.user.findUnique({
-      where: { telegramId },
-    });
+    const { user } = await this.findOrCreateUser(from, telegramId);
 
-    if (!user) return;
+    if (user.banned) {
+      const reason =
+        user.banReason ||
+        "Your account has been suspended due to a violation of our usage policies.";
+      const messageText = `Account Suspended\n\nReason: ${reason}\n\nIf you believe this is a mistake, please contact us at support@ournigeria.ng`;
+      await this.telegramApi.sendMessage(chatId, messageText);
+      return;
+    }
 
     await this.processUserMessage(chatId, user.id, followUpText);
+  }
+
+  private async findOrCreateUser(
+    from: Record<string, unknown>,
+    telegramId: string,
+  ): Promise<{
+    user: { id: string; banned: boolean; banReason: string | null };
+    isNew: boolean;
+  }> {
+    const existing = await this.prisma.user.findUnique({
+      where: { telegramId },
+      select: { id: true, banned: true, banReason: true },
+    });
+
+    if (existing) return { user: existing, isNew: false };
+
+    const firstName = (from.first_name as string) ?? "";
+    const lastName = (from.last_name as string) ?? "";
+    const name = [firstName, lastName].filter(Boolean).join(" ") || null;
+
+    const user = await this.prisma.user.create({
+      data: { telegramId, name },
+      select: { id: true, banned: true, banReason: true },
+    });
+
+    this.logger.log(`Auto-created user for Telegram ID ${telegramId}`);
+    return { user, isNew: true };
   }
 
   private async processUserMessage(
@@ -299,7 +341,11 @@ export class TelegramService {
 
   private async getOrCreateConversation(userId: string): Promise<string> {
     const existing = await this.prisma.conversation.findFirst({
-      where: { userId, status: "active" },
+      where: {
+        userId,
+        status: "active",
+        title: "Telegram Chat", // Only reuse conversations started from Telegram
+      },
       orderBy: { updatedAt: "desc" },
       select: { id: true },
     });
@@ -346,7 +392,11 @@ export class TelegramService {
 
   private async archiveActiveConversation(userId: string): Promise<void> {
     await this.prisma.conversation.updateMany({
-      where: { userId, status: "active" },
+      where: {
+        userId,
+        status: "active",
+        title: "Telegram Chat", // Only archive Telegram conversations
+      },
       data: { status: "deleted" },
     });
   }

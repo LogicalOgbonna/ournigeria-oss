@@ -40,7 +40,19 @@ async function verifyAdminToken(token: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect /dashboard routes
+  // Protect /api/ingest/* routes — return 401 JSON for unauthenticated requests
+  if (pathname.startsWith("/api/ingest")) {
+    const token = request.cookies.get(ADMIN_COOKIE)?.value;
+
+    if (!token || !(await verifyAdminToken(token))) {
+      return NextResponse.json(
+        { error: "Admin authentication required" },
+        { status: 401 },
+      );
+    }
+  }
+
+  // Protect /dashboard routes — redirect to login
   if (pathname.startsWith("/dashboard")) {
     const token = request.cookies.get(ADMIN_COOKIE)?.value;
 
@@ -53,5 +65,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/api/ingest/:path*"],
 };

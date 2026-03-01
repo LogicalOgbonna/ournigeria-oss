@@ -11,9 +11,10 @@ import {
   IngestionRunsTable,
   type IngestionRun,
 } from "@/components/ingestion/ingestion-runs-table";
+import { LiveLogPanel } from "@/components/ingestion/live-log-panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Terminal } from "lucide-react";
 import { ingestFetch } from "@/lib/api";
 
 const FALLBACK_PIPELINES: PipelineStatus[] = [
@@ -130,15 +131,22 @@ export default function IngestionPage() {
   const [pipelines, setPipelines] = useState<PipelineStatus[] | null>(null);
   const [runs, setRuns] = useState<IngestionRun[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeRunIds, setActiveRunIds] = useState<Record<string, string>>({});
+  const [viewingLogs, setViewingLogs] = useState<{
+    runId: string;
+    pipeline: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await ingestFetch("/status");
       setPipelines(mapPipelines(data.pipelines ?? {}, data.active ?? []));
       setRuns(mapRuns(data.recentRuns ?? [], data.active ?? []));
+      setActiveRunIds(data.activeRunIds ?? {});
     } catch {
       setPipelines(FALLBACK_PIPELINES);
       setRuns(FALLBACK_RUNS);
+      setActiveRunIds({});
     } finally {
       setLoading(false);
     }
@@ -213,12 +221,38 @@ export default function IngestionPage() {
             />
           ) : null,
         )}
+        {pipelines!.map((p) =>
+          p.isRunning && activeRunIds[p.name] ? (
+            <Button
+              key={`logs-${p.name}`}
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setViewingLogs({
+                  runId: activeRunIds[p.name],
+                  pipeline: p.name,
+                })
+              }
+            >
+              <Terminal className="h-3.5 w-3.5 mr-1.5" />
+              {p.name} logs
+            </Button>
+          ) : null,
+        )}
       </div>
 
       <div>
         <h2 className="text-lg font-heading font-semibold mb-3">Recent Runs</h2>
         <IngestionRunsTable runs={runs!} />
       </div>
+
+      {viewingLogs && (
+        <LiveLogPanel
+          runId={viewingLogs.runId}
+          pipeline={viewingLogs.pipeline}
+          onClose={() => setViewingLogs(null)}
+        />
+      )}
     </div>
   );
 }

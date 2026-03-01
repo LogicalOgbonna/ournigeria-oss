@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { chatModel } from "../mastra/rag/config";
+import { chatModelSmall } from "../mastra/rag/config";
 import { estimateTokens } from "./token-utils";
 import { tracingMetadata } from "../lib/langfuse";
 
@@ -50,7 +50,7 @@ export async function generateSummary({
   );
 
   const { text } = await generateText({
-    model: chatModel,
+    model: chatModelSmall,
     system: SUMMARIZE_PROMPT,
     prompt: parts.join("\n\n---\n\n"),
     maxOutputTokens: MAX_SUMMARY_TOKENS,

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight, ChevronDown, Bot, TrendingUp, FileText } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronDown,
+  Bot,
+  TrendingUp,
+  FileText,
+} from "lucide-react";
 import { APP_URL } from "@/lib/constants";
 
 export function Hero() {
@@ -20,44 +26,44 @@ export function Hero() {
         tl.fromTo(
           ".hero-badge",
           { opacity: 0, y: 20, scale: 0.95 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.6 }
+          { opacity: 1, y: 0, scale: 1, duration: 0.6 },
         )
-        .fromTo(
-          ".hero-line",
-          { opacity: 0, y: 40 },
-          { opacity: 1, y: 0, duration: 0.8, stagger: 0.08 },
-          "-=0.3"
-        )
-        .fromTo(
-          ".hero-sub",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.6 },
-          "-=0.4"
-        )
-        .fromTo(
-          ".hero-cta",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 },
-          "-=0.3"
-        )
-        .fromTo(
-          ".hero-trust",
-          { opacity: 0 },
-          { opacity: 1, duration: 0.5 },
-          "-=0.2"
-        )
-        .fromTo(
-          ".hero-card",
-          { opacity: 0, x: 60, rotateY: 8 },
-          { opacity: 1, x: 0, rotateY: 0, duration: 1, ease: "power2.out" },
-          "-=0.8"
-        )
-        .fromTo(
-          ".hero-float",
-          { opacity: 0, scale: 0.8 },
-          { opacity: 1, scale: 1, duration: 0.5, stagger: 0.15 },
-          "-=0.4"
-        );
+          .fromTo(
+            ".hero-line",
+            { opacity: 0, y: 40 },
+            { opacity: 1, y: 0, duration: 0.8, stagger: 0.08 },
+            "-=0.3",
+          )
+          .fromTo(
+            ".hero-sub",
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.6 },
+            "-=0.4",
+          )
+          .fromTo(
+            ".hero-cta",
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.5, stagger: 0.1 },
+            "-=0.3",
+          )
+          .fromTo(
+            ".hero-trust",
+            { opacity: 0 },
+            { opacity: 1, duration: 0.5 },
+            "-=0.2",
+          )
+          .fromTo(
+            ".hero-card",
+            { opacity: 0, x: 60, rotateY: 8 },
+            { opacity: 1, x: 0, rotateY: 0, duration: 1, ease: "power2.out" },
+            "-=0.8",
+          )
+          .fromTo(
+            ".hero-float",
+            { opacity: 0, scale: 0.8 },
+            { opacity: 1, scale: 1, duration: 0.5, stagger: 0.15 },
+            "-=0.4",
+          );
       }, sectionRef);
     };
 
@@ -66,7 +72,10 @@ export function Hero() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative min-h-[100dvh] overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="relative min-h-[100dvh] overflow-hidden"
+    >
       {/* Deep gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
 
@@ -75,9 +84,11 @@ export function Hero() {
       <div className="absolute bottom-[10%] right-[5%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-[120px] animate-orb-2 dark:bg-emerald-500/4" />
       <div className="absolute top-[40%] left-[50%] h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/8 blur-[80px] animate-orb-3 dark:bg-emerald-300/4" />
 
-      <div ref={contentRef} className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div
+        ref={contentRef}
+        className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
+      >
         <div className="flex min-h-[100dvh] flex-col items-center justify-end gap-16 pb-24 pt-32 lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
-
           {/* Left — Text content, pushed bottom-left on desktop */}
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
             {/* Badge */}
@@ -87,27 +98,31 @@ export function Hero() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                Na Your Money
+                Na Our Country
               </span>
             </div>
 
             {/* Headline — sans + serif contrast */}
             <h1 className="font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight">
               <span className="hero-line block text-2xl font-medium text-muted-foreground opacity-0 sm:text-3xl">
-                See Where
+                Together, For
               </span>
               <span className="hero-line block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-6xl italic opacity-0 sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200">
-                Nigeria Money
+                Our Nigeria
               </span>
               <span className="hero-line block text-2xl font-medium text-muted-foreground opacity-0 sm:text-3xl">
-                Dey Go.
+                Make We Fix Am.
               </span>
             </h1>
 
             {/* Subtext */}
             <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground opacity-0 sm:text-lg leading-relaxed">
-              Search through <strong className="text-foreground">700+ budget documents</strong> across all{" "}
-              <strong className="text-foreground">36 states</strong>. Ask in plain English or Pidgin. Get answers with real data.
+              Explore{" "}
+              <strong className="text-foreground">
+                budgets, daily govspend, and corruption records
+              </strong>{" "}
+              across all <strong className="text-foreground">36 states</strong>.
+              Ask in plain English or Pidgin. Get answers backed by real data.
             </p>
 
             {/* CTAs */}
@@ -133,7 +148,7 @@ export function Hero() {
 
             {/* Trust */}
             <p className="hero-trust mt-8 font-[family-name:var(--font-mono)] text-xs tracking-wide text-muted-foreground/60 uppercase opacity-0">
-              Free to use &middot; No sign-up &middot; Public data
+              Free to use &middot; No sign-up &middot; Multiple Datasets
             </p>
           </div>
 
@@ -162,20 +177,21 @@ export function Hero() {
 
                 {/* User question */}
                 <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white dark:bg-emerald-500">
-                  How much did Lagos spend on education?
+                  Which former governors EFCC dey investigate?
                 </div>
 
                 {/* AI response */}
                 <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm">
                   <p>
-                    Lagos State allocated{" "}
+                    The EFCC is actively investigating several former governors
+                    for alleged{" "}
                     <strong className="text-emerald-600 dark:text-emerald-400">
-                      ₦150.2 billion
+                      misappropriation of public funds
                     </strong>{" "}
-                    to education in 2024, representing 15.3% of the total budget...
+                    and money laundering. Recent cases include...
                   </p>
                   <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
-                    src: Lagos State 2024 Appropriation Bill
+                    src: EFCC Anti-Corruption Records
                   </p>
                 </div>
               </div>
@@ -185,7 +201,7 @@ export function Hero() {
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
                   <div>
-                    <p className="text-xs font-bold">36+ States</p>
+                    <p className="text-xs font-bold">Nigeria</p>
                     <p className="font-[family-name:var(--font-mono)] text-[9px] text-muted-foreground">
                       coverage.full
                     </p>
@@ -199,7 +215,7 @@ export function Hero() {
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-emerald-500" />
                   <div>
-                    <p className="text-xs font-bold">700+ Docs</p>
+                    <p className="text-xs font-bold">5000+ Records</p>
                     <p className="font-[family-name:var(--font-mono)] text-[9px] text-muted-foreground">
                       status.indexed
                     </p>

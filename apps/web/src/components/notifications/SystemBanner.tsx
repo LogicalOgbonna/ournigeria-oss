@@ -28,8 +28,8 @@ export function SystemBanners() {
             className={`${bg} animate-fade-in flex items-center gap-3 px-4 py-2.5 text-sm text-white`}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className="font-semibold">{banner.title}</span>
+            <div className="flex min-w-0 flex-1 flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-semibold shrink-0">{banner.title}</span>
               <span className="truncate opacity-90">{banner.message}</span>
               {banner.link && (
                 <a

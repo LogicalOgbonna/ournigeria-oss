@@ -26,15 +26,16 @@ export function CallToAction() {
 
       <div className="relative mx-auto max-w-4xl px-6 text-center">
         <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.1]">
-          Your Money.
+          Our Nigeria.
           <br />
           <span className="font-[family-name:var(--font-serif)] italic text-emerald-300">
-            Your Right to Know.
+            Make We Fix Am.
           </span>
         </h2>
 
         <p className="mt-8 text-xl text-white/60 max-w-lg mx-auto leading-relaxed">
-          Na your money dem dey spend. You deserve to know how.
+          Na our country, na our money, na our institutions. You deserve to know
+          wetin dey happen.
         </p>
 
         <div className="mt-12">

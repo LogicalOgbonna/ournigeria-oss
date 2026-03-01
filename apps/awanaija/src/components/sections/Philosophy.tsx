@@ -24,7 +24,7 @@ export function Philosophy() {
             duration: 0.4,
             stagger: 0.04,
             ease: "power2.out",
-          }
+          },
         );
       }, sectionRef);
     };
@@ -33,8 +33,8 @@ export function Philosophy() {
     return () => ctx?.revert();
   }, [isInView]);
 
-  const beforeWords = "Most budget platforms give you".split(" ");
-  const beforeHighlight = "raw PDFs and spreadsheets.".split(" ");
+  const beforeWords = "Most platforms give you".split(" ");
+  const beforeHighlight = "raw PDFs and fragmented data.".split(" ");
   const afterWords = "We give you".split(" ");
   const afterHighlight = "answers.";
 
@@ -53,13 +53,19 @@ export function Philosophy() {
         }}
       />
 
-      <div ref={triggerRef} className="relative mx-auto max-w-5xl px-6 sm:px-10 lg:px-16">
+      <div
+        ref={triggerRef}
+        className="relative mx-auto max-w-5xl px-6 sm:px-10 lg:px-16"
+      >
         {/* The manifesto */}
         <div className="space-y-10 sm:space-y-14">
           {/* "Before" statement — neutral, smaller */}
           <p className="text-xl sm:text-2xl lg:text-3xl font-light text-white/50 leading-relaxed tracking-tight">
             {beforeWords.map((word, i) => (
-              <span key={`b-${i}`} className="philo-word inline-block mr-[0.3em]">
+              <span
+                key={`b-${i}`}
+                className="philo-word inline-block mr-[0.3em]"
+              >
                 {word}
               </span>
             ))}

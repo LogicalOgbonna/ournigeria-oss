@@ -14,9 +14,12 @@ import {
   PipelineResult,
   DEFAULT_PIPELINE_CONFIG,
 } from "./pipeline.types";
+import { LogEmitterService } from "../ingestion/log-emitter.service";
 
 export abstract class PipelineBase {
   protected abstract readonly logger: Logger;
+  private _runId: string | null = null;
+  private _logEmitter: LogEmitterService | null = null;
 
   constructor(
     protected readonly config: ConfigService,
@@ -25,6 +28,33 @@ export abstract class PipelineBase {
     protected readonly extractors: ExtractorRegistry,
     protected readonly s3: S3Service,
   ) {}
+
+  /** Called by IngestionService before run() to enable live log streaming */
+  setRunContext(runId: string, logEmitter: LogEmitterService) {
+    this._runId = runId;
+    this._logEmitter = logEmitter;
+  }
+
+  clearRunContext() {
+    this._runId = null;
+    this._logEmitter = null;
+  }
+
+  protected emitLog(level: "log" | "warn" | "error", message: string) {
+    if (level === "error") this.logger.error(message);
+    else if (level === "warn") this.logger.warn(message);
+    else this.logger.log(message);
+
+    if (this._runId && this._logEmitter) {
+      this._logEmitter.emit({
+        timestamp: new Date().toISOString(),
+        level,
+        message,
+        runId: this._runId,
+        pipeline: this.pipelineType,
+      });
+    }
+  }
 
   abstract get pipelineType(): string;
   abstract get indexName(): string;
@@ -35,11 +65,23 @@ export abstract class PipelineBase {
     chunkIndex: number,
   ): Record<string, unknown>;
 
+  /** Build a DiscoveredFile from an S3 key + ETag (used by SQS consumer). */
+  abstract buildFileFromS3Key(key: string, etag: string): DiscoveredFile | null;
+
   /** Override to pass extra context to extractors (e.g., JSON header text) */
   protected getExtractContext(
     _file: DiscoveredFile,
   ): ExtractContext | undefined {
     return undefined;
+  }
+
+  /** Override to enhance chunks (e.g., add LLM summaries) */
+  protected async enhanceChunks(
+    file: DiscoveredFile,
+    text: string,
+    currentChunks: string[],
+  ): Promise<string[]> {
+    return currentChunks;
   }
 
   async run(
@@ -48,12 +90,12 @@ export abstract class PipelineBase {
     const config = { ...DEFAULT_PIPELINE_CONFIG, ...configOverrides };
     const pipelineStart = Date.now();
 
-    this.logger.log(`=== ${this.pipelineType} Ingestion Pipeline ===`);
+    this.emitLog("log", `=== ${this.pipelineType} Ingestion Pipeline ===`);
 
     await this.vector.ensureIndex(this.indexName);
 
     const files = await this.discoverFiles();
-    this.logger.log(`Discovered ${files.length} files`);
+    this.emitLog("log", `Discovered ${files.length} files`);
 
     if (files.length === 0) {
       return {
@@ -67,16 +109,18 @@ export abstract class PipelineBase {
       };
     }
 
-    this.logger.log(
+    this.emitLog(
+      "log",
       `Processing ${files.length} files with ${Math.min(config.concurrency, files.length)} workers`,
     );
 
     const result = await this.processFiles(files, config);
 
     const durationMs = Date.now() - pipelineStart;
-    this.logger.log(`=== ${this.pipelineType} Complete ===`);
-    this.logger.log(`Total time: ${elapsed(pipelineStart)}`);
-    this.logger.log(
+    this.emitLog("log", `=== ${this.pipelineType} Complete ===`);
+    this.emitLog("log", `Total time: ${elapsed(pipelineStart)}`);
+    this.emitLog(
+      "log",
       `Processed: ${result.processed}, Skipped: ${result.skipped}, Errors: ${result.errors}, Chunks: ${result.chunks}`,
     );
 
@@ -88,6 +132,26 @@ export abstract class PipelineBase {
       errorFiles: result.errors,
       totalChunks: result.chunks,
       durationMs,
+    };
+  }
+
+  /** Process a single file without running discoverFiles(). Used by SQS consumer. */
+  async processSingleFile(
+    file: DiscoveredFile,
+    configOverrides?: Partial<PipelineConfig>,
+  ): Promise<PipelineResult> {
+    const config = { ...DEFAULT_PIPELINE_CONFIG, ...configOverrides };
+    const start = Date.now();
+    await this.vector.ensureIndex(this.indexName);
+    const result = await this.processFiles([file], config);
+    return {
+      pipeline: this.pipelineType,
+      totalFiles: 1,
+      processedFiles: result.processed,
+      skippedFiles: result.skipped,
+      errorFiles: result.errors,
+      totalChunks: result.chunks,
+      durationMs: Date.now() - start,
     };
   }
 
@@ -129,7 +193,8 @@ export abstract class PipelineBase {
         if (existing?.status === "done" && file.s3Etag) {
           if (existing.s3Etag === file.s3Etag) {
             // ETag matches — skip without downloading
-            this.logger.log(
+            this.emitLog(
+              "log",
               `${tag} Skipping (ETag unchanged): ${file.filePath}`,
             );
             skipped++;
@@ -146,7 +211,8 @@ export abstract class PipelineBase {
               },
               data: { s3Etag: file.s3Etag },
             });
-            this.logger.log(
+            this.emitLog(
+              "log",
               `${tag} Skipping (backfilled ETag): ${file.filePath}`,
             );
             skipped++;
@@ -169,21 +235,31 @@ export abstract class PipelineBase {
           existing?.status === "done" &&
           existing.fileHash === hash
         ) {
-          this.logger.log(`${tag} Skipping (hash unchanged): ${file.filePath}`);
+          this.emitLog(
+            "log",
+            `${tag} Skipping (hash unchanged): ${file.filePath}`,
+          );
           skipped++;
           return;
         }
 
         if (existing?.s3Etag && existing.s3Etag !== file.s3Etag) {
-          this.logger.log(`${tag} Processing (ETag changed): ${file.filePath}`);
+          this.emitLog(
+            "log",
+            `${tag} Processing (ETag changed): ${file.filePath}`,
+          );
         } else if (existing?.fileHash && existing.fileHash !== hash) {
-          this.logger.log(`${tag} Processing (file changed): ${file.filePath}`);
+          this.emitLog(
+            "log",
+            `${tag} Processing (file changed): ${file.filePath}`,
+          );
         } else if (existing?.status === "error") {
-          this.logger.log(
+          this.emitLog(
+            "log",
             `${tag} Processing (retrying failed): ${file.filePath}`,
           );
         } else {
-          this.logger.log(`${tag} Processing: ${file.filePath}`);
+          this.emitLog("log", `${tag} Processing: ${file.filePath}`);
         }
 
         await this.prisma.ingestionRecord.upsert({
@@ -241,12 +317,13 @@ export abstract class PipelineBase {
           },
         });
 
-        this.logger.log(
+        this.emitLog(
+          "log",
           `${tag} ${status.toUpperCase()}: ${file.filePath} (${upserted} chunks${failed > 0 ? `, ${failed} batches failed` : ""})`,
         );
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        this.logger.error(`${tag} FAILED: ${file.filePath}`, errMsg);
+        this.emitLog("error", `${tag} FAILED: ${file.filePath} — ${errMsg}`);
 
         await this.prisma.ingestionRecord
           .update({
@@ -291,7 +368,7 @@ export abstract class PipelineBase {
     config: PipelineConfig,
   ): Promise<{ upserted: number; failed: number }> {
     const fileStart = Date.now();
-    this.logger.log(`Processing [${file.sourceType}]: ${file.filePath}`);
+    this.emitLog("log", `Processing [${file.sourceType}]: ${file.filePath}`);
 
     // Extract text using local file path (extractors never see S3)
     const context = this.getExtractContext(file);
@@ -304,26 +381,29 @@ export abstract class PipelineBase {
     text = sanitizeText(text);
 
     if (!text || text.trim().length === 0) {
-      this.logger.warn(`Skipping empty file: ${file.filePath}`);
+      this.emitLog("warn", `Skipping empty file: ${file.filePath}`);
       return { upserted: 0, failed: 0 };
     }
 
-    this.logger.log(
+    this.emitLog(
+      "log",
       `Extracted ${text.length} chars, chunking (size=${config.chunkSize}, overlap=${config.chunkOverlap})...`,
     );
 
-    const chunkTexts = await safeChunk(
+    let chunkTexts = await safeChunk(
       text,
       config.chunkSize,
       config.chunkOverlap,
     );
 
+    chunkTexts = await this.enhanceChunks(file, text, chunkTexts);
+
     if (!chunkTexts || chunkTexts.length === 0) {
-      this.logger.warn(`No chunks produced for: ${file.filePath}`);
+      this.emitLog("warn", `No chunks produced for: ${file.filePath}`);
       return { upserted: 0, failed: 0 };
     }
 
-    this.logger.log(`Produced ${chunkTexts.length} chunks`);
+    this.emitLog("log", `Produced ${chunkTexts.length} chunks`);
 
     // Embed + upsert in batches
     let totalUpserted = 0;
@@ -345,18 +425,21 @@ export abstract class PipelineBase {
         await this.vector.upsert(this.indexName, embeddings, metadata);
 
         totalUpserted += batch.length;
-        this.logger.log(
+        this.emitLog(
+          "log",
           `Batch ${batchNum}/${totalBatches}: embedded + upserted ${batch.length} chunks (${elapsed(batchStart)})`,
         );
       } catch (err) {
         failedBatches++;
-        this.logger.error(
+        this.emitLog(
+          "error",
           `Batch ${batchNum}/${totalBatches} failed after retries, skipping: ${err instanceof Error ? err.message : err}`,
         );
       }
     }
 
-    this.logger.log(
+    this.emitLog(
+      "log",
       `Done: ${file.filePath} -> ${totalUpserted} chunks (${elapsed(fileStart)})`,
     );
     return { upserted: totalUpserted, failed: failedBatches };

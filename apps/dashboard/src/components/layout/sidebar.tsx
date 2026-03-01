@@ -81,6 +81,7 @@ const contentNav = [
 
 const ingestionNav = [
   { title: "Pipelines", href: "/dashboard/ingestion", icon: Database },
+  { title: "S3 Files", href: "/dashboard/ingestion/files", icon: FolderOpen },
   { title: "New Run", href: "/dashboard/ingestion/new", icon: Plus },
   { title: "History", href: "/dashboard/ingestion/history", icon: History },
   { title: "Records", href: "/dashboard/ingestion/records", icon: FileText },

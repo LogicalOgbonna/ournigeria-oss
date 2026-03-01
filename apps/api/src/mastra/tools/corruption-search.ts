@@ -22,7 +22,7 @@ function isTableMissing(err: any): boolean {
 export const corruptionSearchTool = createTool({
   id: "corruption-search",
   description:
-    "Search EFCC corruption case files for Nigerian officials. Use this tool to find details about charges, financial details, court proceedings, arrest investigations, case outcomes, timelines, and key players in corruption cases against governors and federal officials.",
+    "Search EFCC corruption case files for Nigerian officials. Use this tool to find details about charges, financial details, court proceedings, arrest investigations, case outcomes, timelines, and key players in corruption cases against governors and federal officials. Supports filtering by case status, state, political party, and investigating agency.",
   inputSchema: z.object({
     query: z
       .string()
@@ -39,13 +39,35 @@ export const corruptionSearchTool = createTool({
       .string()
       .optional()
       .describe(
-        "Filter by case section: overview, charges, financial_details, court_proceedings, arrest_and_investigation, case_outcome, timeline, key_players",
+        "Filter by case section: overview, charges, financial_details, court_proceedings, arrest_and_investigation, case_outcome, timeline, key_players, summary",
+      ),
+    status: z
+      .string()
+      .optional()
+      .describe(
+        "Filter by case status: convicted, acquitted, ongoing, never_charged, abated_by_death, discharged, pardoned, plea_bargain",
+      ),
+    state: z
+      .string()
+      .optional()
+      .describe(
+        "Filter by official's state, e.g. 'Delta', 'Lagos', 'Kogi', 'FCT'",
+      ),
+    party: z
+      .string()
+      .optional()
+      .describe("Filter by political party, e.g. 'PDP', 'APC', 'APGA'"),
+    agency: z
+      .string()
+      .optional()
+      .describe(
+        "Filter by investigating agency, e.g. 'EFCC', 'ICPC'. Matches against comma-separated agency field.",
       ),
     topK: z
       .number()
       .optional()
       .describe(
-        "Number of results to return. Use 10-15 for single-official queries, 25-40 for multi-official comparisons. Default: 15",
+        "Number of results to return. Use 10-15 for single-official queries, 25-40 for multi-official comparisons, 40-50 for aggregation queries. Default: 15",
       ),
   }),
   outputSchema: z.object({
@@ -55,12 +77,19 @@ export const corruptionSearchTool = createTool({
         official: z.string(),
         section: z.string(),
         filename: z.string(),
+        s3_key: z.string(),
+        status: z.string().optional(),
+        position: z.string().optional(),
+        state: z.string().optional(),
+        party: z.string().optional(),
+        agency: z.string().optional(),
+        amount_alleged_ngn: z.number().optional(),
         score: z.number(),
       }),
     ),
     totalResults: z.number(),
   }),
-  execute: async ({ query, official, section, topK }) => {
+  execute: async ({ query, official, section, status, state, party, agency, topK }) => {
     try {
       const { embedding } = await embed({
         model: embeddingModelInstance,
@@ -73,6 +102,18 @@ export const corruptionSearchTool = createTool({
       }
       if (section) {
         conditions.push({ section: { $eq: section } });
+      }
+      if (status) {
+        conditions.push({ status: { $eq: status } });
+      }
+      if (state) {
+        conditions.push({ state: { $eq: state } });
+      }
+      if (party) {
+        conditions.push({ party: { $eq: party } });
+      }
+      if (agency) {
+        conditions.push({ agency: { $eq: agency } });
       }
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
@@ -90,6 +131,13 @@ export const corruptionSearchTool = createTool({
         official: (r.metadata?.official as string) ?? "Unknown",
         section: (r.metadata?.section as string) ?? "",
         filename: (r.metadata?.filename as string) ?? "",
+        s3_key: (r.metadata?.s3_key as string) ?? "",
+        status: (r.metadata?.status as string) || undefined,
+        position: (r.metadata?.position as string) || undefined,
+        state: (r.metadata?.state as string) || undefined,
+        party: (r.metadata?.party as string) || undefined,
+        agency: (r.metadata?.agency as string) || undefined,
+        amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) || undefined,
         score: r.score,
       }));
 

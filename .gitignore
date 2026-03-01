@@ -54,7 +54,10 @@ packages/source/budgets/
 packages/source/federal_budget/
 packages/source/corruption/
 packages/source/corruption_discarded/
+packages/source/gemini_corruption/
+packages/source/institution/
 packages/source/govspend/
+scripts/
 
 # db data & backups
 packages/db/

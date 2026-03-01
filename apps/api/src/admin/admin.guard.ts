@@ -4,13 +4,16 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { PrismaService } from "@ournigeria/database";
 import * as crypto from "crypto";
 
 const ADMIN_COOKIE = "on_admin_session";
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private prisma: PrismaService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
     // Try cookie first (dashboard), then X-Admin-Key header (legacy/API)
@@ -44,6 +47,16 @@ export class AdminGuard implements CanActivate {
       !crypto.timingSafeEqual(sigBuf, expectedBuf)
     ) {
       throw new UnauthorizedException("Invalid admin token");
+    }
+
+    // Verify admin still exists in database
+    const admin = await this.prisma.adminUser.findUnique({
+      where: { id: adminId },
+      select: { id: true },
+    });
+
+    if (!admin) {
+      throw new UnauthorizedException("Admin account no longer exists");
     }
 
     request.adminId = adminId;

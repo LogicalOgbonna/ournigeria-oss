@@ -42,6 +42,7 @@ export function useChat(conversationId?: string) {
     useState(!!conversationId);
   const [streamingText, setStreamingText] = useState<string>("");
   const [statusText, setStatusText] = useState<string>("");
+  const [isLimitReached, setIsLimitReached] = useState(false);
   const idCounter = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -233,6 +234,12 @@ export function useChat(conversationId?: string) {
             }
           } catch {}
         }
+        if (res.status === 429) {
+          setIsLimitReached(true);
+          // Remove the "user" message we just optimistically added so they can try again later
+          setMessages((prev) => prev.slice(0, -1));
+          return;
+        }
         if (!res.ok || !res.body) {
           throw new Error("Chat request failed");
         }
@@ -403,5 +410,7 @@ export function useChat(conversationId?: string) {
     deleteConversation: handleDeleteConversation,
     updateConversationLocally,
     retryLoad: fetchConversations,
+    isLimitReached,
+    setIsLimitReached,
   };
 }

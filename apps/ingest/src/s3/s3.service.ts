@@ -126,6 +126,19 @@ export class S3Service implements OnModuleDestroy {
     return localPath;
   }
 
+  async downloadAsString(s3Key: string): Promise<string> {
+    const response = await this.client.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: s3Key,
+      }),
+    );
+    if (!response.Body) {
+      throw new Error(`Empty response body for S3 key: ${s3Key}`);
+    }
+    return response.Body.transformToString("utf-8");
+  }
+
   cleanupTempFile(filePath: string): void {
     try {
       if (fs.existsSync(filePath)) {

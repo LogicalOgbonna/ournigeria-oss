@@ -22,6 +22,7 @@ import { SystemBanners } from "@/components/notifications/SystemBanner";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Markdown } from "./Markdown";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { PricingModal } from "@/components/pricing/PricingModal";
 
 function StreamingBubble({ text }: { text: string }) {
   return (
@@ -164,6 +165,8 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     updateConversationLocally,
     loadError,
     retryLoad,
+    isLimitReached,
+    setIsLimitReached,
   } = useChat(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -355,6 +358,11 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
         hasMessages={hasMessages}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+      />
+
+      <PricingModal
+        isOpen={isLimitReached}
+        onClose={() => setIsLimitReached(false)}
       />
     </div>
   );

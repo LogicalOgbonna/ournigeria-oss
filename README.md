@@ -258,6 +258,13 @@ Swagger UI is available at `/api/docs` when the API is running.
   - Start with ETag checking as an immediate improvement to eliminate downloading unchanged files
   - Move to SQS events for ongoing real-time ingestion
   - Keep ETag-based scan as a periodic consistency check
+- [ ] **Project Tracking & Budget Line Item Extraction System**:
+  - **Data Extraction Script**: Build an automated script that systematically queries existing vector embeddings to extract individual budget line items for all states.
+  - **Relational Storage**: Save the extracted data into a structured relational database to enable fast querying and filtering without relying on the LLM for basic lookups.
+  - **Granular Filtering**: Allow users to query and filter budgets and line items precisely by State and Local Government Area (LGA).
+  - **Project Mapping**: For every budget line item, extract and link the specific real-world project or initiative the funds are supposed to execute.
+  - **Transparency View**: Create an interface where users can select a state/LGA, view its total budget, see the detailed breakdown of all line items, and track the specific projects tied to those funds.
+- [ ] Create a web worker that refreshes tokens if a new update is released
 
 ---
 

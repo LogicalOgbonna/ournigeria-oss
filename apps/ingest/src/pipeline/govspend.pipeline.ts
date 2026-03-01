@@ -47,7 +47,8 @@ export class GovspendPipeline extends PipelineBase {
     const config = { ...DEFAULT_PIPELINE_CONFIG, ...configOverrides };
     const pipelineStart = Date.now();
 
-    this.logger.log(
+    this.emitLog(
+      "log",
       `=== ${this.pipelineType} Ingestion Pipeline (incremental) ===`,
     );
 
@@ -55,7 +56,8 @@ export class GovspendPipeline extends PipelineBase {
 
     // Discover year prefixes: govspend/2018/, govspend/2019/, ...
     const yearPrefixes = await this.s3.listPrefixes("govspend/");
-    this.logger.log(
+    this.emitLog(
+      "log",
       `Found ${yearPrefixes.length} year prefixes: ${yearPrefixes.map((p) => p.split("/")[1]).join(", ")}`,
     );
 
@@ -70,19 +72,20 @@ export class GovspendPipeline extends PipelineBase {
 
       // Discover month prefixes: govspend/2020/January/, govspend/2020/February/, ...
       const monthPrefixes = await this.s3.listPrefixes(yearPrefix);
-      this.logger.log(`Year ${year}: ${monthPrefixes.length} months`);
+      this.emitLog("log", `Year ${year}: ${monthPrefixes.length} months`);
 
       for (const monthPrefix of monthPrefixes.sort()) {
         const month = monthPrefix.split("/")[2];
         const batchStart = Date.now();
 
-        this.logger.log(`--- Processing ${year}/${month} ---`);
+        this.emitLog("log", `--- Processing ${year}/${month} ---`);
 
         // List objects for this month only
         const objects = await this.s3.listObjects(monthPrefix);
         const files = this.parseObjects(objects);
 
-        this.logger.log(
+        this.emitLog(
+          "log",
           `${year}/${month}: ${files.length} files discovered (${elapsed(batchStart)})`,
         );
 
@@ -97,16 +100,18 @@ export class GovspendPipeline extends PipelineBase {
         errorFiles += result.errors;
         totalChunks += result.chunks;
 
-        this.logger.log(
+        this.emitLog(
+          "log",
           `${year}/${month} done: ${result.processed} processed, ${result.skipped} skipped, ${result.errors} errors, ${result.chunks} chunks (${elapsed(batchStart)})`,
         );
       }
     }
 
     const durationMs = Date.now() - pipelineStart;
-    this.logger.log(`=== ${this.pipelineType} Complete ===`);
-    this.logger.log(`Total time: ${elapsed(pipelineStart)}`);
-    this.logger.log(
+    this.emitLog("log", `=== ${this.pipelineType} Complete ===`);
+    this.emitLog("log", `Total time: ${elapsed(pipelineStart)}`);
+    this.emitLog(
+      "log",
       `Processed: ${processedFiles}, Skipped: ${skippedFiles}, Errors: ${errorFiles}, Chunks: ${totalChunks}`,
     );
 
@@ -160,6 +165,25 @@ export class GovspendPipeline extends PipelineBase {
   /** discoverFiles is unused for govspend (run is overridden) but required by abstract base */
   async discoverFiles(): Promise<DiscoveredFile[]> {
     return [];
+  }
+
+  buildFileFromS3Key(key: string, etag: string): DiscoveredFile | null {
+    if (!key.endsWith(".md")) return null;
+    const parts = key.split("/");
+    if (parts.length < 6) return null;
+    return {
+      filePath: key,
+      sourceType: "md",
+      s3Key: key,
+      s3Etag: etag,
+      identity: {
+        year: parts[1],
+        month: parts[2],
+        day: parts[3],
+        beneficiary_slug: parts[4],
+        filename: parts.slice(5).join("/"),
+      },
+    };
   }
 
   buildChunkMetadata(

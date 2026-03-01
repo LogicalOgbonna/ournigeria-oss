@@ -57,10 +57,10 @@ function ShufflerCard() {
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold">
-          Budget Categories
+          Our Datasets
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          2024 Federal Budget — sector allocations
+          What we have indexed and available for search
         </p>
       </div>
       <div className="flex flex-1 flex-col gap-3">
@@ -184,7 +184,7 @@ function TypewriterCard() {
             AI Analysis Feed
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Watch our AI process budget data in real time
+            Watch our AI process public data in real time
           </p>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 dark:bg-emerald-950/50">
@@ -237,10 +237,10 @@ function ExplorerCard() {
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold">
-          State Explorer
+          Data Explorer
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          Navigate budget data across all geo-political zones
+          Navigate budgets and corruption data across all geo-political zones
         </p>
       </div>
 
@@ -348,22 +348,23 @@ export function Features() {
             Capabilities
           </span>
           <h2 className="mt-4 font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-            Wetin You Fit Do
+            Wetin Dey Happen?
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Three powerful tools to make Nigeria government spending transparent
+            Powerful tools to make Nigerian public data and government spending
+            transparent
           </p>
         </div>
 
         {/* 3 Interactive cards */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
             <ShufflerCard />
           </div>
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
             <TypewriterCard />
           </div>
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
             <ExplorerCard />
           </div>
         </div>

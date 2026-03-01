@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { chatModel } from "./config";
+import { chatModelSmall } from "./config";
 import { tracingMetadata } from "../../lib/langfuse";
 
 // ─── Nigerian States ────────────────────────────────────────────
@@ -271,7 +271,7 @@ export async function decomposeQuery(
   // LLM-based decomposition for complex/ambiguous queries
   try {
     const { text } = await generateText({
-      model: chatModel,
+      model: chatModelSmall,
       system: `You decompose complex Nigerian budget questions into 2-6 targeted sub-queries for vector similarity search against a budget document database.
 
 Available states: ${NIGERIAN_STATES.join(", ")}

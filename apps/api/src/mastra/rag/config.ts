@@ -3,6 +3,7 @@ import { PgVector } from "@mastra/pg";
 
 const llmBaseUrl = process.env.LLM_BASE_URL!;
 const llmModel = process.env.LLM_MODEL!;
+const llmModelSmall = process.env.LLM_MODEL_SMALL || llmModel; // Fallback to main model if small model is not defined
 const llmApiKey = process.env.LLM_API_KEY!;
 
 const embeddingProvider_env = process.env.EMBEDDING_PROVIDER!;
@@ -83,6 +84,7 @@ export const RAG_CONFIG = {
 };
 
 export const chatModel = openaiProvider.chat(llmModel);
+export const chatModelSmall = openaiProvider.chat(llmModelSmall);
 export const embeddingModelInstance =
   embeddingProvider.embedding(embeddingModel);
 

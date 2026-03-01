@@ -3,6 +3,7 @@ import { Inter, DM_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { FeedbackFab } from "@/components/feedback/FeedbackFab";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,12 +36,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}
       >
-        <ThemeProvider>
-          <NotificationProvider>
-            {children}
-            <FeedbackFab />
-          </NotificationProvider>
-        </ThemeProvider>
+        <NuqsAdapter>
+          <ThemeProvider>
+            <NotificationProvider>
+              {children}
+              <FeedbackFab />
+            </NotificationProvider>
+          </ThemeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

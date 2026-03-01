@@ -13,19 +13,19 @@ export const STATS = [
   {
     value: 36,
     suffix: "+",
-    label: "States Covered",
+    label: "States & Federal Data",
     pidgin: "All 36 states plus FCT",
   },
   {
-    value: 700,
+    value: 5000,
     suffix: "+",
-    label: "Budget Documents",
-    pidgin: "PDFs, spreadsheets, and more",
+    label: "Government Records",
+    pidgin: "Budgets, govspend & corruption cases",
   },
   {
-    value: 708000,
-    suffix: "+",
-    label: "Data Points",
+    value: 2,
+    suffix: "M+",
+    label: "Data Points Indexed",
     pidgin: "Analyzed and ready to query",
   },
 ] as const;
@@ -41,63 +41,77 @@ export interface Feature {
 export const FEATURES: Feature[] = [
   {
     icon: Search,
-    title: "Search Any Budget",
-    pidgin: "Find any money wey government allocate",
+    title: "Uncover The Truth",
+    pidgin: "Find any record wey government hide",
     description:
-      "Search through 700+ budget documents across all 36 states and FCT. Find specific allocations, compare spending, and track where public money goes.",
+      "Search through budget documents, federal contractor payments, and corruption records. Find specific allocations, track how public money is spent, and stay informed on public institutions.",
   },
   {
     icon: MessageSquare,
     title: "Ask in Plain Language",
     pidgin: "Just ask like you dey talk to person",
     description:
-      "No need to read thousands of pages. Just ask questions in everyday English or Pidgin, and get clear answers backed by real budget data.",
+      "No need to read thousands of complex pages. Just ask questions in everyday English or Pidgin about budgets or corruption cases, and get clear answers backed by real data.",
   },
   {
     icon: BarChart3,
-    title: "Compare States",
-    pidgin: "See which state dey spend pass for education",
+    title: "Track Accountability",
+    pidgin: "See who dey do well and who dey mess up",
     description:
-      "Compare how different states allocate funds for health, education, infrastructure, and more. Spot trends and hold leaders accountable.",
+      "Compare how different states allocate funds, track real-time payments through GovSpend, and monitor ongoing corruption investigations. Spot trends and hold leaders accountable.",
   },
   {
     icon: Shield,
     title: "100% Transparent",
     pidgin: "Everything dey open, nothing dey hide",
     description:
-      "All data comes from publicly available government budget documents. Every answer includes sources so you can verify for yourself.",
+      "All data comes from publicly available government budget documents, financial portals, and official anti-corruption agencies. Every answer includes verifiable sources.",
   },
 ];
 
-// ═══ Shuffler Card items (2024 Federal Budget sector allocations) ═══
+// ═══ Shuffler Card items (Our Datasets) ═══
 export const SHUFFLER_ITEMS = [
-  { label: "Defence", amount: "₦3.25T", change: "12.0%", icon: "ShieldAlert" },
   {
-    label: "Education",
-    amount: "₦2.18T",
-    change: "7.9%",
-    icon: "GraduationCap",
-  },
-  { label: "Health", amount: "₦1.33T", change: "5.0%", icon: "HeartPulse" },
-  {
-    label: "Infrastructure",
-    amount: "₦1.32T",
-    change: "5.0%",
+    label: "Budgets",
+    amount: "700+ Docs",
+    change: "36 States",
     icon: "Building2",
   },
-  { label: "Security", amount: "₦969.6B", change: "3.6%", icon: "Siren" },
-  { label: "Social Dev.", amount: "₦534B", change: "2.0%", icon: "Users" },
-  { label: "Agriculture", amount: "₦362.9B", change: "1.4%", icon: "Wheat" },
+  {
+    label: "Corruption",
+    amount: "Active",
+    change: "EFCC & ICPC",
+    icon: "ShieldAlert",
+  },
+  {
+    label: "GovSpend",
+    amount: "Daily",
+    change: "Contractors",
+    icon: "BarChart3",
+  },
+  {
+    label: "Institutions",
+    amount: "Coming",
+    change: "MDAs",
+    icon: "Building2",
+  },
+  {
+    label: "Senate Bills",
+    amount: "Coming",
+    change: "Legislation",
+    icon: "MessageSquare",
+  },
+  { label: "Projects", amount: "Live", change: "Tracking", icon: "HeartPulse" },
 ] as const;
 
 // ═══ Typewriter Card messages ═══
 export const TYPEWRITER_MESSAGES = [
-  "> Analyzing Lagos State 2024 budget...",
-  "> Education: ₦150.2B allocated (+12.4% YoY)",
-  "> Health sector: 13.5% of total spending",
-  "> Top project: Kano-Wudil Expressway — ₦18.5B",
-  "> 36 states processed. 708,309 data points indexed.",
-  "> Ready for your questions.",
+  "> Analyzing federal budget allocations...",
+  "> Tracking new GovSpend contractor payments...",
+  "> Corruption case found: EFCC v. Former Officials...",
+  "> Senate bills data pipeline initialized...",
+  "> 36 states processed. Millions of records indexed.",
+  "> Ready to build a better Nigeria with you.",
 ] as const;
 
 // ═══ Explorer Card geo-zones ═══
@@ -115,23 +129,23 @@ export const PROTOCOL_STEPS = [
   {
     step: 1,
     mono: "01",
-    title: "Ask Anything",
+    title: "Budgets & Spending",
     description:
-      "Type your question about Nigerian government spending in plain English or Pidgin. No jargon, no login, no barriers.",
+      "Explore federal and state budgets, track daily contractor payments through GovSpend, and see exactly where public funds are allocated. No jargon, just clear numbers.",
   },
   {
     step: 2,
     mono: "02",
-    title: "AI Analyzes Everything",
+    title: "Corruption Cases",
     description:
-      "Our AI searches through 708,000+ data points across 700+ official budget documents from all 36 states and the FCT.",
+      "Stay informed about ongoing investigations, court filings, and convictions by anti-corruption agencies like the EFCC and ICPC. Hold leaders accountable.",
   },
   {
     step: 3,
     mono: "03",
-    title: "Get Sourced Answers",
+    title: "Institutions & Bills",
     description:
-      "Receive clear answers backed by real data. Every figure includes its source document so you can verify for yourself.",
+      "Track the performance of public institutions, monitor the activities of Senators and HOR members, and read updates on new bills and legislation.",
   },
 ] as const;
 
@@ -145,25 +159,26 @@ export interface ShowcaseQuestion {
 
 export const SHOWCASE_QUESTIONS: ShowcaseQuestion[] = [
   {
-    category: "Education",
-    question: "How much did Lagos State budget for education in 2024?",
-    pidgin: "How much Lagos put for school money?",
+    category: "Senate Bills",
+    question: "Which bills have been passed related to education this year?",
+    pidgin: "Which new law them make for school matter?",
     preview:
-      "Lagos State allocated ₦150.2 billion to education in the 2024 fiscal year, representing 15.3% of the total budget. This includes ₦89.4B for recurrent expenditure and ₦60.8B for capital projects...",
+      "Several bills concerning education have been introduced, including the Student Loan Expansion Act and the Tertiary Education Trust Fund Amendment Bill, aiming to improve...",
   },
   {
-    category: "Health",
-    question: "Compare health spending across South-West states",
-    pidgin: "Which state for South-West dey spend pass for hospital?",
+    category: "Corruption",
+    question:
+      "What are the latest corruption cases involving former public officials?",
+    pidgin: "Which ex-government people EFCC dey investigate?",
     preview:
-      "Among South-West states, Lagos leads health spending at ₦132.8B, followed by Oyo at ₦45.6B and Ogun at ₦38.2B. Ekiti dedicates the highest proportion at 16.1%...",
+      "Recent corruption cases involve allegations of misappropriation of public funds, money laundering, and contract fraud. The EFCC has successfully secured convictions in...",
   },
   {
-    category: "Infrastructure",
-    question: "What are the biggest capital projects in Kano State?",
-    pidgin: "Wetin be the biggest project wey Kano dey do?",
+    category: "GovSpend",
+    question: "Show me the recent payments made by the Ministry of Works",
+    pidgin: "Who the Ministry of Works pay money to recently?",
     preview:
-      "Kano State's largest capital projects for 2024 include the Kano-Wudil Expressway rehabilitation (₦18.5B), the Challawa Industrial Estate expansion (₦12.3B)...",
+      "According to recent GovSpend data, the Ministry of Works disbursed payments to several contractors for ongoing road rehabilitation projects across the South-West and...",
   },
 ];
 
@@ -172,4 +187,12 @@ export const LOTTIE_URLS = {
   aiSearch:
     "https://lottie.host/f4eb0b92-3661-4670-870c-9786-6f5f0000/WxMUjKKZ9V.lottie",
   data: "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/example.lottie",
+  budget:
+    "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/budget.lottie", // Needs real URL or use local
+  corruption:
+    "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/corruption.lottie", // Needs real URL or use local
+  institutions:
+    "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/institutions.lottie", // Needs real URL or use local
+  bills:
+    "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/bills.lottie", // Needs real URL or use local
 } as const;

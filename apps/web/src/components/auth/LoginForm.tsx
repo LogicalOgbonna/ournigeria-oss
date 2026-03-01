@@ -31,7 +31,7 @@ interface Provider {
 
 export function LoginForm({ error: externalError }: LoginFormProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("whatsapp");
+  const [activeTab, setActiveTab] = useState("telegram");
   const [step, setStep] = useState<Step>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otpDigits, setOtpDigits] = useState<string[]>([
@@ -100,7 +100,7 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
     e.preventDefault();
     const pasted = e.clipboardData
       .getData("text")
-      .replace(/\D/g, "")
+      .replaceAll(/\D/g, "")
       .slice(0, 6);
     if (!pasted) return;
     const newDigits = [...otpDigits];
@@ -207,6 +207,35 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
   };
 
   const providers: Provider[] = [
+    {
+      id: "telegram",
+      label: "Telegram",
+      icon: Send,
+      content: (
+        <div className="space-y-5">
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-200/80 dark:border-sky-700/50 bg-sky-50/80 dark:bg-sky-950/50 px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300">
+              <Send className="h-3 w-3" />
+              Sign in via Telegram
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+            Click the button below to sign in with your Telegram account.
+          </p>
+
+          <TelegramLoginButton />
+
+          <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+              You&apos;ll confirm in Telegram&apos;s secure popup. We only
+              receive your Telegram ID.
+            </p>
+          </div>
+        </div>
+      ),
+    },
     {
       id: "whatsapp",
       label: "WhatsApp",
@@ -368,35 +397,7 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
         </>
       ),
     },
-    {
-      id: "telegram",
-      label: "Telegram",
-      icon: Send,
-      content: (
-        <div className="space-y-5">
-          <div className="flex items-center justify-center">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-200/80 dark:border-sky-700/50 bg-sky-50/80 dark:bg-sky-950/50 px-3 py-1 text-xs font-medium text-sky-700 dark:text-sky-300">
-              <Send className="h-3 w-3" />
-              Sign in via Telegram
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            Click the button below to sign in with your Telegram account.
-          </p>
-
-          <TelegramLoginButton />
-
-          <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              You&apos;ll confirm in Telegram&apos;s secure popup. We only
-              receive your Telegram ID.
-            </p>
-          </div>
-        </div>
-      ),
-    },
+   
   ];
 
   return (

@@ -250,6 +250,7 @@ export class AuthController {
   @ApiOperation({ summary: "Telegram login callback" })
   async telegramAuth(
     @Query() query: Record<string, string>,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     const baseUrl = process.env.APP_URL!;
@@ -265,7 +266,25 @@ export class AuthController {
       const isNewUser = !(await this.authService.telegramUserExists(
         telegramUser.id,
       ));
-      const user = await this.authService.upsertUserByTelegram(telegramUser.id);
+
+      const currentUserId = req.cookies?.[USER_COOKIE];
+      let user;
+
+      if (currentUserId) {
+        try {
+          // Link to existing session
+          user = await this.authService.linkTelegramAccount(
+            currentUserId,
+            telegramUser.id,
+          );
+        } catch (err) {
+          // If linking fails (e.g. user deleted), fallback to standard login
+          console.error("Failed to link Telegram account:", err);
+          user = await this.authService.upsertUserByTelegram(telegramUser.id);
+        }
+      } else {
+        user = await this.authService.upsertUserByTelegram(telegramUser.id);
+      }
 
       const banStatus = await this.authService.checkBanStatus(user.id);
       if (banStatus.banned) {
