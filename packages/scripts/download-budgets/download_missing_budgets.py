@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.error
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent / "packages" / "source" / "budgets"
+BASE_DIR = Path(__file__).resolve().parent.parent.parent / "source" / "budgets"
 API_BASE = "https://openstates.ng/api"
 S3_BASE = "https://s3.eu-west-2.amazonaws.com/openstates.ng.storage/"
 
@@ -41,6 +41,7 @@ FOLDER_TO_SLUG = {
     "Edo": "edo",
     "Ekiti": "ekiti",
     "Enugu": "enugu",
+    "FCT": "fct",
     "Gombe": "gombe",
     "Imo": "imo",
     "Jigawa": "jigawa",

@@ -50,10 +50,15 @@ export function TelegramLoginButton() {
       if (isLoggedIn) {
         try {
           // User is already logged in, do a secure POST request to link accounts
+          // Ensure all values are strings since Telegram widget might send numbers
+          const stringifiedUser = Object.fromEntries(
+            Object.entries(user).map(([k, v]) => [k, String(v)]),
+          );
+
           const linkRes = await fetch(apiUrl("/api/auth/telegram/link"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(user),
+            body: JSON.stringify(stringifiedUser),
             credentials: "include",
           });
 
