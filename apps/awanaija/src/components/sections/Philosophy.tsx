@@ -55,12 +55,12 @@ export function Philosophy() {
 
       <div
         ref={triggerRef}
-        className="relative mx-auto max-w-5xl px-6 sm:px-10 lg:px-16"
+        className="relative mx-auto max-w-5xl px-6 sm:px-10 lg:px-16 text-center"
       >
         {/* The manifesto */}
         <div className="space-y-10 sm:space-y-14">
           {/* "Before" statement — neutral, smaller */}
-          <p className="text-xl sm:text-2xl lg:text-3xl font-light text-white/50 leading-relaxed tracking-tight">
+          <p className="text-xl sm:text-2xl lg:text-3xl font-light text-white/50 leading-relaxed tracking-tight flex flex-wrap justify-center">
             {beforeWords.map((word, i) => (
               <span
                 key={`b-${i}`}
@@ -80,16 +80,16 @@ export function Philosophy() {
           </p>
 
           {/* "After" statement — massive, editorial, emerald accent */}
-          <p className="text-3xl sm:text-5xl lg:text-7xl leading-[1.1] tracking-tight">
+          <p className="text-3xl sm:text-5xl lg:text-7xl leading-[1.1] tracking-tight flex flex-wrap justify-center items-center">
             {afterWords.map((word, i) => (
               <span
                 key={`a-${i}`}
-                className="philo-word inline-block mr-[0.3em] font-[family-name:var(--font-heading)] font-bold text-white"
+                className="philo-word inline-block mr-[0.25em] font-[family-name:var(--font-heading)] font-bold text-white"
               >
                 {word}
               </span>
             ))}
-            <span className="philo-word inline-block font-[family-name:var(--font-serif)] italic text-emerald-400">
+            <span className="philo-word inline-block font-[family-name:var(--font-serif)] italic text-emerald-400 mt-1 sm:mt-0">
               {afterHighlight}
             </span>
           </p>

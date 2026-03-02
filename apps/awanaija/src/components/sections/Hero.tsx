@@ -102,27 +102,64 @@ export function Hero() {
               </span>
             </div>
 
-            {/* Headline — sans + serif contrast */}
-            <h1 className="font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight">
-              <span className="hero-line block text-2xl font-medium text-muted-foreground opacity-0 sm:text-3xl">
-                Together, For
-              </span>
-              <span className="hero-line block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-6xl italic opacity-0 sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200">
-                Our Nigeria
-              </span>
-              <span className="hero-line block text-2xl font-medium text-muted-foreground opacity-0 sm:text-3xl">
-                Make We Fix Am.
-              </span>
-            </h1>
+            {/* Headline — Carousel */}
+            <div className="hero-line opacity-0 group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden">
+              <div
+                className="absolute left-0 top-0 flex flex-col w-full animate-[carousel-headline_15s_linear_infinite]"
+                style={{
+                  animationTimingFunction: "cubic-bezier(0.8, 0, 0.2, 1)",
+                }}
+              >
+                {/* Item 1 */}
+                <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
+                  <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
+                    To Fix Our Country,
+                  </span>
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    We Must Know.
+                  </span>
+                </h1>
+
+                {/* Item 2 */}
+                <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
+                  <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
+                    Together, For
+                  </span>
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    Our Nigeria.
+                  </span>
+                </h1>
+
+                {/* Item 3 */}
+                <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
+                  <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
+                    The Power Dey Your Hand,
+                  </span>
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.2rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    Use Am.
+                  </span>
+                </h1>
+
+                {/* Item 1 Duplicate (for seamless looping) */}
+                <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
+                  <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
+                    To Fix Our Country,
+                  </span>
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    We Must Know.
+                  </span>
+                </h1>
+              </div>
+            </div>
 
             {/* Subtext */}
             <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground opacity-0 sm:text-lg leading-relaxed">
-              Explore{" "}
+              Knowledge is the first step to good citizenship. Explore{" "}
               <strong className="text-foreground">
                 budgets, daily govspend, and corruption records
               </strong>{" "}
               across all <strong className="text-foreground">36 states</strong>.
-              Ask in plain English or Pidgin. Get answers backed by real data.
+              Ask in plain English or Pidgin.
             </p>
 
             {/* CTAs */}
@@ -169,30 +206,101 @@ export function Hero() {
                     </p>
                   </div>
                   <div className="ml-auto flex gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/40" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/40" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-1_15s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-2_15s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-3_15s_linear_infinite]" />
                   </div>
                 </div>
 
-                {/* User question */}
-                <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white dark:bg-emerald-500">
-                  Which former governors EFCC dey investigate?
-                </div>
+                {/* Chat items wrapper */}
+                <div className="relative h-[280px] w-full overflow-hidden">
+                  <div
+                    className="absolute left-0 top-0 w-full flex flex-col gap-4 animate-[carousel-chat_15s_linear_infinite]"
+                    style={{
+                      animationTimingFunction: "cubic-bezier(0.8, 0, 0.2, 1)",
+                    }}
+                  >
+                    {/* Item 1 - EFCC */}
+                    <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
+                      <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
+                        Which former governors EFCC dey investigate?
+                      </div>
+                      <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm shadow-sm">
+                        <p>
+                          The EFCC is actively investigating several former
+                          governors for alleged{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            misappropriation of public funds
+                          </strong>{" "}
+                          and money laundering. Recent cases include...
+                        </p>
+                        <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
+                          src: EFCC Anti-Corruption Records
+                        </p>
+                      </div>
+                    </div>
 
-                {/* AI response */}
-                <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm">
-                  <p>
-                    The EFCC is actively investigating several former governors
-                    for alleged{" "}
-                    <strong className="text-emerald-600 dark:text-emerald-400">
-                      misappropriation of public funds
-                    </strong>{" "}
-                    and money laundering. Recent cases include...
-                  </p>
-                  <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
-                    src: EFCC Anti-Corruption Records
-                  </p>
+                    {/* Item 2 - Budgets */}
+                    <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
+                      <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
+                        How much did Lagos State budget for education in 2026?
+                      </div>
+                      <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm shadow-sm">
+                        <p>
+                          In 2026, Lagos State allocated{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            ₦153.4 billion
+                          </strong>{" "}
+                          to the Education sector. This represents about 6.8% of
+                          the total state budget.
+                        </p>
+                        <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
+                          src: Lagos 2026 Approved Budget
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Item 3 - GovSpend */}
+                    <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
+                      <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
+                        Show me recent payments by the Ministry of Works
+                      </div>
+                      <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm shadow-sm">
+                        <p>
+                          Recent major disbursements from the Federal Ministry
+                          of Works include{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            ₦2.4 billion
+                          </strong>{" "}
+                          paid to Julius Berger for highway rehabilitation
+                          projects.
+                        </p>
+                        <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
+                          src: Daily GovSpend portal
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Item 1 Duplicate (for seamless looping) */}
+                    <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
+                      <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
+                        Which former governors EFCC dey investigate?
+                      </div>
+                      <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm shadow-sm">
+                        <p>
+                          The EFCC is actively investigating several former
+                          governors for alleged{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            misappropriation of public funds
+                          </strong>{" "}
+                          and money laundering. Recent cases include...
+                        </p>
+                        <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
+                          src: EFCC Anti-Corruption Records
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -434,12 +434,9 @@ const CASE_STATUSES = [
   "ongoing",
   "pardoned",
   "plea bargain",
-  "plea_bargain",
   "never charged",
-  "never_charged",
   "discharged",
   "abated by death",
-  "abated_by_death",
 ];
 
 const AGENCIES = ["efcc", "icpc", "ndlea", "police", "npf", "dss", "sss"];
@@ -497,12 +494,49 @@ export function analyzeCorruptionQueryComplexity(
   const lower = query.toLowerCase();
 
   // Extract mentioned officials
-  const officialsRaw = Object.keys(OFFICIALS_MAP).filter((name) =>
-    new RegExp(
-      `\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
-      "i",
-    ).test(lower),
+  // We use word boundaries and only match full names first to avoid matching short surnames inside other names.
+  const fullNames = Object.keys(OFFICIALS_MAP).filter((name) =>
+    name.includes(" "),
   );
+  const shortNames = Object.keys(OFFICIALS_MAP).filter(
+    (name) => !name.includes(" "),
+  );
+
+  const matchedFullNames: string[] = [];
+
+  for (const name of fullNames) {
+    if (
+      new RegExp(
+        `\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i",
+      ).test(lower)
+    ) {
+      matchedFullNames.push(name);
+    }
+  }
+
+  // Remove the text of matched full names from the lower string so we don't double-match their parts
+  let lowerWithoutFullNames = lower;
+  for (const name of matchedFullNames) {
+    lowerWithoutFullNames = lowerWithoutFullNames.replace(
+      new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "ig"),
+      "",
+    );
+  }
+
+  const matchedShortNames: string[] = [];
+  for (const name of shortNames) {
+    if (
+      new RegExp(
+        `\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i",
+      ).test(lowerWithoutFullNames)
+    ) {
+      matchedShortNames.push(name);
+    }
+  }
+
+  const officialsRaw = [...matchedFullNames, ...matchedShortNames];
 
   // Map to their exact DB representation and deduplicate
   const officials = Array.from(
@@ -510,9 +544,16 @@ export function analyzeCorruptionQueryComplexity(
   );
 
   // Extract mentioned statuses
-  const statuses = CASE_STATUSES.filter((s) =>
-    lower.includes(s.replace(/_/g, " ")),
-  );
+  // Use unique statuses that map to their exact DB representations
+  const matchedStatuses = new Set<string>();
+
+  for (const s of CASE_STATUSES) {
+    if (lower.includes(s)) {
+      matchedStatuses.add(s.replace(/\s+/g, "_"));
+    }
+  }
+
+  const statuses = Array.from(matchedStatuses);
 
   // Extract mentioned agencies
   const agencies = AGENCIES.filter((a) =>

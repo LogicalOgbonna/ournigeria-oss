@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api";
 
+declare global {
+  interface Window {
+    onTelegramAuth: (user: any) => void;
+  }
+}
+
 const TELEGRAM_WIDGET_URL = "https://telegram.org/js/telegram-widget.js?22";
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
@@ -26,7 +32,49 @@ export function TelegramLoginButton() {
     script.async = true;
     script.setAttribute("data-telegram-login", BOT_USERNAME);
     script.setAttribute("data-size", "large");
-    script.setAttribute("data-auth-url", authUrl);
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+
+    // Instead of directly redirecting via GET, use a POST request for linking if authenticated
+    window.onTelegramAuth = async function (user: any) {
+      let isLoggedIn = false;
+      try {
+        // First check if user has an active session via the profile endpoint
+        const profileRes = await fetch(apiUrl("/api/auth/profile"), {
+          credentials: "include",
+        });
+        isLoggedIn = profileRes.ok;
+      } catch (e) {
+        console.error("Error checking profile", e);
+      }
+
+      if (isLoggedIn) {
+        try {
+          // User is already logged in, do a secure POST request to link accounts
+          const linkRes = await fetch(apiUrl("/api/auth/telegram/link"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user),
+            credentials: "include",
+          });
+
+          if (linkRes.ok) {
+            // Success - redirect or show success state
+            window.location.href = "/";
+          } else {
+            console.error("Failed to link account:", await linkRes.text());
+            window.location.href = "/login?error=telegram_link_failed";
+          }
+        } catch (e) {
+          console.error("Error linking account", e);
+          window.location.href = "/login?error=telegram_link_failed";
+        }
+        return; // Prevent falling through to the GET login flow
+      }
+
+      // Fallback to the standard GET login flow if not logged in
+      const params = new URLSearchParams(user).toString();
+      window.location.href = `${authUrl}?${params}`;
+    };
     script.setAttribute("data-request-access", "write");
 
     script.onload = () => {

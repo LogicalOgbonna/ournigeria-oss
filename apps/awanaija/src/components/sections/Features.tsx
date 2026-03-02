@@ -161,7 +161,12 @@ function TypewriterCard() {
       timeoutRef.current = setTimeout(tick, 25 + Math.random() * 35);
     } else {
       // Line done
-      setCompletedLines((prev) => [...prev, msg]);
+      setCompletedLines((prev) => {
+        // Keep only the last 3 lines to prevent vertical growth
+        const next = [...prev, msg];
+        if (next.length > 3) return next.slice(next.length - 3);
+        return next;
+      });
       setCurrentLine("");
       lineIndexRef.current = li + 1;
       charIndexRef.current = 0;
@@ -198,7 +203,7 @@ function TypewriterCard() {
         </div>
       </div>
 
-      <div className="flex-1 rounded-xl bg-[oklch(0.12_0.01_160)] dark:bg-[oklch(0.08_0.01_160)] p-4 font-[family-name:var(--font-mono)] text-xs overflow-hidden">
+      <div className="flex-1 rounded-xl bg-[oklch(0.12_0.01_160)] dark:bg-[oklch(0.08_0.01_160)] p-4 font-[family-name:var(--font-mono)] text-xs overflow-hidden min-h-[140px] flex flex-col justify-end">
         <div className="space-y-1.5">
           {completedLines.map((line, i) => (
             <div key={i} className="text-emerald-400/80">
@@ -357,14 +362,14 @@ export function Features() {
         </div>
 
         {/* 3 Interactive cards */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
+        <div className="grid gap-6 lg:grid-cols-3 auto-rows-fr">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col h-full">
             <ShufflerCard />
           </div>
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col h-full">
             <TypewriterCard />
           </div>
-          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col">
+          <div className="feature-card rounded-[2rem] border bg-card p-6 shadow-sm opacity-0 hover-lift flex flex-col h-full">
             <ExplorerCard />
           </div>
         </div>

@@ -13,20 +13,26 @@ export const STATS = [
   {
     value: 36,
     suffix: "+",
-    label: "States & Federal Data",
+    label: "States & Federal",
     pidgin: "All 36 states plus FCT",
+  },
+  {
+    value: 6,
+    suffix: "+",
+    label: "Data Sources",
+    pidgin: "Budgets, GovSpend, EFCC, ICPC, Bills & MDAs",
   },
   {
     value: 5000,
     suffix: "+",
     label: "Government Records",
-    pidgin: "Budgets, govspend & corruption cases",
+    pidgin: "Analyzed documents and cases",
   },
   {
     value: 2,
     suffix: "M+",
     label: "Data Points Indexed",
-    pidgin: "Analyzed and ready to query",
+    pidgin: "Ready for your questions",
   },
 ] as const;
 

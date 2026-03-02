@@ -74,8 +74,11 @@ export function Stats() {
         }}
       />
 
-      <div ref={ref} className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-12 sm:grid-cols-3">
+      <div
+        ref={ref}
+        className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"
+      >
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((stat) => (
             <StatItem
               key={stat.label}

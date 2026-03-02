@@ -214,6 +214,43 @@
   50% { opacity: 0; }
 }
 
+@keyframes carousel-headline {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(0); }
+  33.33% { transform: translateY(calc(-100% / 4)); }
+  58.33% { transform: translateY(calc(-100% / 4)); }
+  66.66% { transform: translateY(calc(-200% / 4)); }
+  91.66% { transform: translateY(calc(-200% / 4)); }
+  100% { transform: translateY(calc(-300% / 4)); }
+}
+
+@keyframes carousel-chat {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(0); }
+  33.33% { transform: translateY(-296px); }
+  58.33% { transform: translateY(-296px); }
+  66.66% { transform: translateY(-592px); }
+  91.66% { transform: translateY(-592px); }
+  100% { transform: translateY(-888px); }
+}
+
+@keyframes carousel-dot-1 {
+  0%, 25% { opacity: 1; }
+  33.33%, 100% { opacity: 0.4; }
+}
+
+@keyframes carousel-dot-2 {
+  0%, 25% { opacity: 0.4; }
+  33.33%, 58.33% { opacity: 1; }
+  66.66%, 100% { opacity: 0.4; }
+}
+
+@keyframes carousel-dot-3 {
+  0%, 58.33% { opacity: 0.4; }
+  66.66%, 91.66% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
 .animate-fade-in-up {
   animation: fade-in-up 0.7s ease-out forwards;
 }

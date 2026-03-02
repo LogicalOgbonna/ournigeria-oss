@@ -93,9 +93,9 @@ function InstitutionBuilding() {
 const svgAnimations = [BudgetChart, ShieldMotif, InstitutionBuilding];
 
 const cardBgs = [
-  "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-800/50",
-  "bg-red-50/50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/50",
-  "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/50",
+  "bg-emerald-50 dark:bg-[#061810] border-emerald-200/50 dark:border-emerald-800/50",
+  "bg-red-50 dark:bg-[#1f0909] border-red-200/50 dark:border-red-800/50",
+  "bg-blue-50 dark:bg-[#0a1120] border-blue-200/50 dark:border-blue-800/50",
 ];
 
 export function Protocol() {
@@ -124,8 +124,11 @@ export function Protocol() {
           return (
             <div
               key={step.step}
-              className="sticky top-0 min-h-[70vh] flex items-center px-4 sm:px-6 lg:px-8 py-8"
-              style={{ zIndex: i + 1 }}
+              className="sticky min-h-[70vh] flex items-center px-4 sm:px-6 lg:px-8 py-8"
+              style={{
+                zIndex: i + 1,
+                top: `calc(5vh + ${i * 2.5}rem)`,
+              }}
             >
               <div
                 className={`mx-auto w-full max-w-5xl rounded-[2.5rem] border p-8 sm:p-12 lg:p-16 shadow-xl ${cardBgs[i]}`}
@@ -148,10 +151,10 @@ export function Protocol() {
                       <div className="mt-8 grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 dark:border-emerald-800/50 dark:bg-emerald-950/20">
                           <p className="font-[family-name:var(--font-mono)] text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                            ₦28.7T
+                            ₦58.47T
                           </p>
                           <p className="text-xs text-emerald-800/70 dark:text-emerald-300/70">
-                            2024 Fed Budget
+                            2026 Fed Budget
                           </p>
                         </div>
                         <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 dark:border-emerald-800/50 dark:bg-emerald-950/20">

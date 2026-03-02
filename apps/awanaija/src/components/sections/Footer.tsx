@@ -107,23 +107,8 @@ export function Footer() {
               </li>
               <li>
                 <span className="text-sm text-white/50">
-                  Built with Next.js & AI
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-white/50">
                   Data from public government records
                 </span>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/awanaija"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
-                >
-                  Open Source
-                </a>
               </li>
             </ul>
           </div>

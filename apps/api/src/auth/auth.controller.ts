@@ -250,7 +250,6 @@ export class AuthController {
   @ApiOperation({ summary: "Telegram login callback" })
   async telegramAuth(
     @Query() query: Record<string, string>,
-    @Req() req: Request,
     @Res() res: Response,
   ) {
     const baseUrl = process.env.APP_URL!;
@@ -263,29 +262,15 @@ export class AuthController {
       }
 
       const { telegramUser } = result;
-      const currentUserId = req.cookies?.[USER_COOKIE];
-      let user;
+      // We don't link via GET request anymore to prevent CSRF.
+      // The GET request only logs in if the Telegram account already exists,
+      // or creates a new one if it doesn't.
 
-      // Only consider them "new to Telegram" if they don't have a Telegram ID linked AND they aren't currently logged in
-      const isNewUser =
-        !currentUserId &&
-        !(await this.authService.telegramUserExists(telegramUser.id));
+      const isNewUser = !(await this.authService.telegramUserExists(
+        telegramUser.id,
+      ));
 
-      if (currentUserId) {
-        try {
-          // Link to existing session
-          user = await this.authService.linkTelegramAccount(
-            currentUserId,
-            telegramUser.id,
-          );
-        } catch (err) {
-          // If linking fails (e.g. user deleted), fallback to standard login
-          console.error("Failed to link Telegram account:", err);
-          user = await this.authService.upsertUserByTelegram(telegramUser.id);
-        }
-      } else {
-        user = await this.authService.upsertUserByTelegram(telegramUser.id);
-      }
+      const user = await this.authService.upsertUserByTelegram(telegramUser.id);
 
       const banStatus = await this.authService.checkBanStatus(user.id);
       if (banStatus.banned) {
@@ -320,6 +305,34 @@ export class AuthController {
     } catch (err) {
       console.error("Telegram auth error:", err);
       return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
+    }
+  }
+
+  @Post("telegram/link")
+  @ApiOperation({ summary: "Link Telegram account to active session" })
+  async linkTelegram(
+    @CurrentUser() userId: string,
+    @Body() body: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = this.authService.verifyTelegramAuth(body);
+      if (!result.valid) {
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: "Invalid Telegram auth data" });
+      }
+
+      await this.authService.linkTelegramAccount(
+        userId,
+        result.telegramUser.id,
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("Telegram link error:", err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
     }
   }
 }
