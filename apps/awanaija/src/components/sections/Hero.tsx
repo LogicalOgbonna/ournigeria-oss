@@ -113,10 +113,10 @@ export function Hero() {
                 {/* Item 1 */}
                 <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
                   <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
-                    To Fix Our Country,
+                    To Fix Am,
                   </span>
-                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
-                    We Must Know.
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[4rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    We Must Know Am.
                   </span>
                 </h1>
 
@@ -143,10 +143,10 @@ export function Hero() {
                 {/* Item 1 Duplicate (for seamless looping) */}
                 <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
                   <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
-                    To Fix Our Country,
+                    To Fix Am,
                   </span>
-                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
-                    We Must Know.
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[4rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    We Must Know Am.
                   </span>
                 </h1>
               </div>
