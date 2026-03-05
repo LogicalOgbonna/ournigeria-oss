@@ -10,13 +10,13 @@
       }
     },
     "build": {
-      "command": "infisical run --env prod --path /web -- next build",
+      "command": "next build",
       "options": {
         "cwd": "apps/web"
       }
     },
     "start": {
-      "command": "infisical run --env prod --path /web -- watch -- next start",
+      "command": "next start",
       "options": {
         "cwd": "apps/web"
       }
