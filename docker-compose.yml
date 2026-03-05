@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: spending
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spending -d spending"]
       interval: 5s
@@ -171,5 +171,5 @@ networks:
   backend:
   database:
 
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:
