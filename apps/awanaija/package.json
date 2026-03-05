@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3003",
-    "build": "next build",
-    "start": "next start -p 3003",
+    "dev": "infisical run --env dev --path /web --watch -- next dev -p 3003",
+    "build": "infisical run --env prod --path /web -- next build",
+    "start": "infisical run --env prod --path /web -- next start -p 3003",
     "lint": "eslint"
   },
   "dependencies": {

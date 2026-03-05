@@ -4,6 +4,7 @@ import {
   S3Client,
   ListObjectsV2Command,
   GetObjectCommand,
+  PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -137,6 +138,21 @@ export class S3Service implements OnModuleDestroy {
       throw new Error(`Empty response body for S3 key: ${s3Key}`);
     }
     return response.Body.transformToString("utf-8");
+  }
+
+  async uploadBuffer(
+    body: Buffer,
+    s3Key: string,
+    contentType = "application/octet-stream",
+  ): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: s3Key,
+        Body: body,
+        ContentType: contentType,
+      }),
+    );
   }
 
   cleanupTempFile(filePath: string): void {

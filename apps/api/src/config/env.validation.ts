@@ -11,6 +11,7 @@ export interface EnvConfig {
   VECTOR_INDEX_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
   VECTOR_INDEX_GOVSPEND: string;
+  VECTOR_INDEX_FAAC?: string;
   TAVILY_API_KEY: string;
   APP_URL: string;
   CORS_ORIGINS: string;
@@ -78,6 +79,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
     VECTOR_INDEX_GOVSPEND: config.VECTOR_INDEX_GOVSPEND as string,
+    VECTOR_INDEX_FAAC: (config.VECTOR_INDEX_FAAC as string) || undefined,
     TAVILY_API_KEY: config.TAVILY_API_KEY as string,
     APP_URL: config.APP_URL as string,
     CORS_ORIGINS: config.CORS_ORIGINS as string,

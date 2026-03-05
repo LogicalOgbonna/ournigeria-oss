@@ -9,12 +9,9 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - devpgdata:/var/lib/postgresql/data
+      - ./packages/db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spending -d spending"]
       interval: 5s
       timeout: 5s
       retries: 5
-
-volumes:
-  devpgdata:

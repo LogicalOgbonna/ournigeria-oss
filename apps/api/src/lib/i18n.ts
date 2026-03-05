@@ -44,6 +44,14 @@ const strings = {
     en: "Analyzing payment data...",
     pcm: "I dey analyze di payment data...",
   },
+  "status.searchingFaac": {
+    en: "Searching FAAC allocation records...",
+    pcm: "I dey search FAAC allocation records...",
+  },
+  "status.analyzingFaac": {
+    en: "Analyzing FAAC disbursement data...",
+    pcm: "I dey analyze FAAC disbursement data...",
+  },
   "status.calculatingImpact": {
     en: "Calculating real-world impact...",
     pcm: "I dey calculate wetin di money fit do...",
@@ -96,6 +104,19 @@ const strings = {
   "followUp.govspendTopMDA": {
     en: "Which MDA spends the most money?",
     pcm: "Which MDA dey spend the most money?",
+  },
+
+  "followUp.faacCompareSouthEast": {
+    en: "Compare FAAC allocation for South East states",
+    pcm: "Compare FAAC allocation for South East states",
+  },
+  "followUp.faacTopState": {
+    en: "Which state received the most FAAC in 2025?",
+    pcm: "Which state collect di most FAAC for 2025?",
+  },
+  "followUp.faacTrendRivers": {
+    en: "Show FAAC trend for Rivers State",
+    pcm: "Show FAAC trend for Rivers State",
   },
 
   // ─── Dynamic follow-ups (use {0}, {1} for interpolation) ───

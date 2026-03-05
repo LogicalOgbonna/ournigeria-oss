@@ -57,6 +57,7 @@ packages/source/corruption_discarded/
 packages/source/gemini_corruption/
 packages/source/institution/
 packages/source/govspend/
+packages/source/faac/
 
 # db data & backups
 packages/db/
