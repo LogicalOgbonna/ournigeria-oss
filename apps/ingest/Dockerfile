@@ -52,7 +52,6 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/ingest... --prod \
     node_modules/@swc \
     node_modules/sharp \
     node_modules/@img \
-    node_modules/@napi-rs \
     node_modules/lightningcss \
     node_modules/esbuild \
     node_modules/@esbuild \
