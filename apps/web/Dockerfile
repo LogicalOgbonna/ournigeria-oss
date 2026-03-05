@@ -13,6 +13,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 
 # Copy only the workspace package.json needed
 COPY apps/web/package.json apps/web/package.json
+COPY packages/database/package.json packages/database/package.json
 
 # Hoisted layout + install only web workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -30,10 +31,21 @@ ARG INFISICAL_TOKEN
 ENV INFISICAL_TOKEN=${INFISICAL_TOKEN}
 
 COPY apps/web/.infisical.json .infisical.json
+COPY packages/database/ packages/database/
 COPY apps/web/ apps/web/
 
+RUN pnpm --filter @ournigeria/database run build
+
 # Inject NEXT_PUBLIC_* env vars from Infisical so they are inlined into the bundle
-RUN infisical run --env prod --path /web -- pnpm --filter @ournigeria/web exec next build
+# Using ARG to ensure we can pass the token at build time for CI environments
+# Or using the local .infisical.json for local development
+RUN if [ -z "$INFISICAL_TOKEN" ] || [ "$INFISICAL_TOKEN" = "REDACTED-REVOKED-TOKEN" ]; then \
+      echo "Running without Infisical token or with old invalid token" && \
+      pnpm --filter @ournigeria/web exec next build; \
+    else \
+      echo "Running with Infisical token" && \
+      infisical run --env prod --path /web -- pnpm --filter @ournigeria/web exec next build; \
+    fi
 
 # ── Stage 3: Production runner ──
 FROM node:22.14.0-slim AS runner

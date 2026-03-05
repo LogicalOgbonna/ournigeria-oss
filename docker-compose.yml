@@ -74,6 +74,8 @@ services:
     stop_grace_period: 15s
     ports:
       - "${WEB_PORT:-3001}:3001"
+    environment:
+      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/"]
       interval: 15s
