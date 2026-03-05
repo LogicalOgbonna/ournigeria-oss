@@ -104,6 +104,10 @@ COPY --from=build /app/packages/database/prisma.config.ts prisma.config.ts
 COPY --from=build /app/packages/database/dist/ packages/database/dist/
 COPY --from=build /app/packages/database/package.json packages/database/package.json
 
+# Link workspace package so Node can resolve @ournigeria/database
+RUN mkdir -p node_modules/@ournigeria && \
+    ln -s /app/packages/database node_modules/@ournigeria/database
+
 # Copy Infisical config
 COPY apps/ingest/.infisical.json .infisical.json
 
