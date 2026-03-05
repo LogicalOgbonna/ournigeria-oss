@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "infisical run --env dev --watch -- nest start",
     "build": "nest build",
-    "start": "infisical run -- nest start",
-    "start:prod": "infisical run -- node dist/main"
+    "start": "infisical run --env prod -- nest start",
+    "start:prod": "infisical run --env prod -- node dist/main"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.30",
