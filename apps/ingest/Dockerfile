@@ -15,6 +15,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 
 # Copy only ingest package.json
 COPY apps/ingest/package.json apps/ingest/package.json
+COPY packages/database/package.json packages/database/package.json
 
 # Hoisted layout + install only ingest workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -24,11 +25,9 @@ RUN echo "node-linker=hoisted" > .npmrc \
 FROM deps AS build
 
 COPY apps/ingest/ apps/ingest/
+COPY packages/database/ packages/database/
 
-# Ingest shares the API prisma schema — copy into ingest's local prisma/
-COPY apps/api/prisma/ apps/ingest/prisma/
-
-RUN pnpm --filter @ournigeria/ingest exec prisma generate \
+RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/ingest exec nest build
 
 # ── Stage 3: Prune to production deps only ──
@@ -100,7 +99,10 @@ COPY --from=build /app/node_modules/@prisma/client/ node_modules/@prisma/client/
 
 # Copy ingest build output
 COPY --from=build /app/apps/ingest/dist/ dist/
-COPY --from=build /app/apps/ingest/prisma/ prisma/
+COPY --from=build /app/packages/database/prisma/ prisma/
+COPY --from=build /app/packages/database/prisma.config.ts prisma.config.ts
+COPY --from=build /app/packages/database/dist/ packages/database/dist/
+COPY --from=build /app/packages/database/package.json packages/database/package.json
 
 # Copy Infisical config
 COPY apps/ingest/.infisical.json .infisical.json

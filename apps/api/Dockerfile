@@ -13,6 +13,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 
 # Copy only the workspace package.json needed
 COPY apps/api/package.json apps/api/package.json
+COPY packages/database/package.json packages/database/package.json
 
 # Hoisted layout + install only api workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -22,8 +23,9 @@ RUN echo "node-linker=hoisted" > .npmrc \
 FROM deps AS api-build
 
 COPY apps/api/ apps/api/
+COPY packages/database/ packages/database/
 
-RUN pnpm --filter @ournigeria/api exec prisma generate \
+RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/api exec nest build
 
 # ── Stage 3: Prune to production deps only ──
@@ -95,8 +97,10 @@ COPY --from=api-build /app/node_modules/@prisma/client/ node_modules/@prisma/cli
 
 # Copy API build output
 COPY --from=api-build /app/apps/api/dist/ dist/
-COPY --from=api-build /app/apps/api/prisma/ prisma/
-COPY --from=api-build /app/apps/api/prisma.config.ts prisma.config.ts
+COPY --from=api-build /app/packages/database/prisma/ prisma/
+COPY --from=api-build /app/packages/database/prisma.config.ts prisma.config.ts
+COPY --from=api-build /app/packages/database/dist/ packages/database/dist/
+COPY --from=api-build /app/packages/database/package.json packages/database/package.json
 
 # Copy Infisical config
 COPY apps/api/.infisical.json .infisical.json
