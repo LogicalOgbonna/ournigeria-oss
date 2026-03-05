@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "infisical run --env dev --path /web --watch -- next dev",
-    "build": "infisical run --env prod --path /web -- next build",
-    "start": "infisical run --env prod --path /web -- watch -- next start",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {

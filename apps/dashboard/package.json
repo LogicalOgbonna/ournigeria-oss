@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "infisical run --env dev --path /dashboard --watch -- next dev -p 3004",
     "build": "next build",
-    "start": "infisical run --path /dashboard -- next start -p 3004"
+    "start": "next start"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",

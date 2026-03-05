@@ -61,41 +61,7 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
-    networks: [frontend, backend, database]
-
-  web:
-    image: ournigeria/web:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        INFISICAL_TOKEN: ${INFISICAL_TOKEN}
-    restart: unless-stopped
-    stop_grace_period: 15s
-    ports:
-      - "${WEB_PORT:-3001}:3001"
-    environment:
-      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.5"
-    depends_on:
-      api:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-    networks: [frontend]
+    networks: [backend, database]
 
   ingest:
     image: ournigeria/ingest:${VERSION:-latest}
@@ -133,43 +99,7 @@ services:
         max-file: "5"
     networks: [backend, database]
 
-  dashboard:
-    image: ournigeria/dashboard:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: apps/dashboard/Dockerfile
-    restart: unless-stopped
-    stop_grace_period: 15s
-    ports:
-      - "${DASHBOARD_PORT:-3003}:3003"
-    environment:
-      - API_URL=http://api:${API_PORT:-3000}
-      - INGEST_URL=http://ingest:${INGEST_PORT:-3002}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3003/"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: "0.5"
-    depends_on:
-      api:
-        condition: service_healthy
-      ingest:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-    networks: [frontend, backend]
-
 networks:
-  frontend:
   backend:
   database:
 
