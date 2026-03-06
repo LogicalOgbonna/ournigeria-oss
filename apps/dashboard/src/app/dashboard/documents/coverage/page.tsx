@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,6 +49,27 @@ function abbreviateColumn(col: string): string {
 }
 
 export default function CoveragePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-96" />
+          <div className="grid gap-4 sm:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-[600px] rounded-xl" />
+        </div>
+      }
+    >
+      <CoveragePageContent />
+    </Suspense>
+  );
+}
+
+function CoveragePageContent() {
   const [pipeline, setPipeline] = useQueryState(
     "pipeline",
     parseAsString.withDefault("budget").withOptions({ shallow: true }),
