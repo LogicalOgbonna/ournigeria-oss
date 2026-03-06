@@ -1,17 +1,23 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
     "sharedGlobals": []
   },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "cache": true
     },
     "lint": {
       "cache": true
     }
   },
-  "defaultBase": "main"
+  "defaultBase": "main",
+  "nxCloudId": "69aa3b26cf1fa9383fae9f7f"
 }
