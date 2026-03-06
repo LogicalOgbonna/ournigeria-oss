@@ -10,6 +10,7 @@ node_modules/
 
 # testing
 coverage/
+!apps/dashboard/src/app/dashboard/documents/coverage/
 
 # next.js
 .next/
