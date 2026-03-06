@@ -91,9 +91,13 @@ export async function proxy(request: NextRequest) {
 
   const hasAuth = request.cookies.has(USER_COOKIE);
 
-  // Authenticated users visiting /login → redirect to /
+  // User visiting /login — clear stale cookie and let login page load.
+  // Previously this redirected to /, but if the API rejects the cookie
+  // the client redirects back to /login, causing an infinite loop.
   if (hasAuth && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+    const response = NextResponse.next();
+    response.cookies.delete(USER_COOKIE);
+    return response;
   }
 
   // Public paths — allow through
