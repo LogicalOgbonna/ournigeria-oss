@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { SystemBanner, Notification } from "@/types/notifications";
 import { apiUrl } from "@/lib/api";
+import { redirectToLogin, isRedirecting } from "@/lib/auth-redirect";
 
 const POLL_INTERVAL = 60_000; // 1 minute
 
@@ -35,11 +36,24 @@ export function NotificationProvider({
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
   const fetchNotifications = useCallback(async () => {
+    if (isRedirecting()) return;
     try {
       const res = await fetch(apiUrl("/api/notifications"), {
         credentials: "include",
       });
+      if (res.status === 401) {
+        stopPolling();
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       setNotifications(data.notifications ?? []);
@@ -47,20 +61,26 @@ export function NotificationProvider({
     } catch {
       // silently fail — user may not be logged in
     }
-  }, []);
+  }, [stopPolling]);
 
   const fetchBanners = useCallback(async () => {
+    if (isRedirecting()) return;
     try {
       const res = await fetch(apiUrl("/api/notifications/banners"), {
         credentials: "include",
       });
+      if (res.status === 401) {
+        stopPolling();
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) return;
       const data = await res.json();
       setBanners(data.banners ?? []);
     } catch {
       // silently fail
     }
-  }, []);
+  }, [stopPolling]);
 
   const fetchAll = useCallback(() => {
     fetchNotifications();

@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Message, AIResponseContent, ToolId, Language } from "@/types";
 import { apiUrl } from "@/lib/api";
+import { redirectToLogin, isRedirecting } from "@/lib/auth-redirect";
 
 interface ConversationSummary {
   id: string;
@@ -60,9 +61,7 @@ export function useChat(conversationId?: string) {
       });
       if (res.status === 401) {
         setIsCheckingAuth(false);
-        if (window.location.pathname !== "/login") {
-          window.location.replace("/login");
-        }
+        redirectToLogin();
         return;
       }
       if (res.status === 403) {
@@ -113,6 +112,10 @@ export function useChat(conversationId?: string) {
       const res = await fetch(apiUrl(`/api/conversations/${id}`), {
         credentials: "include",
       });
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) {
         setMessages([]);
         setActiveConversationId(null);
@@ -219,9 +222,7 @@ export function useChat(conversationId?: string) {
         });
 
         if (res.status === 401) {
-          if (window.location.pathname !== "/login") {
-            window.location.replace("/login");
-          }
+          redirectToLogin();
           return;
         }
         if (res.status === 403) {
