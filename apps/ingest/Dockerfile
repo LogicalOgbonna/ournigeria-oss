@@ -107,6 +107,9 @@ COPY --from=build /app/packages/database/package.json packages/database/package.
 RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database
 
+# Create uploads directory writable by appuser
+RUN mkdir -p /uploads && chown appuser:appgroup /uploads
+
 # Copy Infisical config
 COPY apps/ingest/.infisical.json .infisical.json
 
