@@ -4,16 +4,27 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { PrismaService } from "@ournigeria/database";
 import * as crypto from "crypto";
+import { IS_PUBLIC_KEY } from "./decorators/public";
 
 const ADMIN_COOKIE = "on_admin_session";
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private reflector: Reflector,
+    private prisma: PrismaService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest();
 
     // Try cookie first (dashboard), then X-Admin-Key header (API)

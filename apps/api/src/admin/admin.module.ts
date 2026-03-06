@@ -15,6 +15,8 @@ import { AdminS3Controller } from "./admin-s3.controller";
 import { AdminS3Service } from "./admin-s3.service";
 import { AdminVectorsController } from "./admin-vectors.controller";
 import { AdminVectorsService } from "./admin-vectors.service";
+import { AdminDocumentsController } from "./admin-documents.controller";
+import { AdminDocumentsService } from "./admin-documents.service";
 
 @Module({
   controllers: [
@@ -26,6 +28,7 @@ import { AdminVectorsService } from "./admin-vectors.service";
     AdminFeedbackController,
     AdminS3Controller,
     AdminVectorsController,
+    AdminDocumentsController,
   ],
   providers: [
     AdminAuthService,
@@ -36,6 +39,7 @@ import { AdminVectorsService } from "./admin-vectors.service";
     AdminFeedbackService,
     AdminS3Service,
     AdminVectorsService,
+    AdminDocumentsService,
   ],
 })
 export class AdminModule implements OnModuleInit {

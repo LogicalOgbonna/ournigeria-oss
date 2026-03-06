@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
@@ -21,6 +22,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Server,
+  RefreshCw,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
 
@@ -39,50 +41,28 @@ interface SystemHealth {
   p99Latency: number;
 }
 
-const placeholder: SystemHealth = {
-  services: [
-    { name: "API (NestJS)", status: "healthy", latency: 45, uptime: "99.97%" },
-    {
-      name: "Ingest Service",
-      status: "healthy",
-      latency: 62,
-      uptime: "99.94%",
-    },
-    { name: "PostgreSQL", status: "healthy", latency: 3, uptime: "99.99%" },
-    { name: "pgvector", status: "healthy", latency: 18, uptime: "99.99%" },
-    {
-      name: "Voyage AI (embeddings)",
-      status: "healthy",
-      latency: 210,
-      uptime: "99.85%",
-    },
-    { name: "S3 Storage", status: "healthy", latency: 35, uptime: "99.99%" },
-  ],
-  latencyHistory: Array.from({ length: 24 }, (_, i) => ({
-    time: `${String(i).padStart(2, "0")}:00`,
-    api: 30 + Math.random() * 80,
-    ingest: 50 + Math.random() * 100,
-  })),
-  errorRateHistory: Array.from({ length: 24 }, (_, i) => ({
-    time: `${String(i).padStart(2, "0")}:00`,
-    errors: Math.floor(Math.random() * 5),
-    total: 200 + Math.floor(Math.random() * 300),
-  })),
-  requestsPerMinute: 42,
-  avgLatency: 87,
-  errorRate: 0.3,
-  p99Latency: 450,
-};
-
 export default function SystemPage() {
   const [data, setData] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHealth = () => {
+    setLoading(true);
+    setError(null);
+    adminFetch("/system/health")
+      .then((d) => {
+        setData(d);
+        setError(null);
+      })
+      .catch((err) => {
+        setError(err.message || "Failed to load system health");
+        setData(null);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    adminFetch("/system/health")
-      .then(setData)
-      .catch(() => setData(placeholder))
-      .finally(() => setLoading(false));
+    fetchHealth();
   }, []);
 
   if (loading) {
@@ -99,15 +79,44 @@ export default function SystemPage() {
     );
   }
 
-  const d = data!;
+  if (error || !data) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">System Health</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            API monitoring, latency, and error rates
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              {error || "Unable to reach the API. Make sure the service is running."}
+            </p>
+            <Button variant="outline" size="sm" onClick={fetchHealth}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-heading font-bold">System Health</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          API monitoring, latency, and error rates
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">System Health</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            API monitoring, latency, and error rates
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchHealth}>
+          <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+          Refresh
+        </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -120,7 +129,7 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-heading">
-              {d.requestsPerMinute}
+              {data.requestsPerMinute}
             </div>
           </CardContent>
         </Card>
@@ -133,9 +142,9 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-heading">
-              {d.avgLatency >= 1000
-                ? `${(d.avgLatency / 1000).toFixed(1)}s`
-                : `${d.avgLatency}ms`}
+              {data.avgLatency >= 1000
+                ? `${(data.avgLatency / 1000).toFixed(1)}s`
+                : `${data.avgLatency}ms`}
             </div>
           </CardContent>
         </Card>
@@ -148,7 +157,7 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-heading">
-              {d.errorRate}%
+              {data.errorRate}%
             </div>
           </CardContent>
         </Card>
@@ -161,9 +170,9 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold font-heading">
-              {d.p99Latency >= 1000
-                ? `${(d.p99Latency / 1000).toFixed(1)}s`
-                : `${d.p99Latency}ms`}
+              {data.p99Latency >= 1000
+                ? `${(data.p99Latency / 1000).toFixed(1)}s`
+                : `${data.p99Latency}ms`}
             </div>
           </CardContent>
         </Card>
@@ -178,7 +187,7 @@ export default function SystemPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {d.services.map((svc) => (
+            {data.services.map((svc) => (
               <div
                 key={svc.name}
                 className="flex items-center gap-3 rounded-lg border border-border p-3"
@@ -193,7 +202,8 @@ export default function SystemPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{svc.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {svc.latency}ms &middot; {svc.uptime}
+                    {svc.latency >= 0 ? `${svc.latency}ms` : "unreachable"}{" "}
+                    &middot; {svc.uptime}
                   </p>
                 </div>
                 <Badge
@@ -223,50 +233,56 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={d.latencyHistory}
-                  margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-border"
-                  />
-                  <XAxis
-                    dataKey="time"
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Line
-                    dataKey="api"
-                    stroke="oklch(0.56 0.155 160)"
-                    strokeWidth={2}
-                    dot={false}
-                    name="API"
-                  />
-                  <Line
-                    dataKey="ingest"
-                    stroke="oklch(0.6 0.118 184.704)"
-                    strokeWidth={2}
-                    dot={false}
-                    name="Ingest"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {data.latencyHistory.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                  No latency data in the last 24 hours
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={data.latencyHistory}
+                    margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-border"
+                    />
+                    <XAxis
+                      dataKey="time"
+                      className="text-xs fill-muted-foreground"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      className="text-xs fill-muted-foreground"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius)",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Line
+                      dataKey="api"
+                      stroke="oklch(0.56 0.155 160)"
+                      strokeWidth={2}
+                      dot={false}
+                      name="API"
+                    />
+                    <Line
+                      dataKey="ingest"
+                      stroke="oklch(0.6 0.118 184.704)"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Ingest"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -279,41 +295,47 @@ export default function SystemPage() {
           </CardHeader>
           <CardContent>
             <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={d.errorRateHistory}
-                  margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-border"
-                  />
-                  <XAxis
-                    dataKey="time"
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    className="text-xs fill-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--card)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Bar
-                    dataKey="errors"
-                    fill="oklch(0.577 0.245 27.325)"
-                    radius={[2, 2, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {data.errorRateHistory.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                  No error data in the last 24 hours
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.errorRateHistory}
+                    margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      className="stroke-border"
+                    />
+                    <XAxis
+                      dataKey="time"
+                      className="text-xs fill-muted-foreground"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      className="text-xs fill-muted-foreground"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "var(--radius)",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Bar
+                      dataKey="errors"
+                      fill="oklch(0.577 0.245 27.325)"
+                      radius={[2, 2, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>

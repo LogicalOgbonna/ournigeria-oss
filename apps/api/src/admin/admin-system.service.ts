@@ -1,57 +1,50 @@
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@ournigeria/database";
+import { S3Client, HeadBucketCommand } from "@aws-sdk/client-s3";
 
 @Injectable()
 export class AdminSystemService {
-  constructor(private prisma: PrismaService) {}
+  private readonly s3: S3Client;
+  private readonly bucket: string;
+  private readonly ingestUrl: string;
+
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {
+    this.bucket = this.config.get<string>("S3_BUCKET", "");
+    this.ingestUrl = this.config.get<string>(
+      "INGEST_SERVICE_URL",
+      "http://ingest:3002",
+    );
+    this.s3 = new S3Client({
+      region: this.config.get<string>("AWS_REGION", "us-east-1"),
+      credentials: {
+        accessKeyId: this.config.get<string>("AWS_ACCESS_KEY_ID", ""),
+        secretAccessKey: this.config.get<string>("AWS_SECRET_ACCESS_KEY", ""),
+      },
+    });
+  }
 
   async getHealth() {
     const start = Date.now();
 
-    // DB ping
-    let dbLatency: number;
-    let dbStatus: "healthy" | "degraded" | "down" = "healthy";
-    try {
-      const t0 = Date.now();
-      await this.prisma.$queryRaw`SELECT 1`;
-      dbLatency = Date.now() - t0;
-      if (dbLatency > 500) dbStatus = "degraded";
-    } catch {
-      dbLatency = -1;
-      dbStatus = "down";
-    }
+    const [db, vector, s3, ingest] = await Promise.all([
+      this.checkDatabase(),
+      this.checkPgVector(),
+      this.checkS3(),
+      this.checkIngestService(),
+    ]);
 
-    // pgvector check
-    let vectorLatency: number;
-    let vectorStatus: "healthy" | "degraded" | "down" = "healthy";
-    try {
-      const t0 = Date.now();
-      await this.prisma
-        .$queryRaw`SELECT 1 FROM pg_extension WHERE extname = 'vector'`;
-      vectorLatency = Date.now() - t0;
-      if (vectorLatency > 500) vectorStatus = "degraded";
-    } catch {
-      vectorLatency = -1;
-      vectorStatus = "down";
-    }
-
-    // Memory usage
     const mem = process.memoryUsage();
     const memMb = Math.round(mem.rss / 1024 / 1024);
 
-    // Uptime
     const uptimeS = process.uptime();
-    const days = Math.floor(uptimeS / 86400);
-    const hours = Math.floor((uptimeS % 86400) / 3600);
-    const uptimeStr =
-      days > 0
-        ? `${days}d ${hours}h`
-        : `${hours}h ${Math.floor((uptimeS % 3600) / 60)}m`;
+    const uptimeStr = this.formatUptime(uptimeS);
 
-    // API latency (self)
     const apiLatency = Date.now() - start;
 
-    // Use messages table for latency metrics (has processing_time_ms)
     const oneHourAgo = new Date(Date.now() - 3600_000);
     const [recentMessages, recentQueries] = await Promise.all([
       this.prisma.message.count({
@@ -64,7 +57,6 @@ export class AdminSystemService {
 
     const requestsPerMinute = Math.round((recentMessages + recentQueries) / 60);
 
-    // Avg latency from messages (processing_time_ms)
     const latencyStats = await this.prisma.message.aggregate({
       where: {
         createdAt: { gte: oneHourAgo },
@@ -75,7 +67,6 @@ export class AdminSystemService {
     });
     const avgLatency = Math.round(latencyStats._avg.processingTimeMs || 0);
 
-    // P99 approximation
     const totalWithLatency = await this.prisma.message.count({
       where: {
         createdAt: { gte: oneHourAgo },
@@ -95,7 +86,6 @@ export class AdminSystemService {
     });
     const p99Latency = p99Row?.processingTimeMs || avgLatency;
 
-    // Error rate: messages with very high latency (>120s = likely timeout)
     const errorCount = await this.prisma.message.count({
       where: {
         createdAt: { gte: oneHourAgo },
@@ -108,8 +98,10 @@ export class AdminSystemService {
         ? Math.round((errorCount / totalWithLatency) * 100 * 100) / 100
         : 0;
 
-    const latencyHistory = await this.buildLatencyHistory();
-    const errorRateHistory = await this.buildErrorHistory();
+    const [latencyHistory, errorRateHistory] = await Promise.all([
+      this.buildLatencyHistory(),
+      this.buildErrorHistory(),
+    ]);
 
     const services = [
       {
@@ -119,16 +111,28 @@ export class AdminSystemService {
         uptime: uptimeStr,
       },
       {
+        name: "Ingest Service",
+        status: ingest.status,
+        latency: ingest.latency,
+        uptime: ingest.uptime ?? "N/A",
+      },
+      {
         name: "PostgreSQL",
-        status: dbStatus,
-        latency: dbLatency,
-        uptime: dbStatus === "down" ? "0%" : "99.99%",
+        status: db.status,
+        latency: db.latency,
+        uptime: db.status === "down" ? "down" : uptimeStr,
       },
       {
         name: "pgvector",
-        status: vectorStatus,
-        latency: vectorLatency,
-        uptime: vectorStatus === "down" ? "0%" : "99.99%",
+        status: vector.status,
+        latency: vector.latency,
+        uptime: vector.status === "down" ? "down" : uptimeStr,
+      },
+      {
+        name: "S3 Storage",
+        status: s3.status,
+        latency: s3.latency,
+        uptime: s3.status === "down" ? "down" : "N/A",
       },
       {
         name: `Memory (${memMb}MB)`,
@@ -149,6 +153,86 @@ export class AdminSystemService {
       errorRate,
       p99Latency,
     };
+  }
+
+  private async checkDatabase(): Promise<{
+    status: "healthy" | "degraded" | "down";
+    latency: number;
+  }> {
+    try {
+      const t0 = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      const latency = Date.now() - t0;
+      return { status: latency > 500 ? "degraded" : "healthy", latency };
+    } catch {
+      return { status: "down", latency: -1 };
+    }
+  }
+
+  private async checkPgVector(): Promise<{
+    status: "healthy" | "degraded" | "down";
+    latency: number;
+  }> {
+    try {
+      const t0 = Date.now();
+      await this.prisma
+        .$queryRaw`SELECT 1 FROM pg_extension WHERE extname = 'vector'`;
+      const latency = Date.now() - t0;
+      return { status: latency > 500 ? "degraded" : "healthy", latency };
+    } catch {
+      return { status: "down", latency: -1 };
+    }
+  }
+
+  private async checkS3(): Promise<{
+    status: "healthy" | "down";
+    latency: number;
+  }> {
+    if (!this.bucket) return { status: "down", latency: -1 };
+    try {
+      const t0 = Date.now();
+      await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      return { status: "healthy", latency: Date.now() - t0 };
+    } catch {
+      return { status: "down", latency: -1 };
+    }
+  }
+
+  private async checkIngestService(): Promise<{
+    status: "healthy" | "degraded" | "down";
+    latency: number;
+    uptime?: string;
+  }> {
+    try {
+      const t0 = Date.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${this.ingestUrl}/health`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const latency = Date.now() - t0;
+      if (!res.ok) return { status: "down", latency };
+      const body = await res.json();
+      const uptime =
+        body.uptime != null ? this.formatUptime(body.uptime) : undefined;
+      return {
+        status: body.status === "ok" ? "healthy" : "degraded",
+        latency,
+        uptime,
+      };
+    } catch {
+      return { status: "down", latency: -1 };
+    }
+  }
+
+  private formatUptime(seconds: number): string {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
   }
 
   private async buildLatencyHistory() {
@@ -192,7 +276,6 @@ export class AdminSystemService {
   }
 
   async getLogs(level?: string, service?: string, limit = 100, offset = 0) {
-    // Build processing-time filter based on level
     const processingTimeFilter: Record<string, any> = {};
     if (level === "error") {
       processingTimeFilter.processingTimeMs = { gt: 120000 };
@@ -205,7 +288,6 @@ export class AdminSystemService {
       ];
     }
 
-    // Build model filter based on service
     const serviceFilter: Record<string, any> = {};
     if (service && service !== "all") {
       serviceFilter.modelUsed = { contains: service, mode: "insensitive" };
@@ -255,7 +337,6 @@ export class AdminSystemService {
       const hasFailed = run.errorMsg !== null;
       const noCompletion = !run.completedAt;
       const ageMs = Date.now() - run.startedAt.getTime();
-      // If no completedAt and started >30 min ago, it's stale (not actually running)
       const isStale = noCompletion && ageMs > 30 * 60 * 1000;
       const isRunning = noCompletion && !isStale;
       const progress =

@@ -13,6 +13,7 @@ import { SourcesModule } from "./sources/sources.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { AdminModule } from "./admin/admin.module";
 import { FeedbackModule } from "./feedback/feedback.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { FeedbackModule } from "./feedback/feedback.module";
     NotificationsModule,
     AdminModule,
     FeedbackModule,
+    HealthModule,
   ],
   providers: [
     {

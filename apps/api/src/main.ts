@@ -13,7 +13,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());
-  app.setGlobalPrefix("api");
+  app.setGlobalPrefix("api", { exclude: ["health"] });
   const allowedOrigins = process.env
     .CORS_ORIGINS!.split(",")
     .map((o) => o.trim());

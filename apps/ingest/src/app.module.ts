@@ -10,6 +10,7 @@ import { S3Module } from "./s3/s3.module";
 import { SqsModule } from "./sqs/sqs.module";
 import { AdminGuard } from "./auth/admin.guard";
 import { validateEnv } from "./config/env.validation";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { validateEnv } from "./config/env.validation";
     IngestionModule,
     SchedulingModule,
     SqsModule,
+    HealthModule,
   ],
   providers: [
     {

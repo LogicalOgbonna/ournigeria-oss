@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import {
   Search,
   ArrowDown,
   RefreshCw,
+  AlertTriangle,
+  Inbox,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { adminFetch } from "@/lib/api";
@@ -39,45 +41,6 @@ const levelColors: Record<string, string> = {
   debug: "text-muted-foreground",
 };
 
-// Generate realistic-looking placeholder logs
-function generateLogs(count: number): LogEntry[] {
-  const services = ["api", "ingest", "auth", "chat", "vector"];
-  const levels: LogEntry["level"][] = [
-    "info",
-    "info",
-    "info",
-    "warn",
-    "error",
-    "debug",
-    "debug",
-  ];
-  const messages = [
-    "Request processed successfully",
-    "User authenticated via Telegram",
-    "Chat query processed in 1.2s",
-    "Vector search returned 5 results (avg score: 0.87)",
-    "Pipeline worker started for budget files",
-    "File processed: budgets/lagos/2025-approved.pdf (1024 chunks)",
-    "Database connection pool: 8/20 active",
-    "Rate limit approaching for Voyage AI API",
-    "Failed to process file: corrupt PDF header",
-    "Embedding batch completed: 50 chunks in 3.2s",
-    "SSE client connected from 192.168.1.100",
-    "Cache hit for query: 'lagos education budget'",
-    "Memory usage: 487MB / 2048MB",
-    "Slow query detected: 850ms for user lookup",
-    "WebSocket connection established",
-  ];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: `log-${i}`,
-    timestamp: new Date(Date.now() - (count - i) * 2000).toISOString(),
-    level: levels[Math.floor(Math.random() * levels.length)],
-    service: services[Math.floor(Math.random() * services.length)],
-    message: messages[Math.floor(Math.random() * messages.length)],
-  }));
-}
-
 export default function LogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [streaming, setStreaming] = useState(true);
@@ -85,56 +48,44 @@ export default function LogsPage() {
   const [levelFilter, setLevelFilter] = useState("all");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [autoScroll, setAutoScroll] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [initialLoad, setInitialLoad] = useState(true);
   const logEndRef = useRef<HTMLDivElement>(null);
-  const [useApi, setUseApi] = useState(true);
 
-  // Load initial logs from API
   useEffect(() => {
     adminFetch("/system/logs?limit=100")
       .then((data) => {
         const entries = Array.isArray(data) ? data : [];
-        if (entries.length > 0) {
-          setLogs(entries.reverse());
-        } else {
-          setLogs(generateLogs(50));
-          setUseApi(false);
-        }
+        setLogs(entries.reverse());
+        setError(null);
       })
-      .catch(() => {
-        setLogs(generateLogs(50));
-        setUseApi(false);
-      });
+      .catch((err) => {
+        setError(err.message || "Failed to load logs");
+        setLogs([]);
+      })
+      .finally(() => setInitialLoad(false));
   }, []);
 
-  // Poll for new logs or simulate streaming
   useEffect(() => {
-    if (!streaming) return;
+    if (!streaming || initialLoad || error) return;
     const interval = setInterval(() => {
-      if (useApi) {
-        adminFetch("/system/logs?limit=10")
-          .then((data) => {
-            const entries: LogEntry[] = Array.isArray(data) ? data : [];
-            if (entries.length > 0) {
-              setLogs((prev) => {
-                const ids = new Set(prev.map((l) => l.id));
-                const newOnes = entries.reverse().filter((l) => !ids.has(l.id));
-                return newOnes.length > 0
-                  ? [...prev.slice(-490), ...newOnes]
-                  : prev;
-              });
-            }
-          })
-          .catch(() => {});
-      } else {
-        const newLogs = generateLogs(1).map((l) => ({
-          ...l,
-          id: `log-${Date.now()}`,
-        }));
-        setLogs((prev) => [...prev.slice(-500), ...newLogs]);
-      }
-    }, 3000);
+      adminFetch("/system/logs?limit=10")
+        .then((data) => {
+          const entries: LogEntry[] = Array.isArray(data) ? data : [];
+          if (entries.length > 0) {
+            setLogs((prev) => {
+              const ids = new Set(prev.map((l) => l.id));
+              const newOnes = entries.reverse().filter((l) => !ids.has(l.id));
+              return newOnes.length > 0
+                ? [...prev.slice(-490), ...newOnes]
+                : prev;
+            });
+          }
+        })
+        .catch(() => {});
+    }, 5000);
     return () => clearInterval(interval);
-  }, [streaming, useApi]);
+  }, [streaming, initialLoad, error]);
 
   useEffect(() => {
     if (autoScroll) logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -148,15 +99,54 @@ export default function LogsPage() {
     return true;
   });
 
+  const retry = () => {
+    setInitialLoad(true);
+    setError(null);
+    adminFetch("/system/logs?limit=100")
+      .then((data) => {
+        const entries = Array.isArray(data) ? data : [];
+        setLogs(entries.reverse());
+        setError(null);
+      })
+      .catch((err) => {
+        setError(err.message || "Failed to load logs");
+        setLogs([]);
+      })
+      .finally(() => setInitialLoad(false));
+  };
+
+  if (error && logs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Live Logs</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Log entries from API service
+          </p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-4">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              {error}
+            </p>
+            <Button variant="outline" size="sm" onClick={retry}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">Live Logs</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {useApi
-              ? "Log entries from API service"
-              : "Simulated log streaming (API unavailable)"}
+            Log entries from API service
           </p>
         </div>
         <div className="flex gap-2">
@@ -228,10 +218,19 @@ export default function LogsPage() {
         <CardContent className="p-0">
           <ScrollArea className="h-[600px] custom-scrollbar">
             <div className="font-mono text-xs p-3 space-y-0.5">
-              {filtered.length === 0 ? (
+              {initialLoad ? (
                 <p className="text-muted-foreground text-center py-8">
-                  No logs matching filters
+                  Loading logs...
                 </p>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Inbox className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-muted-foreground text-center">
+                    {logs.length === 0
+                      ? "No log entries yet. Logs will appear as the API processes requests."
+                      : "No logs matching filters"}
+                  </p>
+                </div>
               ) : (
                 filtered.map((log) => (
                   <div
@@ -269,7 +268,7 @@ export default function LogsPage() {
         <span>
           {filtered.length} entries shown (of {logs.length} total)
         </span>
-        {streaming && (
+        {streaming && !error && (
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-chart-1 animate-pulse" />{" "}
             Streaming
