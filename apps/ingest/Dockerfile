@@ -70,7 +70,6 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/ingest... --prod \
     node_modules/recharts \
     node_modules/playwright-core \
     node_modules/@babel \
-    node_modules/swagger-ui-dist \
     node_modules/@prisma/studio-core \
     node_modules/@prisma/engines \
     node_modules/@prisma/dev \
