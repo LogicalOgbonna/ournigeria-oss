@@ -3,6 +3,7 @@ import { budgetAnalyst } from "./agents/budget-analyst";
 import { impactAnalyst } from "./agents/impact-analyst";
 import { corruptionAnalyst } from "./agents/corruption-analyst";
 import { govspendAnalyst } from "./agents/govspend-analyst";
+import { faacAnalyst } from "./agents/faac-analyst";
 import { routerAgent } from "./agents/router-agent";
 import { createObservability } from "../lib/langfuse";
 
@@ -11,6 +12,7 @@ const agents = {
   impactAnalyst,
   corruptionAnalyst,
   govspendAnalyst,
+  faacAnalyst,
   routerAgent,
 } as const;
 
@@ -21,6 +23,7 @@ export const AgentNames: Record<AgentName, AgentName> = {
   impactAnalyst: "impactAnalyst",
   corruptionAnalyst: "corruptionAnalyst",
   govspendAnalyst: "govspendAnalyst",
+  faacAnalyst: "faacAnalyst",
   routerAgent: "routerAgent",
 } as const;
 

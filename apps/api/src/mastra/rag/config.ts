@@ -76,6 +76,7 @@ export const RAG_CONFIG = {
   indexName: process.env.VECTOR_INDEX_BUDGET!,
   corruptionIndexName: process.env.VECTOR_INDEX_CORRUPTION!,
   govspendIndexName: process.env.VECTOR_INDEX_GOVSPEND!,
+  faacIndexName: process.env.VECTOR_INDEX_FAAC!,
   chunkSize: 512,
   chunkOverlap: 50,
   embeddingDimension: Number(process.env.EMBEDDING_DIMENSION!),

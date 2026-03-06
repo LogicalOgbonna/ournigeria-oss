@@ -11,6 +11,7 @@ export interface EnvConfig {
   VECTOR_INDEX_BUDGET: string;
   VECTOR_INDEX_CORRUPTION: string;
   VECTOR_INDEX_GOVSPEND: string;
+  VECTOR_INDEX_FAAC: string;
   AWS_REGION: string;
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
@@ -66,6 +67,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     VECTOR_INDEX_BUDGET: config.VECTOR_INDEX_BUDGET as string,
     VECTOR_INDEX_CORRUPTION: config.VECTOR_INDEX_CORRUPTION as string,
     VECTOR_INDEX_GOVSPEND: config.VECTOR_INDEX_GOVSPEND as string,
+    VECTOR_INDEX_FAAC: config.VECTOR_INDEX_FAAC as string,
     AWS_REGION: config.AWS_REGION as string,
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,

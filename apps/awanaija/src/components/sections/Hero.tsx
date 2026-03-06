@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ChevronDown,
   Bot,
   TrendingUp,
   FileText,
+  MessageCircle,
+  Globe,
+  Send,
+  X,
 } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     let ctx: { revert: () => void } | null = null;
@@ -105,7 +111,7 @@ export function Hero() {
             {/* Headline — Carousel */}
             <div className="hero-line opacity-0 group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden">
               <div
-                className="absolute left-0 top-0 flex flex-col w-full animate-[carousel-headline_15s_linear_infinite]"
+                className="absolute left-0 top-0 flex flex-col w-full animate-[carousel-headline_20s_linear_infinite]"
                 style={{
                   animationTimingFunction: "cubic-bezier(0.8, 0, 0.2, 1)",
                 }}
@@ -140,6 +146,16 @@ export function Hero() {
                   </span>
                 </h1>
 
+                {/* Item 4 */}
+                <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
+                  <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
+                    Follow Your LGA Money,
+                  </span>
+                  <span className="block bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-400 bg-clip-text text-transparent font-[family-name:var(--font-serif)] text-[2.6rem] italic sm:text-7xl lg:text-[5.5rem] dark:from-emerald-300 dark:via-emerald-400 dark:to-emerald-200 transition-transform duration-500 group-hover:-rotate-y-6 group-hover:scale-105 origin-center lg:origin-left leading-[1.1] sm:leading-none relative">
+                    No Gree.
+                  </span>
+                </h1>
+
                 {/* Item 1 Duplicate (for seamless looping) */}
                 <h1 className="w-full shrink-0 flex flex-col justify-center h-[90px] sm:h-[180px] lg:h-[200px] font-[family-name:var(--font-heading)] leading-[1.05] tracking-tight perspective-[1200px] items-center lg:items-start text-center lg:text-left gap-0 sm:gap-2">
                   <span className="block text-[1.4rem] font-medium text-muted-foreground sm:text-4xl lg:text-4xl transition-transform duration-500 group-hover:rotate-x-12 group-hover:translate-y-[-2px] pb-1 sm:pb-0">
@@ -163,17 +179,58 @@ export function Hero() {
             </p>
 
             {/* CTAs */}
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <a
-                href={APP_URL}
-                className="hero-cta btn-magnetic inline-flex h-13 items-center gap-2.5 rounded-[1.5rem] bg-emerald-600 px-8 text-base font-semibold text-white opacity-0 shadow-xl shadow-emerald-600/20 dark:bg-emerald-500"
+            <div className="mt-10 flex flex-wrap items-center gap-4 relative">
+              <div
+                className="relative"
+                onMouseEnter={() => setIsDropdownOpen(true)}
+                onMouseLeave={() => setIsDropdownOpen(false)}
               >
-                <span className="btn-slide bg-emerald-700 dark:bg-emerald-600" />
-                <span className="relative z-10 flex items-center gap-2.5">
-                  Start Asking Questions
-                  <ArrowRight className="h-4 w-4" />
-                </span>
-              </a>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="hero-cta btn-magnetic inline-flex h-13 items-center gap-2.5 rounded-[1.5rem] bg-emerald-600 px-8 text-base font-semibold text-white opacity-0 shadow-xl shadow-emerald-600/20 dark:bg-emerald-500 cursor-pointer"
+                >
+                  <span className="btn-slide bg-emerald-700 dark:bg-emerald-600" />
+                  <span className="relative z-10 flex items-center gap-2.5">
+                    Start Asking Questions
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
+                    />
+                  </span>
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute top-full left-0 pt-2 w-full min-w-[240px] z-50">
+                    <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+                      <a
+                        href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                      >
+                        <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Ask on Telegram
+                      </a>
+                      <button
+                        onClick={() => {
+                          setIsModalOpen(true);
+                          setIsDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted text-left cursor-pointer"
+                      >
+                        <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Ask on WhatsApp
+                      </button>
+                      <a
+                        href={APP_URL}
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                      >
+                        <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Ask on Web
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
               <a
                 href="#process"
                 className="hero-cta inline-flex h-13 items-center gap-2 rounded-[1.5rem] px-6 text-base font-medium text-muted-foreground opacity-0 transition-colors hover:text-foreground"
@@ -206,16 +263,17 @@ export function Hero() {
                     </p>
                   </div>
                   <div className="ml-auto flex gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-1_15s_linear_infinite]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-2_15s_linear_infinite]" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-3_15s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-1_20s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-2_20s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-3_20s_linear_infinite]" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-[carousel-dot-4_20s_linear_infinite]" />
                   </div>
                 </div>
 
                 {/* Chat items wrapper */}
                 <div className="relative h-[280px] w-full overflow-hidden">
                   <div
-                    className="absolute left-0 top-0 w-full flex flex-col gap-4 animate-[carousel-chat_15s_linear_infinite]"
+                    className="absolute left-0 top-0 w-full flex flex-col gap-4 animate-[carousel-chat_20s_linear_infinite]"
                     style={{
                       animationTimingFunction: "cubic-bezier(0.8, 0, 0.2, 1)",
                     }}
@@ -281,6 +339,25 @@ export function Hero() {
                       </div>
                     </div>
 
+                    {/* Item 4 - FAAC */}
+                    <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
+                      <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
+                        How much FAAC allocation enter Ikeja LG last month?
+                      </div>
+                      <div className="max-w-[85%] rounded-[1.25rem] rounded-bl-lg bg-muted/60 px-4 py-3 text-sm backdrop-blur-sm shadow-sm">
+                        <p>
+                          Last month, Ikeja Local Government received{" "}
+                          <strong className="text-emerald-600 dark:text-emerald-400">
+                            ₦450.2 million
+                          </strong>{" "}
+                          from the Federal Account Allocation Committee (FAAC).
+                        </p>
+                        <p className="mt-2 font-[family-name:var(--font-mono)] text-[10px] text-muted-foreground/60">
+                          src: FAAC Allocations
+                        </p>
+                      </div>
+                    </div>
+
                     {/* Item 1 Duplicate (for seamless looping) */}
                     <div className="w-full shrink-0 flex flex-col h-[280px] justify-center">
                       <div className="mb-3 ml-auto max-w-[80%] rounded-[1.25rem] rounded-br-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-sm dark:bg-emerald-500">
@@ -334,6 +411,36 @@ export function Hero() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                <MessageCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">WhatsApp is coming</h3>
+              <p className="text-sm text-muted-foreground">
+                We're currently working on bringing Our Nigeria to WhatsApp. In
+                the meantime, please try our Telegram bot or the Web app.
+              </p>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="mt-6 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 dark:bg-emerald-500 cursor-pointer"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

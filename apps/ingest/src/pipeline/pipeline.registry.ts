@@ -3,6 +3,7 @@ import { PipelineBase } from "./pipeline.base";
 import { BudgetPipeline } from "./budget.pipeline";
 import { CorruptionPipeline } from "./corruption.pipeline";
 import { GovspendPipeline } from "./govspend.pipeline";
+import { FaacPipeline } from "./faac.pipeline";
 
 @Injectable()
 export class PipelineRegistry {
@@ -12,8 +13,9 @@ export class PipelineRegistry {
     budget: BudgetPipeline,
     corruption: CorruptionPipeline,
     govspend: GovspendPipeline,
+    faac: FaacPipeline,
   ) {
-    for (const pipeline of [budget, corruption, govspend]) {
+    for (const pipeline of [budget, corruption, govspend, faac]) {
       this.map.set(pipeline.pipelineType, pipeline);
     }
   }

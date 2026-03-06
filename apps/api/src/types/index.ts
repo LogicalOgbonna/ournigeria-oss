@@ -98,6 +98,7 @@ export type ToolId =
   | "budget"
   | "corruption"
   | "govspend"
+  | "faac"
   | "impact"
   | "general";
 

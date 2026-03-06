@@ -38,6 +38,7 @@ import {
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
 const GOVSPEND_INDEX = RAG_CONFIG.govspendIndexName;
+const FAAC_INDEX = RAG_CONFIG.faacIndexName;
 
 /** Minimum cosine similarity score for a RAG result to be considered relevant. */
 const MIN_RELEVANCE_SCORE = 0.2;
@@ -88,6 +89,8 @@ const GENERAL_FOLLOW_UPS = [
   { text: "Who are the biggest government contractors?" },
   { text: "Show me payments by Nigeria Correctional Service" },
   { text: "Which MDA spends the most money?" },
+  { text: "How much did Lagos receive from FAAC in 2025?" },
+  { text: "Compare FAAC allocation for South East states" },
 ];
 
 const GENERAL_FOLLOW_UPS_PCM = [
@@ -111,6 +114,8 @@ const GENERAL_FOLLOW_UPS_PCM = [
   { text: "Who be di biggest government contractors?" },
   { text: "Show me payments wey Nigeria Correctional Service make" },
   { text: "Which MDA dey spend di most money?" },
+  { text: "How much Lagos collect from FAAC for 2025?" },
+  { text: "Compare FAAC allocation for South East states" },
 ];
 
 function pickRandomFollowUps(
@@ -124,7 +129,7 @@ function pickRandomFollowUps(
 
 function getFollowUps(
   language: Language,
-  intent: "budget" | "corruption" | "govspend",
+  intent: "budget" | "corruption" | "govspend" | "faac",
 ): Array<{ text: string }> {
   const suggestions: Record<string, Array<{ text: string }>> = {
     budget: [
@@ -141,6 +146,11 @@ function getFollowUps(
       { text: t("followUp.govspendJuliusBerger", language) },
       { text: t("followUp.govspendMinistryWorks", language) },
       { text: t("followUp.govspendTopMDA", language) },
+    ],
+    faac: [
+      { text: t("followUp.faacCompareSouthEast", language) },
+      { text: t("followUp.faacTopState", language) },
+      { text: t("followUp.faacTrendRivers", language) },
     ],
   };
   return suggestions[intent];
@@ -233,6 +243,24 @@ const GOVSPEND_KEYWORDS = [
   "payment records",
 ];
 
+const FAAC_KEYWORDS = [
+  "faac",
+  "federation account",
+  "federal allocation",
+  "state allocation",
+  "lga allocation",
+  "local government allocation",
+  "revenue sharing",
+  "disbursement",
+  "monthly allocation",
+  "statutory allocation",
+  "derivation fund",
+  "oil revenue sharing",
+  "faac disbursement",
+  "13% derivation",
+  "13 percent derivation",
+];
+
 const IMPACT_KEYWORDS = [
   "what could",
   "what can",
@@ -283,8 +311,14 @@ export function inferTool(
     0,
   );
 
+  const faacScore = FAAC_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+
   // Find the highest-scoring intent
   const scores = [
+    { tool: "faac" as const, score: faacScore },
     { tool: "corruption" as const, score: corruptionScore },
     { tool: "budget" as const, score: budgetScore },
     { tool: "govspend" as const, score: govspendScore },
@@ -964,6 +998,144 @@ async function runGovspendFlow(
   return { richContent, resolvedTool: "govspend" };
 }
 
+async function runFaacFlow(
+  message: string,
+  augmentedMessage: string,
+  send: SendFn,
+  language: Language = "en",
+  context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
+): Promise<RouteResult> {
+  const searchQuery = context
+    ? await rewriteQueryForRAG(message, context, sessionId, userId)
+    : message;
+
+  // Multi-search with dynamic topK
+  const rawResults = await runMultiSearch(
+    searchQuery,
+    FAAC_INDEX,
+    sessionId,
+    userId,
+  );
+
+  const ragParsed = rawResults
+    .map((r) => ({
+      state: (r.metadata?.state as string) ?? "",
+      year: (r.metadata?.year as number) ?? 0,
+      month: (r.metadata?.month as string) ?? "",
+      lga: (r.metadata?.lga as string) ?? "",
+      geopolitical_zone: (r.metadata?.geopolitical_zone as string) ?? "",
+      total_allocation: (r.metadata?.total_allocation as number) ?? 0,
+      chunk_type: (r.metadata?.chunk_type as string) ?? "",
+      text: (r.metadata?.text as string) ?? "",
+      source_file: (r.metadata?.source_file as string) ?? "",
+      score: typeof r.score === "number" ? r.score : 0,
+    }))
+    .filter((r) => r.score >= MIN_RELEVANCE_SCORE);
+
+  // When pre-search finds no results, let the agent use its own search tool
+  if (ragParsed.length === 0) {
+    send({ type: "status", content: t("status.analyzingFaac", language) });
+
+    let agentPrompt = getLanguageDirective(language);
+    agentPrompt += augmentedMessage;
+    agentPrompt += getLanguageReminder(language);
+
+    const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
+    const faacStream = await faacAgent.stream(agentPrompt, {
+      maxSteps: 10,
+    });
+
+    let faacAnalysis = "";
+    for await (const chunk of faacStream.textStream) {
+      faacAnalysis += chunk;
+      send({ type: "text", content: chunk });
+    }
+
+    const richContent = formatAgentResponse(faacAnalysis, language);
+    return { richContent, resolvedTool: "faac" };
+  }
+
+  const ragContext = ragParsed
+    .map((r) => {
+      const labels: string[] = [];
+      if (r.state) labels.push(r.state);
+      if (r.lga) labels.push(r.lga);
+      if (r.year) labels.push(String(r.year));
+      if (r.month) labels.push(r.month);
+      if (r.chunk_type) labels.push(`[${r.chunk_type}]`);
+      return `[${labels.join(" ")}]\n${r.text}`;
+    })
+    .join("\n\n---\n\n");
+
+  // Build source citations
+  const sourceMap = new Map<string, SourceCitation>();
+  for (const r of ragParsed) {
+    if (!r.source_file) continue;
+    const key = r.source_file;
+    const existing = sourceMap.get(key);
+    if (!existing || r.score > existing.score) {
+      const title = r.source_file
+        .replace("faac/", "FAAC ")
+        .replace("/faac_allocation.pdf", "")
+        .replace("/annual_summary", " Annual");
+      sourceMap.set(key, {
+        title,
+        fileName: "faac_allocation.pdf",
+        location: r.source_file,
+        sourceType: "pdf",
+        state: r.state || undefined,
+        year: r.year || undefined,
+        score: r.score,
+      });
+    }
+  }
+  const sources = Array.from(sourceMap.values()).sort(
+    (a, b) => b.score - a.score,
+  );
+
+  let prompt = getLanguageDirective(language);
+  prompt += `[SYSTEM-RETRIEVED DATA — The following excerpts were automatically retrieved from our FAAC disbursement database. The user did NOT paste or upload these.]\n\n${ragContext}\n\n[END SYSTEM-RETRIEVED DATA]\n\n---\n\n`;
+  prompt += augmentedMessage;
+  prompt += getLanguageReminder(language);
+
+  send({ type: "status", content: t("status.analyzingFaac", language) });
+
+  const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
+  const stream = await faacAgent.stream(prompt, {
+    maxSteps: 10,
+  });
+
+  let faacAnalysis = "";
+  for await (const chunk of stream.textStream) {
+    faacAnalysis += chunk;
+    send({ type: "text", content: chunk });
+  }
+
+  // Filter sources by state/year mention in response
+  const responseLower = faacAnalysis.toLowerCase();
+  const relevantSources = sources
+    .filter((s) => {
+      if (s.state) {
+        const stateMatch = responseLower.includes(s.state.toLowerCase());
+        const yearMatch = s.year ? responseLower.includes(String(s.year)) : true;
+        return stateMatch && yearMatch;
+      }
+      // For national/zone chunks with no state, keep if year matches
+      return s.year ? responseLower.includes(String(s.year)) : true;
+    })
+    .slice(0, MAX_SOURCES);
+
+  const richContent = formatAgentResponse(
+    faacAnalysis,
+    language,
+    relevantSources,
+  );
+
+  return { richContent, resolvedTool: "faac" };
+}
+
 async function runImpactFlow(
   historyContext: string,
   message: string,
@@ -1026,6 +1198,7 @@ const routerSchema = z.object({
     "budget",
     "corruption",
     "govspend",
+    "faac",
     "impact",
     "follow_up",
   ]),
@@ -1211,6 +1384,7 @@ export async function routeToAgent({
   const statusMessages: Record<string, string> = {
     corruption: t("status.searchingCorruption", language),
     govspend: t("status.searchingGovspend", language),
+    faac: t("status.searchingFaac", language),
   };
   send({
     type: "status",
@@ -1230,6 +1404,16 @@ export async function routeToAgent({
       );
     case "govspend":
       return runGovspendFlow(
+        message,
+        augmentedMessage,
+        send,
+        language,
+        context,
+        sessionId,
+        userId,
+      );
+    case "faac":
+      return runFaacFlow(
         message,
         augmentedMessage,
         send,
