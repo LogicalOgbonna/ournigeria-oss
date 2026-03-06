@@ -24,6 +24,8 @@ services:
         max-size: "50m"
         max-file: "5"
     networks: [database]
+    ports:
+      - "5432:5432"
 
   api:
     image: ournigeria/api:${VERSION:-latest}
