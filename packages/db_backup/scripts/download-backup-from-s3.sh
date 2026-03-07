@@ -13,7 +13,7 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_DIR="${SCRIPT_DIR}/../backups"
+BACKUP_DIR="$(cd "${SCRIPT_DIR}/../backups" 2>/dev/null && pwd || echo "${SCRIPT_DIR}/../backups")"
 S3_PREFIX="db_backup"
 
 # ── Validate env vars ────────────────────────────────────────
@@ -66,12 +66,22 @@ echo ""
 
 aws s3 cp "${S3_PATH}" "${LOCAL_PATH}"
 
-# ── Verify ───────────────────────────────────────────────────
-if [[ -f "${LOCAL_PATH}" ]]; then
-  FILE_SIZE=$(du -h "${LOCAL_PATH}" | cut -f1)
-  echo ""
-  echo "Download complete: ${LOCAL_PATH} (${FILE_SIZE})"
+# ── Verify size ──────────────────────────────────────────────
+if [[ ! -f "${LOCAL_PATH}" ]]; then
+  echo "ERROR: Download failed — file not found."
+  exit 1
+fi
+
+FILE_SIZE=$(du -h "${LOCAL_PATH}" | cut -f1)
+echo ""
+echo "Download complete: ${LOCAL_PATH} (${FILE_SIZE})"
+
+# ── Verify gzip integrity ────────────────────────────────────
+echo "Verifying file integrity..."
+if gzip -t "${LOCAL_PATH}" 2>/dev/null; then
+  echo "Integrity check passed."
 else
-  echo "ERROR: Download failed."
+  echo "ERROR: File is corrupted. Delete and re-download:"
+  echo "  rm ${LOCAL_PATH}"
   exit 1
 fi
