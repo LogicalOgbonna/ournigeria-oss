@@ -214,22 +214,25 @@ const AMENITIES = [
 
 /** Extract a budget context label like "Lagos 2023 Budget" or "2024 Federal Budget" from the analysis text. */
 function extractBudgetLabel(text: string): string {
-  // Try "State YYYY Budget" or "YYYY State Budget"
+  const yearPattern = /\b(20(?:19|20|21|22|23|24|25|26))\b/;
+  const yearMatch = yearPattern.exec(text);
+
+  // Check for federal context FIRST — responses about federal spending often
+  // mention individual states as locations (e.g. "road construction in Ogun State")
+  // which would be incorrectly picked up as the budget label.
+  const federalPattern =
+    /\b(?:federal\s+(?:budget|government|ministry|road|spending|allocation)|federal\s+\w+\s+(?:budget|of\s+works)|national\s+budget)\b/i;
+  if (federalPattern.test(text) && yearMatch) {
+    return `${yearMatch[1]} Federal Budget`;
+  }
+
+  // Try state-specific label
   const stateYearPattern =
     /\b(Lagos|Kano|Rivers|Delta|Ogun|Kaduna|Benue|FCT|Akwa Ibom|Edo|Enugu|Oyo|Imo|Anambra|Abia|Bayelsa|Borno|Cross River|Ebonyi|Ekiti|Gombe|Jigawa|Katsina|Kebbi|Kogi|Kwara|Nasarawa|Niger|Ondo|Osun|Plateau|Sokoto|Taraba|Yobe|Zamfara|Adamawa|Bauchi)\b/i;
-  const yearPattern = /\b(20(?:19|20|21|22|23|24|25|26))\b/;
-
   const stateMatch = stateYearPattern.exec(text);
-  const yearMatch = yearPattern.exec(text);
 
   if (stateMatch && yearMatch) {
     return `${stateMatch[1]} ${yearMatch[1]} Budget`;
-  }
-
-  // Try "Federal Budget YYYY" or "YYYY Federal Budget"
-  const federalPattern = /\b(federal)\s+budget\b/i;
-  if (federalPattern.test(text) && yearMatch) {
-    return `${yearMatch[1]} Federal Budget`;
   }
 
   if (stateMatch) return `${stateMatch[1]} Budget`;

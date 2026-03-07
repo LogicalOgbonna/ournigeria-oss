@@ -134,14 +134,29 @@ export function extractStatus(text: string): CaseStatus {
   );
   if (statusHeaderMatch) {
     const statusLine = statusHeaderMatch[1].toLowerCase();
+
+    // Check for explicit negation in the status line (e.g., "No Conviction, No Formal Charges")
+    if (/\bno\b.*\b(?:conviction|charge|arrest)\b|\bnot\b.*\b(?:convicted|charged|arrested)\b|\bnever\s+charged\b/i.test(statusLine)) {
+      return "never_charged";
+    }
+
     for (const { pattern, status } of STATUS_PATTERNS) {
       if (pattern.test(statusLine)) return status;
     }
   }
 
-  // Fallback: scan entire text with priority cascade
+  // Fallback: scan entire text with priority cascade, but skip negated contexts
   for (const { pattern, status } of STATUS_PATTERNS) {
-    if (pattern.test(text)) return status;
+    const match = text.match(pattern);
+    if (match) {
+      // Check surrounding context (100 chars before) for negation
+      const matchIndex = match.index ?? 0;
+      const preceding = text.slice(Math.max(0, matchIndex - 100), matchIndex).toLowerCase();
+      if (/\bhas\s+not\s+been\b|\bnot\b.*\b(?:been|formally)\b|\bno\s+(?:conviction|charge|arrest)\b|\bnever\b/i.test(preceding)) {
+        continue;
+      }
+      return status;
+    }
   }
 
   return "unknown";
@@ -325,55 +340,62 @@ export function extractTotalAmountAlleged(
   chargesText: string | null,
   financialDetailsText: string | null,
 ): ParsedAmount | null {
-  const texts = [chargesText, financialDetailsText].filter(Boolean) as string[];
+  // Process financial_details FIRST — it has the authoritative "Total Amount Alleged" line
+  const texts = [financialDetailsText, chargesText].filter(Boolean) as string[];
   if (texts.length === 0) return null;
 
-  let bestAmount: ParsedAmount | null = null;
-  let bestIsPriority = false;
+  let bestPriorityAmount: ParsedAmount | null = null;
+  let bestFallbackAmount: ParsedAmount | null = null;
 
   for (const text of texts) {
     const lines = text.split("\n");
     for (const line of lines) {
-      // Prioritize lines with "total" or "alleged" keywords
+      // Only "Total Amount Alleged" or similar header lines are authoritative
       const isPriorityLine =
-        /\btotal\b|\balleged\b|\bsum\b|\baggregate\b/i.test(line);
+        /\btotal\s+amount\s+alleged\b|\btotal\s+alleged\b/i.test(line);
 
-      // For parenthetical conversions like "N1.8 billion ($15 million)", prefer NGN
       const amount = parseAmount(line);
       if (!amount) continue;
 
-      if (!bestAmount) {
-        bestAmount = amount;
-        bestIsPriority = isPriorityLine;
-      } else {
-        // If the new line is priority and the current best is not, the new line wins
-        if (isPriorityLine && !bestIsPriority) {
-          bestAmount = amount;
-          bestIsPriority = true;
+      if (isPriorityLine) {
+        // Among priority lines, prefer NGN, then highest value
+        if (!bestPriorityAmount) {
+          bestPriorityAmount = amount;
+        } else if (amount.currency === "NGN" && bestPriorityAmount.currency !== "NGN") {
+          bestPriorityAmount = amount;
+        } else if (
+          amount.currency === bestPriorityAmount.currency &&
+          amount.ngnValue > bestPriorityAmount.ngnValue
+        ) {
+          bestPriorityAmount = amount;
         }
-        // If both are priority (or both are not), prefer NGN over non-NGN
-        else if (isPriorityLine === bestIsPriority) {
-          if (amount.currency === "NGN" && bestAmount.currency !== "NGN") {
-            bestAmount = amount;
-          } else if (
-            amount.currency === bestAmount.currency &&
-            amount.ngnValue > bestAmount.ngnValue
-          ) {
-            bestAmount = amount;
-          } else if (
-            amount.currency !== "NGN" &&
-            bestAmount.currency !== "NGN" &&
-            amount.ngnValue > bestAmount.ngnValue
-          ) {
-            bestAmount = amount;
-          }
+      } else if (!bestPriorityAmount) {
+        // Only consider non-priority lines if no priority line has been found yet
+        if (!bestFallbackAmount) {
+          bestFallbackAmount = amount;
+        } else if (amount.currency === "NGN" && bestFallbackAmount.currency !== "NGN") {
+          bestFallbackAmount = amount;
+        } else if (
+          amount.currency === bestFallbackAmount.currency &&
+          amount.ngnValue > bestFallbackAmount.ngnValue
+        ) {
+          bestFallbackAmount = amount;
+        } else if (
+          amount.currency !== "NGN" &&
+          bestFallbackAmount.currency !== "NGN" &&
+          amount.ngnValue > bestFallbackAmount.ngnValue
+        ) {
+          bestFallbackAmount = amount;
         }
-        // If current best is priority but new line is not, do nothing (keep priority)
       }
     }
   }
 
-  return bestAmount;
+  // Only return amounts from authoritative "Total Amount Alleged" lines.
+  // Fallback amounts from random lines are unreliable — they often pick up
+  // contextual figures from broader scandals (e.g., "$50 billion NNPC" on a
+  // page about an official who allegedly stole $322 million).
+  return bestPriorityAmount;
 }
 
 // ─── Agency Extraction ──────────────────────────────────────────

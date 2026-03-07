@@ -439,7 +439,7 @@ const CASE_STATUSES = [
   "abated by death",
 ];
 
-const AGENCIES = ["efcc", "icpc", "ndlea", "police", "npf", "dss", "sss"];
+const AGENCIES = ["EFCC", "ICPC", "NDLEA", "Police", "NPF", "DSS", "SSS"];
 
 const AGGREGATION_SIGNALS = [
   "how many",

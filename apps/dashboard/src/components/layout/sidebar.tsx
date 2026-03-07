@@ -72,6 +72,11 @@ const vectorNav = [
     href: "/dashboard/vectors/search",
     icon: Search,
   },
+  {
+    title: "Evaluation",
+    href: "/dashboard/vectors/evaluation",
+    icon: FlaskConical,
+  },
 ];
 
 const contentNav = [

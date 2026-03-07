@@ -4,7 +4,7 @@ import type {
   SourceCitation,
   Language,
 } from "../types";
-import { mastra, AgentNames } from "./index";
+import { mastra, AgentNames, type AgentName } from "./index";
 import {
   formatAgentResponse,
   formatCorruptionResponse,
@@ -282,6 +282,197 @@ const IMPACT_KEYWORDS = [
   "what were nigerians denied",
   "impact of that",
 ];
+
+// ─── Cross-domain detection ──────────────────────────────────────
+
+type DomainIntent = "budget" | "corruption" | "govspend" | "faac";
+
+const DOMAIN_KEYWORDS: Record<DomainIntent, string[]> = {
+  corruption: CORRUPTION_KEYWORDS,
+  budget: BUDGET_KEYWORDS,
+  govspend: GOVSPEND_KEYWORDS,
+  faac: FAAC_KEYWORDS,
+};
+
+/**
+ * After the router picks a primary intent, check whether the query also
+ * has clear signals for one or more secondary domains.
+ * Returns the secondary intents that should also be queried.
+ */
+function detectSecondaryIntents(
+  message: string,
+  primaryIntent: ToolId,
+): DomainIntent[] {
+  if (primaryIntent === "general" || primaryIntent === "impact") return [];
+
+  const lower = message.toLowerCase();
+  const scores: Array<{ intent: DomainIntent; score: number }> = [];
+
+  for (const [intent, keywords] of Object.entries(DOMAIN_KEYWORDS) as Array<
+    [DomainIntent, string[]]
+  >) {
+    if (intent === primaryIntent) continue;
+    const score = keywords.reduce(
+      (s, kw) => s + (lower.includes(kw) ? 1 : 0),
+      0,
+    );
+    if (score > 0) scores.push({ intent, score });
+  }
+
+  // Only return secondary intents with meaningful signal (score >= 1)
+  return scores
+    .filter((s) => s.score >= 1)
+    .sort((a, b) => b.score - a.score)
+    .map((s) => s.intent);
+}
+
+/**
+ * Handle queries that span multiple domains by running RAG from
+ * multiple vector indexes in parallel, combining the context, and
+ * sending it to the primary domain's agent for synthesis.
+ */
+async function runCrossFlow(
+  message: string,
+  augmentedMessage: string,
+  send: SendFn,
+  primaryIntent: ToolId,
+  secondaryIntents: DomainIntent[],
+  language: Language = "en",
+  context?: ConversationContext,
+  sessionId?: string,
+  userId?: string,
+): Promise<RouteResult> {
+  send({ type: "status", content: t("status.searchingMultiple", language) });
+
+  const searchQuery = context
+    ? await rewriteQueryForRAG(message, context, sessionId, userId)
+    : message;
+
+  // Map intents to their vector indexes
+  const indexMap: Record<DomainIntent, string> = {
+    budget: RAG_CONFIG.indexName,
+    corruption: CORRUPTION_INDEX,
+    govspend: GOVSPEND_INDEX,
+    faac: FAAC_INDEX,
+  };
+
+  // Only pre-fetch RAG for SECONDARY domains. The primary agent will use
+  // its own search tool which has better filters (state, year, sector, etc.)
+  const ragByDomain = await Promise.all(
+    secondaryIntents.map(async (intent) => {
+      const indexName = indexMap[intent];
+      if (!indexName) return { intent, results: [] };
+
+      const corruptionAnalysis =
+        intent === "corruption"
+          ? analyzeCorruptionQueryComplexity(searchQuery)
+          : undefined;
+
+      const results = await runMultiSearch(
+        searchQuery,
+        indexName,
+        sessionId,
+        userId,
+        corruptionAnalysis,
+      );
+
+      return {
+        intent,
+        results: results.filter(
+          (r) =>
+            typeof r.score === "number" && r.score >= MIN_RELEVANCE_SCORE,
+        ),
+      };
+    }),
+  );
+
+  // Build combined RAG context with domain labels (secondary domains only)
+  const contextSections: string[] = [];
+
+  for (const { intent, results } of ragByDomain) {
+    if (results.length === 0) continue;
+
+    const domainLabel = intent.toUpperCase();
+    const chunks = results
+      .slice(0, 20) // Limit per-domain to keep prompt manageable
+      .map((r) => {
+        const text = (r.metadata?.text as string) ?? "";
+        // Add domain-specific context labels
+        if (intent === "corruption") {
+          const official = (r.metadata?.official as string) ?? "";
+          const section = (r.metadata?.section as string) ?? "";
+          const status = (r.metadata?.status as string) ?? "";
+          return `[${official} — ${section}${status ? ` [${status}]` : ""}]\n${text}`;
+        }
+        if (intent === "budget") {
+          const state = (r.metadata?.state as string) ?? "";
+          const year = (r.metadata?.year as number) ?? "";
+          const sector = (r.metadata?.sector as string) ?? "";
+          return `[${state} ${year}${sector && sector !== "general" ? ` — ${sector}` : ""}]\n${text}`;
+        }
+        if (intent === "faac") {
+          const state = (r.metadata?.state as string) ?? "";
+          const month = (r.metadata?.month as string) ?? "";
+          const year = (r.metadata?.year as number) ?? "";
+          return `[FAAC: ${state} ${month ? `${month} ` : ""}${year}]\n${text}`;
+        }
+        // govspend
+        const org = (r.metadata?.organization_name as string) ?? "";
+        const beneficiary = (r.metadata?.beneficiary_name as string) ?? "";
+        return `[${org} → ${beneficiary}]\n${text}`;
+      });
+
+    contextSections.push(
+      `=== ${domainLabel} DATA ===\n\n${chunks.join("\n\n---\n\n")}`,
+    );
+  }
+
+  const primaryDomainName = (primaryIntent as string).toUpperCase();
+  const secondaryDomainNames = secondaryIntents.map((i) => i.toUpperCase());
+
+  let prompt = getLanguageDirective(language);
+
+  // Inject secondary domain context if available
+  if (contextSections.length > 0) {
+    const combinedRag = contextSections.join("\n\n\n");
+    prompt += `[CROSS-DOMAIN DATA — The following ${secondaryDomainNames.join(", ")} data was automatically retrieved from our databases on the user's behalf. This is authoritative data from our comprehensive records.]\n\n${combinedRag}\n\n[END CROSS-DOMAIN DATA]\n\n---\n\n`;
+  }
+
+  prompt += augmentedMessage;
+  prompt += `\n\nIMPORTANT: This is a cross-domain question spanning ${primaryDomainName} and ${secondaryDomainNames.join(", ")}.
+- For ${primaryDomainName} data: USE YOUR SEARCH TOOL to retrieve comprehensive, filtered results. Do NOT rely on pre-fetched data for your primary domain.
+- For ${secondaryDomainNames.join("/")} data: The data above comes from our comprehensive databases. Present it confidently as factual data from government records.
+- NEVER say "excerpts", "provided data", "from what was provided", "in the data shared", "your excerpts", or suggest the data is incomplete/partial. Say "according to our records", "from government payment records", "from the budget documents", etc.
+- Address ALL parts of the question with specific numbers, amounts, and details.`;
+  prompt += getLanguageReminder(language);
+
+  send({
+    type: "status",
+    content: t("status.analyzing", language),
+  });
+
+  // Use the primary domain's agent for synthesis (it has its own search tool)
+  const agentMap: Partial<Record<DomainIntent, AgentName>> = {
+    budget: AgentNames.budgetAnalyst,
+    corruption: AgentNames.corruptionAnalyst,
+    govspend: AgentNames.govspendAnalyst,
+    faac: AgentNames.faacAnalyst,
+  };
+
+  const agentName: AgentName =
+    agentMap[primaryIntent as DomainIntent] ?? AgentNames.budgetAnalyst;
+  const agent = mastra.getAgent(agentName);
+  const stream = await agent.stream(prompt, { maxSteps: 10 });
+
+  let responseText = "";
+  for await (const chunk of stream.textStream) {
+    responseText += chunk;
+    send({ type: "text", content: chunk });
+  }
+
+  const richContent = formatAgentResponse(responseText, language);
+  return { richContent, resolvedTool: primaryIntent as ToolId };
+}
 
 export function inferTool(
   message: string,
@@ -1379,6 +1570,22 @@ export async function routeToAgent({
       impactContext += `Recent conversation:\n${historyContext}`;
     }
     return runImpactFlow(impactContext.trim(), message, send, language);
+  }
+
+  // Detect cross-domain queries that need data from multiple indexes
+  const secondaryIntents = detectSecondaryIntents(message, tool);
+  if (secondaryIntents.length > 0) {
+    return runCrossFlow(
+      message,
+      augmentedMessage,
+      send,
+      tool,
+      secondaryIntents,
+      language,
+      context,
+      sessionId,
+      userId,
+    );
   }
 
   const statusMessages: Record<string, string> = {

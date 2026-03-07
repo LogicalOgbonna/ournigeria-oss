@@ -56,6 +56,14 @@ const strings = {
     en: "Calculating real-world impact...",
     pcm: "I dey calculate wetin di money fit do...",
   },
+  "status.searchingMultiple": {
+    en: "Searching across multiple databases...",
+    pcm: "I dey search across multiple databases...",
+  },
+  "status.analyzing": {
+    en: "Analyzing data from multiple sources...",
+    pcm: "I dey analyze data from different sources...",
+  },
 
   // ─── General / fallback responses ───
   "general.greeting": {
@@ -145,6 +153,10 @@ const strings = {
   "noData.corruption": {
     en: 'I don\'t have EFCC case data that matches your question in our records. Our database covers cases involving former governors and officials investigated by the EFCC. Try asking about a specific official, for example: "What happened to James Ibori?" or "Tell me about Diezani\'s case."',
     pcm: 'I no get EFCC case data wey match your question for our records. Our database cover cases wey involve former governors and officials wey EFCC investigate. Try ask about specific official, like: "Wetin happen to James Ibori?" or "Tell me about Diezani case."',
+  },
+  "noData.general": {
+    en: "I couldn't find relevant data for that question across our databases. Try rephrasing or asking about a specific topic — budgets, corruption cases, government payments, or FAAC allocations.",
+    pcm: "I no fit find data wey match your question across our databases. Try rephrase or ask about specific topic — budgets, corruption cases, government payments, or FAAC allocations.",
   },
   "noData.govspend": {
     en: 'I don\'t have government payment records that match your question. Our database contains over 891,000 payment records across MDAs. Try asking about a specific ministry, contractor, or beneficiary — for example: "How much was paid to Julius Berger?" or "Show me payments by the Ministry of Works."',
