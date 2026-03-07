@@ -141,7 +141,7 @@ docker exec "${CONTAINER}" psql -U "${DB_USER}" -d postgres -c "
 
 # ── Restore ─────────────────────────────────────────────────
 echo "Restoring from ${FILENAME}..."
-gunzip -c "${BACKUP_FILE}" | docker exec -i "${CONTAINER}" psql -U "${DB_USER}" -d postgres --single-transaction 2>&1 | tail -5
+gunzip -c "${BACKUP_FILE}" | docker exec -i "${CONTAINER}" psql -U "${DB_USER}" -d postgres 2>&1 | tail -5
 
 # ── Verify ──────────────────────────────────────────────────
 echo ""
