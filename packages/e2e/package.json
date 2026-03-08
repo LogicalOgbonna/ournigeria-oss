@@ -1,0 +1,16 @@
+{
+  "name": "@ournigeria/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --grep-invert @human",
+    "test:human": "playwright test --headed",
+    "test:web": "playwright test --grep @web --grep-invert @human",
+    "test:dashboard": "playwright test --grep @dashboard --grep-invert @human",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

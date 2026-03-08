@@ -1,0 +1,287 @@
+{
+  "name": "GovSpend Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the government payment records RAG pipeline. Covers edge cases in exact-match filtering, large-scale aggregation, beneficiary name variants, MDA name inconsistencies, amount thresholds, and cross-year comparisons.",
+  "questions": [
+    {
+      "id": "govs-001",
+      "category": "beneficiary_search",
+      "question": "How much has the federal government paid to Julius Berger in total?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Beneficiary filter uses $eq (exact match). 'Julius Berger' may be stored as 'JULIUS BERGER NIGERIA PLC', 'Julius Berger Nigeria Plc', or similar variants. Exact match will fail if the user's input doesn't match the stored form exactly.",
+      "expected_behavior": "Should use semantic search with query mentioning Julius Berger. Agent should find results via embedding similarity even if exact filter fails.",
+      "metadata_filters_needed": ["beneficiary"],
+      "expected_answer": "Should find multiple payment records to Julius Berger (or variants like 'JULIUS BERGER NIGERIA PLC') across available years. Should present specific payment amounts and dates. Must acknowledge that the total is based on available records and may not be exhaustive given the 445K+ record database."
+    },
+    {
+      "id": "govs-002",
+      "category": "mda_aggregation",
+      "question": "Which MDA has spent the most money across all years?",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires aggregating amount_numeric across ALL 445,000+ payment records, grouped by organization_name. Vector search cannot sort by numeric sums. topK=50 retrieves a tiny fraction of records. No SQL aggregation available through RAG.",
+      "expected_behavior": "Should attempt broad search and provide approximate answer with strong caveats about incomplete data.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should identify one or more MDAs with the highest observed spending from retrieved records, such as NNPC, Federal Ministry of Works, or Federal Ministry of Finance. Must include a strong caveat that the answer is approximate and based only on the subset of records retrieved, not an exhaustive aggregation of all 445K+ records. Should list specific amounts found for the top MDAs mentioned."
+    },
+    {
+      "id": "govs-003",
+      "category": "specific_payment",
+      "question": "Show me payment number 1000903988-4",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Payment number (payment_no) is stored in metadata but there's no payment_no filter in the search tool. The agent must rely on semantic search with the payment number as the query, which may not work well for alphanumeric identifiers.",
+      "expected_behavior": "Should search semantically and hope the payment number appears in chunk text. May not find exact match.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should attempt to locate the specific payment record with payment_no 1000903988-4. If found, should display the full record details: organization_name, beneficiary_name, amount, description, and date. If not found, should clearly state that the specific payment number could not be located and explain that payment number lookup is not directly supported as a filter."
+    },
+    {
+      "id": "govs-004",
+      "category": "top_beneficiaries",
+      "question": "Who are the top 20 biggest beneficiaries of government payments?",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires: (1) retrieving ALL unique beneficiaries, (2) summing their payment amounts, (3) ranking top 20. With 445K+ records and topK max of ~50, this is impossible to answer accurately. Vector search has no group-by or SUM capability.",
+      "expected_behavior": "Should attempt broad search for large payments and provide approximate top beneficiaries based on retrieved results.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should list up to 20 beneficiary names with their observed total payment amounts, drawn from the records retrieved. Should include well-known large beneficiaries like Julius Berger, Dangote, Galaxy Backbone, or similar major government contractors. Must clearly caveat that this ranking is approximate and based on a limited subset of retrievable records, not an exhaustive aggregation across all 445K+ payments."
+    },
+    {
+      "id": "govs-005",
+      "category": "year_comparison",
+      "question": "Compare government payments to construction companies in 2022 versus 2024",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "No 'industry' or 'category' metadata. 'Construction companies' is a semantic concept, not a filterable field. Agent must rely on embedding similarity to find construction-related payments. Comparison across 2 years doubles the search space.",
+      "expected_behavior": "Should search for construction-related payments in each year separately and compare totals/patterns.",
+      "metadata_filters_needed": ["year"],
+      "expected_answer": "Should present construction-related payment records for both 2022 and 2024 separately, identifying beneficiaries that are construction companies (e.g., Julius Berger, Dangote Cement, RCC). Should compare total amounts, number of payments, or key beneficiaries between the two years. Must note that 'construction company' is inferred semantically since there is no industry/category metadata, so results may be incomplete or include false positives."
+    },
+    {
+      "id": "govs-006",
+      "category": "mda_name_variants",
+      "question": "How much has the Ministry of Works paid out in 2024?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "MDA names vary: 'FEDERAL MINISTRY OF WORKS', 'FEDERAL MINISTRY OF WORKS AND HOUSING', 'FMW', 'Ministry of Works - HQTRS'. The organization filter uses $eq, so 'Ministry of Works' won't match any of these exactly.",
+      "expected_behavior": "Should use semantic search rather than exact filter, or the agent should try known full MDA names.",
+      "metadata_filters_needed": ["organization", "year=2024"],
+      "expected_answer": "Should find payment records from 2024 associated with the Federal Ministry of Works (or variants such as 'FEDERAL MINISTRY OF WORKS AND HOUSING'). Should present a total amount paid and list key beneficiaries and payment descriptions. Must acknowledge that the MDA may appear under multiple name variants and the total may not capture all payments if exact-match filtering missed some variants."
+    },
+    {
+      "id": "govs-007",
+      "category": "suspicious_payments",
+      "question": "Show me the largest single payments over 10 billion naira",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "No numeric range filter ($gt/$gte) available in vector search. Cannot filter amount_numeric > 10000000000. Agent must retrieve high-amount payments via semantic search for 'large payment' or 'billion naira' and manually filter.",
+      "expected_behavior": "Should search for large/billion-scale payments and present results, noting inability to guarantee completeness.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should list specific payment records where amount_numeric exceeds 10 billion naira (10,000,000,000 NGN), including the MDA, beneficiary, amount, and date for each. Must note that numeric range filtering is not available, so results are based on semantic search and may not capture all payments above this threshold. If no payments above 10 billion are found, should state this clearly."
+    },
+    {
+      "id": "govs-008",
+      "category": "individual_beneficiary",
+      "question": "Has any individual person (not a company) received government payments over 1 billion naira?",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "No person/company type metadata. Cannot distinguish individual names from company names in beneficiary field. Agent must infer from naming patterns (e.g., 'Ado Atiku Abubakar' vs 'JULIUS BERGER NIGERIA PLC').",
+      "expected_behavior": "Should search for large payments and attempt to identify individual names, noting the limitation.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should search for high-value payments and examine beneficiary names to distinguish individuals from companies. Individuals lack suffixes like 'PLC', 'LTD', 'LIMITED', 'NIG', or 'SERVICES'. Should present any individual beneficiaries found with amounts exceeding 1 billion naira, including the paying MDA and payment date. Must clearly caveat that there is no person/company type metadata, so the distinction is inferred from naming patterns and may be unreliable."
+    },
+    {
+      "id": "govs-009",
+      "category": "monthly_pattern",
+      "question": "Is there a pattern of increased government spending in December compared to other months?",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires aggregating payment amounts by month across all years. 12 months × 8 years = potentially 96 separate queries. Vector search cannot aggregate. Would need to search each month and compare totals.",
+      "expected_behavior": "Should attempt to search December payments vs other months for a sample year and look for patterns.",
+      "metadata_filters_needed": ["month", "year"],
+      "expected_answer": "Should compare payment volumes or totals for December against at least one or two other months in a sample year. Should note whether December shows higher spending based on retrieved records. Must acknowledge that this analysis is approximate since full monthly aggregation across all 445K+ records and all years is not feasible through vector search. A complete answer would reference the 'end-of-year spending surge' pattern common in government budgeting."
+    },
+    {
+      "id": "govs-010",
+      "category": "payer_code",
+      "question": "What payments have been made from payer code 0215028001?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "payer_code is stored in metadata but not exposed as a filter parameter in the search tool. Agent must use semantic search with the code as query text. Codes are not semantically meaningful to embedding models.",
+      "expected_behavior": "Should attempt search but may return poor results since numeric codes have weak semantic signal.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should attempt to find payment records associated with payer code 0215028001. If found, should list the organization, beneficiary, amount, and description for each payment. If not found, should explain that payer_code is not available as a search filter and that alphanumeric codes have weak semantic signal for embedding-based search. Should identify which MDA the payer code belongs to if possible."
+    },
+    {
+      "id": "govs-011",
+      "category": "description_search",
+      "question": "Show me all payments related to COVID-19 procurement or pandemic response",
+      "intent": "govspend",
+      "difficulty": "medium",
+      "why_it_breaks": "Relies on payment descriptions containing COVID/pandemic keywords. Semantic search should work well for this. Tests whether the description field in chunks is rich enough to capture procurement context.",
+      "expected_behavior": "Should find COVID-related payments through semantic similarity on description text.",
+      "metadata_filters_needed": ["year=2020"],
+      "expected_answer": "Should return payment records with descriptions mentioning COVID-19, pandemic, or related procurement terms, primarily from 2020 and possibly 2021. Should include the paying MDA, beneficiary, amount, and description for each record. Results should cover procurement of medical supplies, PPE, testing equipment, or pandemic response logistics. Should note that results are limited to records whose descriptions contain relevant keywords and may not capture all pandemic-related spending."
+    },
+    {
+      "id": "govs-012",
+      "category": "same_beneficiary_variants",
+      "question": "How much has Galaxy Backbone received across all years?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Beneficiary may appear as 'GALAXY BACKBONE', 'GALAXY BACKBONE LIMITED', 'Galaxy Backbone Ltd', etc. Each variant is a different exact match. The agent needs multiple searches or semantic matching to capture all variants.",
+      "expected_behavior": "Should use semantic search for 'Galaxy Backbone payments' across years and aggregate found amounts.",
+      "metadata_filters_needed": ["beneficiary"],
+      "expected_answer": "Should find payment records to Galaxy Backbone under all name variants (e.g., 'GALAXY BACKBONE', 'GALAXY BACKBONE LIMITED', 'Galaxy Backbone Ltd'). Should present individual payment amounts with dates and paying MDAs, then provide a total sum. Must acknowledge that the total is based on retrieved records only and that name variants may cause some payments to be missed. Galaxy Backbone is a major government IT infrastructure provider, so payments should come from multiple MDAs."
+    },
+    {
+      "id": "govs-013",
+      "category": "mda_breakdown",
+      "question": "Break down all payments made by the Nigeria Correctional Service — who did they pay, how much, and for what?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Organization filter needs exact match: 'NIGERIA CORRECTIONAL SERVICE'. The agent must get the casing/naming exactly right. Even if found, topK=50 may not cover all payments by this MDA across years.",
+      "expected_behavior": "Should search with organization filter and provide beneficiary/amount breakdown.",
+      "metadata_filters_needed": ["organization"],
+      "expected_answer": "Should list payment records from the Nigeria Correctional Service (formerly Nigerian Prisons Service), including each beneficiary name, payment amount, description of goods/services, and date. Should organize results by beneficiary or by size. Must note that topK retrieval limits mean this is a partial breakdown and additional payments may exist beyond what was retrieved. Should mention the types of expenditures typical for a correctional service (supplies, construction, utilities, personnel-related)."
+    },
+    {
+      "id": "govs-014",
+      "category": "cross_mda_comparison",
+      "question": "Compare the total payments made by the Federal Ministry of Education versus Federal Ministry of Health in 2023",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires exact organization names for both MDAs. Names may include suffixes like '- HQTRS'. Two separate searches needed, each with organization filter. Total computation from topK results will be approximate.",
+      "expected_behavior": "Should search each MDA separately for 2023 and compare totals.",
+      "metadata_filters_needed": ["organization", "year=2023"],
+      "expected_answer": "Should present 2023 payment totals for both the Federal Ministry of Education and the Federal Ministry of Health separately, then compare them. Should list key beneficiaries for each ministry and the nature of their payments. Must caveat that totals are approximate since they are based on topK retrieved records, not exhaustive aggregation. Should note if MDA name variants (e.g., with '- HQTRS' suffix) affected the results."
+    },
+    {
+      "id": "govs-015",
+      "category": "duplicate_detection",
+      "question": "Are there any duplicate payments — same beneficiary, same amount, same date?",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires comparing ALL records against each other for duplicates. Vector search is designed for similarity, not duplicate detection. No SQL-level dedup query available through RAG. Fundamentally impossible with current architecture.",
+      "expected_behavior": "Should explain limitation. May search for specific beneficiaries and manually check for repeated amounts.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should clearly explain that systematic duplicate detection across 445K+ records is not feasible through vector search, as it requires pairwise comparison or SQL-level GROUP BY/HAVING queries. May provide examples of potential duplicates if found within a small retrieved sample. Should note that apparent duplicates could be legitimate separate payments (e.g., recurring monthly payments). A good answer acknowledges this is a fundamental limitation of the RAG architecture for this type of analysis."
+    },
+    {
+      "id": "govs-016",
+      "category": "university_payments",
+      "question": "How much has the government paid to all universities in Nigeria? List each university and total amount received.",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Multiple MDAs and beneficiaries involve universities. Organization names like 'UNIVERSITY COLLEGE HOSPITAL IBADAN', 'ALVAN IKOKU UNIVERSITY OF EDUCATION'. No university category filter. Requires broad semantic search across many entities.",
+      "expected_behavior": "Should search for 'university' payments and compile results, noting incomplete coverage.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should list individual universities found in either the organization or beneficiary fields, along with their payment amounts. Universities may appear as both paying MDAs (federal universities with their own budgets) and as beneficiaries. Should include names like University of Lagos, Ahmadu Bello University, University of Nigeria Nsukka, etc. Must strongly caveat that the list is incomplete since there is no university category filter and the search can only retrieve a small fraction of relevant records from the 445K+ total."
+    },
+    {
+      "id": "govs-017",
+      "category": "zero_amount",
+      "question": "Are there any payment records with zero or negative amounts?",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "amount_numeric defaults to 0 when parsing fails. Cannot distinguish genuine zero-amount records from parsing failures. No $eq:0 or $lte:0 filter for numeric fields in vector search.",
+      "expected_behavior": "Should note the limitation. Failed parses result in amount_numeric=0 which may inflate count of 'zero' payments.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should explain that numeric range filtering (equals zero or less-than-zero) is not available through vector search. Should note that amount_numeric defaults to 0 when amount string parsing fails, meaning records showing zero amounts may be data quality issues rather than genuine zero-value payments. If any zero or negative amount records are found via semantic search, should present them with full details. A correct answer distinguishes between parsing failures and legitimate zero/negative entries."
+    },
+    {
+      "id": "govs-018",
+      "category": "routing_ambiguity",
+      "question": "The Ministry of Finance paid contractors to build schools — show me the payments and what budget line they came from",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Crosses govspend (payments/contractors) and budget (budget line) intents. Router must choose one. GovSpend data has no budget line metadata. Budget data has no payment details. Neither system alone can fully answer.",
+      "expected_behavior": "Should route to govspend for payment data and note that budget line information is not available in payment records.",
+      "metadata_filters_needed": ["organization"],
+      "expected_answer": "Should search for payments from the Federal Ministry of Finance related to school construction and list any matching records with beneficiary, amount, and description. Must clearly state that budget line information is not available in the GovSpend payment records, as budget data and payment data are separate data sources. Should suggest that the user query the budget data source separately for budget line details. A correct answer handles both parts of the question without fabricating budget line data."
+    },
+    {
+      "id": "govs-019",
+      "category": "corruption_crossover",
+      "question": "Show me all government payments to companies linked to Diezani Alison-Madueke",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires knowing which companies are linked to Diezani (knowledge not in govspend data). GovSpend has no corruption-link metadata. Would need to first search corruption data for company names, then cross-reference in govspend.",
+      "expected_behavior": "Should attempt semantic search but likely won't find direct links. May suggest searching the corruption database first.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should explain that the GovSpend payment data does not contain corruption-link metadata or political association data. A good answer would attempt semantic search for 'Diezani' in payment records but acknowledge that company ownership/links are not part of the dataset. Should suggest a two-step approach: first query a corruption or legal database for company names linked to Diezani, then search those specific company names in GovSpend. Must not fabricate associations between companies and the individual."
+    },
+    {
+      "id": "govs-020",
+      "category": "pidgin_query",
+      "question": "Wetin dem use all dis money pay for? Show me who dem pay pass for government last year",
+      "intent": "govspend",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin English. Must extract intent: list top beneficiaries for the most recent year. 'Last year' = 2025. 'Who dem pay pass' = highest paid beneficiaries.",
+      "expected_behavior": "Should identify govspend intent and search for high-amount payments in 2025.",
+      "metadata_filters_needed": ["year=2025"],
+      "expected_answer": "Should correctly interpret the Pidgin English query and search for the top government payment beneficiaries in 2025 (the most recent year). Should list beneficiary names with their payment amounts, sorted by highest amounts. Should include what the payments were for (descriptions). Must respond in clear English (or Pidgin if the system supports it) and note that results are based on retrieved records, not a full ranking of all 2025 beneficiaries."
+    },
+    {
+      "id": "govs-021",
+      "category": "state_level_payments",
+      "question": "Show me all federal government payments that went to Borno State",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "GovSpend data has no 'state' metadata for payments. Payments are by MDA and beneficiary, not by state. The agent must infer state from beneficiary names or MDA names (e.g., 'BORNO STATE GOVERNMENT') which is unreliable.",
+      "expected_behavior": "Should search for 'Borno' in beneficiary/organization names and note that state-level filtering is not available.",
+      "metadata_filters_needed": [],
+      "expected_answer": "Should search for 'Borno' across payment records and return any records where 'Borno' appears in the beneficiary name, organization name, or description (e.g., 'BORNO STATE GOVERNMENT', 'UNIVERSITY OF MAIDUGURI'). Must clearly state that there is no state-level metadata filter, so results rely on name-based matching and may miss payments that went to Borno-based entities without 'Borno' in their name. Should list found records with full details including amounts and paying MDAs."
+    },
+    {
+      "id": "govs-022",
+      "category": "time_series",
+      "question": "Show me the month-by-month payment trend for the Federal Ministry of Defence from January 2023 to December 2024",
+      "intent": "govspend",
+      "difficulty": "very_hard",
+      "why_it_breaks": "24 months × 1 MDA = 24 separate searches needed (each with organization + year + month filter). Agent has 10 steps max. Cannot complete a full 24-month time series.",
+      "expected_behavior": "Should attempt a few months and provide partial trend, noting step limitations.",
+      "metadata_filters_needed": ["organization", "year", "month"],
+      "expected_answer": "Should provide payment data for the Federal Ministry of Defence for as many months as feasible within step limits (likely 5-10 months out of 24). Should present results as a table or list showing month, total payments, and number of transactions. Must clearly state that the full 24-month time series could not be completed due to the need for separate queries per month, and that shown totals per month are approximate based on topK retrieval. Should note any observable trends in the partial data."
+    },
+    {
+      "id": "govs-023",
+      "category": "multi_chunk_payment",
+      "question": "Show me the complete details including full description for the largest payment to Dangote Industries",
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "A single payment with a long description is split across 1-4+ chunks of 512 chars each. The search may return chunk 1 of a payment (with org/amount metadata) but miss chunks 2-3 that contain the full description. All chunks share the same metadata, but text content is fragmented.",
+      "expected_behavior": "Should find relevant chunks and attempt to reconstruct the full payment record.",
+      "metadata_filters_needed": ["beneficiary"],
+      "expected_answer": "Should find payment records to Dangote Industries (or variants like 'DANGOTE INDUSTRIES LIMITED', 'DANGOTE CEMENT PLC') and identify the largest by amount. Should present the full payment details: organization, beneficiary, amount, date, payment number, and complete description. Must attempt to reconstruct the full description from multiple chunks if it was split across 512-character boundaries. Should note if the description appears truncated or if related chunks could not be retrieved."
+    },
+    {
+      "id": "govs-024",
+      "category": "follow_up_chain",
+      "question": "Show me payments by NNPC",
+      "follow_ups": [
+        "Who were the biggest beneficiaries?",
+        "What about in 2024 specifically?",
+        "Compare that to 2022",
+        "Are there any payments to individuals?",
+        "Show me the largest single payment"
+      ],
+      "intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Progressive drill-down. Each follow-up narrows scope. 'Are there any payments to individuals?' requires person/company distinction not available in metadata. Follow-up routing must maintain NNPC/govspend context.",
+      "expected_behavior": "Should maintain NNPC context and route each follow-up to govspend.",
+      "expected_answer": "For the initial query, should find payment records where NNPC is the organization (e.g., 'NIGERIAN NATIONAL PETROLEUM CORPORATION', 'NNPC LIMITED') and list key payments with beneficiaries, amounts, and descriptions. For follow-ups: should rank beneficiaries by total received, filter to 2024, compare 2024 vs 2022 totals and beneficiaries, attempt to identify individual (non-company) beneficiaries by name pattern, and find the single highest-amount payment. Must maintain NNPC context throughout all follow-ups without re-asking for the organization."
+    },
+    {
+      "id": "govs-025",
+      "category": "verification_request",
+      "question": "I want to verify a specific payment: the Federal Ministry of Justice paid Relational Technologies Ltd around 20 million naira in February 2022. Can you confirm this?",
+      "intent": "govspend",
+      "difficulty": "medium",
+      "why_it_breaks": "Tests precise record lookup. User provides enough detail for exact match but the search relies on semantic similarity. Organization and beneficiary filters need exact name matches. 'around 20 million' cannot be range-filtered.",
+      "expected_behavior": "Should search with organization and beneficiary filters and year=2022, month=February to find the specific payment.",
+      "metadata_filters_needed": ["organization", "beneficiary", "year=2022", "month=February"],
+      "expected_answer": "Should search using organization filter for 'Federal Ministry of Justice' (or exact stored variant), beneficiary filter for 'Relational Technologies Ltd' (or variant), year=2022, and month=2 (February). Should confirm or deny the payment, providing the exact amount found. If confirmed, should show the full record including payment number and description. If not found, should state that the specific payment could not be verified and explain possible reasons (name mismatch, different month, etc.). Must not fabricate a confirmation."
+    }
+  ]
+}

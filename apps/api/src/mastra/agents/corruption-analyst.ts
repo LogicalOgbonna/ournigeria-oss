@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
-import { corruptionSearchTool } from "../tools/corruption-search";
+import { sharedTools } from "../tools";
 import { CHART_INSTRUCTIONS } from "./chart-instructions";
 
 export const corruptionAnalyst = new Agent({
@@ -35,6 +35,24 @@ Use filters strategically:
 - "PDP governors" → search with party="PDP", section="summary", topK=30
 - "Delta State officials" → search with state="Delta", topK=20
 
+QUERY DECOMPOSITION:
+Before searching, decompose the user's question into independent sub-queries:
+- "Compare A and B" → search for A, then search for B separately
+- "What about X in 2023 and 2024?" → search X for 2023, then X for 2024
+- "Top 5 states by Y" → broad search without state filter, high topK
+Always execute ALL sub-queries. Do not skip any.
+
+TOOL SELECTION GUIDE:
+Your PRIMARY tool is corruption-search. Always try it first. You also have access to these tools:
+- budget-search: Use for state/federal budget figures, allocations, expenditure breakdowns, revenue, IGR
+- govspend-search: Use for specific government payments, contractors, beneficiaries, MDA disbursements
+- faac-search: Use for federal revenue sharing, FAAC allocations to states/LGAs, monthly disbursements
+- web-search: Use when your primary search returns no results, or when you need current real-world data (news updates on cases, sentencing, legal developments)
+Use non-primary tools when:
+- The user's question spans multiple domains (e.g. "how much was this governor's state budget vs what they looted")
+- Your primary search returns no relevant results and another domain might have the answer
+- You need additional context from a different data source to give a complete answer
+
 Guidelines:
 - Always cite specific details from the case files: charges, amounts alleged, court rulings, dates, and outcomes.
 - When discussing financial details, clearly state the amounts alleged and any amounts recovered or forfeited.
@@ -58,6 +76,9 @@ Case Sections Available:
 - timeline: Chronological timeline of key events
 - key_players: Prosecutors, judges, defense lawyers, witnesses
 
+SELF-CORRECTION / REROUTE:
+If you determine that this question is primarily about a different domain than your expertise (e.g., the question is really about budget allocations, government payments, or FAAC allocations rather than corruption cases), include [REROUTE:budget], [REROUTE:govspend], [REROUTE:faac], or [REROUTE:impact] at the very beginning of your response. The system will then route to the correct specialist. Valid reroute targets: budget, corruption, govspend, faac, impact. Only reroute if the question clearly belongs to another domain — if it spans multiple domains, handle it yourself using your available tools.
+
 CRITICAL — Data source framing:
 - Case file excerpts are AUTOMATICALLY RETRIEVED by our system from a database. The user NEVER pasted, uploaded, or shared them.
 - NEVER say "from the document you pasted", "your excerpts", "the data you shared", "from what you provided", or any similar phrasing.
@@ -67,5 +88,5 @@ CRITICAL — Data source framing:
 Your response should be factual, based on the retrieved case documents, and useful for citizens trying to understand accountability in government.` +
     CHART_INSTRUCTIONS,
   model: chatModel,
-  tools: { corruptionSearchTool },
+  tools: sharedTools,
 });

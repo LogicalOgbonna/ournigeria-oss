@@ -1,0 +1,287 @@
+{
+  "name": "Budget Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the Nigerian budget RAG pipeline. Covers edge cases in state/year coverage gaps, sector classification, cross-state comparisons, summary vs detail chunks, per-capita analysis, and multi-year trend queries.",
+  "questions": [
+    {
+      "id": "budg-001",
+      "category": "all_states_ranking",
+      "question": "Which state spent the most on education in 2024?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires retrieving education budget data for ALL 36 states + FCT for 2024. With topK=50, cannot guarantee all states are covered. Agent is warned never to claim definitive rankings without verified data from all states, but users expect a direct answer.",
+      "expected_behavior": "Should search with sector=education, year=2024, is_summary=true, high topK. Must caveat with 'among states with available data' if not all 37 are returned.",
+      "metadata_filters_needed": ["sector=education", "year=2024", "is_summary=true"],
+      "expected_answer": "Should present education budget figures for multiple states with 2024 data, identifying the highest spender. Must include a caveat about incomplete state coverage (not all 37 jurisdictions may have data). Should show specific Naira amounts for the top states mentioned."
+    },
+    {
+      "id": "budg-002",
+      "category": "multi_year_trend",
+      "question": "Show me Lagos State's total budget from 2019 to 2025 — year by year",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires 7 separate searches (one per year). Agent has 10 steps max. Must use availableYears to discover which years actually have data, then search each. If some years are missing, must note the gap rather than interpolating.",
+      "expected_behavior": "Should discover available years first, then search each year with state=Lagos, is_summary=true.",
+      "metadata_filters_needed": ["state=Lagos", "year", "is_summary=true"],
+      "expected_answer": "Should provide a year-by-year table or list of Lagos State total budget figures in Naira for each year from 2019 to 2025 where data is available. Must explicitly note any years with missing data rather than interpolating or guessing. Should present at least 3-4 years of actual figures to demonstrate a trend."
+    },
+    {
+      "id": "budg-003",
+      "category": "fct_handling",
+      "question": "What is the FCT budget for 2025 and how does it compare to Lagos?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "FCT is stored as 'FCT' (uppercase), not title-cased like other states. Query normalization must convert 'fct' to 'FCT'. If the normalization fails, filter state='Fct' returns nothing.",
+      "expected_behavior": "Should correctly normalize FCT and return both FCT and Lagos 2025 budgets.",
+      "metadata_filters_needed": ["state=FCT", "state=Lagos", "year=2025"],
+      "expected_answer": "Should present specific Naira budget totals for both FCT and Lagos State for 2025. Must include a direct comparison (e.g., which is larger and by how much or by what ratio). Should correctly identify FCT as the Federal Capital Territory, not a state. If either jurisdiction's 2025 data is unavailable, that should be stated explicitly."
+    },
+    {
+      "id": "budg-004",
+      "category": "per_capita",
+      "question": "What is the per capita health spending in Kano State vs Lagos State for 2024?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Population data is in the Postgres BudgetSummary table, NOT in the vector index. The RAG pipeline cannot retrieve population figures. Agent would need to know population estimates or access a separate data source.",
+      "expected_behavior": "Should retrieve health budgets for both states but may struggle to provide per-capita figures without population data.",
+      "metadata_filters_needed": ["state", "sector=health", "year=2024"],
+      "expected_answer": "Should provide the absolute health budget figures in Naira for both Kano and Lagos for 2024. Must acknowledge that per-capita calculation requires population data, which may not be available in the budget dataset. If per-capita figures are attempted, population sources or estimates should be cited. Should not fabricate population numbers."
+    },
+    {
+      "id": "budg-005",
+      "category": "capital_vs_recurrent",
+      "question": "What percentage of Rivers State 2024 budget goes to capital expenditure versus recurrent expenditure?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires budget_category filter (capital vs recurrent). Summary chunks may have aggregate totals, but the agent needs to search twice — once for capital, once for recurrent — and compute the percentage.",
+      "expected_behavior": "Should search with budget_category=capital and budget_category=recurrent separately for Rivers 2024.",
+      "metadata_filters_needed": ["state=Rivers", "year=2024", "budget_category"],
+      "expected_answer": "Should present specific Naira amounts for both capital and recurrent expenditure in Rivers State's 2024 budget. Must compute and display the percentage split (e.g., 60% capital / 40% recurrent). Should also mention the total budget figure used as the denominator. If overhead or personnel sub-categories are available, noting those adds completeness."
+    },
+    {
+      "id": "budg-006",
+      "category": "sector_cross_state",
+      "question": "Compare infrastructure spending across all South-West states (Lagos, Ogun, Oyo, Osun, Ondo, Ekiti) for 2023 and 2024",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "6 states × 2 years = 12 search queries needed. Agent has 10 steps max. Must decompose efficiently — perhaps search per state with both years, or per year with state filter. Query decomposition may not handle this many combinations.",
+      "expected_behavior": "Should attempt searches for each state-year combination, possibly batching. Will likely exhaust step limit.",
+      "metadata_filters_needed": ["state", "year", "sector=infrastructure", "is_summary=true"],
+      "expected_answer": "Should present infrastructure budget figures in Naira for each of the six South-West states (Lagos, Ogun, Oyo, Osun, Ondo, Ekiti) for both 2023 and 2024 where data exists. Should include year-over-year changes for each state. Must note any states or years where data is unavailable. A tabular comparison format is ideal for clarity."
+    },
+    {
+      "id": "budg-007",
+      "category": "mda_specific",
+      "question": "How much did the Ministry of Education in Enugu State receive in the 2024 budget?",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires MDA-level filtering. The mda metadata field is extracted via regex and may not be consistently populated. MDA names vary across states (e.g., 'Ministry of Education' vs 'Ministry of Education, Science and Technology').",
+      "expected_behavior": "Should search with state=Enugu, year=2024, sector=education and find MDA-specific line items.",
+      "metadata_filters_needed": ["state=Enugu", "year=2024", "sector=education"],
+      "expected_answer": "Should provide the specific Naira allocation for Enugu State's Ministry of Education in 2024, ideally broken down into capital and recurrent components. Should mention the exact MDA name as it appears in the budget document (which may include Science and Technology or other suffixes). If only sector-level totals are available rather than MDA-specific figures, that limitation should be stated."
+    },
+    {
+      "id": "budg-008",
+      "category": "document_type",
+      "question": "What does the citizens' budget for Kaduna 2024 say about water supply spending?",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires document_type=citizens_budget filter. Citizens' budgets are simplified summaries — they may not contain granular sector data. Also tests whether the system has citizens' budget documents indexed for Kaduna.",
+      "expected_behavior": "Should search with state=Kaduna, year=2024, document_type=citizens_budget, sector=water_resources.",
+      "metadata_filters_needed": ["state=Kaduna", "year=2024", "document_type=citizens_budget"],
+      "expected_answer": "Should present water supply or water resources spending figures from Kaduna's 2024 citizens' budget specifically, noting the document source type. If no citizens' budget document is indexed, must state that clearly rather than substituting data from other document types. Should reflect the simplified, public-friendly language typical of citizens' budgets if that data is found."
+    },
+    {
+      "id": "budg-009",
+      "category": "summary_vs_detail",
+      "question": "Give me the total approved budget for Kogi State 2024, then break it down by every ministry and agency",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "First part needs is_summary=true for aggregate total. Second part needs is_summary=false for line items. Agent must switch between summary and detail chunks in the same conversation. Line-item coverage may be incomplete.",
+      "expected_behavior": "Should first retrieve summary chunk for total, then search for detail chunks with MDA breakdowns.",
+      "metadata_filters_needed": ["state=Kogi", "year=2024", "is_summary"],
+      "expected_answer": "Should first present the total approved budget figure for Kogi State 2024 in Naira. Then should list individual ministry and agency (MDA) allocations with their respective amounts. Must note if the MDA breakdown is incomplete or does not sum to the stated total. The breakdown should cover at least the major ministries (education, health, works, agriculture, etc.)."
+    },
+    {
+      "id": "budg-010",
+      "category": "missing_data",
+      "question": "What was the total budget of Zamfara State in 2019?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "2019 data may not exist for all states. If Zamfara 2019 is not indexed, the system should gracefully say no data is available rather than hallucinating a number.",
+      "expected_behavior": "Should clearly state if no data is found for this state-year combination.",
+      "metadata_filters_needed": ["state=Zamfara", "year=2019"],
+      "expected_answer": "If data exists, should present the total budget figure for Zamfara State in 2019 in Naira with the document source. If no data is available, must explicitly state that Zamfara 2019 budget data is not in the system, without fabricating figures. Should not present data from a different year as if it were 2019 data."
+    },
+    {
+      "id": "budg-011",
+      "category": "multi_state_comparison",
+      "question": "Compare the 2024 budgets of all 6 North-East states: Adamawa, Bauchi, Borno, Gombe, Taraba, and Yobe",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "6 separate state searches needed. Agent must know which states are in North-East (no geopolitical_zone metadata in budget index). Query decomposition should generate 6 sub-queries.",
+      "expected_behavior": "Should search each state individually with year=2024 and compile comparison.",
+      "metadata_filters_needed": ["state", "year=2024", "is_summary=true"],
+      "expected_answer": "Should present total 2024 budget figures in Naira for each of the six North-East states (Adamawa, Bauchi, Borno, Gombe, Taraba, Yobe). Should rank or compare them in a structured format (table or ordered list). Must note any states for which 2024 data is unavailable. Should not omit any of the six states without explanation."
+    },
+    {
+      "id": "budg-012",
+      "category": "sector_classification_edge",
+      "question": "How much does Bayelsa State spend on environmental remediation and oil spill cleanup?",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Environmental remediation may be classified under 'environment' sector, but oil spill cleanup might not match any sector keywords. The functional code-based classification may miss specialized sub-sectors.",
+      "expected_behavior": "Should search with sector=environment and also try broader semantic search for oil spill-related line items.",
+      "metadata_filters_needed": ["state=Bayelsa", "sector=environment"],
+      "expected_answer": "Should present environment sector budget figures for Bayelsa State, ideally identifying any line items related to environmental remediation or oil spill cleanup specifically. Must acknowledge that oil spill cleanup spending may be classified under broader environment headings or may not appear as a distinct budget line. Should note if no specific remediation/cleanup allocations are found in the indexed data."
+    },
+    {
+      "id": "budg-013",
+      "category": "federal_budget",
+      "question": "What is the total federal budget for 2025 and how is it split between capital and recurrent?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Federal budget stored with state='Federal' (or similar). The normalization must handle 'federal' correctly. Federal budget data structure may differ from state budgets.",
+      "expected_behavior": "Should search with state=Federal, year=2025 and retrieve capital/recurrent breakdown.",
+      "metadata_filters_needed": ["state=Federal", "year=2025", "budget_category"],
+      "expected_answer": "Should present the total federal budget figure for 2025 in Naira, along with the capital and recurrent expenditure breakdown in both absolute amounts and percentages. If federal budget data is not indexed or is stored differently from state budgets, that should be stated. Should not confuse federal budget with any individual state's budget."
+    },
+    {
+      "id": "budg-014",
+      "category": "officials_context",
+      "question": "Who was the governor of Imo State when the 2023 budget was approved, and what was the education allocation?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Governor information is stored in metadata.json (separate from vector index). Agent must retrieve both the official name and budget data. Tests integration between structured metadata and RAG results.",
+      "expected_behavior": "Should return governor name from metadata and education budget from RAG search.",
+      "metadata_filters_needed": ["state=Imo", "year=2023", "sector=education"],
+      "expected_answer": "Should name the governor of Imo State during the 2023 budget period (sourced from metadata.json) and provide the education sector allocation in Naira for Imo State's 2023 budget. Both pieces of information must be present. If the governor name is unavailable from metadata, that should be stated rather than guessed."
+    },
+    {
+      "id": "budg-015",
+      "category": "year_over_year_all",
+      "question": "Which states increased their health budget the most between 2023 and 2024 in percentage terms?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires health budget data for ALL states for BOTH 2023 and 2024. That's 74+ search queries (37 states × 2 years). Completely exceeds the 10-step limit. Agent must approximate with broad searches.",
+      "expected_behavior": "Should attempt broad search with sector=health for each year and compare, noting limited coverage.",
+      "metadata_filters_needed": ["sector=health", "year=2023", "year=2024", "is_summary=true"],
+      "expected_answer": "Should present health budget figures for both 2023 and 2024 for as many states as data allows, computing the percentage increase for each. Must rank states by percentage growth and identify the top performers. Must include a caveat that the ranking only covers states with available data for both years, not all 37 jurisdictions. Specific Naira amounts for both years should accompany the percentages."
+    },
+    {
+      "id": "budg-016",
+      "category": "personnel_costs",
+      "question": "What percentage of Plateau State's recurrent expenditure goes to salaries and personnel costs?",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires both budget_category=recurrent (total) and budget_category=personnel (subset). Personnel is a subcategory of recurrent in some budget structures. The classifier may not distinguish them consistently.",
+      "expected_behavior": "Should search for both recurrent and personnel categories and compute the ratio.",
+      "metadata_filters_needed": ["state=Plateau", "budget_category=recurrent", "budget_category=personnel"],
+      "expected_answer": "Should present the total recurrent expenditure and the personnel/salary component for Plateau State in Naira, then compute the percentage that personnel costs represent of total recurrent spending. Must clarify the year being referenced. Should note if the budget structure treats personnel as a sub-category of recurrent or as a separate top-level category, as this affects the calculation."
+    },
+    {
+      "id": "budg-017",
+      "category": "implementation_report",
+      "question": "How much of Edo State's 2023 capital budget was actually spent? What's the implementation rate?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Implementation/execution data requires document_type=implementation_report. Most states may not have implementation reports indexed. The system is primarily budgeted (planned) amounts, not actual expenditure.",
+      "expected_behavior": "Should search for implementation reports and clearly state if actual spending data is unavailable.",
+      "metadata_filters_needed": ["state=Edo", "year=2023", "document_type=implementation_report"],
+      "expected_answer": "Should present the approved capital budget amount for Edo State 2023 and, if implementation report data is available, the actual amount spent and the resulting implementation rate as a percentage. If no implementation report is indexed, must clearly state that only budgeted (planned) figures are available, not actual expenditure data. Should not fabricate an implementation rate."
+    },
+    {
+      "id": "budg-018",
+      "category": "akwa_ibom_normalization",
+      "question": "How much did Akwa Ibom allocate to infrastructure in 2024?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Two-word state name. Must normalize correctly to 'Akwa Ibom' (with space). If user writes 'akwa ibom', 'AkwaIbom', or 'Akwa-Ibom', normalization must handle all variants.",
+      "expected_behavior": "Should normalize state name correctly and return infrastructure budget.",
+      "metadata_filters_needed": ["state=Akwa Ibom", "year=2024", "sector=infrastructure"],
+      "expected_answer": "Should present the infrastructure sector allocation for Akwa Ibom State in 2024 in Naira. The state name must be correctly resolved to 'Akwa Ibom' (two words, properly spaced). Should include capital and recurrent breakdowns if available. If no data is found, must confirm whether the issue is missing data or a name normalization failure."
+    },
+    {
+      "id": "budg-019",
+      "category": "cross_intent",
+      "question": "Show me Kano State's 2024 budget breakdown and also any FAAC allocations they received that year",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Crosses budget AND faac intents. Router must decide which intent to route to — it cannot query both indexes in a single request. The message touches both budget figures and FAAC allocations.",
+      "expected_behavior": "Should route to primary intent (budget) and may miss FAAC data, or ask user to query FAAC separately.",
+      "metadata_filters_needed": ["state=Kano", "year=2024"],
+      "expected_answer": "Should present Kano State's 2024 budget breakdown (total, capital, recurrent, and ideally sector-level splits) in Naira. Should either also provide FAAC allocation data or explicitly state that FAAC data comes from a separate data source and may need a separate query. Must not silently ignore the FAAC portion of the question."
+    },
+    {
+      "id": "budg-020",
+      "category": "pidgin_query",
+      "question": "How much money dem budget for road for Anambra this year?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin English. Must extract: state=Anambra, sector=infrastructure (from 'road'), year=2025 (from 'this year'). Query rewriting must handle Pidgin idioms.",
+      "expected_behavior": "Should identify Anambra, infrastructure sector, current year, and search accordingly.",
+      "metadata_filters_needed": ["state=Anambra", "year=2025", "sector=infrastructure"],
+      "expected_answer": "Should correctly interpret the Pidgin English query and present Anambra State's 2025 infrastructure or roads budget allocation in Naira. Must resolve 'road' to the infrastructure sector and 'this year' to 2025. The response can be in standard English. If 2025 data is not yet available, should state that clearly."
+    },
+    {
+      "id": "budg-021",
+      "category": "superlative_trap",
+      "question": "What is the largest single budget line item in Nigeria's history?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires searching across ALL states, ALL years, ALL line items. No numeric sorting in vector search. Would need to retrieve massive number of detail chunks and manually compare amounts. Practically impossible with current system.",
+      "expected_behavior": "Should attempt a broad search and provide best available answer with heavy caveats about data coverage.",
+      "metadata_filters_needed": ["is_summary=false"],
+      "expected_answer": "Should acknowledge the extreme difficulty of answering definitively, given the need to compare all line items across all states and years. May present some of the largest line items found in the available data with their Naira amounts, states, years, and descriptions. Must include strong caveats that the answer is limited to indexed data and does not represent a verified historical maximum across all Nigerian budgets."
+    },
+    {
+      "id": "budg-022",
+      "category": "social_protection",
+      "question": "How much have Nigerian states allocated to social protection, pensions, and N-Power programs in 2024?",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Social protection is a sector but N-Power is a federal program. State budgets may not have N-Power line items. The sector=social_protection classification catches pension/social investment keywords but may miss program-specific allocations.",
+      "expected_behavior": "Should search with sector=social_protection across multiple states, noting that N-Power is federal.",
+      "metadata_filters_needed": ["sector=social_protection", "year=2024"],
+      "expected_answer": "Should present social protection sector allocations for 2024 across available states in Naira. Must clarify that N-Power is a federal government program and may not appear in state budgets. Should distinguish between pension obligations and broader social protection spending where possible. Must note which states have data available and that coverage may be incomplete."
+    },
+    {
+      "id": "budg-023",
+      "category": "functional_code",
+      "question": "Break down Ogun State's 2024 budget by COFOG functional classification codes",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Functional codes (701-710) are used for classification but not stored as separate metadata. The sector field is derived FROM functional codes but the original codes aren't preserved. Agent cannot provide COFOG-specific breakdown.",
+      "expected_behavior": "Should provide sector-based breakdown which maps to functional codes, noting the classification methodology.",
+      "metadata_filters_needed": ["state=Ogun", "year=2024", "sector"],
+      "expected_answer": "Should present Ogun State's 2024 budget broken down by sector with Naira amounts, explaining that sectors are derived from COFOG-style functional classification codes but the original numeric codes (701-710) are not preserved in the data. Should map available sectors to their approximate COFOG equivalents where possible. Must not fabricate specific COFOG code numbers if they are not in the source data."
+    },
+    {
+      "id": "budg-024",
+      "category": "appropriation_act",
+      "question": "What are the key differences between the proposed budget and the approved appropriation act for Delta State 2024?",
+      "intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires BOTH document_type=budget_proposal AND document_type=appropriation_act for the same state/year. Most states may only have one or the other indexed. Comparing two document types requires the agent to identify and contrast specific figures.",
+      "expected_behavior": "Should search for both document types and compare if both exist.",
+      "metadata_filters_needed": ["state=Delta", "year=2024", "document_type"],
+      "expected_answer": "Should present figures from both the budget proposal and approved appropriation act for Delta State 2024, highlighting differences in total amounts, sector allocations, or capital/recurrent splits. If only one document type is available, must state which one is missing and that a comparison is not possible. Should not fabricate differences or present single-source data as a comparison."
+    },
+    {
+      "id": "budg-025",
+      "category": "follow_up_chain",
+      "question": "What is the Borno State 2024 budget?",
+      "follow_ups": [
+        "Break that down by sector",
+        "How does education compare to health?",
+        "What about 2023?",
+        "Show me the trend from 2021 to 2024",
+        "Which sector grew the fastest?"
+      ],
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Progressive drill-down. Each follow-up adds complexity. 'Show me the trend from 2021 to 2024' requires 4 years of data. 'Which sector grew the fastest?' requires all sectors across multiple years — a combinatorial explosion.",
+      "expected_behavior": "Should maintain Borno context throughout and attempt each follow-up with increasing search complexity.",
+      "expected_answer": "The initial answer should present Borno State's total 2024 budget in Naira. Follow-ups should progressively provide: a sector-by-sector breakdown with amounts, a direct education vs health comparison with figures, 2023 total budget for year-over-year context, a 2021-2024 trend with figures for each available year, and identification of the fastest-growing sector with percentage growth. Must maintain Borno State context throughout and note any years with missing data."
+    }
+  ]
+}

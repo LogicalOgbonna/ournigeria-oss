@@ -1,0 +1,5 @@
+[    2894ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://spending-api.arinze.online/api/notifications:0
+[    2894ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://spending-api.arinze.online/api/notifications/banners:0
+[   55904ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://spending-api.arinze.online/api/auth/send-otp:0
+[   71410ms] [ERROR] Access to fetch at 'https://spending-api.arinze.online/api/auth/send-otp' from origin 'https://spending.arinze.online' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ https://spending.arinze.online/login:0
+[   71411ms] [ERROR] Failed to load resource: net::ERR_FAILED @ https://spending-api.arinze.online/api/auth/send-otp:0

@@ -1,0 +1,288 @@
+{
+  "name": "Corruption Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the EFCC corruption case RAG pipeline. Covers edge cases in filtering, aggregation, multi-agency officials, status transitions, name resolution, and cross-official comparisons.",
+  "questions": [
+    {
+      "id": "corr-001",
+      "category": "aggregation_broad",
+      "question": "Can you list governors and ex governors under EFCC investigation?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Broad aggregation with agency filter. The $eq filter on agency='EFCC' misses officials stored as 'EFCC, ICPC'. Also requires topK=50 to cover 200+ officials, but vector similarity alone may not surface all relevant summary chunks.",
+      "expected_behavior": "Should list all officials with agency containing EFCC, regardless of whether they have co-investigating agencies.",
+      "metadata_filters_needed": ["agency", "section=summary"],
+      "officials_involved": "all",
+      "expected_answer": "Should return a comprehensive list of 20+ officials investigated by EFCC including prominent names like James Ibori, Diezani Alison-Madueke, Yahaya Bello, Joshua Dariye, Jolly Nyame, Ayo Fayose, Orji Uzor Kalu, Sambo Dasuki, etc. Each entry should mention their position, state, and case status. The response should NOT say 'no data found'."
+    },
+    {
+      "id": "corr-002",
+      "category": "aggregation_count",
+      "question": "How many Nigerian officials have been convicted of corruption?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires pulling ALL summary chunks with status=convicted. With topK=50 max, may not retrieve every convicted official if there are more than 50. Count accuracy depends on complete retrieval.",
+      "expected_behavior": "Should return an accurate count by searching with status=convicted, section=summary, and high topK.",
+      "metadata_filters_needed": ["status=convicted", "section=summary"],
+      "expected_answer": "Should provide a specific numeric count of all officials with status 'convicted' in the database, including names such as James Ibori, Joshua Dariye, Jolly Nyame, Orji Uzor Kalu, and others. The answer must acknowledge that some convicted officials were later pardoned (e.g., Dariye, Nyame), clarifying whether they are counted as convicted or pardoned. A disclaimer about data coverage limitations is acceptable."
+    },
+    {
+      "id": "corr-003",
+      "category": "aggregation_ranking",
+      "question": "Who are the top 10 officials by total amount alleged stolen?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires sorting by amount_alleged_ngn across ALL officials. Vector similarity search cannot sort by numeric metadata fields. The agent must retrieve a large number of summary chunks and manually rank them.",
+      "expected_behavior": "Should pull summary chunks with high topK and present ranked list by amount.",
+      "metadata_filters_needed": ["section=summary"],
+      "expected_answer": "Should present a ranked list of 10 officials ordered by amount_alleged_ngn from highest to lowest. Sani Abacha and Diezani Alison-Madueke should appear near the top given the scale of their alleged theft (billions of dollars). Each entry should include the official's name, position, and the alleged amount in Naira (and ideally USD equivalent). The list must be based on actual data, not hallucinated figures."
+    },
+    {
+      "id": "corr-004",
+      "category": "multi_agency",
+      "question": "Which officials were investigated by both EFCC and ICPC?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Agency is stored as comma-separated string (e.g., 'EFCC, ICPC'). The $eq filter cannot match partial strings. Searching agency='EFCC' misses 'EFCC, ICPC' and vice versa. No $contains operator available.",
+      "expected_behavior": "Should find officials whose agency field contains both EFCC and ICPC.",
+      "metadata_filters_needed": ["agency"],
+      "expected_answer": "Should return a list of officials whose agency field contains both 'EFCC' and 'ICPC', indicating joint investigation by both anti-corruption bodies. Each entry should include the official's name, position, state, and a brief description of their case. The response should not miss officials stored with comma-separated agency values like 'EFCC, ICPC'."
+    },
+    {
+      "id": "corr-005",
+      "category": "status_transition",
+      "question": "Which officials were convicted and then pardoned?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Status is a single field per chunk, not a history. An official who was convicted then pardoned will have status='pardoned' (latest), losing the conviction history. The agent must cross-reference case_outcome and timeline sections.",
+      "expected_behavior": "Should identify officials like Joshua Dariye and Jolly Nyame who were convicted then pardoned.",
+      "metadata_filters_needed": ["status=pardoned", "section=case_outcome"],
+      "expected_answer": "Must identify Joshua Dariye (former Plateau State Governor) and Jolly Nyame (former Taraba State Governor) as officials who were convicted and subsequently pardoned. The answer should mention their original convictions, sentences, and the presidential pardon they received. If additional pardoned officials exist in the data, they should also be listed. The response should explain the status transition from convicted to pardoned."
+    },
+    {
+      "id": "corr-006",
+      "category": "comparative_complex",
+      "question": "Compare the corruption cases of all former governors from the South-South geopolitical zone — who stole the most and what were the outcomes?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires: (1) knowing which states are South-South (Delta, Rivers, Bayelsa, Edo, Cross River, Akwa Ibom), (2) finding all former governors from those states, (3) comparing amounts and outcomes. No geopolitical_zone metadata exists in corruption index. Agent must search by state for each South-South state.",
+      "expected_behavior": "Should make 6 separate searches by state filter, compile results, and compare.",
+      "metadata_filters_needed": ["state", "section=summary"],
+      "expected_answer": "Should cover former governors from all six South-South states: Delta (James Ibori), Rivers, Bayelsa (Diepreye Alamieyeseigha and/or others), Edo, Cross River, and Akwa Ibom. For each governor found, the response should include alleged amounts (amount_alleged_ngn), case outcomes (convicted, acquitted, ongoing, etc.), and a comparative ranking of who allegedly stole the most. James Ibori (convicted in the UK) should feature prominently. The answer should acknowledge if no data exists for certain states."
+    },
+    {
+      "id": "corr-007",
+      "category": "name_resolution",
+      "question": "Tell me about Bello's corruption case",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Ambiguous name. 'Bello' maps to 'Haliru Bello' in OFFICIALS_MAP, but user likely means 'Yahaya Bello' (more prominent). The surname-only matching picks the wrong official. 'Yahaya Bello' is a full-name entry but 'bello' alone resolves to Haliru.",
+      "expected_behavior": "Should either ask for clarification or default to the most prominent Bello (Yahaya Bello).",
+      "metadata_filters_needed": ["official"],
+      "expected_answer": "Should either ask the user to clarify which Bello they mean (listing options like Yahaya Bello, Haliru Bello, and any others in the database), or default to Yahaya Bello (former Kogi State Governor) as the most high-profile match. If it defaults to Yahaya Bello, the response should cover his EFCC case, the alleged amounts, his ongoing status, and key case details. It should NOT silently return data for Haliru Bello without acknowledging the ambiguity."
+    },
+    {
+      "id": "corr-008",
+      "category": "name_resolution",
+      "question": "What happened to Mohammed?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Extremely ambiguous. 'mohammed' maps to 'Bala Mohammed' in OFFICIALS_MAP, but there are multiple Mohammeds: Bala Mohammed, Danjuma Mohammed, Mohammed Bello Adoke, Mohammed Abubakar IGP, Mohammed Yinusa, Mohammed Babagana Monguno. Single surname resolution is unreliable.",
+      "expected_behavior": "Should ask for clarification listing the possible Mohammed matches.",
+      "metadata_filters_needed": ["official"],
+      "expected_answer": "Should recognize the ambiguity and ask the user to clarify which Mohammed they mean, listing multiple possibilities such as Bala Mohammed, Danjuma Mohammed, Mohammed Bello Adoke, Mohammed Abubakar, Mohammed Yinusa, and Mohammed Babagana Monguno. If it proceeds without clarification, it should explicitly state which Mohammed it is presenting data for. It should NOT silently return data for just one Mohammed without acknowledging the ambiguity."
+    },
+    {
+      "id": "corr-009",
+      "category": "cross_section",
+      "question": "For James Ibori, show me his charges, how much was allegedly stolen, the court proceedings, and what happened in the end — including the UK case",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires multiple section retrievals (charges, financial_details, court_proceedings, case_outcome) and potentially artifact chunks for UK proceedings. The agent has 10 steps but must use them strategically.",
+      "expected_behavior": "Should make sequential searches: overview first, then charges, financial_details, court_proceedings, case_outcome, and possibly artifacts.",
+      "metadata_filters_needed": ["official=James Ibori", "section"],
+      "expected_answer": "Should provide a comprehensive multi-section profile of James Ibori (former Delta State Governor) covering: (1) specific charges filed against him, (2) the alleged amount stolen in Naira from financial_details, (3) Nigerian court proceedings and their outcome, (4) the UK case where he was convicted by Southwark Crown Court after pleading guilty to money laundering and fraud, and (5) his sentencing and any asset recovery. The UK conviction is a critical part that must not be omitted."
+    },
+    {
+      "id": "corr-010",
+      "category": "unknown_official",
+      "question": "What is the EFCC case against Governor Adeleke of Osun State?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "If Adeleke is not in OFFICIALS_MAP, query analysis won't extract an official name. The search will be purely semantic with no official filter, likely returning irrelevant results or no results.",
+      "expected_behavior": "Should clearly state no data found for this official rather than hallucinating.",
+      "metadata_filters_needed": ["official"],
+      "expected_answer": "Should clearly state that no corruption case data exists for Governor Adeleke of Osun State in the database. The response must NOT hallucinate charges, amounts, or case details. It may suggest searching for other Osun State officials if any exist in the data, but it must be transparent that Adeleke was not found in the corruption case files."
+    },
+    {
+      "id": "corr-011",
+      "category": "party_filter",
+      "question": "List all APC governors that have been charged with corruption",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires combining party=APC filter with aggregation. Party metadata may not be consistently populated for all officials. Some officials changed parties (e.g., decamped from PDP to APC) but only one party is stored.",
+      "expected_behavior": "Should search with party=APC, section=summary, high topK and list results.",
+      "metadata_filters_needed": ["party=APC", "section=summary"],
+      "expected_answer": "Should return a list of officials tagged with party=APC who have corruption cases, including names like Yahaya Bello (Kogi) and any others stored with APC affiliation. Each entry should include the official's name, state, position, and case status. The response should acknowledge that some officials may have switched parties (e.g., from PDP to APC) and the data may reflect only one party affiliation. It should not miss officials due to party-switching ambiguity."
+    },
+    {
+      "id": "corr-012",
+      "category": "state_aggregation",
+      "question": "Which Nigerian state has produced the most corrupt officials?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires aggregating officials by state metadata across ALL entries. No built-in group-by capability in vector search. Agent must pull all summary chunks and manually count per state. TopK=50 may not be enough.",
+      "expected_behavior": "Should attempt broad search with high topK and manually tally states, with disclaimer about data coverage.",
+      "metadata_filters_needed": ["section=summary"],
+      "expected_answer": "Should provide a state-by-state tally of officials with corruption cases, identifying which state has the highest count. The answer should list at least the top 3-5 states by number of officials. It must include a disclaimer that results are limited to the ~200+ officials in the database and may not reflect complete reality. The methodology (counting officials per state from available data) should be transparent."
+    },
+    {
+      "id": "corr-013",
+      "category": "financial_comparison",
+      "question": "Compare the total amounts allegedly stolen by Diezani Alison-Madueke, Sani Abacha, and James Ibori — convert everything to USD",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires: (1) retrieving financial_details for 3 officials, (2) handling mixed currencies (NGN, USD, GBP), (3) converting to USD. The stored amount_alleged_ngn uses fixed exchange rates (USD=1500 NGN) that may not reflect actual case amounts in USD.",
+      "expected_behavior": "Should retrieve financial details for each official and present comparison, noting currency conversion limitations.",
+      "metadata_filters_needed": ["official", "section=financial_details"],
+      "expected_answer": "Should present a side-by-side comparison of the alleged amounts for Diezani Alison-Madueke (former Petroleum Minister), Sani Abacha (former military head of state), and James Ibori (former Delta State Governor). Abacha's alleged theft (estimated $3-5 billion USD) should be the largest. Amounts should be converted from amount_alleged_ngn to USD, with the conversion rate noted (e.g., 1 USD = 1500 NGN). The response must flag that the fixed exchange rate may not accurately reflect historical USD values at the time of the alleged crimes."
+    },
+    {
+      "id": "corr-014",
+      "category": "temporal",
+      "question": "Which corruption cases have been ongoing for more than 10 years without a verdict?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "No date metadata (charge_date, trial_start_date) in the vector index. Agent must search for status=ongoing cases, then parse timeline sections for dates, and calculate duration. Extremely dependent on timeline data quality.",
+      "expected_behavior": "Should search for ongoing cases and attempt to identify long-running ones from timeline data.",
+      "metadata_filters_needed": ["status=ongoing", "section=timeline"],
+      "expected_answer": "Should identify officials with status 'ongoing' whose cases began more than 10 years ago (before 2016 given the current date). Likely candidates include Diezani Alison-Madueke (case ongoing since around 2015) and Sambo Dasuki (charged around 2015). The answer should extract dates from timeline sections and calculate durations. It must acknowledge that date information may be incomplete and that the 10-year threshold is approximate based on available timeline data."
+    },
+    {
+      "id": "corr-015",
+      "category": "negation",
+      "question": "Which former governors have NEVER been investigated for corruption despite allegations?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires knowledge of ALL former governors (not just those in the database) and identifying those with status=never_charged. The database only contains officials who HAVE case files — governors with zero EFCC involvement may not exist in the index at all.",
+      "expected_behavior": "Should search for never_charged status and note the limitation that absence from the database doesn't mean no allegations exist.",
+      "metadata_filters_needed": ["status=never_charged"],
+      "expected_answer": "Should return officials with status 'never_charged' from the database, if any exist. Critically, the response must explain the inherent limitation: the database only contains officials who have case files, so governors with zero formal investigation would not appear at all. The answer should NOT claim to provide a complete list of uninvestigated governors, and should clearly distinguish between 'never_charged' status in the data versus complete absence from the data."
+    },
+    {
+      "id": "corr-016",
+      "category": "international",
+      "question": "Which Nigerian officials have been investigated by foreign agencies like the FBI, UK Metropolitan Police, or DOJ?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Agency filter uses $eq which requires exact match. Foreign agencies stored as 'FBI', 'UK Metropolitan Police', 'US DOJ'. Must make separate searches per agency. Also, agency is comma-separated so $eq won't match 'EFCC, UK Metropolitan Police'.",
+      "expected_behavior": "Should search for each foreign agency separately and compile results.",
+      "metadata_filters_needed": ["agency"],
+      "expected_answer": "Should list officials investigated by international agencies, including at minimum: James Ibori (UK Metropolitan Police, convicted in UK), Diezani Alison-Madueke (UK agencies, ongoing), and Sani Abacha (multiple international investigations for asset recovery). The response should cover FBI, UK Metropolitan Police, UK SFO, and US DOJ investigations. Each entry should name the official, the foreign agency involved, and the nature/outcome of the international case. Officials with comma-separated agency values (e.g., 'EFCC, UK Metropolitan Police') must not be missed."
+    },
+    {
+      "id": "corr-017",
+      "category": "plea_bargain",
+      "question": "List all officials who took plea bargains — what did they forfeit and what sentences did they get?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires status=plea_bargain filter plus case_outcome and financial_details sections for each matched official. Multi-step: first find plea bargain officials, then drill into each one's details.",
+      "expected_behavior": "Should search with status=plea_bargain first, then retrieve case_outcome for each official found.",
+      "metadata_filters_needed": ["status=plea_bargain", "section=case_outcome"],
+      "expected_answer": "Should list all officials with status 'plea_bargain', and for each one provide: (1) their name and position, (2) the assets or funds forfeited as part of the deal, (3) the sentence received (if any), and (4) a brief description of the original charges. The answer should draw from both case_outcome and financial_details sections. If no plea bargain officials exist in the data, the response should state that clearly rather than hallucinating examples."
+    },
+    {
+      "id": "corr-018",
+      "category": "dead_officials",
+      "question": "What happened to the corruption cases of officials who died before their trials concluded?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires status=abated_by_death filter. Relatively straightforward but tests whether this status value is properly indexed and retrievable.",
+      "expected_behavior": "Should find officials with abated_by_death status and describe what happened to their cases.",
+      "metadata_filters_needed": ["status=abated_by_death"],
+      "expected_answer": "Should identify officials with status 'abated_by_death', most notably Sani Abacha (former military head of state who died in 1998). For each official found, the response should explain what happened to their case after death — typically cases are legally abated (discontinued) but asset recovery efforts may continue. The answer should mention any ongoing civil forfeiture proceedings or international asset recovery efforts that survived the official's death."
+    },
+    {
+      "id": "corr-019",
+      "category": "routing_ambiguity",
+      "question": "How much of Lagos State's budget was stolen by its former governors?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Touches BOTH corruption and budget intents. Router must decide: is this about budget figures or corruption cases? The word 'stolen' suggests corruption, but 'budget' suggests budget intent. May misroute.",
+      "expected_behavior": "Should route to corruption and search for Lagos state officials with their financial details.",
+      "metadata_filters_needed": ["state=Lagos", "section=financial_details"],
+      "expected_answer": "Should correctly route to the corruption data source (not budget) and search for former Lagos State governors with corruption cases. The response should list any Lagos State officials found, their alleged amounts from financial_details, and case outcomes. If no Lagos State governors exist in the corruption database, it should state that clearly. The answer should NOT conflate budget allocation data with corruption case amounts, and should clarify that 'amount alleged stolen' comes from EFCC case files, not budget analysis."
+    },
+    {
+      "id": "corr-020",
+      "category": "follow_up_chain",
+      "question": "Tell me about Dariye's case",
+      "follow_ups": [
+        "What about Nyame?",
+        "Compare the two",
+        "Who got a harsher sentence?",
+        "Were they both pardoned?",
+        "By whom?"
+      ],
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Tests follow-up routing. After first question about Dariye, 'What about Nyame?' must maintain corruption context. 'Compare the two' requires the system to remember both officials. 'By whom?' requires deep case knowledge about who granted the pardon.",
+      "expected_behavior": "Each follow-up should maintain conversation context and route correctly back to corruption agent.",
+      "expected_answer": "For the initial question, should provide a comprehensive overview of Joshua Dariye's case (former Plateau State Governor), including charges, alleged amount, conviction, sentence, and subsequent pardon. For follow-ups: 'What about Nyame?' should return Jolly Nyame's case (former Taraba State Governor) without losing corruption context. 'Compare the two' should juxtapose both cases side by side. 'Who got a harsher sentence?' should compare their sentences. 'Were they both pardoned?' should confirm yes, both were pardoned. 'By whom?' should identify the president who granted the pardons."
+    },
+    {
+      "id": "corr-021",
+      "category": "pidgin_query",
+      "question": "Wetin happen to dat Kogi governor wey dem dey find?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin English. Router must understand this refers to Yahaya Bello (Kogi governor under EFCC investigation). Query analysis won't extract 'Yahaya Bello' from Pidgin. Must rely on 'Kogi' and 'governor' context.",
+      "expected_behavior": "Should identify this as corruption intent, search for Kogi state officials, and find Yahaya Bello.",
+      "metadata_filters_needed": ["state=Kogi"],
+      "expected_answer": "Should correctly interpret the Nigerian Pidgin English query and identify Yahaya Bello as the former Kogi State Governor under EFCC investigation. The response should cover his case overview, the alleged amounts, charges, and current status (ongoing). The system must not fail to understand the Pidgin phrasing or misroute the query. Key contextual clues are 'Kogi' and 'governor'."
+    },
+    {
+      "id": "corr-022",
+      "category": "artifact_source",
+      "question": "What did BBC report about Diezani's case? Are there any Premium Times articles about her charges?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires searching artifact chunks specifically. The artifact_source metadata may not be filterable via the search tool's current schema. Agent must retrieve artifacts section and hope chunk text mentions the source.",
+      "expected_behavior": "Should search for Diezani with broad query mentioning BBC/Premium Times and find relevant artifact chunks.",
+      "metadata_filters_needed": ["official=Diezani Alison-Madueke"],
+      "expected_answer": "Should retrieve artifact chunks related to Diezani Alison-Madueke (former Petroleum Minister) that reference BBC and Premium Times reporting. The response should summarize what these sources reported about her case, including UK-based charges, asset seizures, and alleged misappropriation of oil revenues. If no artifact chunks with those specific sources are found, the response should state that clearly and offer what data is available from her case files rather than fabricating media reports."
+    },
+    {
+      "id": "corr-023",
+      "category": "amount_edge_case",
+      "question": "Which officials had corruption cases involving more than $1 billion USD?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "amount_alleged_ngn is stored in Naira. $1B USD ≈ ₦1.5T at the fixed rate. Vector search has no numeric range filter ($gt/$gte). Agent must retrieve all summary chunks and manually filter by amount.",
+      "expected_behavior": "Should pull high-topK summary chunks and filter for amount_alleged_ngn > 1.5 trillion.",
+      "metadata_filters_needed": ["section=summary"],
+      "expected_answer": "Should identify officials whose amount_alleged_ngn exceeds approximately 1.5 trillion Naira (equivalent to $1 billion USD at the 1500 NGN/USD rate). Sani Abacha should almost certainly appear (estimated $3-5 billion). Diezani Alison-Madueke is also a strong candidate. The response should list each qualifying official with their name, position, alleged amount in both NGN and USD, and note the exchange rate used for conversion. It must perform the currency math correctly and not miss high-value cases."
+    },
+    {
+      "id": "corr-024",
+      "category": "multi_position",
+      "question": "Are there any officials who held multiple government positions and were charged for corruption in more than one role?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Position is stored as a single field. Officials who served as governor then senator would only have one position recorded. The system cannot track multi-position histories from metadata alone.",
+      "expected_behavior": "Should note limitation and search overview/timeline sections for officials with documented multiple positions.",
+      "metadata_filters_needed": ["section=overview"],
+      "expected_answer": "Should search overview and timeline sections for officials who held multiple government positions. The response should identify any officials whose case files mention serving in more than one role (e.g., governor then senator, minister then governor). It must acknowledge the data limitation that position is stored as a single field, so multi-position officials may only show their primary role in metadata. The answer should draw from narrative text in overview/timeline sections rather than relying solely on the position metadata field."
+    },
+    {
+      "id": "corr-025",
+      "category": "exhaustive_comparison",
+      "question": "Give me a complete breakdown of every convicted governor: their state, party, amount stolen, sentence, and whether they've been pardoned",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires: status=convicted + position containing 'governor' (no position filter exists) + financial_details + case_outcome for EACH one. Agent has only 10 steps. If there are 15+ convicted governors, agent cannot search each individually.",
+      "expected_behavior": "Should search with status=convicted, high topK, then attempt to retrieve details for as many as possible within step limit.",
+      "metadata_filters_needed": ["status=convicted", "section=summary", "section=case_outcome", "section=financial_details"],
+      "expected_answer": "Should provide a structured table or list of all convicted governors including at minimum: Joshua Dariye (Plateau, convicted then pardoned), Jolly Nyame (Taraba, convicted then pardoned), Orji Uzor Kalu (Abia, convicted), and James Ibori (Delta, convicted in UK). For each governor, the response must include: state, party affiliation, amount_alleged_ngn, sentence length, and pardon status. The answer should also include officials with status 'pardoned' since they were convicted first. It should acknowledge if the step limit prevented retrieving details for all convicted governors."
+    }
+  ]
+}

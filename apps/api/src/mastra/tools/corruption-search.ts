@@ -2,11 +2,13 @@ import { createTool } from "@mastra/core/tools";
 import { embed } from "ai";
 import { z } from "zod";
 import {
-  getPgVector,
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
 } from "../rag/config";
+import { getCached, setCached } from "../rag/cache";
+import { hybridSearch } from "../rag/hybrid-search";
+import { rerankResults } from "../rag/rerank";
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
 
@@ -91,55 +93,59 @@ export const corruptionSearchTool = createTool({
   }),
   execute: async ({ query, official, section, status, state, party, agency, topK }) => {
     try {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
       const conditions: Array<Record<string, { $eq: string }>> = [];
-      if (official) {
-        conditions.push({ official: { $eq: official } });
-      }
-      if (section) {
-        conditions.push({ section: { $eq: section } });
-      }
-      if (status) {
-        conditions.push({ status: { $eq: status } });
-      }
-      if (state) {
-        conditions.push({ state: { $eq: state } });
-      }
-      if (party) {
-        conditions.push({ party: { $eq: party } });
-      }
-      if (agency) {
-        conditions.push({ agency: { $eq: agency } });
-      }
+      if (official) conditions.push({ official: { $eq: official } });
+      if (section) conditions.push({ section: { $eq: section } });
+      if (status) conditions.push({ status: { $eq: status } });
+      if (state) conditions.push({ state: { $eq: state } });
+      if (party) conditions.push({ party: { $eq: party } });
+      if (agency) conditions.push({ agency: { $eq: agency } });
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
+      const requestedTopK = topK ?? RAG_CONFIG.topK;
+      const cacheParams = { indexName: CORRUPTION_INDEX, query, filter };
 
-      const queryResults = await getPgVector().query({
-        indexName: CORRUPTION_INDEX,
-        queryVector: truncateEmbedding(embedding),
-        topK: topK ?? RAG_CONFIG.topK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
+      type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; score: number };
+      const cached = getCached<CorruptionResult[]>(cacheParams);
 
-      const results = queryResults.map((r) => ({
-        text: (r.metadata?.text as string) ?? "",
-        official: (r.metadata?.official as string) ?? "Unknown",
-        section: (r.metadata?.section as string) ?? "",
-        filename: (r.metadata?.filename as string) ?? "",
-        s3_key: (r.metadata?.s3_key as string) ?? "",
-        status: (r.metadata?.status as string) || undefined,
-        position: (r.metadata?.position as string) || undefined,
-        state: (r.metadata?.state as string) || undefined,
-        party: (r.metadata?.party as string) || undefined,
-        agency: (r.metadata?.agency as string) || undefined,
-        amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) || undefined,
-        score: r.score,
-      }));
+      let results: CorruptionResult[];
+      if (cached) {
+        results = cached;
+      } else {
+        const { embedding } = await embed({
+          model: embeddingModelInstance,
+          value: query,
+        });
+
+        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+
+        const queryResults = await hybridSearch({
+          indexName: CORRUPTION_INDEX,
+          query,
+          queryVector: truncateEmbedding(embedding),
+          topK: fetchTopK,
+          filter,
+          ef: RAG_CONFIG.searchEf,
+        });
+
+        const mapped = queryResults.map((r) => ({
+          text: (r.metadata?.text as string) ?? "",
+          official: (r.metadata?.official as string) ?? "Unknown",
+          section: (r.metadata?.section as string) ?? "",
+          filename: (r.metadata?.filename as string) ?? "",
+          s3_key: (r.metadata?.s3_key as string) ?? "",
+          status: (r.metadata?.status as string) || undefined,
+          position: (r.metadata?.position as string) || undefined,
+          state: (r.metadata?.state as string) || undefined,
+          party: (r.metadata?.party as string) || undefined,
+          agency: (r.metadata?.agency as string) || undefined,
+          amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) || undefined,
+          score: r.score,
+        }));
+
+        results = await rerankResults(query, mapped, requestedTopK);
+        setCached(cacheParams, results);
+      }
 
       return {
         results,

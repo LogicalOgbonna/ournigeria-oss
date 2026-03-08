@@ -1,0 +1,490 @@
+{
+  "name": "FAAC Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the FAAC (Federation Account Allocation Committee) RAG pipeline. Covers edge cases in chunk type selection, geopolitical zone aggregation, LGA name resolution, oil derivation, cross-level comparisons, and temporal analysis.",
+  "questions": [
+    {
+      "id": "faac-001",
+      "category": "all_states_ranking",
+      "question": "Which state received the highest FAAC allocation in January 2025?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires state_monthly chunks for ALL 37 states for January 2025. topK=50 can cover all 37 states, but the agent must use chunk_type=state_monthly with month=January and year=2025. If it doesn't set the right chunk_type, it may get a mix of LGA and state chunks.",
+      "expected_behavior": "Should search with chunk_type=state_monthly, year=2025, month=January, topK=40 and rank by total_allocation.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly",
+        "year=2025",
+        "month=January"
+      ],
+      "expected_answer": "Should retrieve state_monthly data for January 2025 and rank states by total allocation. Lagos or Rivers typically receive highest allocations. Must show specific Naira amounts and ideally cover most/all 37 states. Should note if data for some states is missing.",
+      "answer": "I can’t answer **“which state received the highest FAAC allocation in January 2025”** from the excerpts shown, because the records here mostly provide **budgeted FAAC for 2025** or **Q1 totals (Jan–Mar 2025)**—not **January-only FAAC receipts by state**.\n\n### What we *do* have in the retrieved budget data (examples)\n- **Delta (2025 Q1 FAAC performance)**: **₦300,713,650,257.98** (this is **Q1 total**, not January alone).\n- **Adamawa (2025 Q1 FAAC performance)**: **₦37,026,040,028.05** (also **Q1 total**).\n- **Kwara** mentions **Q1 FAAC total**: **₦50,636,359,445.73** (not January-only).\n- Several others (e.g., **Lagos, Ogun, Osun, Ondo, Edo, Rivers**) show **2025 approved FAAC budget** amounts (annual plans), not January receipts.\n\n### Why this matters\nTo determine the **highest in January 2025**, we need a dataset that reports **monthly FAAC receipts (January specifically)** for each state (typically from FAAC monthly distribution/receipts reports), not annual budget allocations or quarterly aggregates.\n\n### If you want, I can still answer a close alternative\nPick one option:\n1) **Highest FAAC in Q1 2025 (Jan–Mar) among states with Q1 data shown here**, or  \n2) **Highest 2025 budgeted FAAC among the states shown**, or  \n3) Tell me the **specific states** you want compared for **January 2025** (e.g., Lagos vs Rivers vs Delta), and I’ll check if January-only receipts exist in our budget database for those states.\n\nWhich option do you prefer?",
+      "resolved_intent": "unknown",
+      "response_time_ms": 46388,
+      "pass": true,
+      "evaluation_notes": "Matched 12/20 expected terms."
+    },
+    {
+      "id": "faac-002",
+      "category": "lga_comparison",
+      "question": "Compare the FAAC allocation of Obio/Akpor LGA in Rivers State with Ikeja LGA in Lagos State for 2024",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "LGA name 'Obio/Akpor' contains a slash — special character in the name. Normalization must handle 'Obio/Akpor' correctly (not split on '/'). Also requires chunk_type=lga_monthly with year=2024 for two specific LGAs across potentially 12 months.",
+      "expected_behavior": "Should search each LGA separately with chunk_type=lga_monthly and year=2024.",
+      "metadata_filters_needed": [
+        "chunk_type=lga_monthly",
+        "lga",
+        "year=2024"
+      ],
+      "expected_answer": "Should present monthly or annual totals for both Obio/Akpor (Rivers) and Ikeja (Lagos) for 2024, with specific Naira figures. Must correctly handle the slash in 'Obio/Akpor' without splitting or corrupting the name. Should show a side-by-side comparison highlighting which LGA received more overall and any notable monthly differences.",
+      "answer": "## Requested comparison (2024): Obio/Akpor LGA (Rivers) vs Ikeja LGA (Lagos) — **FAAC allocation**\n\n### What we can (and can’t) see in the 2024 budget documents\n- **Lagos (2024)**: The Lagos State 2024 Approved Budget contains **LGA-level FAAC-related figures** (line for *Ikeja Local Government* is present).\n- **Rivers (2024)**: The Rivers State 2024 budget documents available in our records show **state-level FAAC** (e.g., “FAAC Direct Allocation / Government Share of FAAC”), **but do not provide an LGA-by-LGA FAAC breakdown**, so **Obio/Akpor LGA’s FAAC allocation is not stated** in the Rivers 2024 budget documents we have.\n\n---\n\n## Lagos (Ikeja LGA) — 2024 FAAC figure found\nFrom the **Lagos State Approved Budget 2024** (LGA table line for *IKEJA Local Government*):\n- **₦14,238,417,826.09** (Ikeja Local Government, 2024)\n\n---\n\n## Rivers (Obio/Akpor LGA) — 2024 FAAC figure not found at LGA level\nIn Rivers’ 2024 records, FAAC is shown **only at the state level**, e.g.:\n- Rivers 2024 “**FAAC Direct Allocation**”: **₦283,235,306,406.00** (state-level; not broken down by LGAs)\n\nSo, **I cannot produce a valid 2024 FAAC comparison (Obio/Akpor vs Ikeja)** from the budget documents because **Obio/Akpor’s FAAC allocation is missing** in Rivers’ 2024 published budget tables we have.\n\n---\n\n## Summary table (2024)\n\n| LGA | State | 2024 FAAC allocation found in budget docs? | Amount |\n|---|---|---:|---:|\n| Obio/Akpor | Rivers | No (only state-level FAAC shown) | — |\n| Ikeja | Lagos | Yes | **₦14,238,417,826.09** |\n\n---\n\n\n\n---\n\n## Next step (so I can complete the comparison)\nIf you want a true LGA-to-LGA FAAC comparison, we’ll need a **Rivers LGA FAAC distribution source for 2024** (often from the **Joint Accounts Allocation Committee (JAAC)** / Rivers LG fiscal tables, or Rivers LG budget/financial statements). Tell me if you want:\n1) **Monthly 2024 FAAC inflows** comparison (if the state has JAAC releases), or  \n2) A **proxy comparison** using total LGA transfers/allocations (if Rivers publishes those by LGA).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 73762,
+      "pass": true,
+      "evaluation_notes": "Matched 6/25 expected terms."
+    },
+    {
+      "id": "faac-003",
+      "category": "zone_aggregation",
+      "question": "Compare FAAC allocations across all 6 geopolitical zones for 2024",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Zone monthly chunks exist (6 per month), so 6 zones × 12 months = 72 chunks needed for a full year comparison. Agent must either search zone_monthly with high topK or search state_annual and aggregate by zone. Annual zone chunks don't exist — only monthly zone chunks.",
+      "expected_behavior": "Should search chunk_type=zone_monthly with year=2024, high topK, and aggregate per zone.",
+      "metadata_filters_needed": [
+        "chunk_type=zone_monthly",
+        "year=2024"
+      ],
+      "expected_answer": "Should present total 2024 allocations for all 6 geopolitical zones: North Central, North East, North West, South East, South South, and South West. Must include specific Naira amounts per zone and rank them. South South typically ranks high due to 13% derivation. Should note if any months are missing from the aggregation.",
+      "answer": "I can’t produce a **credible “all 6 geopolitical zones” comparison of FAAC allocations for 2024** from the budget documents currently available in our records, because:\n\n- The budgets we have are **state-by-state**, and FAAC figures in them are reported at **state level** (e.g., “FAAC Direct Allocation / Government Share of FAAC”), **not aggregated by geopolitical zone**.\n- To compare *zones*, we would need **FAAC totals for all 36 states (+ FCT)** for 2024 (or at least complete coverage per zone) and then sum them by zone. From the available 2024 documents, coverage is **partial and inconsistent** across states, so any “zone ranking” would be incomplete and potentially misleading.\n- A federal budget line like “across six geopolitical zones” in the Federal 2024 proposal is **project spending**, not FAAC distribution.\n\n### What I can do instead (pick one)\n1) **Zone comparison based on states we actually have 2024 FAAC data for (partial coverage)**  \n   I will clearly label it “among states with available data” and show the exact states included per zone.\n\n2) **State-to-state comparison (2024)** for whichever states/zones you care about most.\n\n3) If you want a true zone comparison: tell me whether you mean:\n   - **FAAC Direct Allocation only**, or\n   - **Total Government Share of FAAC** (Statutory + VAT + Other FAAC + derivation where applicable)\n\nReply with your preferred option and definition (1/2/3), and if option (1) tell me whether to use **FAAC Direct Allocation** or **Government Share of FAAC**.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 56733,
+      "pass": true,
+      "evaluation_notes": "Low term match: 3/21 expected terms."
+    },
+    {
+      "id": "faac-004",
+      "category": "derivation_fund",
+      "question": "How much did each oil-producing state receive from the 13% derivation fund in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "9 oil-producing states × 12 months = 108 separate data points. Must filter for state_monthly chunks where is_oil_producing=true and year=2024. The derivation amount is embedded in chunk text, not a separate numeric metadata field that can be sorted.",
+      "expected_behavior": "Should search for oil-producing states with state_monthly chunks and extract derivation amounts from text.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly",
+        "year=2024",
+        "is_oil_producing=true"
+      ],
+      "expected_answer": "Should list all 9 oil-producing states (Abia, Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Imo, Ondo, Rivers) with their annual 13% derivation totals in Naira for 2024. Delta, Rivers, Akwa Ibom, and Bayelsa typically receive the largest derivation shares. Should clarify that derivation amounts are extracted from chunk text and note if any state-month combinations are missing.",
+      "answer": "I can’t answer that **for “each oil‑producing state” in 2024** from the excerpts shown, because the 2024 derivation figures in our available budget data here cover **only 2 states** (Akwa Ibom and Anambra). Nigeria has more oil‑producing states than this, so any “each state” list would be incomplete.\n\nThat said, **among the oil‑producing states with 2024 derivation entries in the retrieved budget records**, here are the 13% derivation amounts:\n\n## 13% derivation fund (2024) — states with available 2024 data\n- **Akwa Ibom (2024): ₦51.0 billion** — “13% Derivation Revenue” (Budget line 11010104)\n- **Anambra (2024): ₦8.019 billion** — “Mineral Fund (13% Derivation)” (Budget line 11010104)\n\n### Total (for these 2 states only)\n- **₦59.019 billion** (₦51.0bn + ₦8.019bn)\n\n\n\nIf you want, I can generate a fuller table for **all oil‑producing states we have 2024 data for**—but I’ll need to run a database-wide search for 2024 derivation lines state-by-state (coverage is not guaranteed for all 36 states + FCT). Would you like me to proceed with that comprehensive pull?",
+      "resolved_intent": "unknown",
+      "response_time_ms": 59129,
+      "pass": true,
+      "evaluation_notes": "Low term match: 3/28 expected terms."
+    },
+    {
+      "id": "faac-005",
+      "category": "component_breakdown",
+      "question": "For Delta State in March 2025, break down the FAAC allocation into statutory, VAT, exchange gain, EMTL, ecology, and 13% derivation",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires finding a single state_monthly chunk for Delta, March 2025. The breakdown should be in the chunk text. Tests whether the agent correctly selects chunk_type=state_monthly (not lga_monthly or zone_monthly).",
+      "expected_behavior": "Should retrieve the exact state_monthly chunk and extract component breakdown.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly",
+        "state=Delta",
+        "year=2025",
+        "month=March"
+      ],
+      "expected_answer": "Should provide a complete breakdown of Delta State's March 2025 FAAC allocation into exactly 6 components: statutory, VAT, exchange_gain, EMTL, ecology, and derivation_13_pct, each with specific Naira amounts. The sum of components should equal the gross allocation. Should also show deductions and net allocation if available in the chunk.",
+      "answer": "For **Delta State (March 2025)**, I checked the **Delta 2025 budget implementation records**. They report FAAC items at **quarter level (Q1)** rather than month-by-month; so the closest official breakdown that covers March is **Q1 2025 (Jan–Mar)**.\n\n## Delta State FAAC inflows (Q1 2025: Jan–Mar) — requested breakdown\n**Statutory Allocation:** **₦8,259,020,281.02** *(from Delta 2025 Q1 implementation report)*  \n**VAT:** **₦24,614,631,156.57** *(from Delta 2025 Q1 implementation report)*  \n**13% Derivation (Oil/Gas Derivation):** **₦262,409,388,489.90** *(from Delta 2025 Q1 implementation report)*  \n**Exchange Gain:** **₦0.00** *(not reported under Q1 “Other FAAC Transfers” lines in the records pulled; shows up later in Q2/Q4)*  \n**EMTL (Electronic Money Transfer Levy):** **₦430,610,330.49** *(from Delta 2025 Q1 implementation report)*  \n**Ecological Fund:** **₦0.00** *(not reported under Q1 “Other FAAC Transfers” lines in the records pulled; shows up later in Q2/Q4)*\n\n### Total of the requested components (Q1 2025)\n**₦295,713,650,258.00** (sum of the six items above)\n\n\n\n## Important note (about “March 2025” specifically)\nThe budget implementation data available here is **not broken down by individual months**, so I can’t truthfully label these figures as *March-only*. If you want, I can:\n- estimate a **monthly average for Q1** (Jan–Mar), or\n- search specifically for any **Delta FAAC schedule / monthly FAAC receipt table** for March 2025 (if it exists in the database).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 49898,
+      "pass": true,
+      "evaluation_notes": "Matched 7/23 expected terms."
+    },
+    {
+      "id": "faac-006",
+      "category": "lga_within_state",
+      "question": "Which LGA in Kano State received the highest FAAC allocation in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Kano has 44 LGAs × 12 months = 528 potential chunks. topK=50 cannot retrieve all. The agent must search with chunk_type=lga_monthly, state=Kano, year=2024 but will only get a subset. Ranking accuracy depends on retrieval completeness.",
+      "expected_behavior": "Should search with state=Kano, chunk_type=lga_monthly, year=2024, high topK and attempt ranking with caveats.",
+      "metadata_filters_needed": [
+        "chunk_type=lga_monthly",
+        "state=Kano",
+        "year=2024"
+      ],
+      "expected_answer": "Should identify the top-receiving LGA in Kano State for 2024 by total allocation with a specific Naira figure. Kano Municipal or Nassarawa LGA typically rank high. Must acknowledge that Kano has 44 LGAs and retrieval may be incomplete, so the ranking should carry a caveat about partial data. Should show at least the top 5-10 LGAs if possible.",
+      "answer": "I **can’t determine that from the available Kano 2024 budget records** we have here.\n\nReason: **FAAC is shown as a state-level revenue item**, not broken down by **LGA** in the Kano 2024 excerpts. For example, the Kano 2024 Budget Performance Reports show **“Government Share of FAAC” = ₦277,805,415,034 (original budget)** and track its performance (e.g., **₦156,386,149,963.59 YTD at Q2**), but **there is no table allocating FAAC across the 44 LGAs**.\n\nWhat the 2024 data does contain (but is different):\n- **“Total Expenditure by Location”** (LGAs like Dala, Gwale, Kumbotso, etc.) — this is **spending by location**, not FAAC receipts by LGA.\n- **Local aids/grants and LGA contributions** (e.g., “donation by local governments”) — again **not FAAC allocation to LGAs**.\n\n### What I need to answer your question exactly\nA document/data table like **“FAAC allocation to LGAs (Kano) 2024”** or **monthly FAAC/LG allocations by LGA** (often from FAAC distribution schedules / state joint allocation committee disclosures).\n\nIf you want, tell me whether you mean:\n1) **FAAC to the Kano State Government** (state share), or  \n2) **FAAC distributed to Kano LGAs** (LGA shares).  \n\nIf it’s (2), I can search specifically for **“Kano LGA FAAC allocation 2024”** and extract the top LGA—*if that dataset is available in our budget database.*",
+      "resolved_intent": "unknown",
+      "response_time_ms": 38059,
+      "pass": true,
+      "evaluation_notes": "Low term match: 4/22 expected terms."
+    },
+    {
+      "id": "faac-007",
+      "category": "national_summary",
+      "question": "What was the total FAAC disbursement for Nigeria in 2024, and how was it split between federal, states, and local governments?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires national_monthly chunks for all months of 2024. 12 chunks needed (one per month). Agent should filter chunk_type=national_monthly, year=2024. If some months are missing, totals will be incomplete.",
+      "expected_behavior": "Should retrieve all national_monthly chunks for 2024 and sum the components.",
+      "metadata_filters_needed": [
+        "chunk_type=national_monthly",
+        "year=2024"
+      ],
+      "expected_answer": "Should provide the total 2024 FAAC disbursement in Naira and break it down by the three tiers of government: federal, states, and local governments. Must cover all 12 months of 2024 and note any missing months. Should show both the annual total and ideally a monthly breakdown or at least the allocation percentages per tier.",
+      "answer": "I don’t currently have a **Nigeria-wide FAAC total for 2024** (i.e., a single figure showing the **total distributable pool** and its **split to Federal, States, and Local Governments**) in the available budget records.\n\nWhat I *do* have in our records is the **Federal 2023** FAAC/VAT distribution table (it explicitly lists items like “FGN share of FAAC @52.68%”, “States share @26.72%”, “LG share @20.60%”, etc.), but that is **for 2023**, not 2024—so I can’t responsibly compute or claim a 2024 national total/split from it.\n\n## What I need to answer your question accurately\nTo produce “total FAAC disbursement for Nigeria in 2024” and the split, I need a **2024 FAAC distribution dataset** (typically a budget/FAAC summary table showing the annual totals and shares).\n\n## If you want, I can still help in two useful ways\n1) **Find the 2024 national FAAC table** if it exists in the database (it may be stored under a different naming convention than “FAAC 2024”).  \n2) If you meant **“FAAC receipts by selected states in 2024”**, I can compute that from state budget performance reports (e.g., Rivers 2024 shows **Government share of FAAC (YTD)** of **₦462.351bn**; Niger 2024 shows **Government share of FAAC (YTD)** of **₦261.465bn**, etc.)—but that’s *state receipts*, not the national total.\n\nTell me which you mean:\n- **A)** national FAAC total/split for **2024**, or  \n- **B)** FAAC received by **specific states** (which states?) in **2024**.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 56768,
+      "pass": true,
+      "evaluation_notes": "Matched 6/23 expected terms."
+    },
+    {
+      "id": "faac-008",
+      "category": "year_over_year",
+      "question": "How has Lagos State's FAAC allocation changed from 2019 to 2025?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires state_annual chunks for 7 years. Agent should search chunk_type=state_annual, state=Lagos for each year. 7 searches needed — within the 10-step limit but leaves little room for follow-up.",
+      "expected_behavior": "Should search for state_annual chunks for Lagos across all available years.",
+      "metadata_filters_needed": [
+        "chunk_type=state_annual",
+        "state=Lagos"
+      ],
+      "expected_answer": "Should present Lagos State's total FAAC allocation for each year from 2019 to 2025 (or as many years as data is available), with specific Naira figures. Must show the year-over-year trend, percentage changes, and highlight notable jumps or dips. Should note that 2025 data may be partial (only a few months). The trend generally shows increases over time due to inflation and rising revenue.",
+      "answer": "## Lagos State FAAC allocation: 2019 vs 2025 (change)\n\n**State/years requested:** Lagos (2019 → 2025)  \n**Governors:** 2019—*Akinwunmi Ambode*; 2025—*Babajide Olusola Sanwo‑Olu*.\n\n### What the budget records show\n**2019 (budgeted Federal Transfers – proxy for FAAC inflows in the Lagos budget framework)**\n- **Federal Transfers (total): ₦218.94bn** (made up of Statutory Allocation, VAT, etc.)\n\n**2025 (explicit FAAC line in implementation reports)**\n- **Government Share of FAAC (Original Budget): ₦626.136925bn**\n- **Government Share of FAAC (Q4 Year-to-date actual): ₦782.736674bn** (i.e., **125%** of the original budget)\n\n### Change from 2019 to 2025\nUsing the most comparable “budgeted” figures:\n- **2019:** ₦218.94bn (Federal Transfers)\n- **2025:** ₦626.14bn (FAAC original budget)\n\n**Increase:** ₦407.20bn  \n**% increase:** **+186%** (≈ **2.86×** higher in 2025 than 2019)\n\nIf you use **2025 actuals (Q4 YTD)** instead of the original budget:\n- **2019:** ₦218.94bn  \n- **2025 actual (Q4 YTD):** ₦782.74bn  \n\n**Increase:** ₦563.80bn  \n**% increase:** **+257%** (≈ **3.58×**)\n\n\n\n### Important note on comparability\n- **2019** documents highlight **“Federal Transfers”** (Statutory Allocation + VAT + other components).  \n- **2025** reports explicitly show **“Government Share of FAAC.”**  \nSo, the direction is clear (FAAC-related inflows are much higher in 2025), but the **labeling differs** slightly across years.\n\nIf you want, I can also break the FAAC-related components into **Statutory Allocation vs VAT vs others** for both years *where the documents provide them* and show which component drove the increase.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 37580,
+      "pass": true,
+      "evaluation_notes": "Low term match: 5/27 expected terms."
+    },
+    {
+      "id": "faac-009",
+      "category": "deduction_analysis",
+      "question": "Which states had the highest deductions from their FAAC allocations in 2024? What were the deductions for?",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Deduction types (external_debt, ISPO, other) are in chunk text, not filterable metadata. Must retrieve state_monthly chunks and parse deduction amounts from text. Comparing across 37 states requires complete retrieval.",
+      "expected_behavior": "Should search state_monthly chunks for 2024 with high topK and identify states with highest deductions from chunk text.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly",
+        "year=2024"
+      ],
+      "expected_answer": "Should rank states by total deductions in 2024, listing the top states with specific Naira deduction amounts. Must break deductions into categories: external_debt, ISPO, and other. Should explain what each deduction type represents (e.g., external debt servicing, ISPO for contractual obligations). Must acknowledge that complete coverage of all 37 states may not be achievable and note any data gaps.",
+      "answer": "I can’t produce a definitive “highest deductions” ranking for **all 36 states + FCT** from what’s currently available in the retrieved 2024 records, because most states’ FAAC tables here don’t show a clear *“deductions”* line item.\n\nWhat I *can* do is identify the states in the 2024 budget/performance data above that **explicitly mention FAAC-related deductions (or deduction-type items)** and quantify them.\n\n## States with explicit FAAC deduction items in 2024 (from available records)\n\n### 1) **Kwara (2024) — Ecological Deduction Fund**\n- **Deduction item mentioned:** *Ecological Deduction Fund*\n- **Amount (Q4 FAAC composition):** **₦187,593,510.35**\n- **What it was for (as described):** listed among FAAC-related items grouped as “Other Sundry Revenue from FAAC” (alongside signature bonus, exchange gain difference, infrastructure support fund, augmentation, etc.).  \n  *Interpretation:* the naming indicates a **deduction-type ecological fund item** associated with FAAC inflows, though Kwara presents it as part of the FAAC-related revenue classification in the report.\n\n### 2) **Delta (2024) — Large implied “deductions/adjustments” effect (not itemized as deductions)**\nDelta’s performance report shows **FAAC far exceeding budget**:\n- **2024 Final Budget (FAAC):** ₦564.287bn  \n- **2024 Performance YTD (FAAC):** **₦1.1776trn** (208.7% of final budget)\n\nHowever, **no explicit “FAAC deductions” line item** is shown in the excerpt—so we **cannot attribute** any difference to deductions or specify what they were for. It’s just an over-performance against budget.\n\n### 3) **Ogun / Abia / Rivers / Anambra / Ondo / etc. — FAAC components shown, but no explicit “deductions” totals**\nIn the excerpts for these states, we see FAAC broken into things like:\n- Statutory Allocation\n- VAT share\n- Other FAAC revenues (Excess crude, special allocations, ecological fund *from FAAC*, refunds, etc.)\nBut **no “deductions from FAAC” total** is clearly presented for them in the snippets (except Kwara’s explicit “Ecological Deduction Fund”).\n\n## So who had the “highest deductions” in 2024?\n**Among the states shown in the retrieved 2024 excerpts that explicitly state a deduction item**, the only clearly quantified deduction is:\n\n- **Kwara: ₦187.59m (Ecological Deduction Fund)**\n\nThat does **not** mean Kwara had the highest deductions nationally—it only means Kwara is the one in the provided 2024 excerpts that **explicitly reports a deduction-type FAAC item with an amount**.\n\n## What were the deductions for?\nFrom the available 2024 text:\n- **Ecological Deduction Fund (Kwara):** ecological-related deduction item tied to FAAC receipts (**₦187.59m** in the Q4 FAAC breakdown).\n\n## What I need to answer this properly (and rank states)\nTo identify “highest deductions from FAAC” credibly, we need states’ FAAC schedules that show **net FAAC**, **gross FAAC**, and **deductions (e.g., refunds, loans/ISPO, Paris Club, judgement debts, ecological deductions, salary bailout deductions, etc.)**.\n\nIf you tell me the **specific states you want compared** (e.g., “Lagos, Rivers, Kano, Kaduna, Delta in 2024”), I can pull each state’s 2024 FAAC/deduction lines and produce a like-for-like table and ranking **among those states with itemized deductions available**.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 36661,
+      "pass": true,
+      "evaluation_notes": "Matched 8/25 expected terms."
+    },
+    {
+      "id": "faac-010",
+      "category": "vat_distribution",
+      "question": "How is VAT distributed across states? Which states get the most VAT and why?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "VAT amounts are in chunk text, not separately filterable. Agent must retrieve state_monthly chunks and extract VAT figures. The 'why' requires economic knowledge about VAT distribution formula (population, IGR, equality) which may not be in the data.",
+      "expected_behavior": "Should retrieve state data and show VAT distribution, but may struggle to explain the formula.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly"
+      ],
+      "expected_answer": "Should list states ranked by VAT allocation with specific Naira amounts. Lagos typically receives the highest VAT share. Should attempt to explain the VAT distribution formula (based on equality, population, and derivation/contribution principles) but may need to note that the formula details are not in the FAAC data itself. Must show data from a specific time period rather than vague generalizations.",
+      "answer": "## How VAT is distributed across states (Nigeria): the mechanism\n\nVAT is pooled centrally by the Federal Inland Revenue Service (FIRS) and then **shared monthly through FAAC**. At the state level, what you see in budgets is typically recorded as **“State Government Share of VAT”**.\n\nIn practice, VAT distribution to states is **not based purely on where VAT is collected**. The sharing is done by a formula that combines factors such as:\n- **Equality** (each state gets a baseline share),\n- **Population** (more people → higher share),\n- **Derivation / consumption proxies** (historically included, but not dominant),\n- And sometimes **other agreed indicators** used in vertical/horizontal revenue allocation.\n\nSo: **states with larger populations and/or stronger economic activity often receive more**, but **every state receives something** due to the equality component.\n\n---\n\n## Which states “get the most VAT” (based on the available 2024–2025 budget records shown)\n\nYour excerpts include multiple states, but **not all 36 states + FCT**, so I can only say “among the states with available data here”.\n\n### 2025 (State Government Share of VAT)\nFrom the 2025 excerpts:\n\n- **Lagos (2025)**: **₦352.0bn** budgeted VAT; YTD/actual shown: **₦565.17bn** (160.6% of budget in the excerpt table).  \n- **Rivers (2025)**: **₦55.65bn** (budget figure appears in the Rivers FAAC table line for VAT).  \n- **Edo (2025)**: **₦94.23bn** (budget), actual shown **₦91.22bn** (96.8%).  \n- **Bayelsa (2025)**: **₦89.0bn** (budget), actual shown **₦87.98bn** (98.9%).  \n- **Ogun (2025)**: **₦65.78bn** (budget), with an “actual/receipt” line of **₦85.40bn** shown in the table.  \n- **Borno (2025)**: **₦49.42bn** (budget), with **₦87.36bn** shown in the table.  \n- **Benue (2025)**: **₦58.84bn** budgeted VAT; **₦53.89bn** shown in the table.  \n- **Sokoto (2025)**: **₦60.89bn** (budget/approved shown).  \n- **Niger (2025)**: **₦50.64bn** (budget/approved shown).  \n- **Cross River (2025)**: **₦49.0bn** (approved shown), actual shown **₦62.67bn** (127.9%).\n\n**Among these states, Lagos is by far the largest VAT recipient in the records shown** (hundreds of billions vs. tens of billions for others).\n\n### 2024 (State Government Share of VAT) — where available in your excerpts\n- **Edo (2024)**: **₦70.82bn** (approved), actual **₦71.26bn** (100.6%).\n- **Ogun (2024)**: **₦37.42bn** (approved), with **₦57.78bn** shown as the VAT allocation line in the FAAC table.\n- **Enugu (2024)**: VAT line shows **₦44.0bn** (and later projections rising to **₦46.22bn / ₦48.54bn** in the same table layout).\n\n---\n\n## Why some states get more VAT than others (linking to what the numbers suggest)\n\n### 1) **Economic scale and consumption base**\nStates with larger formal economies and higher transaction volumes tend to align with higher VAT flows. **Lagos** is Nigeria’s biggest commercial hub, so even though VAT sharing isn’t “pure derivation,” the overall allocation/flow patterns typically still favor high-activity states.\n\nThis shows up clearly in the 2025 records: **Lagos’ VAT line is ₦352bn budgeted and ₦565bn shown as actual**—orders of magnitude higher than most states listed.\n\n### 2) **Population and equality factors**\nMany states cluster in the **₦40bn–₦90bn** range in the 2025 excerpts (Edo, Bayelsa, Ogun, Benue, Sokoto, etc.). That pattern is consistent with a distribution that:\n- gives **everyone a base**, and\n- then scales up with **population/other indicators**.\n\n### 3) **FAAC volatility and “why actual can exceed budget”**\nSeveral states show VAT “actuals” higher than their initially budgeted figures (e.g., Lagos, Cross River, Edo). Drivers typically include:\n- higher-than-expected national VAT collection (inflation and nominal consumption),\n- exchange-rate/inflation effects on prices (VAT is value-based),\n- and timing/adjustments in FAAC remittances.\n\n---\n\n## A simple “who gets most” snapshot (2025, from the states shown)\n\n\n\n---\n\n## Important caveat (so we don’t over-claim)\nYour excerpt set does **not** include all states (and no FCT line is shown here), so I **cannot** give a definitive national ranking of “top VAT states” from this dataset alone. I can only say: **among the states visible in the provided 2024–2025 records, Lagos is the largest** by a wide margin.\n\n---\n\n## If you want a complete answer\nTell me **the year** you care about (e.g., 2024 or 2025), and whether you want:\n1) **Budgeted VAT** (planned), or  \n2) **Actual VAT receipts** (performance),  \n\nand I can pull VAT lines for **all states we have data for that year**, then show:\n- top recipients *among states with data*,\n- each state’s amount,\n- and how concentrated the VAT distribution is.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 46424,
+      "pass": true,
+      "evaluation_notes": "Matched 8/26 expected terms."
+    },
+    {
+      "id": "faac-011",
+      "category": "revenue_vs_disbursement",
+      "question": "The FAAC disbursement for January 2025 — what month's revenue does that actually represent?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Revenue month vs disbursement month distinction. The chunk text should contain 'Revenue from December 2024' or similar. Tests whether the agent understands this temporal offset and can extract it from the national_monthly chunk.",
+      "expected_behavior": "Should retrieve national_monthly chunk for January 2025 and identify the revenue month from text.",
+      "metadata_filters_needed": [
+        "chunk_type=national_monthly",
+        "year=2025",
+        "month=January"
+      ],
+      "expected_answer": "Should clearly state that the January 2025 FAAC disbursement represents revenue collected in a prior month (typically December 2024 or November 2024, depending on the lag). Must extract this information from the national_monthly chunk text rather than guessing. Should explain the general principle that FAAC disbursements lag behind revenue collection by one or more months.",
+      "answer": "In Nigeria, **FAAC “January 2025 disbursement” typically refers to the sharing meeting held in January 2025, which distributes collections from the *previous month***.\n\n### What month’s revenue does it represent?\n- **Mostly: December 2024 revenue** (i.e., federation revenues collected in December 2024 and paid out in January 2025).\n- This is the common convention used in FAAC reporting: **disbursement month = payment month; revenue month = prior month.**\n\n### Important caveat (why it’s not always 100% “December only”)\nEven though it’s labelled “January”, the pool shared can include adjustments such as:\n- arrears/backlog payments,\n- refunds/true-ups,\n- one-off items (e.g., exchange-rate differentials on certain revenue lines),\n- reconciliations from earlier months.\n\nSo, **as a rule of thumb: January 2025 FAAC = December 2024 collections (plus/minus adjustments).**\n\nIf you tell me whether you mean **FAAC to states/LGAs** in general or a specific item (e.g., VAT, statutory allocation), I can clarify the exact timing nuance for that component.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 36207,
+      "pass": true,
+      "evaluation_notes": "Matched 11/27 expected terms."
+    },
+    {
+      "id": "faac-012",
+      "category": "cross_level_comparison",
+      "question": "In Rivers State, does the state government receive more from FAAC than all its LGAs combined?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires: (1) state_monthly chunk for Rivers to get state allocation, (2) ALL lga_monthly chunks for Rivers LGAs to sum their allocations. Rivers has 23 LGAs × 12 months. Even for a single month, needs state + 23 LGA chunks.",
+      "expected_behavior": "Should retrieve both state and zone chunks (zone chunks include LGA totals) for comparison.",
+      "metadata_filters_needed": [
+        "state=Rivers",
+        "chunk_type"
+      ],
+      "expected_answer": "Should provide specific Naira figures for both Rivers State's state-level FAAC allocation and the combined total for all 23 Rivers LGAs, for a clear time period. The state government typically receives more than its LGAs combined. Must specify the time period used for comparison and note whether all 23 LGA chunks were retrieved or if the LGA total is based on partial data.",
+      "answer": "Based on available Rivers State budget documents **in our records**, we can **see the State Government’s own FAAC receipts**, but we **do not have the LGAs’ combined FAAC receipts** in the excerpts shown—so we **cannot conclusively answer** whether the *State Government receives more than all Rivers LGAs combined* from FAAC using only this data.\n\n## What the documents do confirm (State Government FAAC)\nFrom the **Rivers State 2024 Budget Performance Report (Q4)**:\n\n- **State Government Share of FAAC (2024 Final Budget):** **₦283.235bn**\n- **Actual FAAC received by the State Govt (FY 2024, YTD Q1–Q4):** **₦462.351bn**  \n  - Performance vs final budget: **163.2%**\n\nSo, **Rivers State Government** (state tier) received **₦462.351bn** from FAAC in 2024 (year-to-date).\n\n## What is missing to answer your question\nTo compare “**State Govt FAAC** vs **all LGAs combined**”, we need either:\n- a table showing **Local Government Councils’ share of FAAC** (often called *“LGC statutory allocation / LGC share of FAAC”*), or\n- Rivers State **JAAC** / federation allocation breakdown that aggregates all 23 LGAs.\n\nThe Rivers 2024 revenue tables in your excerpts show **“Government Share of FAAC”** for the **state government**, not the **LGAs’ share**.\n\n## If you want, I can answer it precisely\nTell me which year you want to use (e.g., **2024 actuals** or **2024 budget**), and I will pull the **Rivers LGA FAAC/JAAC figures** from the database (if available) and compute:\n\n- **State Govt FAAC** (₦462.351bn in 2024 YTD)\nvs\n- **Sum of all Rivers LGAs FAAC** (23 LGAs combined)\n\n…and then state clearly which is larger and by how much (₦ and %).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 54616,
+      "pass": true,
+      "evaluation_notes": "Matched 11/26 expected terms."
+    },
+    {
+      "id": "faac-013",
+      "category": "lga_name_normalization",
+      "question": "How much did Nassarawa LGA receive from FAAC in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Ambiguous: 'Nassarawa' could be (1) Nasarawa State, or (2) an LGA named Nasarawa within a state. Multiple states have LGAs named 'Nasarawa'. Also tests spelling normalization: 'Nassarawa' → 'Nasarawa'.",
+      "expected_behavior": "Should ask for clarification or search for both possibilities. Must handle the misspelling.",
+      "metadata_filters_needed": [
+        "lga",
+        "state"
+      ],
+      "expected_answer": "Should recognize the ambiguity in 'Nassarawa' and address it: the misspelling should be normalized to 'Nasarawa', and the answer should note that multiple LGAs share this name (e.g., Nasarawa LGA in Nasarawa State, Nassarawa LGA in Kano State). Should either ask the user to clarify which state or provide data for all matching LGAs with specific Naira amounts for 2024.",
+      "answer": "From the **Nasarawa State 2024 Budget Performance Reports (Q1–Q4)** in our records, the FAAC figures reported are for **Nasarawa State Government** (i.e., the *state’s* FAAC receipts/budget), **not for “Nasarawa LGA”**.\n\n### What we can confirm from the 2024 records (State-level FAAC)\n- **Budget line:** *Government Share of FAAC*  \n- **2024 Final Budget (State):** **₦174,150,000,000.00**  \n- **Actual FAAC received Year-to-Date (Q1–Q4):** **₦148,464,968,200.62**  \n- **Performance vs final budget:** **85.3%**  \n- **Balance (unreceived vs final):** **₦25,685,031,799.38**\n\n### Important clarification (about “Nasarawa LGA”)\nTo answer **“How much did Nasarawa LGA receive from FAAC in 2024?”** we would need **LGA-level FAAC/NJAAC allocation data** (typically broken down by each LGA), which is **not shown in the excerpts available here**—they only show state-level totals.\n\n### Next step (so I can fetch the right record)\nWhich one do you mean by **“Nasarawa LGA”**?\n1) **Nasarawa Local Government Area** (in Nasarawa State), or  \n2) **Nasarawa State Government** (state-level FAAC)?\n\nIf you mean **the LGA**, tell me and I’ll search specifically for **NJAAC/LGA allocation schedules** for 2024 (they usually list each LGA’s monthly/quarterly FAAC).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 43706,
+      "pass": true,
+      "evaluation_notes": "Low term match: 4/22 expected terms."
+    },
+    {
+      "id": "faac-014",
+      "category": "oil_vs_non_oil",
+      "question": "On average, how much more do oil-producing states receive compared to non-oil-producing states?",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires computing averages for two groups: 9 oil-producing vs 28 non-oil-producing states. That's 37 state allocations needed per month. Annual chunks help but still need all 37 states. The is_oil_producing filter exists but computing group averages requires complete data.",
+      "expected_behavior": "Should search for state_annual chunks and compute group averages, noting the 13% derivation as the key difference.",
+      "metadata_filters_needed": [
+        "chunk_type=state_annual",
+        "is_oil_producing"
+      ],
+      "expected_answer": "Should compute and compare the average total FAAC allocation for oil-producing states (9 states) versus non-oil-producing states (28 states) for a specific year. Must show the average Naira amount per group, the difference, and the percentage premium oil-producing states receive. Should attribute the gap primarily to the 13% derivation fund. Must note if data for all 37 states was not fully retrieved.",
+      "answer": "Using the **available 2023 FAAC inflow lines in the budget records** you provided (Statutory Allocation + VAT + “Other FAAC revenues/transfers”; and **Derivation where applicable**), we can approximate the “oil vs non‑oil” gap. Note: **this is not an all‑states Nigeria-wide average**—it’s an average **among the states with comparable 2023 lines present in the retrieved data**.\n\n## 1) Define groups (from the records shown)\n**Oil-producing (with derivation lines shown):**\n- **Delta (2023)**: Statutory ₦74.202B; Derivation ₦331.447B; VAT ₦43.855B; Other FAAC ₦157.135B  \n- **Bayelsa (2023)**: Statutory ₦44.306B; 13% Derivation ₦92.958B; VAT ₦14.718B; Other FAAC ₦40.116B  \n\n**Non‑oil (no derivation line shown):**\n- **Katsina (2023)**: Statutory ₦30.912B; VAT ₦29.999B; Other FAAC ₦11.325B  \n- **Bauchi (2023)**: Statutory ₦38.158B; VAT ₦38.450B; Other FAAC ₦47.256B  \n- **Yobe (2023)**: Statutory ₦31.695B; VAT ₦28.802B; Other FAAC ₦28.728B  \n- **Cross River (2023)**: Statutory ₦23.029B; VAT ₦15.626B; Other FAAC ₦14.491B  \n\n## 2) Compute “FAAC-related receipts” (sum of the above)\n### Oil-producing\n- **Delta (2023)** total ≈ 74.202 + 331.447 + 43.855 + 157.135 = **₦606.639B**\n- **Bayelsa (2023)** total ≈ 44.306 + 92.958 + 14.718 + 40.116 = **₦192.098B**\n\n**Average (oil)** = (606.639 + 192.098) / 2 = **₦399.369B**\n\n### Non‑oil\n- **Katsina (2023)** total ≈ 30.912 + 29.999 + 11.325 = **₦72.237B**\n- **Bauchi (2023)** total ≈ 38.158 + 38.450 + 47.256 = **₦123.864B**\n- **Yobe (2023)** total ≈ 31.695 + 28.802 + 28.728 = **₦89.226B**\n- **Cross River (2023)** total ≈ 23.029 + 15.626 + 14.491 = **₦53.146B**\n\n**Average (non‑oil)** = (72.237 + 123.864 + 89.226 + 53.146) / 4 = **₦84.618B**\n\n## 3) Result: “How much more on average?”\n**Difference (oil – non‑oil)** = 399.369B − 84.618B = **₦314.751B more per state (average, 2023 sample)**\n\n**Ratio**: 399.369 / 84.618 ≈ **4.7×**  \nSo, in this sample, oil-producing states received **about ₦315B more**, roughly **4–5 times** non‑oil states on FAAC-related inflows—**driven mainly by derivation**.\n\n\n\n### Important caveats (so this isn’t overstated)\n- This is **not a national average across all oil and non‑oil states**; it’s **among 6 states with data visible here** (2 oil vs 4 non‑oil).\n- The lines used are **FAAC-related revenue headings** shown in the excerpts; states may classify some items differently.\n- If you want, I can compute a **broader and more defensible average** by pulling **all available 2023 state revenue tables** in our database and separating oil vs non‑oil—then reporting “among states with available data.”",
+      "resolved_intent": "unknown",
+      "response_time_ms": 46578,
+      "pass": true,
+      "evaluation_notes": "Matched 7/25 expected terms."
+    },
+    {
+      "id": "faac-015",
+      "category": "monthly_volatility",
+      "question": "Which month in 2024 had the highest total FAAC disbursement and which had the lowest? What caused the difference?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires 12 national_monthly chunks (one per month for 2024) to compare. The 'what caused the difference' requires contextual knowledge about oil prices, VAT collection, exchange rates — which may not be in the data.",
+      "expected_behavior": "Should retrieve national_monthly chunks for 2024 and identify highest/lowest months. May not be able to explain causes.",
+      "metadata_filters_needed": [
+        "chunk_type=national_monthly",
+        "year=2024"
+      ],
+      "expected_answer": "Should identify the specific months with the highest and lowest total FAAC disbursements in 2024, with exact Naira figures for each. Should show the spread between highest and lowest. For the causal explanation, should reference component-level changes (e.g., spikes in exchange_gain, oil revenue, or VAT) visible in the data, and may note external factors like oil prices or exchange rate movements if available in the chunk text.",
+      "answer": "I can’t answer this from the excerpts currently available: they show **annual budgets and some quarterly/year‑to‑date revenue lines** (e.g., “Government Share of FAAC” for **Kogi 2024** and other states), but **they do not include a 2024 month-by-month FAAC disbursement series**.\n\n### What I would need to identify “highest month” and “lowest month”\nTo determine which **month in 2024** had the highest/lowest **total FAAC disbursement**, we need either:\n- a table of **monthly FAAC allocations** (Jan–Dec 2024), or\n- a dataset/section that reports **FAAC by month** (often called “FAAC Allocation Schedule”, “Monthly FAAC Receipts”, or “FAAC distribution by month”).\n\nNone of the shown snippets provides monthly values—only quarterly totals or YTD totals.\n\n### Why I also can’t yet state the “cause of the difference”\nExplaining the difference month-to-month requires seeing what moved inside FAAC components (typically):\n- **Statutory allocation** changes (Federation Account inflows),\n- **VAT pool** variations,\n- **Exchange rate / FX gain** (often captured under “Other FAAC” in some states),\n- **Non-oil revenue movements** (Company Income Tax, Customs/import duties),\n- **one-off items** (arrears, special intervention allocations, refunds/deductions),\n- **derivation and other adjustments**.\n\nYour excerpts include some of these categories **as budget lines** (e.g., Ogun mentions “Excess Crude/Exchange Gain etc” under Other FAAC), but **not in a monthly time series**.\n\n### Quick clarification question (so I pull the right data)\nWhen you say **“total FAAC disbursement”**, do you mean:\n1) **National FAAC distribution for the whole federation** (to FG + 36 states + 774 LGAs), or  \n2) A **specific state’s FAAC receipts** (e.g., Kogi’s monthly FAAC inflow)?\n\nIf you tell me which one, I can run targeted searches for the **monthly FAAC schedule/receipts for 2024** and then state:\n- the **highest month** (with amount),\n- the **lowest month** (with amount),\n- the **difference (₦ and %)**,\n- and the **drivers** (e.g., VAT spike, FX gain, one-off arrears, etc.).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 31700,
+      "pass": true,
+      "evaluation_notes": "Matched 10/34 expected terms."
+    },
+    {
+      "id": "faac-016",
+      "category": "south_south_derivation",
+      "question": "How much of the South-South's total FAAC allocation comes from the 13% derivation fund versus statutory allocation?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Zone monthly chunks exist for South South, but derivation breakdown may be in text, not separately queryable. All 6 South-South states are oil-producing. Agent must either use zone_monthly chunks (if they include derivation breakdown) or sum individual state chunks.",
+      "expected_behavior": "Should search zone_monthly or state_monthly for South South states and extract derivation vs statutory from text.",
+      "metadata_filters_needed": [
+        "geopolitical_zone=South South",
+        "chunk_type"
+      ],
+      "expected_answer": "Should provide specific Naira amounts for both the 13% derivation and statutory components of the South-South zone's total FAAC allocation, along with their percentage shares. All 6 South-South states (Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Rivers) are oil-producing. The derivation fund typically constitutes a significant portion of the zone's total. Must specify the time period and note whether the data came from zone_monthly or aggregated state_monthly chunks.",
+      "answer": "I can’t compute **“South‑South total”** from the excerpts shown because the data provided only covers **some** South‑South states (in your excerpts: **Akwa Ibom, Bayelsa, Rivers**; missing at least **Delta, Cross River, Edo** — and also a clean FAAC breakdown for **Imo** if you treat it as South‑South in some classifications, though officially it’s South‑East). Any “South‑South total” would be incomplete.\n\nThat said, **among the South‑South states present in the 2024 excerpts (Akwa Ibom, Bayelsa, Rivers)**, here’s how FAAC breaks down between **13% derivation** and **statutory allocation** (using the budgeted/appropriated figures shown):\n\n## 1) Figures used (2024)\n\n### Akwa Ibom (2024)\n- **Statutory allocation:** ₦55.0bn  \n- **13% derivation (incl. arrears shown separately):**\n  - 13% derivation revenue: **₦51.0bn**\n  - 13% derivation arrears: **₦284.0bn**\n  - **Total derivation-related:** **₦335.0bn**\n\n### Bayelsa (2024)\n- **Statutory allocation:** **₦57.0bn**\n- **13% derivation:** **₦217.370788606bn**\n\n### Rivers (2024)\n- **Statutory allocation:** **₦68.458610494bn**\n- **13% derivation (mineral fund):** **₦145.526581463bn**\n\n## 2) Combined totals (only these 3 states)\n**Statutory allocation (sum):**  \n₦55.0bn + ₦57.0bn + ₦68.458610494bn = **₦180.458610494bn**\n\n**13% derivation (sum):**  \nAkwa Ibom ₦335.0bn + Bayelsa ₦217.370788606bn + Rivers ₦145.526581463bn  \n= **₦697.897370069bn**\n\n**Derivation + statutory (for these 3):**  \n₦697.897370069bn + ₦180.458610494bn = **₦878.355980563bn**\n\n## 3) Share of total: derivation vs statutory (these 3 states)\n- **From 13% derivation:** ₦697.897bn / ₦878.356bn = **79.4%**\n- **From statutory allocation:** ₦180.459bn / ₦878.356bn = **20.6%**\n\nSo, **within the partial South‑South sample available in your excerpts (Akwa Ibom, Bayelsa, Rivers)**, about **79%** of (derivation+statutory) FAAC-linked receipts come from **13% derivation**, versus **21%** from **statutory allocation**.\n\n\n\n## Important caveat (why this isn’t yet “South‑South total”)\nTo answer exactly as asked (the **entire South‑South**), I need the same breakdown for the **missing South‑South states** (at least **Delta, Cross River, Edo**) for the same year/basis.\n\nIf you confirm you want **2024 budgeted figures** (not actual receipts), I can pull the missing states and compute the true South‑South-wide derivation vs statutory split.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 30740,
+      "pass": true,
+      "evaluation_notes": "Matched 11/34 expected terms."
+    },
+    {
+      "id": "faac-017",
+      "category": "774_lga_ranking",
+      "question": "Rank all 774 LGAs by their total FAAC allocation in 2024 — show me the top 50",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "774 LGAs × 12 months = 9,288 lga_monthly chunks for a single year. topK=50 retrieves a tiny fraction. Cannot compute annual totals per LGA or rank them. Fundamentally exceeds vector search capabilities.",
+      "expected_behavior": "Should acknowledge impossibility of full ranking and provide partial results from highest-scoring chunks.",
+      "metadata_filters_needed": [
+        "chunk_type=lga_monthly",
+        "year=2024"
+      ],
+      "expected_answer": "Should explicitly acknowledge that ranking all 774 LGAs is not feasible via vector search due to the volume (9,288 chunks for 12 months). Should provide a partial ranking from the retrieved subset, clearly caveating that this is incomplete. The top LGAs typically include urban centers from Lagos, Rivers, and Kano. Must not present partial results as a definitive national ranking.",
+      "answer": "I can’t produce a **ranking of all 774 LGAs by total FAAC allocation in 2024 (top 50)** from the budget documents currently available in our database.\n\n### Why this isn’t possible from the retrieved budget data\n- The excerpts/documents we have are **mostly state budget books**, which show **state-level FAAC receipts** (what the *state government* expects from FAAC) and, in a few cases, **state budget allocations by location** (e.g., Lagos shows “Other Non‑Debt Recurrent Expenditure by Location” with LG names like Agege, Alimosho etc.).  \n- That is **not the same thing** as **FAAC allocations paid directly to each LGA nationwide**.\n- To rank **774 LGAs**, we would need a **national dataset/table listing each LGA’s FAAC receipts for 2024** (typically from FAAC/NGF/OAGF/NBS/CBN-style releases or a consolidated schedule). That dataset is **not present** in the budget records returned here.\n\n### What I *can* do instead (pick one)\n1. **If you want “Top 50 LGAs in a specific state”** based on what appears in that state budget (where available), tell me the **state** (e.g., Lagos) and I’ll extract LG-level figures *if the document contains them*.\n2. **If you can specify the source you mean** (e.g., “FAAC allocations to LGAs from the Federation Account Allocation Committee for Jan–Dec 2024”), I can search our budget database again for that exact national schedule—but right now, it’s not showing up in results.\n\n### Quick clarification question\nDo you mean:\n- **(A)** FAAC allocations **to LGAs** (774 LGAs nationwide), or  \n- **(B)** FAAC allocations **to states** (36 states + FCT), or  \n- **(C)** “LGA” figures **inside one state budget** (which are usually *state spending by location*, not FAAC)?\n\nReply with A/B/C (and the state, if C), and I’ll proceed.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 44579,
+      "pass": true,
+      "evaluation_notes": "Matched 6/26 expected terms."
+    },
+    {
+      "id": "faac-018",
+      "category": "exchange_gain",
+      "question": "How much did exchange gain contribute to FAAC allocations in 2024 compared to 2023?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Exchange gain is a component within chunk text, not a separate filterable field. Agent must retrieve national_monthly chunks for both years and extract exchange gain figures. 24 chunks needed (12 per year).",
+      "expected_behavior": "Should retrieve national_monthly chunks for both years and extract exchange gain component.",
+      "metadata_filters_needed": [
+        "chunk_type=national_monthly",
+        "year"
+      ],
+      "expected_answer": "Should present total exchange_gain for 2024 and 2023 separately, with specific Naira amounts and the year-over-year change (both absolute and percentage). Should show monthly exchange_gain figures if possible to highlight volatility. Exchange gain tends to fluctuate with Naira devaluation and forex market conditions. Must note if any months are missing from either year's data.",
+      "answer": "From the budget records you provided, **“Exchange Gain/Exchange Rate Gain”** sits under **“Other FAAC Revenues/Other FAAC transfers”** (a component of FAAC-related inflows). The excerpts contain clear **Nasarawa (2023 & 2024)** figures, and also show some other states but not consistently for both years in the same format. So the cleanest **2024 vs 2023** comparison we can do from the data here is **Nasarawa**.\n\n## Nasarawa: Exchange Gain contribution (2023 vs 2024)\n\n### 2023 (Nasarawa)\n- **Exchange Gain (11010307): ₦10.150bn** *(actual/received figure shown)*  \n  (Line: “EXCHANGE GAIN … 4,258,391,000.23 … **10,150,008,085.11** …”)\n\n### 2024 (Nasarawa)\nYour excerpts show multiple 2024 snapshots; the most complete “performance-style” line shows:\n- **Exchange Gain (11010307): ₦22.080bn** *(actual/received figure shown)*  \n  (Line: “EXCHANGE GAIN … 8,660,981,208.87 … **22,080,322,781.19** …”)\n\n### Change (2024 vs 2023)\n- **Increase:** ₦22.080bn − ₦10.150bn = **₦11.930bn**\n- **Growth:** **+117.5%** (approx.)\n\n\n\n## Important note on interpretation\n- “Exchange gain” is **not the whole FAAC allocation**; it is **one sub-line within “Other FAAC Revenues/Transfers.”**  \n- Some excerpts (e.g., **Edo 2024**, **Yobe 2024**, **Zamfara 2023**) show exchange-gain lines too, but because the question is “2024 compared to 2023,” we’d need **the same state** in **both years** (and ideally the same table type: approved vs actual) to do a like-for-like comparison.\n\n## If you want this across multiple states\nTell me which state(s) you want (e.g., **Edo, Yobe, Zamfara**) and whether you want to compare:\n- **Actual receipts** (performance), or\n- **Approved budget estimates**.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 30446,
+      "pass": true,
+      "evaluation_notes": "Low term match: 3/28 expected terms."
+    },
+    {
+      "id": "faac-019",
+      "category": "emtl_ecology",
+      "question": "What are EMTL and Ecology fund allocations and how are they distributed? Which states benefit most?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "EMTL (Electronic Money Transfer Levy) and Ecology fund are smaller FAAC components. They're embedded in chunk text, not separately queryable. The distribution formula is not in the data — it's a policy question.",
+      "expected_behavior": "Should retrieve state_monthly chunks and extract EMTL/Ecology figures, noting distribution formula is policy-based.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly"
+      ],
+      "expected_answer": "Should define EMTL (Electronic Money Transfer Levy) and Ecology fund, then show specific Naira amounts per state for a given period. Should rank states by their EMTL and Ecology allocations separately. Must note that the distribution formula is policy-based and may not be fully explained in the FAAC data. The answer should distinguish between these two smaller components and the larger statutory/VAT components.",
+      "answer": "## 1) What are EMTL and the Ecological Fund?\n\n### A. EMTL (Electronic Money Transfer Levy)\nA levy on eligible electronic transfers. In the FAAC distribution framework, EMTL collections are pooled and shared across the three tiers of government.\n\n**Distribution rule (from the Federal 2024 FAAC/VAT/EMTL distribution schedule):**\n- **FGN:** 15%  \n- **States:** 50%  \n- **Local Governments:** 35%  \n\nSo, when EMTL is “distributable”, half goes to states in aggregate, 35% to LGs, and 15% to the Federal Government.\n\n### B. Ecological Fund\nA statutory environmental intervention fund (often captured in state budgets as a FAAC-related inflow line item, “Ecological Fund”). It is intended for erosion control, flood control, climate adaptation and similar ecological/environmental remediation.\n\n**Important note on distribution:**  \nThe excerpts you have include state-level “Ecological Fund” inflows (i.e., what each state recorded/expected/received under that line). The *federal excerpt shown does not provide a single explicit percentage split for Ecological Fund the way it does for EMTL*—so I can’t state a universal percentage formula from the excerpts alone. Practically, states show it as part of “Other FAAC revenues/transfers”.\n\n---\n\n## 2) How do these funds show up in state budgets (examples from available data)?\n\nBelow are **state-recorded EMTL and Ecological Fund amounts** appearing as revenue lines in the budget data excerpts (mostly under “Other FAAC revenues” subheads). Where the table includes multiple columns, I’m using the **“actual/received-to-date” style column shown in the excerpts** (the same column where Osun and Kebbi show EMTL “performance” figures).\n\n### EMTL receipts / performance (selected states)\n- **Osun 2024:** EMTL **₦2.549bn** (line: “Electronic Money Transfer Levy … 2,549,420,270.93”)  \n- **Niger 2024:** EMTL **₦1.861bn** (line: “Electronic Money Transfer (EMTL) … 1,861,369,561.45”)  \n- **Kebbi 2024:** EMTL **₦1.676bn** (line: “EMTL … 1,675,605,942.60”)  \n- **Taraba 2025:** EMTL **₦3.857bn** (line: “EMTL … 3,857,423,407.67”)  \n- **Abia 2025:** EMTL **₦5.196bn** (line: “EMTL … 5,195,802,993.70”)  \n- **Anambra 2025 (economic affairs excerpt):** EMTL **₦2.579bn** (line: “Electronic Money Transfer Levy … 2,578,905,653.87”)  \n\n### Ecological Fund receipts / performance (selected states)\n- **Niger 2025:** Ecological Fund **₦1.299bn** (line: “… Ecological Fund … 1,299,183,807.59”)  \n- **Taraba 2025:** Ecological Fund **₦2.151bn** (line: “… Ecological Fund … 2,150,531,967.30”)  \n- **Ekiti 2025:** Ecological Fund **₦2.061bn** (line: “… Ecological Fund … 2,061,129,935.40”)  \n- **Osun 2024:** Ecological Fund **₦1.264bn** (line: “… Ecological Fund … 1,264,452,783.05”)  \n- **Anambra 2025:** Ecological Fund **₦0.777bn** (line: “… Ecological Fund … 776,968,694.54”)  \n- **Abia 2025:** Ecological Fund **₦0.849bn** (line: “… Ecological Fund … 849,225,599.05”)  \n- **Kebbi 2024:** Ecological Fund **₦0.000** recorded in the excerpted performance column (line shows ecological fund but performance is “- / 0.0%” in the shown snippet)\n\n---\n\n## 3) Which states benefit most (based on the states visible in the excerpts)?\n\n### A. EMTL — “most” among states in the excerpts provided\nFrom the **state figures visible above**:\n1. **Abia (2025): ₦5.196bn**\n2. **Taraba (2025): ₦3.857bn**\n3. **Anambra (2025): ₦2.579bn**\n4. **Osun (2024): ₦2.549bn**\n5. **Niger (2024): ₦1.861bn**\n6. **Kebbi (2024): ₦1.676bn**\n\n**Caveat:** This is **not a national ranking across all 36 states + FCT**—it’s only **among the states that appear in the retrieved excerpts**.\n\n### B. Ecological Fund — “most” among states in the excerpts provided\nAmong the **states visible above**:\n1. **Taraba (2025): ₦2.151bn**\n2. **Ekiti (2025): ₦2.061bn**\n3. **Niger (2025): ₦1.299bn**\n4. **Osun (2024): ₦1.264bn**\n5. **Abia (2025): ₦0.849bn**\n6. **Anambra (2025): ₦0.777bn**\n\nSame caveat: **only among states present in the excerpts.**\n\n---\n\n## 4) Quick visual comparison (among states with figures in the excerpts)\n\n\n\n\n\n---\n\n## 5) What I can do next (to answer “which states benefit most?” more conclusively)\nTo identify the **top beneficiaries nationally**, I’d need to pull EMTL and Ecological Fund lines for **all states for the same year** (e.g., 2025 or 2024) and then rank them—your current excerpts cover only a subset.\n\nTell me the year you want to benchmark (**2024 or 2025**), and whether you want:\n- **Budgeted amounts** (approved/revised), or\n- **Actual/received-to-date performance** (as in the excerpts),\n\n…and I’ll compute a proper “among states with available data” table and highlight top/bottom, plus each state’s share.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 60931,
+      "pass": true,
+      "evaluation_notes": "Matched 9/29 expected terms."
+    },
+    {
+      "id": "faac-020",
+      "category": "fct_special_case",
+      "question": "Does FCT receive FAAC allocations both as a state and at the LGA level? How much in total?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "FCT is stored as 'FCT' (special case). It has both state-level allocation and area council (LGA-level) allocations. Tests whether the system correctly handles FCT's dual nature.",
+      "expected_behavior": "Should search for state_monthly with state=FCT and lga_monthly with state=FCT to show both levels.",
+      "metadata_filters_needed": [
+        "state=FCT",
+        "chunk_type"
+      ],
+      "expected_answer": "Should confirm that FCT receives FAAC allocations at both levels: a state-level allocation and separate allocations for its 6 area councils (LGAs). Must provide specific Naira figures for the state-level allocation and the combined area council allocations for a defined time period. Should show the total across both levels and clarify FCT's unique status as neither a state nor an LGA but treated as both in the FAAC framework.",
+      "answer": "Yes. The FCT participates in FAAC flows in **two ways**:\n\n1) **As an “FCT share” (treated separately from states in the FAAC redistribution):**  \n- In the **Federal 2023** FAAC redistribution table, **“FCT 1%”** is listed under “Distribution of Special Fund (4.18% of FAAC)”.  \n- Amounts shown (multiple columns in the federal table): **₦86,714,714,081; ₦67,302,400,640; ₦84,750,835,182; ₦82,270,743,988; ₦89,853,757,362**.\n\n2) **At the LGA level (FCT Area Councils receive the Local Government share of FAAC):**  \n- The same **Federal 2023** table explicitly includes a line for **“LG Share of FAAC @ 20.60%”** (this pool is what LGAs—including FCT Area Councils—draw from).  \n- However, the federal excerpt you provided shows **the national LG pool totals** (e.g., **₦1,786,323,110,059; ₦1,386,429,453,189; ₦1,745,867,204,746; ₦1,694,777,326,151; ₦1,850,987,401,657**) and **does not break out how much of that goes specifically to the FCT’s Area Councils**.\n\n## So how much does FCT get “in total” (state-like + LGA-level)?\n- **We can quantify the FCT-specific “FCT 1%” amount(s)** from the federal table (values above).\n- **We cannot compute the total including the FCT Area Councils’ FAAC** from the excerpts shown, because **the FCT’s LGA/Area Councils share is not itemized** there.\n\n## What I can do next (to give you the exact total)\nIf you tell me **which year** you want for “total FAAC to FCT (FCTA + Area Councils)”, I can pull:\n- the **FCT 1%** amount for that year, and\n- the **FAAC receipts to FCT Area Councils** (usually appears in FCT/Area Council financial statements/allocations tables where the councils are named or aggregated).\n\nNote: from our records, **FCT budget data availability shows 2019** as an available year on first lookup; for other years, the federal dataset may still have the “FCT 1%” line, but the **Area Councils-specific FAAC** requires a source that itemizes it.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 69158,
+      "pass": true,
+      "evaluation_notes": "Matched 9/27 expected terms."
+    },
+    {
+      "id": "faac-021",
+      "category": "cross_intent",
+      "question": "Rivers State got 50 billion from FAAC in March 2025 — how does that compare to their approved budget for the year?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Crosses FAAC and budget intents. Router must choose one. FAAC data doesn't contain budget information, and budget data doesn't contain FAAC allocations. The comparison requires data from two separate indexes.",
+      "expected_behavior": "Should route to FAAC, provide FAAC data, and note that budget comparison requires a separate query.",
+      "metadata_filters_needed": [
+        "state=Rivers",
+        "year=2025"
+      ],
+      "expected_answer": "Should first verify the claimed 50 billion figure by retrieving Rivers State's actual FAAC allocation for March 2025 from state_monthly data. Must clearly state that budget data is not available in the FAAC dataset and that a cross-intent comparison cannot be completed from FAAC data alone. Should suggest querying the budget data source separately for the approved budget figure.",
+      "answer": "We can compare your **₦50bn FAAC receipt (March 2025)** to Rivers State’s **approved budget benchmarks**, but **our budget database excerpt here does not contain Rivers 2025 approved budget totals** (it only shows a “2025 Approved Budget – Capital Receipts” heading without figures). So I can’t do a precise “₦50bn as % of Rivers 2025 approved FAAC / total budget” yet.\n\nWhat I *can* do reliably—using the closest approved-year figures we have—is benchmark ₦50bn against Rivers’ **approved FAAC and total revenue in 2024 and 2023** (these are strong reference points because they show the state’s typical approved FAAC envelope).\n\n## 1) Compare ₦50bn to Rivers’ **approved FAAC** (reference: 2024 & 2023)\n\n**Rivers 2024 Approved FAAC (Government Share of FAAC): ₦283,235,306,406**  \n- ₦50bn as a share of 2024 approved FAAC = **17.7%**  \n- Monthly equivalent of 2024 approved FAAC = ₦283.235bn / 12 ≈ **₦23.6bn/month**  \n- So **₦50bn in one month ≈ 2.1×** the 2024 “average monthly FAAC” implied by the approved budget.\n\n**Rivers 2023 Approved FAAC: ₦262,987,883,841**  \n- ₦50bn as a share of 2023 approved FAAC = **19.0%**  \n- Monthly equivalent = ₦262.988bn / 12 ≈ **₦21.9bn/month**  \n- So **₦50bn ≈ 2.3×** the 2023 implied monthly average.\n\n## 2) Compare ₦50bn to Rivers’ **approved total revenue** (reference: 2024, 2023, 2022)\n\nFrom the Rivers budgets in our records:\n\n- **2024 total revenue (approved, by economic classification): ₦793,457,700,561** (Citizens Budget/BPR)  \n  - ₦50bn is **6.3%** of this annual total.\n\n- **2023 recurrent revenue (approved): ₦483,042,966,646** (recurrent revenue by fund)  \n  - ₦50bn is **10.4%** of this annual recurrent revenue figure.\n\n- **2022 total revenue (approved): ₦476,241,774,889** (total revenue by fund)  \n  - ₦50bn is **10.5%** of this annual total.\n\n## What this means (in plain terms)\nA **₦50bn FAAC inflow in March** is **very large relative to the FAAC envelope Rivers typically budgets for**—it’s roughly **18–19% of a full year’s approved FAAC** (based on 2024/2023), i.e., about **two months’ worth** of the budgeted average FAAC in a single month.\n\n## What I still need to answer your exact question (2025 comparison)\nTo compare properly “to their approved budget for the year (2025)”, I need either:\n- Rivers **2025 Approved FAAC** (Government share of FAAC) and/or  \n- Rivers **2025 total budget size / total revenue**.\n\nIf you want, I can pull the Rivers **2025 approved budget** from the database and compute:\n- ₦50bn as **% of 2025 approved FAAC**\n- ₦50bn as **% of 2025 total revenue/budget**\n- how many “months of FAAC” ₦50bn represents under the 2025 assumptions.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 54112,
+      "pass": true,
+      "evaluation_notes": "No FAAC components mentioned. Matched 8/29 expected terms."
+    },
+    {
+      "id": "faac-022",
+      "category": "pidgin_query",
+      "question": "Which state dey collect pass money from FAAC? Wetin make dem dey give some state pass the other?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin. Must understand: 'which state receives the most FAAC?' and 'why do some states get more?'. The 'why' requires knowledge of the revenue allocation formula which may not be in the data.",
+      "expected_behavior": "Should identify top-receiving states and attempt to explain allocation factors.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly"
+      ],
+      "expected_answer": "Should correctly interpret the Pidgin English query and identify the state(s) receiving the highest FAAC allocations with specific Naira amounts. Should attempt to explain allocation factors such as population, land mass, IGR contribution, equality principle, and the 13% derivation for oil-producing states. Must provide data-backed rankings rather than general statements, and may note that the full allocation formula details are policy-based and may not be in the dataset.",
+      "answer": "## Which state dey collect pass money from FAAC (based on the data we get here)?\n\n**Among the states we see for 2024 in the excerpts, Rivers State dey collect pass (highest “Government Share of FAAC”).**\n\n### 2024 FAAC totals (Government Share of FAAC) — states we have here\n- **Rivers (2024): ₦283.235bn**  \n- **Anambra (2024): ₦199.517bn**  \n- **Abia (2024): ₦133.935bn**  \n- **Sokoto (2024): ₦108.130bn**  \n- **Gombe (2024): ₦99.604bn**  \n- **Enugu (2024): ₦120.000bn**  \n- **Cross River (2024): ₦74.525bn**  \n\nSo **for 2024, Rivers na #1 among the states shown**.\n\n### For 2025 (the excerpts show Lagos too)\nIf we look at **some 2025 entries we have here**:\n- **Lagos (2025): VAT alone = ₦352.0bn (budget figure), Statutory Allocation = ₦100.8bn, Other FAAC = ₦169.437bn**  \n  (This shows Lagos fit receive very big FAAC inflow largely because of VAT sharing; but the excerpt no show a single “Government Share of FAAC total” line like some other states.)\n- **Rivers (2025): “Government Share of FAAC” = ₦559.181bn** (as shown on the line for Rivers 2025)\n\n**Important note:** This database excerpt **no cover all 36 states + FCT**, so I no fit talk “for the whole Nigeria, this state na the highest” with full confidence. I fit only talk **“among the states we have data for here.”**\n\n\n\n---\n\n## Wetin make dem dey give some state pass the other (why FAAC differs)?\n\nFAAC no be “equal sharing” only. The big drivers be:\n\n### 1) **13% Derivation (oil/mineral producing advantage)**\nOil producing states dey get **extra money** under derivation. Example from the excerpts:\n- **Rivers (2024): Mineral Fund (13% derivation) = ₦145.527bn**  \n  While **Statutory Allocation = ₦68.459bn**  \n  Meaning derivation alone big pass many states’ total FAAC.\n- **Bayelsa (2024): 13% derivation = ₦217.371bn** (very huge)\n\nSo states like **Rivers/Bayelsa/Delta/Akwa Ibom** normally dey top because of derivation.\n\n### 2) **VAT sharing (and economic activity proxy)**\nVAT pool dey shared with a formula; states with stronger formal economy/consumption patterns often see higher VAT-related allocations (plus reporting/collection dynamics at national level).\n- **Lagos (2025): VAT allocation line = ₦352.0bn (budgeted)** — very large.\n\n### 3) **Population + equality component + social development factors**\nFAAC sharing formula generally considers items like:\n- equality of states (every state get base share)\n- population\n- land mass/terrain\n- social development indicators (depending on the formula version used)\n\nThat’s why even non-oil states still get substantial FAAC, but oil/VAT can swing totals heavily.\n\n### 4) **“Other FAAC revenues” and one-off items**\nThings like:\n- Excess Crude, Exchange gain, special allocations, refunds, stabilization/ecology funds, etc.\nThese can cause big jumps year-to-year or state-to-state.\nExample:\n- **Cross River (2024): “Other FAAC revenues” budget goes up to ₦144.054bn** in one table excerpt (suggesting large special items that year in their budget assumptions).\n\n---\n\n## If you want the real “who dey collect pass” ranking\nTell me **the year** you mean (2024 or 2025) and whether you want:\n- **Total FAAC (Government share of FAAC)** only, or\n- breakdown: **Statutory Allocation vs VAT vs Derivation vs Other FAAC**\n\nThen I go run a full search across **all states we have for that year** and give you “among states with available data” ranking with exact figures.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 63573,
+      "pass": true,
+      "evaluation_notes": "Matched 9/34 expected terms."
+    },
+    {
+      "id": "faac-023",
+      "category": "lga_cross_state",
+      "question": "Compare the FAAC allocations of the capital LGAs of each South-East state: Umuahia North (Abia), Awka South (Anambra), Abakaliki (Ebonyi), Enugu South (Enugu), and Owerri Municipal (Imo)",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "5 specific LGAs across 5 different states. Each needs chunk_type=lga_monthly with exact LGA name. Agent must know or correctly spell all 5 LGA names. 5 separate searches needed within 10-step limit.",
+      "expected_behavior": "Should search each LGA individually and compare. LGA name normalization is critical.",
+      "metadata_filters_needed": [
+        "chunk_type=lga_monthly",
+        "lga",
+        "state"
+      ],
+      "expected_answer": "Should present FAAC allocation figures for all 5 capital LGAs: Umuahia North (Abia), Awka South (Anambra), Abakaliki (Ebonyi), Enugu South (Enugu), and Owerri Municipal (Imo), with specific Naira amounts for a defined time period. Must correctly resolve all 5 LGA names without misspelling. Should provide a side-by-side comparison and rank them. Must note if any LGA's data could not be retrieved.",
+      "answer": "I can’t do the comparison you asked for **from the budget documents we currently have**, because **FAAC allocations are not recorded at LGA level** in these state budget datasets.\n\n### What the budget documents show (and why it’s not comparable across LGAs)\n- In Nigerian public finance, **FAAC (Federation Account Allocation Committee) allocations go to**:\n  1) **States** (state government share), and  \n  2) **Local Governments** (paid into the **State Joint Local Government Account, SJLGA**, then shared to LGAs).\n- **State budgets/implementation reports typically record only the STATE’s FAAC share**, not how much each LGA (e.g., Umuahia North, Awka South, Abakaliki, Enugu South, Owerri Municipal) received.\n\n**Example from our records (Enugu):**\n- Enugu’s 2023 “Fund Source for Capital Expenditure” shows **FAAC Direct Allocation = ₦3,600,000,000** and Total Capital Expenditure = **₦84,698,617,400** — this is clearly **state-level**, not Enugu South LGA-level.\n\n### What I can do instead (if you confirm what you want)\nPick one of these options:\n\n1) **Compare the *states’* FAAC receipts** (Abia vs Anambra vs Ebonyi vs Enugu vs Imo) for the same year/quarter (this is available in several implementation reports).  \n2) If your goal is truly **LGA-by-LGA FAAC**, we would need **FAAC/SJLGA distribution schedules** (usually from:\n   - Office of the Accountant-General of the Federation / FAAC publications, or\n   - State Joint Account Allocation Committee disclosures), not the state budget books.\n\n### Quick clarification question\nWhich comparison do you want?\n- **A. State governments’ FAAC receipts** (Abia/Anambra/Ebonyi/Enugu/Imo), same year/quarter; or\n- **B. Actual LGA FAAC receipts** for the five LGAs (requires SJLGA/LGA distribution data, typically outside state budget documents)?\n\nIf you choose **A**, tell me the **year** (e.g., 2022 or 2023), and I’ll pull the FAAC figures for each of the five states and compare them side-by-side with percentages.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 84574,
+      "pass": true,
+      "evaluation_notes": "Matched 12/30 expected terms."
+    },
+    {
+      "id": "faac-024",
+      "category": "net_vs_gross",
+      "question": "What's the difference between gross and net FAAC allocation for Kogi State in 2024? How much was deducted and why?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Gross vs net distinction is in chunk text. Deduction types (external_debt, ISPO, other) are text-embedded. Tests whether the agent can extract these specific figures from state_monthly chunks.",
+      "expected_behavior": "Should retrieve Kogi state_monthly chunks for 2024 and extract gross, deductions, and net figures.",
+      "metadata_filters_needed": [
+        "chunk_type=state_monthly",
+        "state=Kogi",
+        "year=2024"
+      ],
+      "expected_answer": "Should provide Kogi State's gross FAAC allocation, total deductions, and net allocation for 2024, with specific Naira amounts. Must break deductions into their categories (external_debt, ISPO, other) and explain what each represents. Should show either a monthly breakdown or annual totals, and calculate the deduction as a percentage of gross allocation. Must extract these figures from chunk text rather than metadata.",
+      "answer": "## Kogi State (2024): Gross vs Net FAAC — what’s the difference?\n\n### 1) What the Kogi 2024 budget shows (the “gross” figure used in the budget)\nIn the **Kogi State 2024 Approved Budget**, the line item **“Government Share of FAAC / Federation Account”** is budgeted at:\n\n- **FAAC (Federation Account) in the 2024 approved budget (gross budget assumption): ₦138,170,806,176**  \n  (Made up of **Statutory Allocation ₦85,650,179,027 + VAT ₦34,017,078,421 + Other FAAC ₦18,503,548,728** as shown in the Citizens Budget.)\n\nThis is essentially the *planned* FAAC inflow the state expected to receive in 2024.\n\n### 2) “Net FAAC” (what actually hits the state after deductions)\n**Your excerpts do not contain a table that explicitly reports “Gross FAAC” and “Net FAAC” side-by-side**, nor a breakdown of deductions (e.g., ISPO deductions, debt service net-offs, etc.). The Q1–Q4 performance tables show **FAAC receipts/performance**, but they **don’t label them as gross vs net** or itemize deductions.\n\nSo, from the available Kogi 2024 documents in the excerpts provided:\n- **Gross FAAC (budgeted/expected): ₦138,170,806,176**\n- **Net FAAC: not explicitly stated as “net”** (and deductions are not itemized enough to compute net reliably).\n\n### 3) How much was deducted, and why?\nBecause **net FAAC and deduction lines are not provided in the excerpts**, I **cannot compute a definitive “deducted amount”** for 2024 from these pages alone.\n\nWhat the Kogi 2024 budget *does* show as a deduction-related clue is:\n- **“1% deduction for JAAC maintenance”** (appears in the Approved Estimates excerpt).  \n  This suggests one category of deduction is a **JAAC-related administrative deduction** (typically taken from FAAC flows before distribution/crediting).\n\nHowever:\n- The excerpt **does not state the base amount** the 1% applies to (monthly FAAC? LGA share? specific inflow line?), so I **can’t convert that 1% into a Naira total** for 2024 from what’s shown.\n\n---\n\n## What I can do next (to answer exactly as you asked)\nIf you want the exact **gross vs net** and **deduction amount + reasons**, I need to pull the specific section/page that usually contains:\n- FAAC inflow statement showing **gross**, then **less: deductions** (ISPOs, loan repayments, etc.), then **net credit**\n- or a **FAAC/JAAC schedule** / accountant-general schedule\n\nTell me whether you mean:\n1) **State Government FAAC only** (what goes to Kogi State Government), or  \n2) **Total FAAC to Kogi (State + LGAs)** through JAAC.\n\nOnce you confirm, I’ll search the Kogi 2024 budget/performance docs specifically for the **“gross/net” FAAC schedule** and extract the exact deduction figures and descriptions.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 88584,
+      "pass": true,
+      "evaluation_notes": "Matched 13/31 expected terms."
+    },
+    {
+      "id": "faac-025",
+      "category": "follow_up_chain",
+      "question": "How much did Bayelsa State receive from FAAC in January 2025?",
+      "follow_ups": [
+        "Break that down by component",
+        "How does that compare to Delta State?",
+        "What about the LGAs in Bayelsa — which got the most?",
+        "Show me the trend for all of 2024",
+        "How much of Bayelsa's allocation is from 13% derivation?"
+      ],
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Progressive drill-down across chunk types: state_monthly → state_monthly comparison → lga_monthly → state_annual → derivation extraction. Each follow-up changes the required chunk_type. Context must track state=Bayelsa throughout.",
+      "expected_behavior": "Should maintain Bayelsa context and switch chunk types as needed for each follow-up.",
+      "expected_answer": "The initial answer should provide Bayelsa State's total FAAC allocation for January 2025 in Naira from state_monthly data. Follow-ups should: (1) break it into statutory, VAT, exchange_gain, EMTL, ecology, derivation_13_pct; (2) show Delta's January 2025 figure side-by-side; (3) rank Bayelsa's 8 LGAs by allocation; (4) show monthly totals across 2024; (5) isolate the 13% derivation amount and its share of the total. Each follow-up must maintain Bayelsa as the context state and switch chunk types appropriately.",
+      "answer": "From the **Bayelsa State Government 2025 Q1 Budget Performance Report** (covering **January–March 2025**), Bayelsa’s **Government Share of FAAC** as at **31 March 2025** was:\n\n- **₦120,545,728,117.96** (FAAC received in Q1 2025; reported as **21.4%** of the 2025 original FAAC budget)\n\nHowever, **the report does not break FAAC down by individual months**, so **January 2025 FAAC alone is not stated** in the available Bayelsa budget performance excerpts—only the **Q1 total** is provided.\n\nIf you want, I can also pull the line-items (e.g., statutory revenue vs other FAAC revenues) or check whether there’s a separate monthly FAAC schedule for Bayelsa in our records.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 24758,
+      "pass": true,
+      "evaluation_notes": "Low term match: 7/38 expected terms."
+    }
+  ]
+}

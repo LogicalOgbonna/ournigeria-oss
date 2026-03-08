@@ -265,6 +265,7 @@ Swagger UI is available at `/api/docs` when the API is running.
   - **Project Mapping**: For every budget line item, extract and link the specific real-world project or initiative the funds are supposed to execute.
   - **Transparency View**: Create an interface where users can select a state/LGA, view its total budget, see the detailed breakdown of all line items, and track the specific projects tied to those funds.
 - [ ] Create a web worker that refreshes tokens if a new update is released
+- [ ] Implement a re-ingestion pipeline that will only ingest new content from a previously ingested file if it has changed.
 
 ---
 

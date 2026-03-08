@@ -1,0 +1,441 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum MessageRole {
+  user
+  assistant
+  system
+
+  @@map("message_role")
+}
+
+enum ConversationStatus {
+  active
+  archived
+  deleted
+
+  @@map("conversation_status")
+}
+
+enum ConversationVisibility {
+  private
+  public
+
+  @@map("conversation_visibility")
+}
+
+enum DocumentStatus {
+  unprocessed
+  parsing
+  parsed
+  indexing
+  indexed
+  error
+
+  @@map("document_status")
+}
+
+enum DocumentFileType {
+  pdf
+  xlsx
+  xls
+  csv
+  docx
+
+  @@map("document_file_type")
+}
+
+enum NotificationType {
+  incident
+  announcement
+  info
+  warning
+
+  @@map("notification_type")
+}
+
+enum BannerType {
+  incident
+  announcement
+  warning
+
+  @@map("banner_type")
+}
+
+enum FeedbackStatus {
+  new
+  reviewing
+  resolved
+  archived
+
+  @@map("feedback_status")
+}
+
+enum FeedbackCategory {
+  bug
+  feature
+  general
+  data_issue
+
+  @@map("feedback_category")
+}
+
+// ============================================================
+// Models
+// ============================================================
+
+model AdminUser {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  name         String   @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz()
+  createdById  String?  @map("created_by_id") @db.Uuid
+
+  createdBy    AdminUser?  @relation("AdminCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers AdminUser[] @relation("AdminCreatedBy")
+
+  @@map("admin_users")
+}
+
+model NigerianState {
+  code            String @id @db.VarChar(30)
+  name            String @unique @db.VarChar(50)
+  geopoliticalZone String @map("geopolitical_zone") @db.VarChar(20)
+  capital         String @db.VarChar(50)
+
+  documents        Document[]
+  budgetSummaries  BudgetSummary[]
+  sourceReferences SourceReference[]
+
+  @@map("nigerian_states")
+}
+
+model User {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String?  @unique @map("phone_number") @db.VarChar(20)
+  telegramId  String?  @unique @map("telegram_id") @db.VarChar(20)
+  name        String?  @db.VarChar(100)
+  email       String?  @db.VarChar(255)
+  banned      Boolean  @default(false)
+  bannedAt    DateTime? @map("banned_at") @db.Timestamptz()
+  banReason   String?  @map("ban_reason") @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz()
+  preferences Json     @default("{}") @db.JsonB
+
+  conversations    Conversation[]
+  queryAnalytics   QueryAnalytic[]
+  memories         UserMemory[]
+  notifications    Notification[]
+  dismissedBanners BannerDismissal[]
+  feedbacks        Feedback[]
+
+  @@map("users")
+}
+
+model UserMemory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  key       String   @db.VarChar(100)
+  value     String   @db.Text
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId], map: "idx_user_memory_user")
+  @@map("user_memories")
+}
+
+model OtpVerification {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String   @map("phone_number") @db.VarChar(20)
+  code        String   @db.VarChar(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz()
+  attempts    Int      @default(0)
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([phoneNumber, verified, expiresAt], map: "idx_otp_phone_active")
+  @@map("otp_verifications")
+}
+
+model Conversation {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                 @map("user_id") @db.Uuid
+  title           String                 @default("New Conversation") @db.VarChar(200)
+  status          ConversationStatus     @default(active)
+  visibility      ConversationVisibility @default(private)
+  slug            String?                @unique @db.VarChar(250)
+  sharedAt        DateTime?              @map("shared_at") @db.Timestamptz()
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  mentionedStates String[]               @default([]) @map("mentioned_states")
+  mentionedYears  Int[]                  @default([]) @map("mentioned_years") @db.SmallInt
+  summary         String?                @db.Text
+  summaryUpTo     Int?                   @map("summary_up_to")
+  lastAgentType   String?                @map("last_agent_type") @db.VarChar(20)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId, status, createdAt(sort: Desc)], map: "idx_conversations_user_active")
+  @@index([visibility, status], map: "idx_conversations_public")
+  @@map("conversations")
+}
+
+model Message {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId   String      @map("conversation_id") @db.Uuid
+  sequenceNumber   Int         @map("sequence_number")
+  role             MessageRole
+  content          String      @db.Text
+  richContent      Json?       @map("rich_content") @db.JsonB
+  modelUsed        String?     @map("model_used") @db.VarChar(50)
+  promptTokens     Int?        @map("prompt_tokens")
+  completionTokens Int?        @map("completion_tokens")
+  totalTokens      Int?        @map("total_tokens")
+  processingTimeMs Int?        @map("processing_time_ms")
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+
+  conversation     Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sourceReferences SourceReference[]
+  queryAnalytics   QueryAnalytic[]
+
+  @@unique([conversationId, sequenceNumber])
+  @@index([createdAt(sort: Desc)], map: "idx_messages_created")
+  @@map("messages")
+}
+
+model Document {
+  id                String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stateCode         String      @map("state_code") @db.VarChar(30)
+  fiscalYear        Int         @map("fiscal_year") @db.SmallInt
+  fileName          String      @map("file_name") @db.VarChar(255)
+  filePath          String      @unique @map("file_path") @db.VarChar(500)
+  fileType          DocumentFileType @map("file_type")
+  fileSizeBytes     BigInt?     @map("file_size_bytes")
+  fileHashSha256    String?     @map("file_hash_sha256") @db.VarChar(64)
+  status            DocumentStatus @default(unprocessed)
+  errorDetails      String?     @map("error_details") @db.Text
+  parsedAt          DateTime?   @map("parsed_at") @db.Timestamptz()
+  indexedAt          DateTime?   @map("indexed_at") @db.Timestamptz()
+  metadata          Json        @default("{}") @db.JsonB
+  pageCount         Int?        @map("page_count")
+  extractedSections Json?       @map("extracted_sections") @db.JsonB
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  state            NigerianState     @relation(fields: [stateCode], references: [code])
+  sourceReferences SourceReference[]
+  budgetSummaries  BudgetSummary[]
+
+  @@index([stateCode, fiscalYear], map: "idx_documents_state_year")
+  @@map("documents")
+}
+
+model SourceReference {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId       String  @map("message_id") @db.Uuid
+  documentId      String  @map("document_id") @db.Uuid
+  pageNumber      Int?    @map("page_number")
+  lineStart       Int?    @map("line_start")
+  lineEnd         Int?    @map("line_end")
+  sheetName       String? @map("sheet_name") @db.VarChar(100)
+  sectionHeading  String? @map("section_heading") @db.VarChar(300)
+  snippet         String? @db.Text
+  confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
+  stateCode       String? @map("state_code") @db.VarChar(30)
+  fiscalYear      Int?    @map("fiscal_year") @db.SmallInt
+  relevanceRank   Int?    @map("relevance_rank")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  message  Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  state    NigerianState? @relation(fields: [stateCode], references: [code])
+
+  @@index([messageId], map: "idx_source_refs_message")
+  @@index([documentId], map: "idx_source_refs_document")
+  @@index([stateCode, fiscalYear], map: "idx_source_refs_state_year")
+  @@map("source_references")
+}
+
+model BudgetSummary {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stateCode         String   @map("state_code") @db.VarChar(30)
+  fiscalYear        Int      @map("fiscal_year") @db.SmallInt
+  totalBudget       BigInt   @map("total_budget")
+  allocations       Json     @default("{}") @db.JsonB
+  sourceDocumentId  String?  @map("source_document_id") @db.Uuid
+  populationEstimate BigInt? @map("population_estimate")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  state          NigerianState @relation(fields: [stateCode], references: [code])
+  sourceDocument Document?     @relation(fields: [sourceDocumentId], references: [id])
+
+  @@unique([stateCode, fiscalYear])
+  @@index([stateCode], map: "idx_budget_summaries_state")
+  @@index([fiscalYear], map: "idx_budget_summaries_year")
+  @@index([fiscalYear, totalBudget(sort: Desc)], map: "idx_budget_summaries_year_total")
+  @@map("budget_summaries")
+}
+
+model QueryAnalytic {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  messageId     String?  @map("message_id") @db.Uuid
+  queryCategory String?  @map("query_category") @db.VarChar(50)
+  queriedStates String[] @default([]) @map("queried_states")
+  queriedYears  Int[]    @default([]) @map("queried_years") @db.SmallInt
+  queryText     String?  @map("query_text") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([queryCategory, createdAt(sort: Desc)], map: "idx_analytics_category_date")
+  @@index([createdAt(sort: Desc)], map: "idx_analytics_date")
+  @@map("query_analytics")
+}
+
+model IngestionRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pipeline   String   @db.VarChar(30)
+  filePath   String   @map("file_path") @db.VarChar(1000)
+  fileHash   String   @map("file_hash") @db.VarChar(64)
+  s3Etag     String?  @map("s3_etag") @db.VarChar(128)
+  sourceType String   @map("source_type") @db.VarChar(10)
+  identity   Json     @default("{}") @db.JsonB
+  chunks     Int      @default(0)
+  status     String   @default("processing") @db.VarChar(20)
+  errorMsg   String?  @map("error_msg") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([pipeline, filePath], map: "uq_ingestion_pipeline_filepath")
+  @@index([pipeline, status], map: "idx_ingestion_pipeline_status")
+  @@index([pipeline, s3Etag], map: "idx_ingestion_pipeline_etag")
+  @@index([status, updatedAt], map: "idx_ingestion_status_updated")
+  @@map("ingestion_records")
+}
+
+model IngestionRun {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pipeline       String    @db.VarChar(30)
+  trigger        String    @db.VarChar(20)
+  totalFiles     Int       @default(0) @map("total_files")
+  processedFiles Int       @default(0) @map("processed_files")
+  skippedFiles   Int       @default(0) @map("skipped_files")
+  errorFiles     Int       @default(0) @map("error_files")
+  totalChunks    Int       @default(0) @map("total_chunks")
+  durationMs     Int?      @map("duration_ms")
+  errorMsg       String?   @map("error_msg") @db.Text
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz()
+
+  @@index([pipeline, startedAt(sort: Desc)], map: "idx_runs_pipeline_started")
+  @@map("ingestion_runs")
+}
+
+// ============================================================
+// Notifications
+// ============================================================
+
+model Notification {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  message   String           @db.Text
+  read      Boolean          @default(false)
+  linkText  String?          @map("link_text") @db.VarChar(100)
+  linkUrl   String?          @map("link_url") @db.VarChar(500)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt(sort: Desc)], map: "idx_notifications_user_unread")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user_date")
+  @@map("notifications")
+}
+
+model SystemBanner {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        BannerType
+  title       String     @db.VarChar(200)
+  message     String     @db.Text
+  linkText    String?    @map("link_text") @db.VarChar(100)
+  linkUrl     String?    @map("link_url") @db.VarChar(500)
+  dismissible Boolean    @default(true)
+  active      Boolean    @default(true)
+  expiresAt   DateTime?  @map("expires_at") @db.Timestamptz()
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+
+  dismissals BannerDismissal[]
+
+  @@index([active, expiresAt], map: "idx_banners_active")
+  @@map("system_banners")
+}
+
+model BannerDismissal {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  bannerId    String   @map("banner_id") @db.Uuid
+  dismissedAt DateTime @default(now()) @map("dismissed_at") @db.Timestamptz()
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  banner SystemBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bannerId])
+  @@map("banner_dismissals")
+}
+
+// ============================================================
+// Feedback
+// ============================================================
+
+model Feedback {
+  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  category   FeedbackCategory @default(general)
+  subject    String           @db.VarChar(200)
+  message    String           @db.Text
+  status     FeedbackStatus   @default(new)
+  adminNotes String?          @map("admin_notes") @db.Text
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments FeedbackAttachment[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_feedback_user_date")
+  @@index([status, createdAt(sort: Desc)], map: "idx_feedback_status_date")
+  @@map("feedback")
+}
+
+model FeedbackAttachment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feedbackId    String   @map("feedback_id") @db.Uuid
+  fileName      String   @map("file_name") @db.VarChar(255)
+  fileType      String   @map("file_type") @db.VarChar(50)
+  fileSizeBytes Int      @map("file_size_bytes")
+  s3Key         String   @map("s3_key") @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId], map: "idx_feedback_attachments_feedback")
+  @@map("feedback_attachments")
+}

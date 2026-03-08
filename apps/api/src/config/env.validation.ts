@@ -24,6 +24,13 @@ export interface EnvConfig {
   LANGFUSE_PUBLIC_KEY?: string;
   LANGFUSE_SECRET_KEY?: string;
   LANGFUSE_BASE_URL?: string;
+  LLM_PROVIDER?: string;
+  LLM_MODEL_SMALL?: string;
+  RERANK_API_KEY?: string;
+  RERANK_MODEL?: string;
+  RERANK_ENABLED?: string;
+  RERANK_TOP_N?: string;
+  HYBRID_SEARCH_ENABLED?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -92,5 +99,12 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     LANGFUSE_PUBLIC_KEY: (config.LANGFUSE_PUBLIC_KEY as string) || undefined,
     LANGFUSE_SECRET_KEY: (config.LANGFUSE_SECRET_KEY as string) || undefined,
     LANGFUSE_BASE_URL: (config.LANGFUSE_BASE_URL as string) || undefined,
+    LLM_PROVIDER: (config.LLM_PROVIDER as string) || undefined,
+    LLM_MODEL_SMALL: (config.LLM_MODEL_SMALL as string) || undefined,
+    RERANK_API_KEY: (config.RERANK_API_KEY as string) || undefined,
+    RERANK_MODEL: (config.RERANK_MODEL as string) || undefined,
+    RERANK_ENABLED: (config.RERANK_ENABLED as string) || undefined,
+    RERANK_TOP_N: (config.RERANK_TOP_N as string) || undefined,
+    HYBRID_SEARCH_ENABLED: (config.HYBRID_SEARCH_ENABLED as string) || undefined,
   };
 }

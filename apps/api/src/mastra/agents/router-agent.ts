@@ -123,11 +123,31 @@ Set response to "" — the impact analysis agent will handle this.
 - If the message is short and ambiguous (e.g. "What about Kano?") but conversation context shows a clear ongoing topic, use "follow_up".
 - If genuinely ambiguous and no strong signal and no relevant conversation context, default to "general" and ask the user to clarify what they'd like to explore.
 
+## Entity Extraction
+For non-general intents, extract structured entities from the user's message to help the specialist agent make targeted searches on its first tool call. Only extract entities that are explicitly mentioned or clearly implied.
+
 ## Output Format
 Respond with valid JSON only. No markdown fencing, no explanation, no extra text.
-{ "intent": "general" | "budget" | "corruption" | "govspend" | "faac" | "impact" | "follow_up", "response": "..." }
+{
+  "intent": "general" | "budget" | "corruption" | "govspend" | "faac" | "impact" | "follow_up",
+  "response": "...",
+  "entities": {
+    "states": [],
+    "years": [],
+    "officials": [],
+    "sectors": [],
+    "mdas": [],
+    "lgas": []
+  }
+}
 
-- For "general": response contains your natural reply as Aje.
-- For "budget", "corruption", "govspend", "faac", "impact", and "follow_up": response must be an empty string "".`,
+- For "general": response contains your natural reply as Aje. entities can be empty arrays.
+- For "budget", "corruption", "govspend", "faac", "impact", and "follow_up": response must be an empty string "". Extract any entities from the message.
+- entities.states: Nigerian state names mentioned (lowercase), e.g. ["lagos", "kano"]
+- entities.years: Years mentioned as numbers, e.g. [2023, 2024]
+- entities.officials: Names of officials mentioned, e.g. ["James Ibori", "Yahaya Bello"]
+- entities.sectors: Budget sectors mentioned, e.g. ["education", "health", "infrastructure"]
+- entities.mdas: Government MDAs mentioned, e.g. ["Federal Ministry of Works"]
+- entities.lgas: LGA names mentioned, e.g. ["Ikwo", "Obio/Akpor"]`,
   model: chatModel,
 });

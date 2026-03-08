@@ -1,0 +1,592 @@
+{
+  "run_date": "2026-03-07T12:29:42.934Z",
+  "api_url": "http://localhost:3001",
+  "total_questions": 115,
+  "total_passed": 107,
+  "total_failed": 6,
+  "total_errors": 2,
+  "overall_pass_rate": "93.0%",
+  "files": [
+    {
+      "file": "budget.json",
+      "total": 25,
+      "passed": 22,
+      "failed": 1,
+      "errors": 2,
+      "pass_rate": "88.0%",
+      "avg_response_time_ms": 52214,
+      "by_difficulty": {
+        "very_hard": {
+          "total": 7,
+          "passed": 6
+        },
+        "hard": {
+          "total": 11,
+          "passed": 9
+        },
+        "medium": {
+          "total": 7,
+          "passed": 7
+        }
+      },
+      "by_category": {
+        "all_states_ranking": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_year_trend": {
+          "total": 1,
+          "passed": 0
+        },
+        "fct_handling": {
+          "total": 1,
+          "passed": 1
+        },
+        "per_capita": {
+          "total": 1,
+          "passed": 1
+        },
+        "capital_vs_recurrent": {
+          "total": 1,
+          "passed": 1
+        },
+        "sector_cross_state": {
+          "total": 1,
+          "passed": 0
+        },
+        "mda_specific": {
+          "total": 1,
+          "passed": 1
+        },
+        "document_type": {
+          "total": 1,
+          "passed": 1
+        },
+        "summary_vs_detail": {
+          "total": 1,
+          "passed": 1
+        },
+        "missing_data": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_state_comparison": {
+          "total": 1,
+          "passed": 0
+        },
+        "sector_classification_edge": {
+          "total": 1,
+          "passed": 1
+        },
+        "federal_budget": {
+          "total": 1,
+          "passed": 1
+        },
+        "officials_context": {
+          "total": 1,
+          "passed": 1
+        },
+        "year_over_year_all": {
+          "total": 1,
+          "passed": 1
+        },
+        "personnel_costs": {
+          "total": 1,
+          "passed": 1
+        },
+        "implementation_report": {
+          "total": 1,
+          "passed": 1
+        },
+        "akwa_ibom_normalization": {
+          "total": 1,
+          "passed": 1
+        },
+        "cross_intent": {
+          "total": 1,
+          "passed": 1
+        },
+        "pidgin_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "superlative_trap": {
+          "total": 1,
+          "passed": 1
+        },
+        "social_protection": {
+          "total": 1,
+          "passed": 1
+        },
+        "functional_code": {
+          "total": 1,
+          "passed": 1
+        },
+        "appropriation_act": {
+          "total": 1,
+          "passed": 1
+        },
+        "follow_up_chain": {
+          "total": 1,
+          "passed": 1
+        }
+      }
+    },
+    {
+      "file": "corruption.json",
+      "total": 25,
+      "passed": 23,
+      "failed": 2,
+      "errors": 0,
+      "pass_rate": "92.0%",
+      "avg_response_time_ms": 16867,
+      "by_difficulty": {
+        "hard": {
+          "total": 15,
+          "passed": 13
+        },
+        "very_hard": {
+          "total": 6,
+          "passed": 6
+        },
+        "medium": {
+          "total": 4,
+          "passed": 4
+        }
+      },
+      "by_category": {
+        "aggregation_broad": {
+          "total": 1,
+          "passed": 1
+        },
+        "aggregation_count": {
+          "total": 1,
+          "passed": 1
+        },
+        "aggregation_ranking": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_agency": {
+          "total": 1,
+          "passed": 1
+        },
+        "status_transition": {
+          "total": 1,
+          "passed": 0
+        },
+        "comparative_complex": {
+          "total": 1,
+          "passed": 1
+        },
+        "name_resolution": {
+          "total": 2,
+          "passed": 2
+        },
+        "cross_section": {
+          "total": 1,
+          "passed": 1
+        },
+        "unknown_official": {
+          "total": 1,
+          "passed": 1
+        },
+        "party_filter": {
+          "total": 1,
+          "passed": 1
+        },
+        "state_aggregation": {
+          "total": 1,
+          "passed": 1
+        },
+        "financial_comparison": {
+          "total": 1,
+          "passed": 1
+        },
+        "temporal": {
+          "total": 1,
+          "passed": 1
+        },
+        "negation": {
+          "total": 1,
+          "passed": 1
+        },
+        "international": {
+          "total": 1,
+          "passed": 1
+        },
+        "plea_bargain": {
+          "total": 1,
+          "passed": 0
+        },
+        "dead_officials": {
+          "total": 1,
+          "passed": 1
+        },
+        "routing_ambiguity": {
+          "total": 1,
+          "passed": 1
+        },
+        "follow_up_chain": {
+          "total": 1,
+          "passed": 1
+        },
+        "pidgin_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "artifact_source": {
+          "total": 1,
+          "passed": 1
+        },
+        "amount_edge_case": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_position": {
+          "total": 1,
+          "passed": 1
+        },
+        "exhaustive_comparison": {
+          "total": 1,
+          "passed": 1
+        }
+      }
+    },
+    {
+      "file": "faac.json",
+      "total": 25,
+      "passed": 25,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": "100.0%",
+      "avg_response_time_ms": 50627,
+      "by_difficulty": {
+        "hard": {
+          "total": 15,
+          "passed": 15
+        },
+        "medium": {
+          "total": 6,
+          "passed": 6
+        },
+        "very_hard": {
+          "total": 4,
+          "passed": 4
+        }
+      },
+      "by_category": {
+        "all_states_ranking": {
+          "total": 1,
+          "passed": 1
+        },
+        "lga_comparison": {
+          "total": 1,
+          "passed": 1
+        },
+        "zone_aggregation": {
+          "total": 1,
+          "passed": 1
+        },
+        "derivation_fund": {
+          "total": 1,
+          "passed": 1
+        },
+        "component_breakdown": {
+          "total": 1,
+          "passed": 1
+        },
+        "lga_within_state": {
+          "total": 1,
+          "passed": 1
+        },
+        "national_summary": {
+          "total": 1,
+          "passed": 1
+        },
+        "year_over_year": {
+          "total": 1,
+          "passed": 1
+        },
+        "deduction_analysis": {
+          "total": 1,
+          "passed": 1
+        },
+        "vat_distribution": {
+          "total": 1,
+          "passed": 1
+        },
+        "revenue_vs_disbursement": {
+          "total": 1,
+          "passed": 1
+        },
+        "cross_level_comparison": {
+          "total": 1,
+          "passed": 1
+        },
+        "lga_name_normalization": {
+          "total": 1,
+          "passed": 1
+        },
+        "oil_vs_non_oil": {
+          "total": 1,
+          "passed": 1
+        },
+        "monthly_volatility": {
+          "total": 1,
+          "passed": 1
+        },
+        "south_south_derivation": {
+          "total": 1,
+          "passed": 1
+        },
+        "774_lga_ranking": {
+          "total": 1,
+          "passed": 1
+        },
+        "exchange_gain": {
+          "total": 1,
+          "passed": 1
+        },
+        "emtl_ecology": {
+          "total": 1,
+          "passed": 1
+        },
+        "fct_special_case": {
+          "total": 1,
+          "passed": 1
+        },
+        "cross_intent": {
+          "total": 1,
+          "passed": 1
+        },
+        "pidgin_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "lga_cross_state": {
+          "total": 1,
+          "passed": 1
+        },
+        "net_vs_gross": {
+          "total": 1,
+          "passed": 1
+        },
+        "follow_up_chain": {
+          "total": 1,
+          "passed": 1
+        }
+      }
+    },
+    {
+      "file": "govspend.json",
+      "total": 25,
+      "passed": 22,
+      "failed": 3,
+      "errors": 0,
+      "pass_rate": "88.0%",
+      "avg_response_time_ms": 24530,
+      "by_difficulty": {
+        "hard": {
+          "total": 13,
+          "passed": 12
+        },
+        "very_hard": {
+          "total": 9,
+          "passed": 8
+        },
+        "medium": {
+          "total": 3,
+          "passed": 2
+        }
+      },
+      "by_category": {
+        "beneficiary_search": {
+          "total": 1,
+          "passed": 1
+        },
+        "mda_aggregation": {
+          "total": 1,
+          "passed": 1
+        },
+        "specific_payment": {
+          "total": 1,
+          "passed": 1
+        },
+        "top_beneficiaries": {
+          "total": 1,
+          "passed": 1
+        },
+        "year_comparison": {
+          "total": 1,
+          "passed": 0
+        },
+        "mda_name_variants": {
+          "total": 1,
+          "passed": 1
+        },
+        "suspicious_payments": {
+          "total": 1,
+          "passed": 1
+        },
+        "individual_beneficiary": {
+          "total": 1,
+          "passed": 1
+        },
+        "monthly_pattern": {
+          "total": 1,
+          "passed": 1
+        },
+        "payer_code": {
+          "total": 1,
+          "passed": 1
+        },
+        "description_search": {
+          "total": 1,
+          "passed": 0
+        },
+        "same_beneficiary_variants": {
+          "total": 1,
+          "passed": 1
+        },
+        "mda_breakdown": {
+          "total": 1,
+          "passed": 1
+        },
+        "cross_mda_comparison": {
+          "total": 1,
+          "passed": 1
+        },
+        "duplicate_detection": {
+          "total": 1,
+          "passed": 1
+        },
+        "university_payments": {
+          "total": 1,
+          "passed": 1
+        },
+        "zero_amount": {
+          "total": 1,
+          "passed": 1
+        },
+        "routing_ambiguity": {
+          "total": 1,
+          "passed": 1
+        },
+        "corruption_crossover": {
+          "total": 1,
+          "passed": 0
+        },
+        "pidgin_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "state_level_payments": {
+          "total": 1,
+          "passed": 1
+        },
+        "time_series": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_chunk_payment": {
+          "total": 1,
+          "passed": 1
+        },
+        "follow_up_chain": {
+          "total": 1,
+          "passed": 1
+        },
+        "verification_request": {
+          "total": 1,
+          "passed": 1
+        }
+      }
+    },
+    {
+      "file": "routing.json",
+      "total": 15,
+      "passed": 15,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": "100.0%",
+      "avg_response_time_ms": 29164,
+      "by_difficulty": {
+        "hard": {
+          "total": 6,
+          "passed": 6
+        },
+        "medium": {
+          "total": 5,
+          "passed": 5
+        },
+        "very_hard": {
+          "total": 4,
+          "passed": 4
+        }
+      },
+      "by_category": {
+        "ambiguous_budget_corruption": {
+          "total": 1,
+          "passed": 1
+        },
+        "ambiguous_govspend_budget": {
+          "total": 1,
+          "passed": 1
+        },
+        "ambiguous_faac_budget": {
+          "total": 1,
+          "passed": 1
+        },
+        "multi_intent": {
+          "total": 1,
+          "passed": 1
+        },
+        "impact_vs_corruption": {
+          "total": 1,
+          "passed": 1
+        },
+        "general_trap": {
+          "total": 1,
+          "passed": 1
+        },
+        "pidgin_routing": {
+          "total": 1,
+          "passed": 1
+        },
+        "hausa_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "yoruba_query": {
+          "total": 1,
+          "passed": 1
+        },
+        "follow_up_no_context": {
+          "total": 1,
+          "passed": 1
+        },
+        "adversarial_injection": {
+          "total": 1,
+          "passed": 1
+        },
+        "chained_intents": {
+          "total": 1,
+          "passed": 1
+        },
+        "off_topic": {
+          "total": 1,
+          "passed": 1
+        },
+        "impact_from_budget": {
+          "total": 1,
+          "passed": 1
+        },
+        "gratitude_with_followup": {
+          "total": 1,
+          "passed": 1
+        }
+      }
+    }
+  ]
+}
