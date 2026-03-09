@@ -1,0 +1,4 @@
+test-results/
+playwright-report/
+.auth/
+blob-report/

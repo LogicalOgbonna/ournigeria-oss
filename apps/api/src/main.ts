@@ -7,7 +7,9 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { closePgVector } from "./mastra/rag/config";
+import { closeHybridSearchPool } from "./mastra/rag/hybrid-search";
 import { closeBudgetSearchPool } from "./mastra/tools/budget-search";
+import { runRagMigrations } from "./mastra/rag/migrations/run-migrations";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -36,8 +38,11 @@ async function bootstrap() {
   // Graceful shutdown: close standalone DB pools
   app.enableShutdownHooks();
   process.on("SIGTERM", async () => {
-    await Promise.all([closePgVector(), closeBudgetSearchPool()]);
+    await Promise.all([closePgVector(), closeBudgetSearchPool(), closeHybridSearchPool()]);
   });
+
+  // Run RAG migrations (idempotent, non-blocking)
+  runRagMigrations().catch(() => {});
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);

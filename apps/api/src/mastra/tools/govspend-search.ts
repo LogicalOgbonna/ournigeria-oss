@@ -2,11 +2,13 @@ import { createTool } from "@mastra/core/tools";
 import { embed } from "ai";
 import { z } from "zod";
 import {
-  getPgVector,
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
 } from "../rag/config";
+import { getCached, setCached } from "../rag/cache";
+import { hybridSearch } from "../rag/hybrid-search";
+import { rerankResults } from "../rag/rerank";
 
 const GOVSPEND_INDEX = RAG_CONFIG.govspendIndexName;
 
@@ -70,49 +72,60 @@ export const govspendSearchTool = createTool({
     ),
     totalResults: z.number(),
   }),
-  execute: async ({ query, organization, beneficiary, year, month, topK }) => {
+  execute: async ({ query: rawQuery, organization, beneficiary, year, month, topK }) => {
     try {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
       const conditions: Array<Record<string, { $eq: string }>> = [];
-      if (organization) {
-        conditions.push({ organization_name: { $eq: organization } });
-      }
-      if (beneficiary) {
-        conditions.push({ beneficiary_name: { $eq: beneficiary } });
-      }
-      if (year) {
-        conditions.push({ year: { $eq: year } });
-      }
-      if (month) {
-        conditions.push({ month: { $eq: month } });
-      }
+      if (organization) conditions.push({ organization_name: { $eq: organization } });
+      if (beneficiary) conditions.push({ beneficiary_name: { $eq: beneficiary } });
+      if (year) conditions.push({ year: { $eq: year } });
+      if (month) conditions.push({ month: { $eq: month } });
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [organization, beneficiary, year && `${year} payments`, month].filter(Boolean).join(" ") || "government payments";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
+      const requestedTopK = topK ?? RAG_CONFIG.topK;
+      const cacheParams = { indexName: GOVSPEND_INDEX, query, filter };
 
-      const queryResults = await getPgVector().query({
-        indexName: GOVSPEND_INDEX,
-        queryVector: truncateEmbedding(embedding),
-        topK: topK ?? RAG_CONFIG.topK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
+      type GovspendResult = { text: string; organization: string; beneficiary: string; amount: string; amount_numeric: number; description: string; payer_code: string; year: string; filename: string; score: number };
+      const cached = getCached<GovspendResult[]>(cacheParams);
 
-      const results = queryResults.map((r) => ({
-        text: (r.metadata?.text as string) ?? "",
-        organization: (r.metadata?.organization_name as string) ?? "Unknown",
-        beneficiary: (r.metadata?.beneficiary_name as string) ?? "Unknown",
-        amount: (r.metadata?.amount as string) ?? "0",
-        amount_numeric: (r.metadata?.amount_numeric as number) ?? 0,
-        description: (r.metadata?.description as string) ?? "",
-        payer_code: (r.metadata?.payer_code as string) ?? "",
-        year: (r.metadata?.year as string) ?? "",
-        filename: (r.metadata?.filename as string) ?? "",
-        score: r.score,
-      }));
+      let results: GovspendResult[];
+      if (cached) {
+        results = cached;
+      } else {
+        const { embedding } = await embed({
+          model: embeddingModelInstance,
+          value: query,
+        });
+
+        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+
+        const queryResults = await hybridSearch({
+          indexName: GOVSPEND_INDEX,
+          query,
+          queryVector: truncateEmbedding(embedding),
+          topK: fetchTopK,
+          filter,
+          ef: RAG_CONFIG.searchEf,
+        });
+
+        const mapped = queryResults.map((r) => ({
+          text: (r.metadata?.text as string) ?? "",
+          organization: (r.metadata?.organization_name as string) ?? "Unknown",
+          beneficiary: (r.metadata?.beneficiary_name as string) ?? "Unknown",
+          amount: (r.metadata?.amount as string) ?? "0",
+          amount_numeric: (r.metadata?.amount_numeric as number) ?? 0,
+          description: (r.metadata?.description as string) ?? "",
+          payer_code: (r.metadata?.payer_code as string) ?? "",
+          year: (r.metadata?.year as string) ?? "",
+          filename: (r.metadata?.filename as string) ?? "",
+          score: r.score,
+        }));
+
+        results = await rerankResults(query, mapped, requestedTopK);
+        setCached(cacheParams, results);
+      }
 
       return {
         results,

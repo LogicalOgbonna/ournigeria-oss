@@ -403,6 +403,24 @@ model BannerDismissal {
 }
 
 // ============================================================
+// System Settings
+// ============================================================
+
+model SystemSetting {
+  key         String   @id @db.VarChar(100)
+  value       String   @db.Text
+  encrypted   Boolean  @default(false)
+  description String?  @db.VarChar(500)
+  category    String   @db.VarChar(50)
+  valueType   String   @default("string") @map("value_type") @db.VarChar(20)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  @@index([category], map: "idx_settings_category")
+  @@map("system_settings")
+}
+
+// ============================================================
 // Feedback
 // ============================================================
 

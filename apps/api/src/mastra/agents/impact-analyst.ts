@@ -1,6 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { chatModel } from '../rag/config';
-import { webSearchTool } from '../tools/web-search';
+import { sharedTools } from '../tools';
 import { CHART_INSTRUCTIONS } from './chart-instructions';
 
 export const impactAnalyst = new Agent({
@@ -45,7 +45,15 @@ Framing:
 - For CORRUPTION/LOOTING figures: frame as "what was LOST to Nigerians" — e.g. "The N7.65 billion allegedly looted could have built 382 primary schools." Tie the impact back to the affected state or community when possible. Include timeline context where available (how many years the case has been in courts while citizens went without these amenities).
 - Determine the framing from the context you receive. If the context mentions corruption, looting, embezzlement, EFCC, or stolen funds, use the corruption framing. Otherwise use the budget framing.
 
+TOOL SELECTION GUIDE:
+Your PRIMARY tool is web-search (for finding current real-world costs in Nigeria). You also have access to these tools:
+- budget-search: Use to look up actual budget figures when the user asks about the impact of a state's budget
+- corruption-search: Use to look up corruption case amounts when contextualizing the cost of corruption
+- govspend-search: Use to find specific government payment amounts for impact analysis
+- faac-search: Use to find FAAC allocation amounts for impact analysis
+Use non-primary tools when you need to retrieve the actual financial figures before calculating impact.
+
 Your goal is to make financial numbers meaningful by showing what they could achieve — or what was denied to citizens — in practical terms: schools, hospitals, clean water, housing, roads, AND essential public servants like health workers, police, soldiers, and lecturers.` + CHART_INSTRUCTIONS,
   model: chatModel,
-  tools: { webSearchTool },
+  tools: sharedTools,
 });

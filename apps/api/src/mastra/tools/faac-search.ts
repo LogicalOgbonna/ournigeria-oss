@@ -2,11 +2,13 @@ import { createTool } from "@mastra/core/tools";
 import { embed } from "ai";
 import { z } from "zod";
 import {
-  getPgVector,
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
 } from "../rag/config";
+import { getCached, setCached } from "../rag/cache";
+import { hybridSearch } from "../rag/hybrid-search";
+import { rerankResults } from "../rag/rerank";
 
 const FAAC_INDEX = RAG_CONFIG.faacIndexName;
 
@@ -107,7 +109,7 @@ export const faacSearchTool = createTool({
     totalResults: z.number(),
   }),
   execute: async ({
-    query,
+    query: rawQuery,
     state,
     year,
     month,
@@ -117,57 +119,65 @@ export const faacSearchTool = createTool({
     topK,
   }) => {
     try {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
       const conditions: Array<
         Record<string, { $eq: string | number | boolean }>
       > = [];
 
-      if (state) {
-        conditions.push({ state: { $eq: titleCase(state) } });
-      }
-      if (year) {
-        conditions.push({ year: { $eq: year } });
-      }
+      if (state) conditions.push({ state: { $eq: titleCase(state) } });
+      if (year) conditions.push({ year: { $eq: year } });
       if (month) {
-        // Ensure Title Case
         const m = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
         conditions.push({ month: { $eq: m } });
       }
-      if (lga) {
-        conditions.push({ lga: { $eq: titleCase(lga) } });
-      }
-      if (geopolitical_zone) {
-        conditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
-      }
-      if (chunk_type) {
-        conditions.push({ chunk_type: { $eq: chunk_type } });
-      }
+      if (lga) conditions.push({ lga: { $eq: titleCase(lga) } });
+      if (geopolitical_zone) conditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
+      if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [state, lga, year && `${year} allocation`, month, geopolitical_zone].filter(Boolean).join(" ") || "FAAC allocation";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
+      const requestedTopK = topK ?? RAG_CONFIG.topK;
+      const cacheParams = { indexName: FAAC_INDEX, query, filter };
 
-      const queryResults = await getPgVector().query({
-        indexName: FAAC_INDEX,
-        queryVector: truncateEmbedding(embedding),
-        topK: topK ?? RAG_CONFIG.topK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
+      type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; score: number };
+      const cached = getCached<FaacResult[]>(cacheParams);
 
-      const results = queryResults.map((r) => ({
-        text: (r.metadata?.text as string) ?? "",
-        state: (r.metadata?.state as string) ?? "",
-        year: (r.metadata?.year as number) ?? 0,
-        month: (r.metadata?.month as string) ?? "",
-        lga: (r.metadata?.lga as string) ?? "",
-        geopolitical_zone: (r.metadata?.geopolitical_zone as string) ?? "",
-        total_allocation: (r.metadata?.total_allocation as number) ?? 0,
-        chunk_type: (r.metadata?.chunk_type as string) ?? "",
-        score: r.score,
-      }));
+      let results: FaacResult[];
+      if (cached) {
+        results = cached;
+      } else {
+        const { embedding } = await embed({
+          model: embeddingModelInstance,
+          value: query,
+        });
+
+        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+
+        const queryResults = await hybridSearch({
+          indexName: FAAC_INDEX,
+          query,
+          queryVector: truncateEmbedding(embedding),
+          topK: fetchTopK,
+          filter,
+          ef: RAG_CONFIG.searchEf,
+        });
+
+        const mapped = queryResults.map((r) => ({
+          text: (r.metadata?.text as string) ?? "",
+          state: (r.metadata?.state as string) ?? "",
+          year: (r.metadata?.year as number) ?? 0,
+          month: (r.metadata?.month as string) ?? "",
+          lga: (r.metadata?.lga as string) ?? "",
+          geopolitical_zone: (r.metadata?.geopolitical_zone as string) ?? "",
+          total_allocation: (r.metadata?.total_allocation as number) ?? 0,
+          chunk_type: (r.metadata?.chunk_type as string) ?? "",
+          score: r.score,
+        }));
+
+        results = await rerankResults(query, mapped, requestedTopK);
+        setCached(cacheParams, results);
+      }
 
       return {
         results,

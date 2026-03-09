@@ -7,7 +7,8 @@
   "scripts": {
     "build": "prisma generate && tsc",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "infisical run -- prisma migrate dev",
+    "prisma:migrate": "infisical run -- prisma migrate deploy",
+    "prisma:migrate:create": "infisical run -- npx tsx scripts/create-migration.ts",
     "prisma:studio": "infisical run -- prisma studio"
   },
   "dependencies": {

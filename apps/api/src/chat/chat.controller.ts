@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, HttpStatus } from "@nestjs/common";
+import { Controller, Post, Req, Res, HttpStatus, HttpCode } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBody } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { ChatService } from "./chat.service";
@@ -14,6 +14,7 @@ export class ChatController {
   ) {}
 
   @Post()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Send a chat message (SSE stream)" })
   @ApiBody({
     schema: {
@@ -56,6 +57,12 @@ export class ChatController {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
       };
 
+      // Send SSE keepalive comments every 15s to prevent reverse proxy
+      // (Cloudflare/nginx) from dropping the connection during tool calls.
+      const keepalive = setInterval(() => {
+        res.write(`: keepalive\n\n`);
+      }, 15_000);
+
       try {
         await this.chatService.processChat(
           userId,
@@ -72,6 +79,8 @@ export class ChatController {
           console.error("Stream error:", err);
           send({ type: "error", content: "Failed to process request" });
         }
+      } finally {
+        clearInterval(keepalive);
       }
 
       res.end();

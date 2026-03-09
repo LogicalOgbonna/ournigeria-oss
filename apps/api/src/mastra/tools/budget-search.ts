@@ -3,11 +3,13 @@ import { embed } from "ai";
 import { Pool } from "pg";
 import { z } from "zod";
 import {
-  getPgVector,
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
 } from "../rag/config";
+import { getCached, setCached } from "../rag/cache";
+import { hybridSearch } from "../rag/hybrid-search";
+import { rerankResults } from "../rag/rerank";
 import { getOfficialsForResults } from "./metadata";
 
 function isTableMissing(err: any): boolean {
@@ -123,7 +125,7 @@ export const budgetSearchTool = createTool({
       ),
   }),
   execute: async ({
-    query,
+    query: rawQuery,
     state,
     year,
     sector,
@@ -132,11 +134,6 @@ export const budgetSearchTool = createTool({
     topK,
   }) => {
     try {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
       // Title-case the state for DB queries
       let titleCased: string | undefined;
       const conditions: Array<
@@ -169,27 +166,50 @@ export const budgetSearchTool = createTool({
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
 
-      // Run vector search and available-years lookup in parallel
-      const [queryResults, availableYears] = await Promise.all([
-        getPgVector().query({
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [state, year && `${year} budget`, sector, budget_category].filter(Boolean).join(" ") || "budget allocation";
+
+      const requestedTopK = topK ?? RAG_CONFIG.topK;
+      const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter };
+
+      type BudgetResult = { text: string; state: string; year: number; filename: string; sector: string; budget_category: string; score: number };
+      const cached = getCached<BudgetResult[]>(cacheParams);
+
+      let results: BudgetResult[];
+      if (cached) {
+        results = cached;
+      } else {
+        const { embedding } = await embed({
+          model: embeddingModelInstance,
+          value: query,
+        });
+
+        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+
+        const queryResults = await hybridSearch({
           indexName: RAG_CONFIG.indexName,
+          query,
           queryVector: truncateEmbedding(embedding),
-          topK: topK ?? RAG_CONFIG.topK,
+          topK: fetchTopK,
           filter,
           ef: RAG_CONFIG.searchEf,
-        }),
-        titleCased ? getAvailableYears(titleCased) : Promise.resolve([]),
-      ]);
+        });
 
-      const results = queryResults.map((r) => ({
-        text: (r.metadata?.text as string) ?? "",
-        state: (r.metadata?.state as string) ?? "Unknown",
-        year: (r.metadata?.year as number) ?? 0,
-        filename: (r.metadata?.filename as string) ?? "",
-        sector: (r.metadata?.sector as string) ?? "general",
-        budget_category: (r.metadata?.budget_category as string) ?? "general",
-        score: r.score,
-      }));
+        const mapped = queryResults.map((r) => ({
+          text: (r.metadata?.text as string) ?? "",
+          state: (r.metadata?.state as string) ?? "Unknown",
+          year: (r.metadata?.year as number) ?? 0,
+          filename: (r.metadata?.filename as string) ?? "",
+          sector: (r.metadata?.sector as string) ?? "general",
+          budget_category: (r.metadata?.budget_category as string) ?? "general",
+          score: r.score,
+        }));
+
+        results = await rerankResults(query, mapped, requestedTopK);
+        setCached(cacheParams, results);
+      }
+
+      const availableYears = titleCased ? await getAvailableYears(titleCased) : [];
 
       const officialsData = await getOfficialsForResults(results);
       const officials = officialsData.map((o) => ({

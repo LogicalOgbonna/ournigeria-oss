@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Message, AIResponseContent, ToolId, Language } from "@/types";
+import { Message, AIResponseContent, ThinkingStep, ToolId, Language } from "@/types";
 import { apiUrl } from "@/lib/api";
-import { redirectToLogin, isRedirecting } from "@/lib/auth-redirect";
+import { redirectToLogin } from "@/lib/auth-redirect";
 
 interface ConversationSummary {
   id: string;
@@ -250,6 +250,7 @@ export function useChat(conversationId?: string) {
         let buffer = "";
         let fullText = "";
         let richContent: AIResponseContent | null = null;
+        let thinkingSteps: ThinkingStep[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
@@ -293,6 +294,7 @@ export function useChat(conversationId?: string) {
 
                 case "done":
                   richContent = event.richContent;
+                  thinkingSteps = event.thinking ?? [];
                   setStatusText("");
                   break;
 
@@ -312,6 +314,7 @@ export function useChat(conversationId?: string) {
           role: "assistant",
           content: richContent?.text ?? fullText,
           richContent: richContent ?? undefined,
+          thinking: thinkingSteps.length > 0 ? thinkingSteps : undefined,
           timestamp: new Date(),
         };
 

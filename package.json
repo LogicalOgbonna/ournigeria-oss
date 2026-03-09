@@ -9,6 +9,7 @@
     "web:lint": "nx run web:lint",
     "prisma:generate": "nx run database:prisma:generate",
     "prisma:migrate": "nx run database:prisma:migrate",
+    "prisma:migrate:create": "nx run database:prisma:migrate:create --",
     "prisma:studio": "nx run database:prisma:studio",
     "ingest": "nx run web:ingest",
     "ingest:corruption": "nx run web:ingest:corruption",
@@ -27,7 +28,12 @@
     "videos:start": "nx run videos:dev",
     "dashboard:dev": "nx run dashboard:dev",
     "dashboard:build": "nx run dashboard:build",
-    "dashboard:start": "nx run dashboard:start"
+    "dashboard:start": "nx run dashboard:start",
+    "test:e2e": "nx run e2e:test",
+    "test:e2e:web": "nx run e2e:test:web",
+    "test:e2e:dashboard": "nx run e2e:test:dashboard",
+    "test:e2e:human": "nx run e2e:test:human",
+    "start": "bash packages/scripts/start/start.sh"
   },
   "devDependencies": {
     "nx": "^21.3.2",

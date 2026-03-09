@@ -340,6 +340,7 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
+                    aria-label={`Digit ${i + 1}`}
                     value={digit}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}

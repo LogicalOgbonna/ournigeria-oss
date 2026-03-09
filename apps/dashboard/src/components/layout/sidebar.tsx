@@ -21,6 +21,7 @@ import {
   Search,
   FolderOpen,
   Map,
+  Settings,
   Server,
   ScrollText,
   Briefcase,
@@ -94,6 +95,7 @@ const ingestionNav = [
 
 const systemNav = [
   { title: "Health", href: "/dashboard/system", icon: Server },
+  { title: "Settings", href: "/dashboard/settings", icon: Settings },
   { title: "Live Logs", href: "/dashboard/system/logs", icon: ScrollText },
   { title: "Jobs", href: "/dashboard/system/jobs", icon: Briefcase },
 ];

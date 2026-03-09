@@ -1,0 +1,287 @@
+{
+  "name": "FAAC Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the FAAC (Federation Account Allocation Committee) RAG pipeline. Covers edge cases in chunk type selection, geopolitical zone aggregation, LGA name resolution, oil derivation, cross-level comparisons, and temporal analysis.",
+  "questions": [
+    {
+      "id": "faac-001",
+      "category": "all_states_ranking",
+      "question": "Which state received the highest FAAC allocation in January 2025?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires state_monthly chunks for ALL 37 states for January 2025. topK=50 can cover all 37 states, but the agent must use chunk_type=state_monthly with month=January and year=2025. If it doesn't set the right chunk_type, it may get a mix of LGA and state chunks.",
+      "expected_behavior": "Should search with chunk_type=state_monthly, year=2025, month=January, topK=40 and rank by total_allocation.",
+      "metadata_filters_needed": ["chunk_type=state_monthly", "year=2025", "month=January"],
+      "expected_answer": "Should retrieve state_monthly data for January 2025 and rank states by total allocation. Lagos or Rivers typically receive highest allocations. Must show specific Naira amounts and ideally cover most/all 37 states. Should note if data for some states is missing."
+    },
+    {
+      "id": "faac-002",
+      "category": "lga_comparison",
+      "question": "Compare the FAAC allocation of Obio/Akpor LGA in Rivers State with Ikeja LGA in Lagos State for 2024",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "LGA name 'Obio/Akpor' contains a slash — special character in the name. Normalization must handle 'Obio/Akpor' correctly (not split on '/'). Also requires chunk_type=lga_monthly with year=2024 for two specific LGAs across potentially 12 months.",
+      "expected_behavior": "Should search each LGA separately with chunk_type=lga_monthly and year=2024.",
+      "metadata_filters_needed": ["chunk_type=lga_monthly", "lga", "year=2024"],
+      "expected_answer": "Should present monthly or annual totals for both Obio/Akpor (Rivers) and Ikeja (Lagos) for 2024, with specific Naira figures. Must correctly handle the slash in 'Obio/Akpor' without splitting or corrupting the name. Should show a side-by-side comparison highlighting which LGA received more overall and any notable monthly differences."
+    },
+    {
+      "id": "faac-003",
+      "category": "zone_aggregation",
+      "question": "Compare FAAC allocations across all 6 geopolitical zones for 2024",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Zone monthly chunks exist (6 per month), so 6 zones × 12 months = 72 chunks needed for a full year comparison. Agent must either search zone_monthly with high topK or search state_annual and aggregate by zone. Annual zone chunks don't exist — only monthly zone chunks.",
+      "expected_behavior": "Should search chunk_type=zone_monthly with year=2024, high topK, and aggregate per zone.",
+      "metadata_filters_needed": ["chunk_type=zone_monthly", "year=2024"],
+      "expected_answer": "Should present total 2024 allocations for all 6 geopolitical zones: North Central, North East, North West, South East, South South, and South West. Must include specific Naira amounts per zone and rank them. South South typically ranks high due to 13% derivation. Should note if any months are missing from the aggregation."
+    },
+    {
+      "id": "faac-004",
+      "category": "derivation_fund",
+      "question": "How much did each oil-producing state receive from the 13% derivation fund in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "9 oil-producing states × 12 months = 108 separate data points. Must filter for state_monthly chunks where is_oil_producing=true and year=2024. The derivation amount is embedded in chunk text, not a separate numeric metadata field that can be sorted.",
+      "expected_behavior": "Should search for oil-producing states with state_monthly chunks and extract derivation amounts from text.",
+      "metadata_filters_needed": ["chunk_type=state_monthly", "year=2024", "is_oil_producing=true"],
+      "expected_answer": "Should list all 9 oil-producing states (Abia, Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Imo, Ondo, Rivers) with their annual 13% derivation totals in Naira for 2024. Delta, Rivers, Akwa Ibom, and Bayelsa typically receive the largest derivation shares. Should clarify that derivation amounts are extracted from chunk text and note if any state-month combinations are missing."
+    },
+    {
+      "id": "faac-005",
+      "category": "component_breakdown",
+      "question": "For Delta State in March 2025, break down the FAAC allocation into statutory, VAT, exchange gain, EMTL, ecology, and 13% derivation",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires finding a single state_monthly chunk for Delta, March 2025. The breakdown should be in the chunk text. Tests whether the agent correctly selects chunk_type=state_monthly (not lga_monthly or zone_monthly).",
+      "expected_behavior": "Should retrieve the exact state_monthly chunk and extract component breakdown.",
+      "metadata_filters_needed": ["chunk_type=state_monthly", "state=Delta", "year=2025", "month=March"],
+      "expected_answer": "Should provide a complete breakdown of Delta State's March 2025 FAAC allocation into exactly 6 components: statutory, VAT, exchange_gain, EMTL, ecology, and derivation_13_pct, each with specific Naira amounts. The sum of components should equal the gross allocation. Should also show deductions and net allocation if available in the chunk."
+    },
+    {
+      "id": "faac-006",
+      "category": "lga_within_state",
+      "question": "Which LGA in Kano State received the highest FAAC allocation in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Kano has 44 LGAs × 12 months = 528 potential chunks. topK=50 cannot retrieve all. The agent must search with chunk_type=lga_monthly, state=Kano, year=2024 but will only get a subset. Ranking accuracy depends on retrieval completeness.",
+      "expected_behavior": "Should search with state=Kano, chunk_type=lga_monthly, year=2024, high topK and attempt ranking with caveats.",
+      "metadata_filters_needed": ["chunk_type=lga_monthly", "state=Kano", "year=2024"],
+      "expected_answer": "Should identify the top-receiving LGA in Kano State for 2024 by total allocation with a specific Naira figure. Kano Municipal or Nassarawa LGA typically rank high. Must acknowledge that Kano has 44 LGAs and retrieval may be incomplete, so the ranking should carry a caveat about partial data. Should show at least the top 5-10 LGAs if possible."
+    },
+    {
+      "id": "faac-007",
+      "category": "national_summary",
+      "question": "What was the total FAAC disbursement for Nigeria in 2024, and how was it split between federal, states, and local governments?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires national_monthly chunks for all months of 2024. 12 chunks needed (one per month). Agent should filter chunk_type=national_monthly, year=2024. If some months are missing, totals will be incomplete.",
+      "expected_behavior": "Should retrieve all national_monthly chunks for 2024 and sum the components.",
+      "metadata_filters_needed": ["chunk_type=national_monthly", "year=2024"],
+      "expected_answer": "Should provide the total 2024 FAAC disbursement in Naira and break it down by the three tiers of government: federal, states, and local governments. Must cover all 12 months of 2024 and note any missing months. Should show both the annual total and ideally a monthly breakdown or at least the allocation percentages per tier."
+    },
+    {
+      "id": "faac-008",
+      "category": "year_over_year",
+      "question": "How has Lagos State's FAAC allocation changed from 2019 to 2025?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires state_annual chunks for 7 years. Agent should search chunk_type=state_annual, state=Lagos for each year. 7 searches needed — within the 10-step limit but leaves little room for follow-up.",
+      "expected_behavior": "Should search for state_annual chunks for Lagos across all available years.",
+      "metadata_filters_needed": ["chunk_type=state_annual", "state=Lagos"],
+      "expected_answer": "Should present Lagos State's total FAAC allocation for each year from 2019 to 2025 (or as many years as data is available), with specific Naira figures. Must show the year-over-year trend, percentage changes, and highlight notable jumps or dips. Should note that 2025 data may be partial (only a few months). The trend generally shows increases over time due to inflation and rising revenue."
+    },
+    {
+      "id": "faac-009",
+      "category": "deduction_analysis",
+      "question": "Which states had the highest deductions from their FAAC allocations in 2024? What were the deductions for?",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Deduction types (external_debt, ISPO, other) are in chunk text, not filterable metadata. Must retrieve state_monthly chunks and parse deduction amounts from text. Comparing across 37 states requires complete retrieval.",
+      "expected_behavior": "Should search state_monthly chunks for 2024 with high topK and identify states with highest deductions from chunk text.",
+      "metadata_filters_needed": ["chunk_type=state_monthly", "year=2024"],
+      "expected_answer": "Should rank states by total deductions in 2024, listing the top states with specific Naira deduction amounts. Must break deductions into categories: external_debt, ISPO, and other. Should explain what each deduction type represents (e.g., external debt servicing, ISPO for contractual obligations). Must acknowledge that complete coverage of all 37 states may not be achievable and note any data gaps."
+    },
+    {
+      "id": "faac-010",
+      "category": "vat_distribution",
+      "question": "How is VAT distributed across states? Which states get the most VAT and why?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "VAT amounts are in chunk text, not separately filterable. Agent must retrieve state_monthly chunks and extract VAT figures. The 'why' requires economic knowledge about VAT distribution formula (population, IGR, equality) which may not be in the data.",
+      "expected_behavior": "Should retrieve state data and show VAT distribution, but may struggle to explain the formula.",
+      "metadata_filters_needed": ["chunk_type=state_monthly"],
+      "expected_answer": "Should list states ranked by VAT allocation with specific Naira amounts. Lagos typically receives the highest VAT share. Should attempt to explain the VAT distribution formula (based on equality, population, and derivation/contribution principles) but may need to note that the formula details are not in the FAAC data itself. Must show data from a specific time period rather than vague generalizations."
+    },
+    {
+      "id": "faac-011",
+      "category": "revenue_vs_disbursement",
+      "question": "The FAAC disbursement for January 2025 — what month's revenue does that actually represent?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Revenue month vs disbursement month distinction. The chunk text should contain 'Revenue from December 2024' or similar. Tests whether the agent understands this temporal offset and can extract it from the national_monthly chunk.",
+      "expected_behavior": "Should retrieve national_monthly chunk for January 2025 and identify the revenue month from text.",
+      "metadata_filters_needed": ["chunk_type=national_monthly", "year=2025", "month=January"],
+      "expected_answer": "Should clearly state that the January 2025 FAAC disbursement represents revenue collected in a prior month (typically December 2024 or November 2024, depending on the lag). Must extract this information from the national_monthly chunk text rather than guessing. Should explain the general principle that FAAC disbursements lag behind revenue collection by one or more months."
+    },
+    {
+      "id": "faac-012",
+      "category": "cross_level_comparison",
+      "question": "In Rivers State, does the state government receive more from FAAC than all its LGAs combined?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires: (1) state_monthly chunk for Rivers to get state allocation, (2) ALL lga_monthly chunks for Rivers LGAs to sum their allocations. Rivers has 23 LGAs × 12 months. Even for a single month, needs state + 23 LGA chunks.",
+      "expected_behavior": "Should retrieve both state and zone chunks (zone chunks include LGA totals) for comparison.",
+      "metadata_filters_needed": ["state=Rivers", "chunk_type"],
+      "expected_answer": "Should provide specific Naira figures for both Rivers State's state-level FAAC allocation and the combined total for all 23 Rivers LGAs, for a clear time period. The state government typically receives more than its LGAs combined. Must specify the time period used for comparison and note whether all 23 LGA chunks were retrieved or if the LGA total is based on partial data."
+    },
+    {
+      "id": "faac-013",
+      "category": "lga_name_normalization",
+      "question": "How much did Nassarawa LGA receive from FAAC in 2024?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Ambiguous: 'Nassarawa' could be (1) Nasarawa State, or (2) an LGA named Nasarawa within a state. Multiple states have LGAs named 'Nasarawa'. Also tests spelling normalization: 'Nassarawa' → 'Nasarawa'.",
+      "expected_behavior": "Should ask for clarification or search for both possibilities. Must handle the misspelling.",
+      "metadata_filters_needed": ["lga", "state"],
+      "expected_answer": "Should recognize the ambiguity in 'Nassarawa' and address it: the misspelling should be normalized to 'Nasarawa', and the answer should note that multiple LGAs share this name (e.g., Nasarawa LGA in Nasarawa State, Nassarawa LGA in Kano State). Should either ask the user to clarify which state or provide data for all matching LGAs with specific Naira amounts for 2024."
+    },
+    {
+      "id": "faac-014",
+      "category": "oil_vs_non_oil",
+      "question": "On average, how much more do oil-producing states receive compared to non-oil-producing states?",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires computing averages for two groups: 9 oil-producing vs 28 non-oil-producing states. That's 37 state allocations needed per month. Annual chunks help but still need all 37 states. The is_oil_producing filter exists but computing group averages requires complete data.",
+      "expected_behavior": "Should search for state_annual chunks and compute group averages, noting the 13% derivation as the key difference.",
+      "metadata_filters_needed": ["chunk_type=state_annual", "is_oil_producing"],
+      "expected_answer": "Should compute and compare the average total FAAC allocation for oil-producing states (9 states) versus non-oil-producing states (28 states) for a specific year. Must show the average Naira amount per group, the difference, and the percentage premium oil-producing states receive. Should attribute the gap primarily to the 13% derivation fund. Must note if data for all 37 states was not fully retrieved."
+    },
+    {
+      "id": "faac-015",
+      "category": "monthly_volatility",
+      "question": "Which month in 2024 had the highest total FAAC disbursement and which had the lowest? What caused the difference?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires 12 national_monthly chunks (one per month for 2024) to compare. The 'what caused the difference' requires contextual knowledge about oil prices, VAT collection, exchange rates — which may not be in the data.",
+      "expected_behavior": "Should retrieve national_monthly chunks for 2024 and identify highest/lowest months. May not be able to explain causes.",
+      "metadata_filters_needed": ["chunk_type=national_monthly", "year=2024"],
+      "expected_answer": "Should identify the specific months with the highest and lowest total FAAC disbursements in 2024, with exact Naira figures for each. Should show the spread between highest and lowest. For the causal explanation, should reference component-level changes (e.g., spikes in exchange_gain, oil revenue, or VAT) visible in the data, and may note external factors like oil prices or exchange rate movements if available in the chunk text."
+    },
+    {
+      "id": "faac-016",
+      "category": "south_south_derivation",
+      "question": "How much of the South-South's total FAAC allocation comes from the 13% derivation fund versus statutory allocation?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Zone monthly chunks exist for South South, but derivation breakdown may be in text, not separately queryable. All 6 South-South states are oil-producing. Agent must either use zone_monthly chunks (if they include derivation breakdown) or sum individual state chunks.",
+      "expected_behavior": "Should search zone_monthly or state_monthly for South South states and extract derivation vs statutory from text.",
+      "metadata_filters_needed": ["geopolitical_zone=South South", "chunk_type"],
+      "expected_answer": "Should provide specific Naira amounts for both the 13% derivation and statutory components of the South-South zone's total FAAC allocation, along with their percentage shares. All 6 South-South states (Akwa Ibom, Bayelsa, Cross River, Delta, Edo, Rivers) are oil-producing. The derivation fund typically constitutes a significant portion of the zone's total. Must specify the time period and note whether the data came from zone_monthly or aggregated state_monthly chunks."
+    },
+    {
+      "id": "faac-017",
+      "category": "774_lga_ranking",
+      "question": "Rank all 774 LGAs by their total FAAC allocation in 2024 — show me the top 50",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "774 LGAs × 12 months = 9,288 lga_monthly chunks for a single year. topK=50 retrieves a tiny fraction. Cannot compute annual totals per LGA or rank them. Fundamentally exceeds vector search capabilities.",
+      "expected_behavior": "Should acknowledge impossibility of full ranking and provide partial results from highest-scoring chunks.",
+      "metadata_filters_needed": ["chunk_type=lga_monthly", "year=2024"],
+      "expected_answer": "Should explicitly acknowledge that ranking all 774 LGAs is not feasible via vector search due to the volume (9,288 chunks for 12 months). Should provide a partial ranking from the retrieved subset, clearly caveating that this is incomplete. The top LGAs typically include urban centers from Lagos, Rivers, and Kano. Must not present partial results as a definitive national ranking."
+    },
+    {
+      "id": "faac-018",
+      "category": "exchange_gain",
+      "question": "How much did exchange gain contribute to FAAC allocations in 2024 compared to 2023?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Exchange gain is a component within chunk text, not a separate filterable field. Agent must retrieve national_monthly chunks for both years and extract exchange gain figures. 24 chunks needed (12 per year).",
+      "expected_behavior": "Should retrieve national_monthly chunks for both years and extract exchange gain component.",
+      "metadata_filters_needed": ["chunk_type=national_monthly", "year"],
+      "expected_answer": "Should present total exchange_gain for 2024 and 2023 separately, with specific Naira amounts and the year-over-year change (both absolute and percentage). Should show monthly exchange_gain figures if possible to highlight volatility. Exchange gain tends to fluctuate with Naira devaluation and forex market conditions. Must note if any months are missing from either year's data."
+    },
+    {
+      "id": "faac-019",
+      "category": "emtl_ecology",
+      "question": "What are EMTL and Ecology fund allocations and how are they distributed? Which states benefit most?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "EMTL (Electronic Money Transfer Levy) and Ecology fund are smaller FAAC components. They're embedded in chunk text, not separately queryable. The distribution formula is not in the data — it's a policy question.",
+      "expected_behavior": "Should retrieve state_monthly chunks and extract EMTL/Ecology figures, noting distribution formula is policy-based.",
+      "metadata_filters_needed": ["chunk_type=state_monthly"],
+      "expected_answer": "Should define EMTL (Electronic Money Transfer Levy) and Ecology fund, then show specific Naira amounts per state for a given period. Should rank states by their EMTL and Ecology allocations separately. Must note that the distribution formula is policy-based and may not be fully explained in the FAAC data. The answer should distinguish between these two smaller components and the larger statutory/VAT components."
+    },
+    {
+      "id": "faac-020",
+      "category": "fct_special_case",
+      "question": "Does FCT receive FAAC allocations both as a state and at the LGA level? How much in total?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "FCT is stored as 'FCT' (special case). It has both state-level allocation and area council (LGA-level) allocations. Tests whether the system correctly handles FCT's dual nature.",
+      "expected_behavior": "Should search for state_monthly with state=FCT and lga_monthly with state=FCT to show both levels.",
+      "metadata_filters_needed": ["state=FCT", "chunk_type"],
+      "expected_answer": "Should confirm that FCT receives FAAC allocations at both levels: a state-level allocation and separate allocations for its 6 area councils (LGAs). Must provide specific Naira figures for the state-level allocation and the combined area council allocations for a defined time period. Should show the total across both levels and clarify FCT's unique status as neither a state nor an LGA but treated as both in the FAAC framework."
+    },
+    {
+      "id": "faac-021",
+      "category": "cross_intent",
+      "question": "Rivers State got 50 billion from FAAC in March 2025 — how does that compare to their approved budget for the year?",
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Crosses FAAC and budget intents. Router must choose one. FAAC data doesn't contain budget information, and budget data doesn't contain FAAC allocations. The comparison requires data from two separate indexes.",
+      "expected_behavior": "Should route to FAAC, provide FAAC data, and note that budget comparison requires a separate query.",
+      "metadata_filters_needed": ["state=Rivers", "year=2025"],
+      "expected_answer": "Should first verify the claimed 50 billion figure by retrieving Rivers State's actual FAAC allocation for March 2025 from state_monthly data. Must clearly state that budget data is not available in the FAAC dataset and that a cross-intent comparison cannot be completed from FAAC data alone. Should suggest querying the budget data source separately for the approved budget figure."
+    },
+    {
+      "id": "faac-022",
+      "category": "pidgin_query",
+      "question": "Which state dey collect pass money from FAAC? Wetin make dem dey give some state pass the other?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin. Must understand: 'which state receives the most FAAC?' and 'why do some states get more?'. The 'why' requires knowledge of the revenue allocation formula which may not be in the data.",
+      "expected_behavior": "Should identify top-receiving states and attempt to explain allocation factors.",
+      "metadata_filters_needed": ["chunk_type=state_monthly"],
+      "expected_answer": "Should correctly interpret the Pidgin English query and identify the state(s) receiving the highest FAAC allocations with specific Naira amounts. Should attempt to explain allocation factors such as population, land mass, IGR contribution, equality principle, and the 13% derivation for oil-producing states. Must provide data-backed rankings rather than general statements, and may note that the full allocation formula details are policy-based and may not be in the dataset."
+    },
+    {
+      "id": "faac-023",
+      "category": "lga_cross_state",
+      "question": "Compare the FAAC allocations of the capital LGAs of each South-East state: Umuahia North (Abia), Awka South (Anambra), Abakaliki (Ebonyi), Enugu South (Enugu), and Owerri Municipal (Imo)",
+      "intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "5 specific LGAs across 5 different states. Each needs chunk_type=lga_monthly with exact LGA name. Agent must know or correctly spell all 5 LGA names. 5 separate searches needed within 10-step limit.",
+      "expected_behavior": "Should search each LGA individually and compare. LGA name normalization is critical.",
+      "metadata_filters_needed": ["chunk_type=lga_monthly", "lga", "state"],
+      "expected_answer": "Should present FAAC allocation figures for all 5 capital LGAs: Umuahia North (Abia), Awka South (Anambra), Abakaliki (Ebonyi), Enugu South (Enugu), and Owerri Municipal (Imo), with specific Naira amounts for a defined time period. Must correctly resolve all 5 LGA names without misspelling. Should provide a side-by-side comparison and rank them. Must note if any LGA's data could not be retrieved."
+    },
+    {
+      "id": "faac-024",
+      "category": "net_vs_gross",
+      "question": "What's the difference between gross and net FAAC allocation for Kogi State in 2024? How much was deducted and why?",
+      "intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Gross vs net distinction is in chunk text. Deduction types (external_debt, ISPO, other) are text-embedded. Tests whether the agent can extract these specific figures from state_monthly chunks.",
+      "expected_behavior": "Should retrieve Kogi state_monthly chunks for 2024 and extract gross, deductions, and net figures.",
+      "metadata_filters_needed": ["chunk_type=state_monthly", "state=Kogi", "year=2024"],
+      "expected_answer": "Should provide Kogi State's gross FAAC allocation, total deductions, and net allocation for 2024, with specific Naira amounts. Must break deductions into their categories (external_debt, ISPO, other) and explain what each represents. Should show either a monthly breakdown or annual totals, and calculate the deduction as a percentage of gross allocation. Must extract these figures from chunk text rather than metadata."
+    },
+    {
+      "id": "faac-025",
+      "category": "follow_up_chain",
+      "question": "How much did Bayelsa State receive from FAAC in January 2025?",
+      "follow_ups": [
+        "Break that down by component",
+        "How does that compare to Delta State?",
+        "What about the LGAs in Bayelsa — which got the most?",
+        "Show me the trend for all of 2024",
+        "How much of Bayelsa's allocation is from 13% derivation?"
+      ],
+      "intent": "faac",
+      "difficulty": "hard",
+      "why_it_breaks": "Progressive drill-down across chunk types: state_monthly → state_monthly comparison → lga_monthly → state_annual → derivation extraction. Each follow-up changes the required chunk_type. Context must track state=Bayelsa throughout.",
+      "expected_behavior": "Should maintain Bayelsa context and switch chunk types as needed for each follow-up.",
+      "expected_answer": "The initial answer should provide Bayelsa State's total FAAC allocation for January 2025 in Naira from state_monthly data. Follow-ups should: (1) break it into statutory, VAT, exchange_gain, EMTL, ecology, derivation_13_pct; (2) show Delta's January 2025 figure side-by-side; (3) rank Bayelsa's 8 LGAs by allocation; (4) show monthly totals across 2024; (5) isolate the 13% derivation amount and its share of the total. Each follow-up must maintain Bayelsa as the context state and switch chunk types appropriately."
+    }
+  ]
+}

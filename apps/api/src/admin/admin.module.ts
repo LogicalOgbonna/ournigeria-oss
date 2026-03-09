@@ -19,6 +19,8 @@ import { AdminDocumentsController } from "./admin-documents.controller";
 import { AdminDocumentsService } from "./admin-documents.service";
 import { AdminEvalController } from "./admin-eval.controller";
 import { AdminEvalService } from "./admin-eval.service";
+import { AdminSettingsController } from "./admin-settings.controller";
+import { AdminSettingsService } from "./admin-settings.service";
 
 @Module({
   controllers: [
@@ -32,6 +34,7 @@ import { AdminEvalService } from "./admin-eval.service";
     AdminVectorsController,
     AdminDocumentsController,
     AdminEvalController,
+    AdminSettingsController,
   ],
   providers: [
     AdminAuthService,
@@ -44,12 +47,17 @@ import { AdminEvalService } from "./admin-eval.service";
     AdminVectorsService,
     AdminDocumentsService,
     AdminEvalService,
+    AdminSettingsService,
   ],
 })
 export class AdminModule implements OnModuleInit {
-  constructor(private authService: AdminAuthService) {}
+  constructor(
+    private authService: AdminAuthService,
+    private settingsService: AdminSettingsService,
+  ) {}
 
   async onModuleInit() {
     await this.authService.ensureDefaultAdmin();
+    await this.settingsService.seedDefaults();
   }
 }
