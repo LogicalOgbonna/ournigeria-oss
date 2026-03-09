@@ -109,7 +109,7 @@ export const faacSearchTool = createTool({
     totalResults: z.number(),
   }),
   execute: async ({
-    query,
+    query: rawQuery,
     state,
     year,
     month,
@@ -132,6 +132,9 @@ export const faacSearchTool = createTool({
       if (lga) conditions.push({ lga: { $eq: titleCase(lga) } });
       if (geopolitical_zone) conditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
       if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [state, lga, year && `${year} allocation`, month, geopolitical_zone].filter(Boolean).join(" ") || "FAAC allocation";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;

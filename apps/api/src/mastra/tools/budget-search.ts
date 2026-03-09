@@ -125,7 +125,7 @@ export const budgetSearchTool = createTool({
       ),
   }),
   execute: async ({
-    query,
+    query: rawQuery,
     state,
     year,
     sector,
@@ -165,6 +165,9 @@ export const budgetSearchTool = createTool({
       }
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [state, year && `${year} budget`, sector, budget_category].filter(Boolean).join(" ") || "budget allocation";
 
       const requestedTopK = topK ?? RAG_CONFIG.topK;
       const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter };

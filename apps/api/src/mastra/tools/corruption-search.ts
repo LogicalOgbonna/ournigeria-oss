@@ -91,7 +91,7 @@ export const corruptionSearchTool = createTool({
     ),
     totalResults: z.number(),
   }),
-  execute: async ({ query, official, section, status, state, party, agency, topK }) => {
+  execute: async ({ query: rawQuery, official, section, status, state, party, agency, topK }) => {
     try {
       const conditions: Array<Record<string, { $eq: string }>> = [];
       if (official) conditions.push({ official: { $eq: official } });
@@ -100,6 +100,9 @@ export const corruptionSearchTool = createTool({
       if (state) conditions.push({ state: { $eq: state } });
       if (party) conditions.push({ party: { $eq: party } });
       if (agency) conditions.push({ agency: { $eq: agency } });
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [official, state, status, party, agency, "corruption cases"].filter(Boolean).join(" ") || "corruption cases";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;

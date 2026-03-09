@@ -72,13 +72,16 @@ export const govspendSearchTool = createTool({
     ),
     totalResults: z.number(),
   }),
-  execute: async ({ query, organization, beneficiary, year, month, topK }) => {
+  execute: async ({ query: rawQuery, organization, beneficiary, year, month, topK }) => {
     try {
       const conditions: Array<Record<string, { $eq: string }>> = [];
       if (organization) conditions.push({ organization_name: { $eq: organization } });
       if (beneficiary) conditions.push({ beneficiary_name: { $eq: beneficiary } });
       if (year) conditions.push({ year: { $eq: year } });
       if (month) conditions.push({ month: { $eq: month } });
+
+      // Fallback to filter-based query if the LLM passes an empty string
+      const query = rawQuery?.trim() || [organization, beneficiary, year && `${year} payments`, month].filter(Boolean).join(" ") || "government payments";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;
