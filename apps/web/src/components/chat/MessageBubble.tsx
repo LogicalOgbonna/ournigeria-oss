@@ -38,6 +38,7 @@ export function MessageBubble({
         {message.richContent ? (
           <AIMessage
             content={message.richContent}
+            thinking={message.thinking}
             messageId={message.id}
             conversationId={conversationId ?? undefined}
             onFollowUpClick={onFollowUpClick}

@@ -32,7 +32,8 @@
     "test:e2e": "nx run e2e:test",
     "test:e2e:web": "nx run e2e:test:web",
     "test:e2e:dashboard": "nx run e2e:test:dashboard",
-    "test:e2e:human": "nx run e2e:test:human"
+    "test:e2e:human": "nx run e2e:test:human",
+    "start": "bash packages/scripts/start/start.sh"
   },
   "devDependencies": {
     "nx": "^21.3.2",

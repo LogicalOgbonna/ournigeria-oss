@@ -162,7 +162,7 @@ export class ChatService {
     const validLanguage: Language = language === "pcm" ? "pcm" : "en";
 
     // Route to the correct agent workflow
-    const { richContent, resolvedTool } = await routeToAgent({
+    const { richContent, resolvedTool, thinkingSteps } = await routeToAgent({
       message,
       historyContext,
       selectedTool,
@@ -218,8 +218,12 @@ export class ChatService {
       },
     });
 
-    // Send final event with rich content
-    send({ type: "done", richContent });
+    // Send final event with rich content + thinking steps
+    send({
+      type: "done",
+      richContent,
+      ...(thinkingSteps && thinkingSteps.length > 0 ? { thinking: thinkingSteps } : {}),
+    });
 
     // ─── Langfuse automated scores (non-blocking) ───────────────
     const langfuse = getLangfuse();

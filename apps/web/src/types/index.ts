@@ -94,11 +94,18 @@ export interface AIResponseContent {
   followUps: FollowUpSuggestion[];
 }
 
+export interface ThinkingStep {
+  type: "text" | "tool_call";
+  content: string;
+  tool?: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   richContent?: AIResponseContent;
+  thinking?: ThinkingStep[];
   timestamp: Date;
 }
 

@@ -673,6 +673,7 @@ function generateGovspendFollowUps(
 export function formatImpactResponse(
   impactAnalysis: string,
   language: Language = "en",
+  sources?: SourceCitation[],
 ): AIResponseContent {
   const { text: cleanedText, charts } = extractChartBlocks(impactAnalysis);
   const hasStructuredCharts = charts.length > 0;
@@ -734,6 +735,10 @@ export function formatImpactResponse(
 
   if (equivalents.items.length > 0) {
     response.moneyEquivalents = equivalents;
+  }
+
+  if (sources && sources.length > 0) {
+    response.sources = sources;
   }
 
   return response;

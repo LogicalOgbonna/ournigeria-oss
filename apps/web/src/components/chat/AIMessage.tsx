@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AIResponseContent } from "@/types";
+import { AIResponseContent, ThinkingStep } from "@/types";
 import { StatHighlight } from "@/components/cards/StatHighlight";
 import { BudgetBarChart } from "@/components/charts/BarChart";
 import { DonutChart } from "@/components/charts/DonutChart";
@@ -9,6 +9,7 @@ import { TrendLine } from "@/components/charts/TrendLine";
 import { ChartRenderer } from "@/components/charts/ChartRenderer";
 import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
+import { ThinkingDropdown } from "./ThinkingDropdown";
 import { Markdown } from "./Markdown";
 import {
   FileText,
@@ -22,6 +23,7 @@ import { extractChartBlocks } from "@/lib/chart-parser";
 
 interface AIMessageProps {
   content: AIResponseContent;
+  thinking?: ThinkingStep[];
   messageId?: string;
   conversationId?: string;
   onFollowUpClick: (text: string) => void;
@@ -29,6 +31,7 @@ interface AIMessageProps {
 
 export function AIMessage({
   content,
+  thinking,
   messageId,
   conversationId,
   onFollowUpClick,
@@ -54,6 +57,11 @@ export function AIMessage({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Thinking Dropdown */}
+      {thinking && thinking.length > 0 && (
+        <ThinkingDropdown steps={thinking} />
+      )}
+
       {/* Stat Highlights */}
       {content.stats && content.stats.length > 0 && (
         <StatHighlight stats={content.stats} />

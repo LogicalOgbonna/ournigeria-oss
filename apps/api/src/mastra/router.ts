@@ -2,6 +2,8 @@ import type {
   ToolId,
   AIResponseContent,
   Language,
+  ThinkingStep,
+  SourceCitation,
 } from "../types";
 import { mastra, AgentNames, type AgentName } from "./index";
 import {
@@ -317,6 +319,8 @@ interface RouteResult {
   richContent: AIResponseContent;
   /** The agent type that handled this turn (for follow_up tracking). */
   resolvedTool: ToolId;
+  /** Intermediate reasoning/tool-call steps for the thinking dropdown. */
+  thinkingSteps?: ThinkingStep[];
 }
 
 // ─── Reroute detection ──────────────────────────────────────────
@@ -341,7 +345,191 @@ function isRerouteResult(r: RouteResult | RerouteResult): r is RerouteResult {
 
 // ─── Agent flow functions ───────────────────────────────────────
 // Agents now own all data retrieval via their tools — no orchestrator pre-fetch.
-// Each flow buffers the first ~30 chars to detect [REROUTE:xxx] before streaming.
+// Each flow uses fullStream to separate thinking (tool-calling steps) from the final answer.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AgentStream = { fullStream: AsyncIterable<any>; textStream: AsyncIterable<string> };
+
+interface StreamResult {
+  fullText: string;
+  answerText: string;
+  thinkingSteps: ThinkingStep[];
+  sources: SourceCitation[];
+  reroute?: string;
+}
+
+const SOURCE_TYPE_MAP: Record<string, string> = {
+  "budget-search": "budget",
+  budgetSearchTool: "budget",
+  "corruption-search": "corruption",
+  corruptionSearchTool: "corruption",
+  "govspend-search": "payment",
+  govspendSearchTool: "payment",
+  "faac-search": "faac",
+  faacSearchTool: "faac",
+};
+
+/**
+ * Extract unique source citations from a tool-result event.
+ * Deduplicates by filename and limits to top results by score.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractSourcesFromToolResult(toolName: string, result: any): SourceCitation[] {
+  const results = result?.results;
+  if (!Array.isArray(results)) return [];
+
+  const sourceType = SOURCE_TYPE_MAP[toolName] ?? "document";
+  const seen = new Set<string>();
+  const sources: SourceCitation[] = [];
+
+  for (const r of results) {
+    const filename = r.filename || r.fileName;
+    if (!filename || seen.has(filename)) continue;
+    seen.add(filename);
+
+    sources.push({
+      title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
+      fileName: filename,
+      location: r.s3_key || filename,
+      sourceType,
+      state: r.state,
+      year: typeof r.year === "number" ? r.year : (parseInt(r.year) || undefined),
+      score: r.score ?? 0,
+    });
+  }
+
+  // Return top sources sorted by score
+  return sources.sort((a, b) => b.score - a.score).slice(0, 8);
+}
+
+/**
+ * Stream an agent's response using fullStream to separate thinking from the answer.
+ * Text from steps with tool calls → thinking. Text from the final step → answer.
+ * All text is still sent as SSE "text" events for the streaming UX.
+ * Also captures tool-result events to extract source citations.
+ */
+async function streamWithThinking(
+  agentStream: AgentStream,
+  send: SendFn,
+  detectReroute = true,
+): Promise<StreamResult> {
+  const thinkingSteps: ThinkingStep[] = [];
+  const allSources: SourceCitation[] = [];
+  let fullText = "";
+  let currentStepText = "";
+  let currentStepHasToolCalls = false;
+
+  // Reroute detection
+  let rerouteBuffer = "";
+  let flushed = !detectReroute; // Skip reroute check if not needed
+
+  try {
+    for await (const chunk of agentStream.fullStream) {
+      const type = chunk?.type;
+
+      if (type === "text-delta") {
+        const text = chunk.payload?.text ?? "";
+        if (!text) continue;
+        fullText += text;
+        currentStepText += text;
+
+        // Reroute detection (first 30 chars)
+        if (!flushed) {
+          rerouteBuffer += text;
+          if (rerouteBuffer.length >= REROUTE_BUFFER_SIZE) {
+            const match = REROUTE_REGEX.exec(rerouteBuffer);
+            if (match) {
+              return { fullText, answerText: "", thinkingSteps: [], sources: [], reroute: match[1].toLowerCase() };
+            }
+            send({ type: "text", content: rerouteBuffer });
+            flushed = true;
+          }
+        } else {
+          send({ type: "text", content: text });
+        }
+      } else if (type === "tool-call") {
+        currentStepHasToolCalls = true;
+        const toolName = chunk.payload?.toolName ?? "search";
+        // Flush accumulated text before this tool call as thinking
+        if (currentStepText.trim()) {
+          thinkingSteps.push({ type: "text", content: currentStepText.trim() });
+          currentStepText = "";
+        }
+        thinkingSteps.push({ type: "tool_call", content: toolName, tool: toolName });
+      } else if (type === "tool-result") {
+        // Extract source citations from tool results
+        const toolName = chunk.payload?.toolName ?? "";
+        const result = chunk.payload?.result;
+        const extracted = extractSourcesFromToolResult(toolName, result);
+        allSources.push(...extracted);
+      } else if (type === "step-finish") {
+        // step-finish fires at the end of each LLM step (not "finish" which fires once at the very end)
+        const reason = chunk.payload?.stepResult?.reason ?? "";
+        if (currentStepHasToolCalls || reason === "tool-calls") {
+          if (currentStepText.trim()) {
+            thinkingSteps.push({ type: "text", content: currentStepText.trim() });
+          }
+        }
+        currentStepText = "";
+        currentStepHasToolCalls = false;
+      }
+    }
+  } catch (err) {
+    // If fullStream fails with no text yet, fall back to textStream
+    if (!fullText) {
+      try {
+        for await (const chunk of agentStream.textStream) {
+          fullText += chunk;
+          send({ type: "text", content: chunk });
+        }
+      } catch {
+        // textStream may also fail if the underlying stream is exhausted
+      }
+      return { fullText, answerText: fullText, thinkingSteps: [], sources: [] };
+    }
+    // If we already have partial text, log and continue with what we have
+    console.warn("[streamWithThinking] fullStream error after partial read:", err);
+  }
+
+  // Handle unflushed reroute buffer
+  if (!flushed) {
+    const match = REROUTE_REGEX.exec(rerouteBuffer);
+    if (match) {
+      return { fullText, answerText: "", thinkingSteps: [], sources: [], reroute: match[1].toLowerCase() };
+    }
+    if (rerouteBuffer) send({ type: "text", content: rerouteBuffer });
+  }
+
+  // Reconstruct answerText by stripping captured thinking text from fullText.
+  // This serves as a safety net alongside the step-finish event handling.
+  let answerText = fullText;
+  if (thinkingSteps.length > 0) {
+    const thinkingTexts = thinkingSteps
+      .filter((s) => s.type === "text")
+      .map((s) => s.content);
+    let stripped = fullText;
+    for (const t of thinkingTexts) {
+      const idx = stripped.indexOf(t);
+      if (idx !== -1) {
+        stripped = stripped.slice(0, idx) + stripped.slice(idx + t.length);
+      }
+    }
+    stripped = stripped.trim();
+    if (stripped) {
+      answerText = stripped;
+    }
+  }
+
+  // Deduplicate sources across multiple tool calls
+  const seenFiles = new Set<string>();
+  const dedupedSources = allSources.filter((s) => {
+    if (seenFiles.has(s.fileName)) return false;
+    seenFiles.add(s.fileName);
+    return true;
+  });
+
+  return { fullText, answerText, thinkingSteps, sources: dedupedSources };
+}
 
 async function runBudgetFlow(
   _message: string,
@@ -356,39 +544,16 @@ async function runBudgetFlow(
   prompt += getLanguageReminder(language);
 
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
-  const budgetStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
 
-  let fullText = "";
-  let buffer = "";
-  let flushed = false;
+  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
 
-  for await (const chunk of budgetStream.textStream) {
-    fullText += chunk;
-    if (!flushed) {
-      buffer += chunk;
-      if (buffer.length >= REROUTE_BUFFER_SIZE) {
-        const match = buffer.match(REROUTE_REGEX);
-        if (match) {
-          return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-        }
-        send({ type: "text", content: buffer });
-        flushed = true;
-      }
-    } else {
-      send({ type: "text", content: chunk });
-    }
+  if (reroute) {
+    return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  if (!flushed) {
-    const match = buffer.match(REROUTE_REGEX);
-    if (match) {
-      return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-    }
-    if (buffer) send({ type: "text", content: buffer });
-  }
-
-  const richContent = formatAgentResponse(fullText, language);
-  return { richContent, resolvedTool: "budget" };
+  const richContent = formatAgentResponse(answerText, language, sources);
+  return { richContent, resolvedTool: "budget", thinkingSteps };
 }
 
 async function runCorruptionFlow(
@@ -404,39 +569,16 @@ async function runCorruptionFlow(
   prompt += getLanguageReminder(language);
 
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
-  const stream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
 
-  let fullText = "";
-  let buffer = "";
-  let flushed = false;
+  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
 
-  for await (const chunk of stream.textStream) {
-    fullText += chunk;
-    if (!flushed) {
-      buffer += chunk;
-      if (buffer.length >= REROUTE_BUFFER_SIZE) {
-        const match = buffer.match(REROUTE_REGEX);
-        if (match) {
-          return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-        }
-        send({ type: "text", content: buffer });
-        flushed = true;
-      }
-    } else {
-      send({ type: "text", content: chunk });
-    }
+  if (reroute) {
+    return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  if (!flushed) {
-    const match = buffer.match(REROUTE_REGEX);
-    if (match) {
-      return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-    }
-    if (buffer) send({ type: "text", content: buffer });
-  }
-
-  const richContent = formatCorruptionResponse(fullText, language);
-  return { richContent, resolvedTool: "corruption" };
+  const richContent = formatCorruptionResponse(answerText, language, sources);
+  return { richContent, resolvedTool: "corruption", thinkingSteps };
 }
 
 async function runGovspendFlow(
@@ -452,39 +594,16 @@ async function runGovspendFlow(
   prompt += getLanguageReminder(language);
 
   const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
-  const stream = await govspendAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await govspendAgent.stream(prompt, { maxSteps: 10 });
 
-  let fullText = "";
-  let buffer = "";
-  let flushed = false;
+  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
 
-  for await (const chunk of stream.textStream) {
-    fullText += chunk;
-    if (!flushed) {
-      buffer += chunk;
-      if (buffer.length >= REROUTE_BUFFER_SIZE) {
-        const match = buffer.match(REROUTE_REGEX);
-        if (match) {
-          return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-        }
-        send({ type: "text", content: buffer });
-        flushed = true;
-      }
-    } else {
-      send({ type: "text", content: chunk });
-    }
+  if (reroute) {
+    return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  if (!flushed) {
-    const match = buffer.match(REROUTE_REGEX);
-    if (match) {
-      return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-    }
-    if (buffer) send({ type: "text", content: buffer });
-  }
-
-  const richContent = formatGovspendResponse(fullText, language);
-  return { richContent, resolvedTool: "govspend" };
+  const richContent = formatGovspendResponse(answerText, language, sources);
+  return { richContent, resolvedTool: "govspend", thinkingSteps };
 }
 
 async function runFaacFlow(
@@ -500,39 +619,16 @@ async function runFaacFlow(
   prompt += getLanguageReminder(language);
 
   const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
-  const stream = await faacAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await faacAgent.stream(prompt, { maxSteps: 10 });
 
-  let fullText = "";
-  let buffer = "";
-  let flushed = false;
+  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
 
-  for await (const chunk of stream.textStream) {
-    fullText += chunk;
-    if (!flushed) {
-      buffer += chunk;
-      if (buffer.length >= REROUTE_BUFFER_SIZE) {
-        const match = buffer.match(REROUTE_REGEX);
-        if (match) {
-          return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-        }
-        send({ type: "text", content: buffer });
-        flushed = true;
-      }
-    } else {
-      send({ type: "text", content: chunk });
-    }
+  if (reroute) {
+    return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  if (!flushed) {
-    const match = buffer.match(REROUTE_REGEX);
-    if (match) {
-      return { kind: REROUTE_SENTINEL, target: match[1].toLowerCase() as ToolId };
-    }
-    if (buffer) send({ type: "text", content: buffer });
-  }
-
-  const richContent = formatAgentResponse(fullText, language);
-  return { richContent, resolvedTool: "faac" };
+  const richContent = formatAgentResponse(answerText, language, sources);
+  return { richContent, resolvedTool: "faac", thinkingSteps };
 }
 
 async function runImpactFlow(
@@ -552,19 +648,12 @@ async function runImpactFlow(
   prompt += message;
   prompt += getLanguageReminder(language);
 
-  const stream = await impactAgent.stream(prompt, {
-    maxSteps: 10,
-  });
+  const agentStream = await impactAgent.stream(prompt, { maxSteps: 10 });
 
-  let impactAnalysis = "";
-  for await (const chunk of stream.textStream) {
-    impactAnalysis += chunk;
-    send({ type: "text", content: chunk });
-  }
+  const { answerText, thinkingSteps, sources } = await streamWithThinking(agentStream, send, false);
 
-  const richContent = formatImpactResponse(impactAnalysis, language);
-
-  return { richContent, resolvedTool: "impact" };
+  const richContent = formatImpactResponse(answerText, language, sources);
+  return { richContent, resolvedTool: "impact", thinkingSteps };
 }
 
 // ─── Conversation context passed from chat service ──────────────
@@ -890,7 +979,7 @@ async function runSpecialistFlowDirect(
   send: SendFn,
   language: Language,
 ): Promise<RouteResult> {
-  const agentMap: Record<string, { agentName: AgentName; status: string; formatter: (text: string, lang: Language) => AIResponseContent; resolvedTool: ToolId }> = {
+  const agentMap: Record<string, { agentName: AgentName; status: string; formatter: (text: string, lang: Language, sources?: SourceCitation[]) => AIResponseContent; resolvedTool: ToolId }> = {
     budget: {
       agentName: AgentNames.budgetAnalyst,
       status: t("status.analyzingBudget", language),
@@ -925,14 +1014,10 @@ async function runSpecialistFlowDirect(
   prompt += getLanguageReminder(language);
 
   const agent = mastra.getAgent(config.agentName);
-  const stream = await agent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await agent.stream(prompt, { maxSteps: 10 });
 
-  let fullText = "";
-  for await (const chunk of stream.textStream) {
-    fullText += chunk;
-    send({ type: "text", content: chunk });
-  }
+  const { answerText, thinkingSteps, sources } = await streamWithThinking(agentStream, send, false);
 
-  const richContent = config.formatter(fullText, language);
-  return { richContent, resolvedTool: config.resolvedTool };
+  const richContent = config.formatter(answerText, language, sources);
+  return { richContent, resolvedTool: config.resolvedTool, thinkingSteps };
 }

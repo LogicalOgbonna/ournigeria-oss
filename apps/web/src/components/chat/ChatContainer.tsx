@@ -31,6 +31,11 @@ function StreamingBubble({ text }: { text: string }) {
         <Sparkles className="h-4 w-4 text-white" />
       </div>
       <div className="min-w-0 max-w-full md:max-w-[85%]">
+        {/* Thinking indicator */}
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="font-medium">Researching and analyzing...</span>
+        </div>
         <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
           <Markdown>{text}</Markdown>
           <span className="inline-block w-1.5 h-4 ml-0.5 bg-emerald-500 animate-pulse rounded-sm" />

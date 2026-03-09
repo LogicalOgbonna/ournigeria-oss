@@ -94,6 +94,12 @@ export interface AIResponseContent {
   followUps: FollowUpSuggestion[];
 }
 
+export interface ThinkingStep {
+  type: "text" | "tool_call";
+  content: string;
+  tool?: string;
+}
+
 export type ToolId =
   | "budget"
   | "corruption"
