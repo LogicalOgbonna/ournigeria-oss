@@ -5,6 +5,10 @@ INFISICAL_ENV="${INFISICAL_ENV:-prod}"
 
 echo "Running database migrations (env: $INFISICAL_ENV)..."
 
+# Resolve the baseline migration if it exists, ignoring errors if it's already applied
+echo "Resolving baseline migration..."
+infisical run --env "$INFISICAL_ENV" -- npx prisma migrate resolve --applied 0_baseline --schema=./prisma/schema.prisma || true
+
 MAX_RETRIES=5
 RETRY=0
 until infisical run --env "$INFISICAL_ENV" -- npx prisma migrate deploy --schema=./prisma/schema.prisma; do
