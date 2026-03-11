@@ -109,7 +109,7 @@ export const corruptionSearchTool = createTool({
       const cacheParams = { indexName: CORRUPTION_INDEX, query, filter };
 
       type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; score: number };
-      const cached = getCached<CorruptionResult[]>(cacheParams);
+      const cached = await getCached<CorruptionResult[]>(cacheParams);
 
       let results: CorruptionResult[];
       if (cached) {
@@ -147,7 +147,7 @@ export const corruptionSearchTool = createTool({
         }));
 
         results = await rerankResults(query, mapped, requestedTopK);
-        setCached(cacheParams, results);
+        await setCached(cacheParams, results);
       }
 
       return {

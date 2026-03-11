@@ -1,4 +1,11 @@
-import { Controller, Post, Req, Res, HttpStatus, HttpCode } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Req,
+  Res,
+  HttpStatus,
+  HttpCode,
+} from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBody } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import { ChatService } from "./chat.service";
@@ -77,7 +84,27 @@ export class ChatController {
           send({ type: "error", content: "Conversation not found" });
         } else {
           console.error("Stream error:", err);
-          send({ type: "error", content: "Failed to process request" });
+          // Detect upstream LLM credit/payment errors and surface a friendly message
+          const statusCode = err?.statusCode ?? err?.cause?.statusCode;
+          const errMsg = typeof err?.message === "string" ? err.message : "";
+          const isCreditsError =
+            statusCode === 402 ||
+            errMsg.includes("more credits") ||
+            errMsg.includes("402");
+          const isNoResponse = errMsg === "Agent produced no response";
+          if (isCreditsError || isNoResponse) {
+            send({
+              type: "error",
+              content:
+                "Our AI service is temporarily unavailable due to capacity limits. Please try again shortly.",
+            });
+          } else {
+            send({
+              type: "error",
+              content:
+                "Something went wrong while processing your request. Please try again.",
+            });
+          }
         }
       } finally {
         clearInterval(keepalive);

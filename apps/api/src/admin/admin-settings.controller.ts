@@ -68,6 +68,20 @@ export class AdminSettingsController {
     }
   }
 
+  @Post("test-reranker")
+  @ApiOperation({ summary: "Test reranker connectivity" })
+  async testReranker(@Res() res: Response) {
+    try {
+      const result = await this.service.testReranker();
+      return res.json(result);
+    } catch (err) {
+      console.error("admin settings testReranker error:", err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
+    }
+  }
+
   @Put("bulk")
   @ApiOperation({ summary: "Bulk upsert multiple settings" })
   async bulkUpsert(

@@ -1,13 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@ournigeria/database';
+import { cache } from '@ournigeria/cache';
 import { slugify, slugifyWithSuffix } from '../lib/slugify';
 import { randomUUID } from 'crypto';
+
+const convListCache = cache.namespace('conv:list');
+
+interface ConversationListItem {
+  id: string;
+  title: string;
+  visibility: string;
+  slug: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessage: string | null;
+  lastMessageRole: string | null;
+  messageCount: number;
+}
+
+/** Invalidate the cached conversation list for a user. */
+export async function invalidateConversationList(userId: string): Promise<void> {
+  await convListCache.del(userId);
+}
 
 @Injectable()
 export class ConversationsService {
   constructor(private prisma: PrismaService) {}
 
   async list(userId: string) {
+    const cached = await convListCache.get<ConversationListItem[]>(userId);
+    if (cached) return cached;
+
     const conversations = await this.prisma.conversation.findMany({
       where: { userId, status: 'active' },
       orderBy: { updatedAt: 'desc' },
@@ -34,7 +57,7 @@ export class ConversationsService {
       },
     });
 
-    return conversations.map((c) => ({
+    const result = conversations.map((c) => ({
       id: c.id,
       title: c.title,
       visibility: c.visibility,
@@ -45,6 +68,9 @@ export class ConversationsService {
       lastMessageRole: c.messages[0]?.role ?? null,
       messageCount: c._count.messages,
     }));
+
+    await convListCache.set(userId, result, 30_000);
+    return result;
   }
 
   async getById(id: string, userId: string) {
@@ -86,6 +112,8 @@ export class ConversationsService {
       where: { id },
       data: { status: 'deleted' },
     });
+
+    await invalidateConversationList(userId);
 
     return { success: true };
   }
@@ -140,7 +168,7 @@ export class ConversationsService {
             conversation.id,
           );
 
-          return await this.prisma.conversation.update({
+          const result = await this.prisma.conversation.update({
             where: { id },
             data: {
               visibility: 'public',
@@ -154,6 +182,9 @@ export class ConversationsService {
               sharedAt: true,
             },
           });
+
+          await invalidateConversationList(userId);
+          return result;
         } catch (err: any) {
           if (err?.code === 'P2002' && attempt < MAX_RETRIES - 1) continue;
           throw err;
@@ -161,7 +192,7 @@ export class ConversationsService {
       }
     }
 
-    return this.prisma.conversation.update({
+    const result = await this.prisma.conversation.update({
       where: { id },
       data: {
         visibility: 'private',
@@ -175,6 +206,9 @@ export class ConversationsService {
         sharedAt: true,
       },
     });
+
+    await invalidateConversationList(userId);
+    return result;
   }
 
   /**

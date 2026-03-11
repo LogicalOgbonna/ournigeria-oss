@@ -1,16 +1,19 @@
 import { createTool } from "@mastra/core/tools";
 import { embed } from "ai";
-import { Pool } from "pg";
 import { z } from "zod";
+import { cache as cacheManager } from "@ournigeria/cache";
 import {
   embeddingModelInstance,
   RAG_CONFIG,
   truncateEmbedding,
 } from "../rag/config";
 import { getCached, setCached } from "../rag/cache";
+import { getSharedPool } from "../rag/db-pool";
 import { hybridSearch } from "../rag/hybrid-search";
 import { rerankResults } from "../rag/rerank";
 import { getOfficialsForResults } from "./metadata";
+
+const yearsCache = cacheManager.namespace("rag:years");
 
 function isTableMissing(err: any): boolean {
   if (!err) return false;
@@ -21,21 +24,11 @@ function isTableMissing(err: any): boolean {
   return false;
 }
 
-let _pool: Pool | null = null;
-function getPool(): Pool {
-  _pool ??= new Pool({ connectionString: process.env.DATABASE_URL });
-  return _pool;
-}
-
-export async function closeBudgetSearchPool(): Promise<void> {
-  if (_pool) {
-    await _pool.end();
-    _pool = null;
-  }
-}
-
 async function getAvailableYears(titleCasedState: string): Promise<number[]> {
-  const pool = getPool();
+  const cached = await yearsCache.get<number[]>(titleCasedState);
+  if (cached) return cached;
+
+  const pool = getSharedPool();
   const result = await pool.query(
     `SELECT DISTINCT (metadata->>'year')::int AS year
      FROM "${RAG_CONFIG.indexName}"
@@ -43,7 +36,10 @@ async function getAvailableYears(titleCasedState: string): Promise<number[]> {
      ORDER BY year`,
     [titleCasedState],
   );
-  return result.rows.map((r: { year: number }) => r.year);
+  const years = result.rows.map((r: { year: number }) => r.year);
+
+  await yearsCache.set(titleCasedState, years, 60 * 60 * 1000);
+  return years;
 }
 
 export const budgetSearchTool = createTool({
@@ -94,6 +90,7 @@ export const budgetSearchTool = createTool({
         state: z.string(),
         year: z.number(),
         filename: z.string(),
+        s3_key: z.string(),
         sector: z.string(),
         budget_category: z.string(),
         score: z.number(),
@@ -167,13 +164,27 @@ export const budgetSearchTool = createTool({
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
 
       // Fallback to filter-based query if the LLM passes an empty string
-      const query = rawQuery?.trim() || [state, year && `${year} budget`, sector, budget_category].filter(Boolean).join(" ") || "budget allocation";
+      const query =
+        rawQuery?.trim() ||
+        [state, year && `${year} budget`, sector, budget_category]
+          .filter(Boolean)
+          .join(" ") ||
+        "budget allocation";
 
       const requestedTopK = topK ?? RAG_CONFIG.topK;
       const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter };
 
-      type BudgetResult = { text: string; state: string; year: number; filename: string; sector: string; budget_category: string; score: number };
-      const cached = getCached<BudgetResult[]>(cacheParams);
+      type BudgetResult = {
+        text: string;
+        state: string;
+        year: number;
+        filename: string;
+        s3_key: string;
+        sector: string;
+        budget_category: string;
+        score: number;
+      };
+      const cached = await getCached<BudgetResult[]>(cacheParams);
 
       let results: BudgetResult[];
       if (cached) {
@@ -184,7 +195,9 @@ export const budgetSearchTool = createTool({
           value: query,
         });
 
-        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+        const fetchTopK = RAG_CONFIG.rerank.enabled
+          ? requestedTopK * 2
+          : requestedTopK;
 
         const queryResults = await hybridSearch({
           indexName: RAG_CONFIG.indexName,
@@ -200,16 +213,19 @@ export const budgetSearchTool = createTool({
           state: (r.metadata?.state as string) ?? "Unknown",
           year: (r.metadata?.year as number) ?? 0,
           filename: (r.metadata?.filename as string) ?? "",
+          s3_key: (r.metadata?.s3_key as string) ?? "",
           sector: (r.metadata?.sector as string) ?? "general",
           budget_category: (r.metadata?.budget_category as string) ?? "general",
           score: r.score,
         }));
 
         results = await rerankResults(query, mapped, requestedTopK);
-        setCached(cacheParams, results);
+        await setCached(cacheParams, results);
       }
 
-      const availableYears = titleCased ? await getAvailableYears(titleCased) : [];
+      const availableYears = titleCased
+        ? await getAvailableYears(titleCased)
+        : [];
 
       const officialsData = await getOfficialsForResults(results);
       const officials = officialsData.map((o) => ({

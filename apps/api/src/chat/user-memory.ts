@@ -1,4 +1,7 @@
 import type { PrismaClient } from "@ournigeria/database";
+import { cache } from "@ournigeria/cache";
+
+const profileCache = cache.namespace("profile");
 
 /** Keys we track in user memory. */
 const MEMORY_KEYS = {
@@ -70,6 +73,11 @@ export async function extractAndSaveMemory(
       update: { value },
     });
   }
+
+  // Invalidate cached profile after memory updates
+  if (upserts.length > 0) {
+    await profileCache.del(userId);
+  }
 }
 
 /**
@@ -80,11 +88,17 @@ export async function loadUserProfile(
   prisma: PrismaClient,
   userId: string,
 ): Promise<string | null> {
+  const cached = await profileCache.get<string | null>(userId);
+  if (cached !== undefined) return cached;
+
   const memories = await prisma.userMemory.findMany({
     where: { userId },
   });
 
-  if (memories.length === 0) return null;
+  if (memories.length === 0) {
+    await profileCache.set(userId, null, 5 * 60_000);
+    return null;
+  }
 
   const parts: string[] = [];
 
@@ -112,7 +126,10 @@ export async function loadUserProfile(
     }
   }
 
-  return parts.length > 0
+  const result = parts.length > 0
     ? `User profile (from past conversations):\n${parts.join("\n")}`
     : null;
+
+  await profileCache.set(userId, result, 5 * 60_000);
+  return result;
 }

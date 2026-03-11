@@ -141,7 +141,7 @@ export const faacSearchTool = createTool({
       const cacheParams = { indexName: FAAC_INDEX, query, filter };
 
       type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; score: number };
-      const cached = getCached<FaacResult[]>(cacheParams);
+      const cached = await getCached<FaacResult[]>(cacheParams);
 
       let results: FaacResult[];
       if (cached) {
@@ -176,7 +176,7 @@ export const faacSearchTool = createTool({
         }));
 
         results = await rerankResults(query, mapped, requestedTopK);
-        setCached(cacheParams, results);
+        await setCached(cacheParams, results);
       }
 
       return {

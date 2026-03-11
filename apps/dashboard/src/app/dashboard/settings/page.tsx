@@ -15,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Settings,
   Eye,
@@ -30,6 +31,10 @@ import {
   RefreshCw,
   Lock,
   Zap,
+  Plus,
+  Pencil,
+  Trash2,
+  Power,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
 import { useQueryState, parseAsString } from "nuqs";
@@ -57,6 +62,22 @@ interface EnvVar {
   secret: boolean;
 }
 
+interface Connection {
+  id: string;
+  name: string;
+  type: "llm" | "embedding";
+  provider: string;
+  baseUrl: string;
+  apiKeyMasked: string;
+  modelId: string;
+  modelSmall: string | null;
+  dimension: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string | null;
+}
+
 type SettingsMap = Record<string, Setting[]>;
 type FormValues = Record<string, string>;
 
@@ -69,7 +90,16 @@ const LLM_PROVIDERS = [
     id: "openai",
     label: "OpenAI",
     baseUrl: "https://api.openai.com/v1",
-    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", "o1", "o1-mini", "o3-mini"],
+    models: [
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4-turbo",
+      "gpt-4",
+      "gpt-3.5-turbo",
+      "o1",
+      "o1-mini",
+      "o3-mini",
+    ],
   },
   {
     id: "openrouter",
@@ -101,7 +131,14 @@ const LLM_PROVIDERS = [
     id: "groq",
     label: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
-    models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
+    models: [
+      "groq/compound",
+      "groq/compound-mini",
+      "llama-3.3-70b-versatile",
+      "meta-llama/llama-4-scout-17b-16e-instruct",
+      "qwen/qwen3-32b",
+      "llama-3.1-8b-instant",
+    ],
   },
   {
     id: "deepseek",
@@ -117,6 +154,41 @@ const LLM_PROVIDERS = [
       "accounts/fireworks/models/llama-v3p3-70b-instruct",
       "accounts/fireworks/models/mixtral-8x22b-instruct",
       "accounts/fireworks/models/qwen2p5-72b-instruct",
+    ],
+  },
+  {
+    id: "custom",
+    label: "Custom (OpenAI-compatible)",
+    baseUrl: "",
+    models: [],
+  },
+] as const;
+
+const EMBEDDING_PROVIDERS = [
+  {
+    id: "voyage",
+    label: "Voyage AI",
+    baseUrl: "https://api.voyageai.com/v1",
+    models: ["voyage-3-large", "voyage-3", "voyage-3-lite", "voyage-code-3"],
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: [
+      "text-embedding-3-large",
+      "text-embedding-3-small",
+      "text-embedding-ada-002",
+    ],
+  },
+  {
+    id: "cohere",
+    label: "Cohere",
+    baseUrl: "https://api.cohere.ai/v1",
+    models: [
+      "embed-english-v3.0",
+      "embed-multilingual-v3.0",
+      "embed-english-light-v3.0",
     ],
   },
   {
@@ -203,23 +275,17 @@ function getChangedValues(
   return changed;
 }
 
-function deriveProviderFromUrl(url: string): string {
-  const lower = url.toLowerCase();
-  if (lower.includes("openrouter")) return "openrouter";
-  if (lower.includes("together")) return "together";
-  if (lower.includes("groq.com")) return "groq";
-  if (lower.includes("deepseek")) return "deepseek";
-  if (lower.includes("fireworks")) return "fireworks";
-  if (lower.includes("openai.com")) return "openai";
-  return "";
-}
-
 function isDirty(
   original: FormValues,
   current: FormValues,
   settings: Setting[],
 ): boolean {
   return getChangedValues(original, current, settings).length > 0;
+}
+
+function providerLabel(providerId: string, type: "llm" | "embedding"): string {
+  const list = type === "llm" ? LLM_PROVIDERS : EMBEDDING_PROVIDERS;
+  return list.find((p) => p.id === providerId)?.label || providerId;
 }
 
 // ---------------------------------------------------------------------------
@@ -251,11 +317,7 @@ function SecretInput({
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? "Hide value" : "Show value"}
       >
-        {visible ? (
-          <EyeOff className="h-4 w-4" />
-        ) : (
-          <Eye className="h-4 w-4" />
-        )}
+        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </button>
     </div>
   );
@@ -318,166 +380,703 @@ function SettingField({
   );
 }
 
-function ProviderSelector({
-  value,
-  onChange,
-  onBaseUrlChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onBaseUrlChange: (url: string) => void;
-}) {
-  const handleChange = (providerId: string) => {
-    onChange(providerId);
-    const preset = LLM_PROVIDERS.find((p) => p.id === providerId);
-    if (preset && preset.baseUrl) {
-      onBaseUrlChange(preset.baseUrl);
-    }
-  };
+// ---------------------------------------------------------------------------
+// Connection Card
+// ---------------------------------------------------------------------------
 
-  const currentProvider = LLM_PROVIDERS.find((p) => p.id === value);
-
-  return (
-    <div className="space-y-1.5">
-      <Label>LLM Provider</Label>
-      <p className="text-xs text-muted-foreground font-mono">llm.provider</p>
-      <Select value={value || "custom"} onValueChange={handleChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select a provider" />
-        </SelectTrigger>
-        <SelectContent>
-          {LLM_PROVIDERS.map((provider) => (
-            <SelectItem key={provider.id} value={provider.id}>
-              {provider.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {currentProvider && currentProvider.id !== "custom" && (
-        <p className="text-xs text-muted-foreground">
-          Base URL: <code className="bg-muted px-1 py-0.5 rounded">{currentProvider.baseUrl}</code>
-        </p>
-      )}
-    </div>
-  );
-}
-
-function ModelSelector({
-  providerId,
-  value,
-  onChange,
-  label,
-  settingKey,
-}: {
-  providerId: string;
-  value: string;
-  onChange: (v: string) => void;
-  label: string;
-  settingKey: string;
-}) {
-  const provider = LLM_PROVIDERS.find((p) => p.id === providerId);
-  const suggestedModels = provider?.models ?? [];
-
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <p className="text-xs text-muted-foreground font-mono">{settingKey}</p>
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter model ID"
-          className="flex-1"
-        />
-        {suggestedModels.length > 0 && (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-[180px] shrink-0">
-              <SelectValue placeholder="Presets" />
-            </SelectTrigger>
-            <SelectContent>
-              {suggestedModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model.split("/").pop()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TestConnectionButton({
+function ConnectionCard({
+  conn,
   type,
-  formValues,
+  onActivate,
+  onEdit,
+  onDelete,
+  onTest,
 }: {
+  conn: Connection;
   type: "llm" | "embedding";
-  formValues: FormValues;
+  onActivate: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTest: () => void;
 }) {
-  const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState<{
+  const [deleting, setDeleting] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [testResult, setTestResult] = useState<{
     success: boolean;
     latencyMs?: number;
     error?: string;
   } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const handleActivate = async () => {
+    setActivating(true);
+    try {
+      await onActivate();
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete connection "${conn.name}"?`)) return;
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleTest = async () => {
     setTesting(true);
-    setResult(null);
+    setTestResult(null);
     try {
-      const res = await adminFetch("/settings/test-connection", {
+      const result = await adminFetch(`/connections/${conn.id}/test`, {
         method: "POST",
-        body: JSON.stringify({ type, config: formValues }),
       });
-      setResult(res);
+      setTestResult(result);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Connection test failed";
-      setResult({ success: false, error: message });
+      setTestResult({
+        success: false,
+        error: err instanceof Error ? err.message : "Test failed",
+      });
     } finally {
       setTesting(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleTest}
-        disabled={testing}
-      >
-        {testing ? (
-          <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-        ) : (
-          <Zap className="h-3.5 w-3.5 mr-1.5" />
+    <div
+      className={`rounded-lg border p-4 transition-colors ${
+        conn.isActive
+          ? "border-green-500/50 bg-green-500/5"
+          : "border-border hover:border-muted-foreground/30"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-medium text-sm truncate">{conn.name}</h3>
+            {conn.isActive && (
+              <Badge
+                variant="default"
+                className="text-xs bg-green-600 hover:bg-green-600"
+              >
+                Active
+              </Badge>
+            )}
+            <Badge variant="secondary" className="text-xs">
+              {providerLabel(conn.provider, type)}
+            </Badge>
+          </div>
+          <div className="mt-1.5 space-y-0.5">
+            <p className="text-xs text-muted-foreground font-mono truncate">
+              {conn.modelId}
+            </p>
+            {type === "llm" && conn.modelSmall && (
+              <p className="text-xs text-muted-foreground">
+                Small model:{" "}
+                <span className="font-mono">{conn.modelSmall}</span>
+              </p>
+            )}
+            {type === "embedding" && conn.dimension && (
+              <p className="text-xs text-muted-foreground">
+                Dimension: {conn.dimension}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground truncate">
+              {conn.baseUrl}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              API Key: {conn.apiKeyMasked}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border flex-wrap">
+        {!conn.isActive && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleActivate}
+            disabled={activating}
+            className="h-7 text-xs"
+          >
+            {activating ? (
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Power className="h-3 w-3 mr-1" />
+            )}
+            Activate
+          </Button>
         )}
-        {testing ? "Testing..." : "Test Connection"}
-      </Button>
-      {result && (
-        <span
-          className={`text-sm flex items-center gap-1.5 ${result.success ? "text-green-600 dark:text-green-400" : "text-destructive"}`}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleTest}
+          disabled={testing}
+          className="h-7 text-xs"
         >
-          {result.success ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Connected{result.latencyMs != null && ` (${result.latencyMs}ms)`}
-            </>
+          {testing ? (
+            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
           ) : (
-            <>
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {result.error || "Failed"}
-            </>
+            <Zap className="h-3 w-3 mr-1" />
           )}
-        </span>
-      )}
+          Test
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onEdit}
+          className="h-7 text-xs"
+        >
+          <Pencil className="h-3 w-3 mr-1" />
+          Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDelete}
+          disabled={deleting || conn.isActive}
+          className="h-7 text-xs text-destructive hover:text-destructive"
+        >
+          {deleting ? (
+            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+          ) : (
+            <Trash2 className="h-3 w-3 mr-1" />
+          )}
+          Delete
+        </Button>
+        {testResult && (
+          <span
+            className={`text-xs flex items-center gap-1 ml-auto ${
+              testResult.success
+                ? "text-green-600 dark:text-green-400"
+                : "text-destructive"
+            }`}
+          >
+            {testResult.success ? (
+              <>
+                <Check className="h-3 w-3" />
+                OK
+                {testResult.latencyMs != null && ` (${testResult.latencyMs}ms)`}
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-3 w-3" />
+                {testResult.error || "Failed"}
+              </>
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-function LLMTabContent({ settings }: { settings: Setting[] }) {
+// ---------------------------------------------------------------------------
+// Connection Form Dialog
+// ---------------------------------------------------------------------------
+
+interface ConnectionFormData {
+  name: string;
+  provider: string;
+  baseUrl: string;
+  apiKey: string;
+  modelId: string;
+  modelSmall: string;
+  dimension: string;
+}
+
+const EMPTY_FORM: ConnectionFormData = {
+  name: "",
+  provider: "",
+  baseUrl: "",
+  apiKey: "",
+  modelId: "",
+  modelSmall: "",
+  dimension: "",
+};
+
+function ConnectionFormDialog({
+  open,
+  onOpenChange,
+  type,
+  editing,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  type: "llm" | "embedding";
+  editing: Connection | null;
+  onSave: () => void;
+}) {
+  const [form, setForm] = useState<ConnectionFormData>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    latencyMs?: number;
+    error?: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const providers = type === "llm" ? LLM_PROVIDERS : EMBEDDING_PROVIDERS;
+
+  useEffect(() => {
+    if (open) {
+      if (editing) {
+        setForm({
+          name: editing.name,
+          provider: editing.provider,
+          baseUrl: editing.baseUrl,
+          apiKey: "", // Don't pre-fill secret
+          modelId: editing.modelId,
+          modelSmall: editing.modelSmall || "",
+          dimension: editing.dimension ? String(editing.dimension) : "",
+        });
+      } else {
+        setForm(EMPTY_FORM);
+      }
+      setTestResult(null);
+      setError(null);
+    }
+  }, [open, editing]);
+
+  const handleProviderChange = (providerId: string) => {
+    const preset = providers.find((p) => p.id === providerId);
+    setForm((prev) => ({
+      ...prev,
+      provider: providerId,
+      baseUrl: preset?.baseUrl || prev.baseUrl,
+    }));
+  };
+
+  const currentModels =
+    providers.find((p) => p.id === form.provider)?.models ?? [];
+
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await adminFetch("/connections/test", {
+        method: "POST",
+        body: JSON.stringify({
+          type,
+          provider: form.provider,
+          baseUrl: form.baseUrl,
+          apiKey: form.apiKey,
+          modelId: form.modelId,
+        }),
+      });
+      setTestResult(result);
+    } catch (err: unknown) {
+      setTestResult({
+        success: false,
+        error: err instanceof Error ? err.message : "Test failed",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim() || !form.baseUrl.trim() || !form.modelId.trim()) {
+      setError("Name, base URL, and model ID are required.");
+      return;
+    }
+    if (!editing && !form.apiKey.trim()) {
+      setError("API key is required for new connections.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const body: any = {
+        name: form.name.trim(),
+        type,
+        provider: form.provider || "custom",
+        baseUrl: form.baseUrl.trim(),
+        modelId: form.modelId.trim(),
+      };
+      if (form.apiKey) body.apiKey = form.apiKey;
+      if (type === "llm" && form.modelSmall)
+        body.modelSmall = form.modelSmall.trim();
+      if (type === "embedding" && form.dimension)
+        body.dimension = parseInt(form.dimension, 10);
+
+      if (editing) {
+        await adminFetch(`/connections/${editing.id}`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        });
+      } else {
+        await adminFetch("/connections", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+      }
+
+      onSave();
+      onOpenChange(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {editing ? "Edit" : "New"} {type === "llm" ? "LLM" : "Embedding"}{" "}
+            Connection
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-2">
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label>Connection Name</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="e.g. OpenRouter Claude Sonnet"
+            />
+          </div>
+
+          {/* Provider */}
+          <div className="space-y-1.5">
+            <Label>Provider</Label>
+            <Select
+              value={form.provider || "custom"}
+              onValueChange={handleProviderChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a provider" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Base URL */}
+          <div className="space-y-1.5">
+            <Label>Base URL</Label>
+            <Input
+              value={form.baseUrl}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, baseUrl: e.target.value }))
+              }
+              placeholder="https://api.openai.com/v1"
+            />
+          </div>
+
+          {/* API Key */}
+          <div className="space-y-1.5">
+            <Label>
+              API Key
+              {editing && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  (leave blank to keep existing)
+                </span>
+              )}
+            </Label>
+            <SecretInput
+              value={form.apiKey}
+              placeholder={editing ? editing.apiKeyMasked : "Enter API key"}
+              onChange={(v) => setForm((f) => ({ ...f, apiKey: v }))}
+            />
+          </div>
+
+          {/* Model ID */}
+          <div className="space-y-1.5">
+            <Label>Model ID</Label>
+            <div className="flex gap-2">
+              <Input
+                value={form.modelId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, modelId: e.target.value }))
+                }
+                placeholder="Enter model ID"
+                className="flex-1"
+              />
+              {currentModels.length > 0 && (
+                <Select
+                  value={form.modelId}
+                  onValueChange={(v) => setForm((f) => ({ ...f, modelId: v }))}
+                >
+                  <SelectTrigger className="w-[180px] shrink-0">
+                    <SelectValue placeholder="Presets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currentModels.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m.split("/").pop()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          {/* LLM-only: Small model */}
+          {type === "llm" && (
+            <div className="space-y-1.5">
+              <Label>
+                Small/Fast Model ID
+                <span className="text-xs text-muted-foreground ml-2">
+                  (optional, for router)
+                </span>
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.modelSmall}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, modelSmall: e.target.value }))
+                  }
+                  placeholder="Same as primary if blank"
+                  className="flex-1"
+                />
+                {currentModels.length > 0 && (
+                  <Select
+                    value={form.modelSmall}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, modelSmall: v }))
+                    }
+                  >
+                    <SelectTrigger className="w-[180px] shrink-0">
+                      <SelectValue placeholder="Presets" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {currentModels.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m.split("/").pop()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Embedding-only: Dimension */}
+          {type === "embedding" && (
+            <div className="space-y-1.5">
+              <Label>
+                Vector Dimension
+                <span className="text-xs text-muted-foreground ml-2">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                type="number"
+                value={form.dimension}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, dimension: e.target.value }))
+                }
+                placeholder="e.g. 1024"
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-destructive flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {error}
+            </p>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center gap-2">
+              <Button onClick={handleSave} disabled={saving} size="sm">
+                {saving ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {saving ? "Saving..." : editing ? "Update" : "Create"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTest}
+                disabled={
+                  testing ||
+                  !form.baseUrl ||
+                  !form.modelId ||
+                  (!form.apiKey && !editing)
+                }
+              >
+                {testing ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Zap className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Test
+              </Button>
+              {testResult && (
+                <span
+                  className={`text-xs flex items-center gap-1 ${
+                    testResult.success
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-destructive"
+                  }`}
+                >
+                  {testResult.success ? (
+                    <>
+                      <Check className="h-3 w-3" />
+                      OK
+                      {testResult.latencyMs != null &&
+                        ` (${testResult.latencyMs}ms)`}
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-3 w-3" />
+                      {testResult.error || "Failed"}
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Connections Tab (LLM or Embedding)
+// ---------------------------------------------------------------------------
+
+function ConnectionsTabContent({
+  type,
+  connections,
+  onRefresh,
+}: {
+  type: "llm" | "embedding";
+  connections: Connection[];
+  onRefresh: () => void;
+}) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Connection | null>(null);
+
+  const filtered = connections.filter((c) => c.type === type);
+
+  const handleActivate = async (id: string) => {
+    await adminFetch(`/connections/${id}/activate`, { method: "POST" });
+    onRefresh();
+  };
+
+  const handleDelete = async (id: string) => {
+    await adminFetch(`/connections/${id}`, { method: "DELETE" });
+    onRefresh();
+  };
+
+  const handleEdit = (conn: Connection) => {
+    setEditing(conn);
+    setDialogOpen(true);
+  };
+
+  const handleNew = () => {
+    setEditing(null);
+    setDialogOpen(true);
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {type === "llm" ? "LLM" : "Embedding"} Connections
+            </CardTitle>
+            <Button size="sm" onClick={handleNew} className="h-7 text-xs">
+              <Plus className="h-3 w-3 mr-1" />
+              New Connection
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filtered.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">
+                No {type === "llm" ? "LLM" : "embedding"} connections
+                configured.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNew}
+                className="mt-3"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
+                Create your first connection
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((conn) => (
+                <ConnectionCard
+                  key={conn.id}
+                  conn={conn}
+                  type={type}
+                  onActivate={() => handleActivate(conn.id)}
+                  onEdit={() => handleEdit(conn)}
+                  onDelete={() => handleDelete(conn.id)}
+                  onTest={() => {}}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ConnectionFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        type={type}
+        editing={editing}
+        onSave={onRefresh}
+      />
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Editable Settings Tab (RAG, Integrations, Observability)
+// ---------------------------------------------------------------------------
+
+function EditableTabContent({
+  settings,
+  showRerankerTest,
+}: {
+  settings: Setting[];
+  showRerankerTest?: boolean;
+}) {
   const [formValues, setFormValues] = useState<FormValues>(() =>
     buildFormValues(settings),
   );
@@ -489,6 +1088,13 @@ function LLMTabContent({ settings }: { settings: Setting[] }) {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [rerankTesting, setRerankTesting] = useState(false);
+  const [rerankResult, setRerankResult] = useState<{
+    success: boolean;
+    latencyMs?: number;
+    model?: string;
+    error?: string;
+  } | null>(null);
 
   const handleChange = useCallback((key: string, value: string) => {
     setFormValues((prev) => ({ ...prev, [key]: value }));
@@ -497,16 +1103,6 @@ function LLMTabContent({ settings }: { settings: Setting[] }) {
 
   const handleSave = async () => {
     const changed = getChangedValues(originalValues, formValues, settings);
-
-    // Always include llm.provider if it was set (might not be in original settings)
-    const providerVal = formValues["llm.provider"];
-    if (providerVal && !changed.some((c) => c.key === "llm.provider")) {
-      const origProvider = originalValues["llm.provider"];
-      if (providerVal !== origProvider) {
-        changed.push({ key: "llm.provider", value: providerVal });
-      }
-    }
-
     if (changed.length === 0) return;
 
     setSaving(true);
@@ -529,140 +1125,21 @@ function LLMTabContent({ settings }: { settings: Setting[] }) {
     }
   };
 
-  const dirty = isDirty(originalValues, formValues, settings) ||
-    (formValues["llm.provider"] || "") !== (originalValues["llm.provider"] || "");
-  const otherSettings = settings.filter(
-    (s) => !["llm.provider", "llm.model", "llm.model_small", "llm.base_url"].includes(s.key),
-  );
-  const currentProvider = formValues["llm.provider"] || deriveProviderFromUrl(formValues["llm.base_url"] || "") || "custom";
-
-  return (
-    <Card>
-      <CardContent className="pt-6 space-y-6">
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Provider selector — always shown */}
-          <ProviderSelector
-            value={currentProvider}
-            onChange={(v) => handleChange("llm.provider", v)}
-            onBaseUrlChange={(url) => handleChange("llm.base_url", url)}
-          />
-
-          {/* Base URL */}
-          {settings.find((s) => s.key === "llm.base_url") && (
-            <SettingField
-              setting={settings.find((s) => s.key === "llm.base_url")!}
-              value={formValues["llm.base_url"] ?? ""}
-              onChange={(v) => handleChange("llm.base_url", v)}
-            />
-          )}
-
-          {/* Model selectors with presets */}
-          {settings.find((s) => s.key === "llm.model") && (
-            <ModelSelector
-              providerId={currentProvider}
-              value={formValues["llm.model"] ?? ""}
-              onChange={(v) => handleChange("llm.model", v)}
-              label="Primary LLM model ID"
-              settingKey="llm.model"
-            />
-          )}
-          {settings.find((s) => s.key === "llm.model_small") && (
-            <ModelSelector
-              providerId={currentProvider}
-              value={formValues["llm.model_small"] ?? ""}
-              onChange={(v) => handleChange("llm.model_small", v)}
-              label="Small/fast LLM model ID"
-              settingKey="llm.model_small"
-            />
-          )}
-
-          {/* Remaining fields (api_key, etc.) */}
-          {otherSettings.map((s) => (
-            <SettingField
-              key={s.key}
-              setting={s}
-              value={formValues[s.key] ?? ""}
-              onChange={(v) => handleChange(s.key, v)}
-            />
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-border">
-          <div className="flex items-center gap-3">
-            <Button onClick={handleSave} disabled={!dirty || saving} size="sm">
-              {saving ? (
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Check className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
-            {saveMessage && (
-              <span
-                className={`text-sm flex items-center gap-1.5 ${saveMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-destructive"}`}
-              >
-                {saveMessage.type === "success" ? (
-                  <Check className="h-3.5 w-3.5" />
-                ) : (
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                )}
-                {saveMessage.text}
-              </span>
-            )}
-          </div>
-
-          <TestConnectionButton type="llm" formValues={formValues} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function EditableTabContent({
-  settings,
-  testType,
-}: {
-  settings: Setting[];
-  testType?: "llm" | "embedding";
-}) {
-  const [formValues, setFormValues] = useState<FormValues>(() =>
-    buildFormValues(settings),
-  );
-  const [originalValues] = useState<FormValues>(() =>
-    buildFormValues(settings),
-  );
-  const [saving, setSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
-
-  const handleChange = useCallback((key: string, value: string) => {
-    setFormValues((prev) => ({ ...prev, [key]: value }));
-    setSaveMessage(null);
-  }, []);
-
-  const handleSave = async () => {
-    const changed = getChangedValues(originalValues, formValues, settings);
-    if (changed.length === 0) return;
-
-    setSaving(true);
-    setSaveMessage(null);
+  const handleTestReranker = async () => {
+    setRerankTesting(true);
+    setRerankResult(null);
     try {
-      await adminFetch("/settings/bulk", {
-        method: "PUT",
-        body: JSON.stringify({ settings: changed }),
+      const result = await adminFetch("/settings/test-reranker", {
+        method: "POST",
       });
-      setSaveMessage({
-        type: "success",
-        text: `${changed.length} setting${changed.length > 1 ? "s" : ""} saved successfully.`,
-      });
+      setRerankResult(result);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save settings";
-      setSaveMessage({ type: "error", text: message });
+      setRerankResult({
+        success: false,
+        error: err instanceof Error ? err.message : "Test failed",
+      });
     } finally {
-      setSaving(false);
+      setRerankTesting(false);
     }
   };
 
@@ -706,14 +1183,56 @@ function EditableTabContent({
             )}
           </div>
 
-          {testType && (
-            <TestConnectionButton type={testType} formValues={formValues} />
+          {showRerankerTest && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestReranker}
+                disabled={rerankTesting}
+              >
+                {rerankTesting ? (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Zap className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Test Reranker
+              </Button>
+              {rerankResult && (
+                <span
+                  className={`text-xs flex items-center gap-1 ${
+                    rerankResult.success
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-destructive"
+                  }`}
+                >
+                  {rerankResult.success ? (
+                    <>
+                      <Check className="h-3 w-3" />
+                      OK
+                      {rerankResult.model && ` (${rerankResult.model})`}
+                      {rerankResult.latencyMs != null &&
+                        ` ${rerankResult.latencyMs}ms`}
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="h-3 w-3" />
+                      {rerankResult.error || "Failed"}
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </CardContent>
     </Card>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Infrastructure Tab
+// ---------------------------------------------------------------------------
 
 function InfrastructureTab({ envVars }: { envVars: EnvVar[] }) {
   return (
@@ -769,7 +1288,15 @@ function InfrastructureTab({ envVars }: { envVars: EnvVar[] }) {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="space-y-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-10 w-full max-w-xl" /><Skeleton className="h-80 rounded-xl" /></div>}>
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-full max-w-xl" />
+          <Skeleton className="h-80 rounded-xl" />
+        </div>
+      }
+    >
       <SettingsPageContent />
     </Suspense>
   );
@@ -782,6 +1309,7 @@ function SettingsPageContent() {
   );
   const [settings, setSettings] = useState<SettingsMap>({});
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -792,15 +1320,23 @@ function SettingsPageContent() {
     Promise.all([
       adminFetch("/settings").then((d) => d.settings as SettingsMap),
       adminFetch("/settings/env").then((d) => d.envVars as EnvVar[]),
+      adminFetch("/connections").then((d) => d.connections as Connection[]),
     ])
-      .then(([settingsData, envData]) => {
+      .then(([settingsData, envData, connsData]) => {
         setSettings(settingsData);
         setEnvVars(envData);
+        setConnections(connsData);
       })
       .catch((err) => {
         setError(err.message || "Failed to load settings");
       })
       .finally(() => setLoading(false));
+  }, []);
+
+  const refreshConnections = useCallback(() => {
+    adminFetch("/connections")
+      .then((d) => setConnections(d.connections as Connection[]))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -862,29 +1398,34 @@ function SettingsPageContent() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full sm:w-auto">
-          {TABS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id}>
-              {tab.label}
+          {TABS.map((t) => (
+            <TabsTrigger key={t.id} value={t.id}>
+              {t.label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {TABS.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id}>
-            {tab.id === "infrastructure" ? (
+        {TABS.map((t) => (
+          <TabsContent key={t.id} value={t.id}>
+            {t.id === "infrastructure" ? (
               <InfrastructureTab envVars={envVars} />
-            ) : tab.id === "llm" ? (
-              <LLMTabContent
-                key={`llm-${JSON.stringify(settings)}`}
-                settings={settingsForTab(settings, tab.categories)}
+            ) : t.id === "llm" ? (
+              <ConnectionsTabContent
+                type="llm"
+                connections={connections}
+                onRefresh={refreshConnections}
+              />
+            ) : t.id === "embedding" ? (
+              <ConnectionsTabContent
+                type="embedding"
+                connections={connections}
+                onRefresh={refreshConnections}
               />
             ) : (
               <EditableTabContent
-                key={`${tab.id}-${JSON.stringify(settings)}`}
-                settings={settingsForTab(settings, tab.categories)}
-                testType={
-                  tab.testable ? (tab.id as "llm" | "embedding") : undefined
-                }
+                key={`${t.id}-${JSON.stringify(settings)}`}
+                settings={settingsForTab(settings, t.categories)}
+                showRerankerTest={t.id === "rag-search"}
               />
             )}
           </TabsContent>

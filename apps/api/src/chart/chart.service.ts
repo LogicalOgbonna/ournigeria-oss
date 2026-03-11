@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHash } from 'crypto';
 import type { AIResponseContent, ChartDataPoint, TrendDataPoint } from '../types';
 import { formatNaira } from '../lib/format';
+import { cache as cacheManager } from '@ournigeria/cache';
+
+const chartCache = cacheManager.namespace('chart');
 
 const CHART_COLORS = [
   '#059669', '#0891b2', '#d97706', '#65a30d', '#7c3aed',
@@ -152,6 +156,15 @@ export class ChartService {
   }
 
   private async renderChart(config: Record<string, unknown>): Promise<Buffer> {
+    // Cache by config hash
+    const configJson = JSON.stringify(config);
+    const cacheKey = createHash('sha256').update(configJson).digest('hex');
+
+    const cached = await chartCache.get<{ type: 'Buffer'; data: number[] }>(cacheKey);
+    if (cached) {
+      return Buffer.from(cached.data);
+    }
+
     const res = await fetch(`${this.quickchartUrl}/chart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -162,6 +175,7 @@ export class ChartService {
         backgroundColor: '#ffffff',
         format: 'png',
       }),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {
@@ -169,6 +183,11 @@ export class ChartService {
       throw new Error(`QuickChart API error: ${res.status} ${text}`);
     }
 
-    return Buffer.from(await res.arrayBuffer());
+    const buffer = Buffer.from(await res.arrayBuffer());
+
+    // Cache as JSON-serializable format (30min TTL)
+    await chartCache.set(cacheKey, buffer.toJSON(), 30 * 60 * 1000);
+
+    return buffer;
   }
 }

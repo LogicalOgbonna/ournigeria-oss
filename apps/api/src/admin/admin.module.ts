@@ -21,6 +21,8 @@ import { AdminEvalController } from "./admin-eval.controller";
 import { AdminEvalService } from "./admin-eval.service";
 import { AdminSettingsController } from "./admin-settings.controller";
 import { AdminSettingsService } from "./admin-settings.service";
+import { AdminConnectionsController } from "./admin-connections.controller";
+import { AdminConnectionsService } from "./admin-connections.service";
 
 @Module({
   controllers: [
@@ -35,6 +37,7 @@ import { AdminSettingsService } from "./admin-settings.service";
     AdminDocumentsController,
     AdminEvalController,
     AdminSettingsController,
+    AdminConnectionsController,
   ],
   providers: [
     AdminAuthService,
@@ -48,16 +51,19 @@ import { AdminSettingsService } from "./admin-settings.service";
     AdminDocumentsService,
     AdminEvalService,
     AdminSettingsService,
+    AdminConnectionsService,
   ],
 })
 export class AdminModule implements OnModuleInit {
   constructor(
     private authService: AdminAuthService,
     private settingsService: AdminSettingsService,
+    private connectionsService: AdminConnectionsService,
   ) {}
 
   async onModuleInit() {
     await this.authService.ensureDefaultAdmin();
     await this.settingsService.seedDefaults();
+    await this.connectionsService.seedFromSettings();
   }
 }
