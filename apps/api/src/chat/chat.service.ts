@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService, type Prisma } from "@ournigeria/database";
+import { cache } from "@ournigeria/cache";
 import { routeToAgent } from "../mastra/router";
 import type { ToolId, Language, AIResponseContent } from "../types";
 import { summarizeRichContent } from "./rich-content-summary";
@@ -11,6 +12,9 @@ import {
 import { maybeSummarize } from "./summarize";
 import { extractAndSaveMemory, loadUserProfile } from "./user-memory";
 import { getLangfuse } from "../lib/langfuse";
+import { invalidateConversationList } from "../conversations/conversations.service";
+
+const convMetaCache = cache.namespace("conv:meta");
 
 const VALID_TOOLS: Set<string> = new Set(["budget", "corruption", "govspend"]);
 
@@ -41,28 +45,42 @@ export class ChatService {
     };
 
     if (conversationId) {
-      const conv = await this.prisma.conversation.findFirst({
-        where: { id: conversationId, userId, status: "active" },
-        select: {
-          id: true,
-          summary: true,
-          summaryUpTo: true,
-          lastAgentType: true,
-          mentionedStates: true,
-          mentionedYears: true,
-        },
-      });
-      if (!conv) {
-        throw new Error("Conversation not found");
-      }
-      convId = conv.id;
-      conversationMeta = conv;
+      type ConvMetaCached = {
+        meta: typeof conversationMeta;
+        nextSeq: number;
+      };
 
-      const lastMsg = await this.prisma.message.findFirst({
-        where: { conversationId: convId },
-        orderBy: { sequenceNumber: "desc" },
-      });
-      nextSeq = (lastMsg?.sequenceNumber ?? 0) + 1;
+      const cachedMeta = await convMetaCache.get<ConvMetaCached>(conversationId);
+      if (cachedMeta) {
+        convId = conversationId;
+        conversationMeta = cachedMeta.meta;
+        nextSeq = cachedMeta.nextSeq;
+      } else {
+        const conv = await this.prisma.conversation.findFirst({
+          where: { id: conversationId, userId, status: "active" },
+          select: {
+            id: true,
+            summary: true,
+            summaryUpTo: true,
+            lastAgentType: true,
+            mentionedStates: true,
+            mentionedYears: true,
+          },
+        });
+        if (!conv) {
+          throw new Error("Conversation not found");
+        }
+        convId = conv.id;
+        conversationMeta = conv;
+
+        const lastMsg = await this.prisma.message.findFirst({
+          where: { conversationId: convId },
+          orderBy: { sequenceNumber: "desc" },
+        });
+        nextSeq = (lastMsg?.sequenceNumber ?? 0) + 1;
+
+        await convMetaCache.set(conversationId, { meta: conversationMeta, nextSeq });
+      }
     } else {
       const title =
         message.length <= 60 ? message : message.slice(0, 60).trimEnd() + "...";
@@ -217,6 +235,10 @@ export class ChatService {
         mentionedYears: updatedYears,
       },
     });
+
+    // Invalidate cached conversation metadata and list
+    await convMetaCache.del(convId);
+    await invalidateConversationList(userId);
 
     // Send final event with rich content + thinking steps
     send({

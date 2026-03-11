@@ -5,6 +5,7 @@ import type {
   ThinkingStep,
   SourceCitation,
 } from "../types";
+import { createHash } from "crypto";
 import { mastra, AgentNames, type AgentName } from "./index";
 import {
   formatAgentResponse,
@@ -12,13 +13,14 @@ import {
   formatGovspendResponse,
   formatImpactResponse,
 } from "./tools/format-response";
-import {
-  chatModelSmall,
-} from "./rag/config";
+import { chatModelSmall } from "./rag/config";
 import { t } from "../lib/i18n";
 import { generateText } from "ai";
 import { z } from "zod";
 import { tracingMetadata, getPrompt } from "../lib/langfuse";
+import { cache as cacheManager } from "@ournigeria/cache";
+
+const intentCache = cacheManager.namespace("intent");
 
 const GENERAL_FOLLOW_UPS = [
   { text: "What is Lagos 2023 budget?" },
@@ -313,6 +315,78 @@ export function inferTool(
   return "budget";
 }
 
+/**
+ * Try to classify intent using keywords alone (no LLM).
+ * Returns null if the message is ambiguous — caller should fall back to LLM.
+ * Only triggers when keyword scores are decisive (score >= 2, or single strong signal).
+ */
+function tryFastClassify(
+  message: string,
+  context?: ConversationContext,
+): { intent: RouterIntent; entities: RouterEntities } | null {
+  const lower = message.toLowerCase();
+
+  // Impact has unique phrasing — check first
+  const impactScore = IMPACT_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+  if (impactScore >= 1) {
+    return { intent: "impact", entities: EMPTY_ENTITIES };
+  }
+
+  // General greetings/meta
+  const GENERAL_PATTERNS = [
+    /^(hi|hello|hey|good\s+(morning|afternoon|evening)|howdy)\b/,
+    /^(thanks?|thank\s+you|cheers|nice\s+one|great|awesome)\b/,
+    /^(who\s+are\s+you|what\s+are\s+you|what\s+can\s+you|how\s+do\s+you)/,
+    /^(help|i\s+don'?t\s+understand|what\s+do\s+you\s+do)/,
+    /^(bye|goodbye|see\s+you|later)\b/,
+  ];
+  if (GENERAL_PATTERNS.some((p) => p.test(lower))) {
+    return { intent: "general", entities: EMPTY_ENTITIES };
+  }
+
+  const corruptionScore = CORRUPTION_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+  const budgetScore = BUDGET_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+  const govspendScore = GOVSPEND_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+  const faacScore = FAAC_KEYWORDS.reduce(
+    (score, kw) => score + (lower.includes(kw) ? 1 : 0),
+    0,
+  );
+
+  const scores = [
+    { intent: "faac" as const, score: faacScore },
+    { intent: "corruption" as const, score: corruptionScore },
+    { intent: "budget" as const, score: budgetScore },
+    { intent: "govspend" as const, score: govspendScore },
+  ];
+
+  const sorted = scores.sort((a, b) => b.score - a.score);
+  const top = sorted[0];
+  const runner = sorted[1];
+
+  // High confidence: top score >= 2 and clearly ahead, OR top score >= 1 with runner at 0
+  if (top.score >= 2 && top.score > runner.score) {
+    return { intent: top.intent, entities: EMPTY_ENTITIES };
+  }
+  if (top.score >= 1 && runner.score === 0) {
+    return { intent: top.intent, entities: EMPTY_ENTITIES };
+  }
+
+  // Ambiguous or no keywords — return null to trigger LLM
+  return null;
+}
+
 type SendFn = (data: Record<string, unknown>) => void;
 
 interface RouteResult {
@@ -348,7 +422,10 @@ function isRerouteResult(r: RouteResult | RerouteResult): r is RerouteResult {
 // Each flow uses fullStream to separate thinking (tool-calling steps) from the final answer.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AgentStream = { fullStream: AsyncIterable<any>; textStream: AsyncIterable<string> };
+type AgentStream = {
+  fullStream: AsyncIterable<any>;
+  textStream: AsyncIterable<string>;
+};
 
 interface StreamResult {
   fullText: string;
@@ -374,7 +451,10 @@ const SOURCE_TYPE_MAP: Record<string, string> = {
  * Deduplicates by filename and limits to top results by score.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractSourcesFromToolResult(toolName: string, result: any): SourceCitation[] {
+function extractSourcesFromToolResult(
+  toolName: string,
+  result: any,
+): SourceCitation[] {
   const results = result?.results;
   if (!Array.isArray(results)) return [];
 
@@ -393,7 +473,7 @@ function extractSourcesFromToolResult(toolName: string, result: any): SourceCita
       location: r.s3_key || filename,
       sourceType,
       state: r.state,
-      year: typeof r.year === "number" ? r.year : (parseInt(r.year) || undefined),
+      year: typeof r.year === "number" ? r.year : parseInt(r.year) || undefined,
       score: r.score ?? 0,
     });
   }
@@ -439,7 +519,13 @@ async function streamWithThinking(
           if (rerouteBuffer.length >= REROUTE_BUFFER_SIZE) {
             const match = REROUTE_REGEX.exec(rerouteBuffer);
             if (match) {
-              return { fullText, answerText: "", thinkingSteps: [], sources: [], reroute: match[1].toLowerCase() };
+              return {
+                fullText,
+                answerText: "",
+                thinkingSteps: [],
+                sources: [],
+                reroute: match[1].toLowerCase(),
+              };
             }
             send({ type: "text", content: rerouteBuffer });
             flushed = true;
@@ -455,7 +541,11 @@ async function streamWithThinking(
           thinkingSteps.push({ type: "text", content: currentStepText.trim() });
           currentStepText = "";
         }
-        thinkingSteps.push({ type: "tool_call", content: toolName, tool: toolName });
+        thinkingSteps.push({
+          type: "tool_call",
+          content: toolName,
+          tool: toolName,
+        });
       } else if (type === "tool-result") {
         // Extract source citations from tool results
         const toolName = chunk.payload?.toolName ?? "";
@@ -467,7 +557,10 @@ async function streamWithThinking(
         const reason = chunk.payload?.stepResult?.reason ?? "";
         if (currentStepHasToolCalls || reason === "tool-calls") {
           if (currentStepText.trim()) {
-            thinkingSteps.push({ type: "text", content: currentStepText.trim() });
+            thinkingSteps.push({
+              type: "text",
+              content: currentStepText.trim(),
+            });
           }
         }
         currentStepText = "";
@@ -485,17 +578,31 @@ async function streamWithThinking(
       } catch {
         // textStream may also fail if the underlying stream is exhausted
       }
+      // If both streams produced no text, propagate the error
+      // so the caller can send a proper error event to the client
+      if (!fullText) {
+        throw err;
+      }
       return { fullText, answerText: fullText, thinkingSteps: [], sources: [] };
     }
     // If we already have partial text, log and continue with what we have
-    console.warn("[streamWithThinking] fullStream error after partial read:", err);
+    console.warn(
+      "[streamWithThinking] fullStream error after partial read:",
+      err,
+    );
   }
 
   // Handle unflushed reroute buffer
   if (!flushed) {
     const match = REROUTE_REGEX.exec(rerouteBuffer);
     if (match) {
-      return { fullText, answerText: "", thinkingSteps: [], sources: [], reroute: match[1].toLowerCase() };
+      return {
+        fullText,
+        answerText: "",
+        thinkingSteps: [],
+        sources: [],
+        reroute: match[1].toLowerCase(),
+      };
     }
     if (rerouteBuffer) send({ type: "text", content: rerouteBuffer });
   }
@@ -518,6 +625,12 @@ async function streamWithThinking(
     if (stripped) {
       answerText = stripped;
     }
+  }
+
+  // If the stream completed but produced no text, treat as an error
+  // (e.g. upstream LLM returned 402/credit exhausted and Mastra ended the stream silently)
+  if (!fullText.trim()) {
+    throw new Error("Agent produced no response");
   }
 
   // Deduplicate sources across multiple tool calls
@@ -546,7 +659,8 @@ async function runBudgetFlow(
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
   const agentStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
+  const { answerText, thinkingSteps, reroute, sources } =
+    await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -571,7 +685,8 @@ async function runCorruptionFlow(
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
   const agentStream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
+  const { answerText, thinkingSteps, reroute, sources } =
+    await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -596,7 +711,8 @@ async function runGovspendFlow(
   const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
   const agentStream = await govspendAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
+  const { answerText, thinkingSteps, reroute, sources } =
+    await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -621,7 +737,8 @@ async function runFaacFlow(
   const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
   const agentStream = await faacAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } = await streamWithThinking(agentStream, send);
+  const { answerText, thinkingSteps, reroute, sources } =
+    await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -650,7 +767,11 @@ async function runImpactFlow(
 
   const agentStream = await impactAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, sources } = await streamWithThinking(agentStream, send, false);
+  const { answerText, thinkingSteps, sources } = await streamWithThinking(
+    agentStream,
+    send,
+    false,
+  );
 
   const richContent = formatImpactResponse(answerText, language, sources);
   return { richContent, resolvedTool: "impact", thinkingSteps };
@@ -724,7 +845,31 @@ async function classifyIntent(
   context?: ConversationContext,
   sessionId?: string,
   userId?: string,
-): Promise<{ intent: RouterIntent; response: string; entities: RouterEntities }> {
+): Promise<{
+  intent: RouterIntent;
+  response: string;
+  entities: RouterEntities;
+}> {
+  // 1. Try keyword fast-path (no LLM, instant)
+  const fast = tryFastClassify(message, context);
+  if (fast) {
+    return { intent: fast.intent, response: "", entities: fast.entities };
+  }
+
+  // 2. Check intent cache
+  const cacheKey = createHash("sha256")
+    .update(JSON.stringify({ m: message, la: context?.lastAgentType ?? null }))
+    .digest("hex");
+  const cached = await intentCache.get<{
+    intent: RouterIntent;
+    response: string;
+    entities: RouterEntities;
+  }>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // 3. LLM classification (existing logic)
   try {
     const router = mastra.getAgent(AgentNames.routerAgent);
 
@@ -779,11 +924,16 @@ async function classifyIntent(
     }
 
     const parsed = routerSchema.parse(JSON.parse(resultText));
-    return {
+    const result = {
       intent: parsed.intent,
       response: parsed.response ?? "",
       entities: parsed.entities ?? EMPTY_ENTITIES,
     };
+
+    // Cache successful LLM classification
+    await intentCache.set(cacheKey, result, 5 * 60 * 1000);
+
+    return result;
   } catch {
     // Fall through to keyword-based fallback
   }
@@ -795,10 +945,13 @@ async function classifyIntent(
 
 function buildEntityHints(entities: RouterEntities): string {
   const parts: string[] = [];
-  if (entities.states?.length) parts.push(`States: ${entities.states.join(", ")}`);
+  if (entities.states?.length)
+    parts.push(`States: ${entities.states.join(", ")}`);
   if (entities.years?.length) parts.push(`Years: ${entities.years.join(", ")}`);
-  if (entities.officials?.length) parts.push(`Officials: ${entities.officials.join(", ")}`);
-  if (entities.sectors?.length) parts.push(`Sectors: ${entities.sectors.join(", ")}`);
+  if (entities.officials?.length)
+    parts.push(`Officials: ${entities.officials.join(", ")}`);
+  if (entities.sectors?.length)
+    parts.push(`Sectors: ${entities.sectors.join(", ")}`);
   if (entities.mdas?.length) parts.push(`MDAs: ${entities.mdas.join(", ")}`);
   if (entities.lgas?.length) parts.push(`LGAs: ${entities.lgas.join(", ")}`);
   if (parts.length === 0) return "";
@@ -910,14 +1063,22 @@ export async function routeToAgent({
       impactContext += `Recent conversation:\n${historyContext}`;
     }
     const impactEntityHints = buildEntityHints(extractedEntities);
-    const impactMessage = impactEntityHints ? impactEntityHints + "\n" + message : message;
+    const impactMessage = impactEntityHints
+      ? impactEntityHints + "\n" + message
+      : message;
     return runImpactFlow(impactContext.trim(), impactMessage, send, language);
   }
 
   // Agents now have access to all tools — no cross-domain pre-fetch needed.
   // Each agent autonomously decides which tools to call.
   // If an agent signals [REROUTE:xxx], we re-dispatch once (max 1 reroute to prevent loops).
-  const result = await runSpecialistFlow(tool, message, augmentedMessage, send, language);
+  const result = await runSpecialistFlow(
+    tool,
+    message,
+    augmentedMessage,
+    send,
+    language,
+  );
 
   if (!isRerouteResult(result)) {
     return result;
@@ -925,7 +1086,10 @@ export async function routeToAgent({
 
   // Agent signalled a reroute — re-dispatch to the target agent (once only).
   const rerouteTarget = result.target;
-  send({ type: "status", content: `Redirecting to ${rerouteTarget} specialist...` });
+  send({
+    type: "status",
+    content: `Redirecting to ${rerouteTarget} specialist...`,
+  });
 
   if (rerouteTarget === "impact") {
     let impactContext = "";
@@ -942,7 +1106,13 @@ export async function routeToAgent({
   }
 
   // Run the rerouted specialist flow WITHOUT reroute detection (no second reroute)
-  return runSpecialistFlowDirect(rerouteTarget, message, augmentedMessage, send, language);
+  return runSpecialistFlowDirect(
+    rerouteTarget,
+    message,
+    augmentedMessage,
+    send,
+    language,
+  );
 }
 
 /**
@@ -979,7 +1149,19 @@ async function runSpecialistFlowDirect(
   send: SendFn,
   language: Language,
 ): Promise<RouteResult> {
-  const agentMap: Record<string, { agentName: AgentName; status: string; formatter: (text: string, lang: Language, sources?: SourceCitation[]) => AIResponseContent; resolvedTool: ToolId }> = {
+  const agentMap: Record<
+    string,
+    {
+      agentName: AgentName;
+      status: string;
+      formatter: (
+        text: string,
+        lang: Language,
+        sources?: SourceCitation[],
+      ) => AIResponseContent;
+      resolvedTool: ToolId;
+    }
+  > = {
     budget: {
       agentName: AgentNames.budgetAnalyst,
       status: t("status.analyzingBudget", language),
@@ -1016,7 +1198,11 @@ async function runSpecialistFlowDirect(
   const agent = mastra.getAgent(config.agentName);
   const agentStream = await agent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, sources } = await streamWithThinking(agentStream, send, false);
+  const { answerText, thinkingSteps, sources } = await streamWithThinking(
+    agentStream,
+    send,
+    false,
+  );
 
   const richContent = config.formatter(answerText, language, sources);
   return { richContent, resolvedTool: config.resolvedTool, thinkingSteps };

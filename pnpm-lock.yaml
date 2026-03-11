@@ -68,6 +68,9 @@ importers:
       '@opentelemetry/sdk-node':
         specifier: ^0.212.0
         version: 0.212.0(@opentelemetry/api@1.9.0)
+      '@ournigeria/cache':
+        specifier: workspace:*
+        version: link:../../packages/cache
       '@ournigeria/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -519,6 +522,12 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/cache:
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   packages/database:
     dependencies:
       '@nestjs/common':
@@ -555,8 +564,6 @@ importers:
       playwright:
         specifier: ^1.58.2
         version: 1.58.2
-
-  packages/source: {}
 
 packages:
 

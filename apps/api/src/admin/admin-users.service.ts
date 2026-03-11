@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+import { invalidateUserAuthCache } from "../auth/auth.guard";
 
 @Injectable()
 export class AdminUsersService {
@@ -165,7 +166,7 @@ export class AdminUsersService {
   }
 
   async banUser(id: string, reason?: string) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id },
       data: {
         banned: true,
@@ -174,10 +175,12 @@ export class AdminUsersService {
       },
       select: { id: true, banned: true, bannedAt: true, banReason: true },
     });
+    await invalidateUserAuthCache(id);
+    return result;
   }
 
   async unbanUser(id: string) {
-    return this.prisma.user.update({
+    const result = await this.prisma.user.update({
       where: { id },
       data: {
         banned: false,
@@ -186,6 +189,8 @@ export class AdminUsersService {
       },
       select: { id: true, banned: true },
     });
+    await invalidateUserAuthCache(id);
+    return result;
   }
 
   async deleteUser(id: string) {

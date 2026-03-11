@@ -44,7 +44,13 @@ export function MessageBubble({
             onFollowUpClick={onFollowUpClick}
           />
         ) : (
-          <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+          <div
+            className={`rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed ${
+              message.isError
+                ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                : "bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            }`}
+          >
             <Markdown>{message.content}</Markdown>
           </div>
         )}

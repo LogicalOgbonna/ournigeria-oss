@@ -67,28 +67,55 @@ export const govspendSearchTool = createTool({
         payer_code: z.string(),
         year: z.string(),
         filename: z.string(),
+        s3_key: z.string(),
         score: z.number(),
       }),
     ),
     totalResults: z.number(),
   }),
-  execute: async ({ query: rawQuery, organization, beneficiary, year, month, topK }) => {
+  execute: async ({
+    query: rawQuery,
+    organization,
+    beneficiary,
+    year,
+    month,
+    topK,
+  }) => {
     try {
       const conditions: Array<Record<string, { $eq: string }>> = [];
-      if (organization) conditions.push({ organization_name: { $eq: organization } });
-      if (beneficiary) conditions.push({ beneficiary_name: { $eq: beneficiary } });
+      if (organization)
+        conditions.push({ organization_name: { $eq: organization } });
+      if (beneficiary)
+        conditions.push({ beneficiary_name: { $eq: beneficiary } });
       if (year) conditions.push({ year: { $eq: year } });
       if (month) conditions.push({ month: { $eq: month } });
 
       // Fallback to filter-based query if the LLM passes an empty string
-      const query = rawQuery?.trim() || [organization, beneficiary, year && `${year} payments`, month].filter(Boolean).join(" ") || "government payments";
+      const query =
+        rawQuery?.trim() ||
+        [organization, beneficiary, year && `${year} payments`, month]
+          .filter(Boolean)
+          .join(" ") ||
+        "government payments";
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;
       const cacheParams = { indexName: GOVSPEND_INDEX, query, filter };
 
-      type GovspendResult = { text: string; organization: string; beneficiary: string; amount: string; amount_numeric: number; description: string; payer_code: string; year: string; filename: string; score: number };
-      const cached = getCached<GovspendResult[]>(cacheParams);
+      type GovspendResult = {
+        text: string;
+        organization: string;
+        beneficiary: string;
+        amount: string;
+        amount_numeric: number;
+        description: string;
+        payer_code: string;
+        year: string;
+        filename: string;
+        s3_key: string;
+        score: number;
+      };
+      const cached = await getCached<GovspendResult[]>(cacheParams);
 
       let results: GovspendResult[];
       if (cached) {
@@ -99,7 +126,9 @@ export const govspendSearchTool = createTool({
           value: query,
         });
 
-        const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
+        const fetchTopK = RAG_CONFIG.rerank.enabled
+          ? requestedTopK * 2
+          : requestedTopK;
 
         const queryResults = await hybridSearch({
           indexName: GOVSPEND_INDEX,
@@ -120,11 +149,12 @@ export const govspendSearchTool = createTool({
           payer_code: (r.metadata?.payer_code as string) ?? "",
           year: (r.metadata?.year as string) ?? "",
           filename: (r.metadata?.filename as string) ?? "",
+          s3_key: (r.metadata?.s3_key as string) ?? "",
           score: r.score,
         }));
 
         results = await rerankResults(query, mapped, requestedTopK);
-        setCached(cacheParams, results);
+        await setCached(cacheParams, results);
       }
 
       return {

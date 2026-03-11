@@ -1,18 +1,5 @@
-import { Pool } from "pg";
 import { getPgVector, RAG_CONFIG, truncateEmbedding } from "./config";
-
-let _pool: Pool | null = null;
-function getPool(): Pool {
-  _pool ??= new Pool({ connectionString: process.env.DATABASE_URL });
-  return _pool;
-}
-
-export async function closeHybridSearchPool(): Promise<void> {
-  if (_pool) {
-    await _pool.end();
-    _pool = null;
-  }
-}
+import { getSharedPool } from "./db-pool";
 
 interface MastraFilter {
   $and?: Array<Record<string, { $eq: string | number | boolean }>>;
@@ -125,7 +112,7 @@ async function runBm25Search(
       LIMIT $2
     `;
 
-    const result = await getPool().query(sql, [query, topK, ...values]);
+    const result = await getSharedPool().query(sql, [query, topK, ...values]);
 
     return result.rows.map(
       (row: { metadata: Record<string, unknown>; bm25_score: number }) => ({

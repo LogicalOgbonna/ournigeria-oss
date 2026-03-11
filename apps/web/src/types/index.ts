@@ -107,6 +107,8 @@ export interface Message {
   richContent?: AIResponseContent;
   thinking?: ThinkingStep[];
   timestamp: Date;
+  /** Set when the message represents a server-side error. */
+  isError?: boolean;
 }
 
 export type ToolId =

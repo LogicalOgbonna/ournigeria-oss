@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Message, AIResponseContent, ThinkingStep, ToolId, Language } from "@/types";
+import {
+  Message,
+  AIResponseContent,
+  ThinkingStep,
+  ToolId,
+  Language,
+} from "@/types";
 import { apiUrl } from "@/lib/api";
 import { redirectToLogin } from "@/lib/auth-redirect";
 
@@ -251,6 +257,7 @@ export function useChat(conversationId?: string) {
         let fullText = "";
         let richContent: AIResponseContent | null = null;
         let thinkingSteps: ThinkingStep[] = [];
+        let currentConversationId = activeConversationId;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -273,6 +280,7 @@ export function useChat(conversationId?: string) {
               switch (event.type) {
                 case "meta":
                   if (!activeConversationId && event.conversationId) {
+                    currentConversationId = event.conversationId;
                     setActiveConversationId(event.conversationId);
                     window.history.replaceState(
                       null,
@@ -298,8 +306,23 @@ export function useChat(conversationId?: string) {
                   setStatusText("");
                   break;
 
-                case "error":
-                  throw new Error(event.content);
+                case "error": {
+                  // Server sent an explicit error — display it as the assistant message
+                  const errorText =
+                    event.content || "Something went wrong. Please try again.";
+                  const serverErrorMessage: Message = {
+                    id: generateId(),
+                    role: "assistant",
+                    content: errorText,
+                    timestamp: new Date(),
+                    isError: true,
+                  };
+                  setMessages((prev) => [...prev, serverErrorMessage]);
+                  setStreamingText("");
+                  setStatusText("");
+                  setIsLoading(false);
+                  return;
+                }
               }
             } catch (e) {
               if (e instanceof SyntaxError) continue;
@@ -322,8 +345,40 @@ export function useChat(conversationId?: string) {
         setStreamingText("");
         setStatusText("");
 
-        // Refresh conversation list
-        fetchConversations();
+        // Optimistic conversation list update (no network call)
+        setConversations((prev) => {
+          const msgPreview =
+            richContent?.text?.slice(0, 100) ?? fullText.slice(0, 100);
+          const existingIdx = prev.findIndex(
+            (c) => c.id === currentConversationId,
+          );
+
+          if (existingIdx >= 0) {
+            // Existing conversation — update and move to top
+            const updated = {
+              ...prev[existingIdx],
+              lastMessage: msgPreview,
+              lastMessageRole: "assistant" as const,
+              messageCount: prev[existingIdx].messageCount + 1,
+              updatedAt: new Date(),
+            };
+            return [updated, ...prev.filter((_, i) => i !== existingIdx)];
+          }
+
+          // New conversation — prepend
+          const newConv: ConversationForUI = {
+            id: currentConversationId!,
+            title: content.slice(0, 60),
+            visibility: "private",
+            slug: null,
+            lastMessage: msgPreview,
+            lastMessageRole: "assistant",
+            messageCount: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          return [newConv, ...prev];
+        });
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
 
@@ -341,7 +396,7 @@ export function useChat(conversationId?: string) {
         setIsLoading(false);
       }
     },
-    [activeConversationId, fetchConversations],
+    [activeConversationId],
   );
 
   // Navigate to a conversation without full page reload

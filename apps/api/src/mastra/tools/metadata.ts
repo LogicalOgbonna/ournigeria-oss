@@ -1,6 +1,9 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { cache as cacheManager } from "@ournigeria/cache";
 import type { BudgetOfficial, BudgetOfficials } from "../../types";
+
+const officialsCache = cacheManager.namespace("meta:officials");
 
 const BUDGETS_DIR = path.resolve(
   __dirname,
@@ -33,6 +36,10 @@ export async function getOfficials(
   state: string,
   year: number,
 ): Promise<BudgetOfficials | null> {
+  const cacheKey = `${state}:${year}`;
+  const cached = await officialsCache.get<BudgetOfficials>(cacheKey);
+  if (cached) return cached;
+
   const dirName = state.replace(/ /g, "_");
   const metadataPath = path.join(
     BUDGETS_DIR,
@@ -62,11 +69,14 @@ export async function getOfficials(
 
     if (officials.length === 0) return null;
 
-    return {
+    const result: BudgetOfficials = {
       state: data.state ?? state,
       year: data.year ?? year,
       officials,
     };
+
+    await officialsCache.set(cacheKey, result, 60 * 60 * 1000);
+    return result;
   } catch {
     return null;
   }

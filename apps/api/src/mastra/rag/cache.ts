@@ -1,14 +1,7 @@
 import { createHash } from "crypto";
+import { cache as cacheManager } from "@ournigeria/cache";
 
-interface CacheEntry<T> {
-  value: T;
-  expiresAt: number;
-}
-
-const MAX_ENTRIES = 500;
-const TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-const cache = new Map<string, CacheEntry<unknown>>();
+const ragCache = cacheManager.namespace("rag:query");
 
 function makeCacheKey(params: {
   indexName: string;
@@ -23,48 +16,19 @@ function makeCacheKey(params: {
   return createHash("sha256").update(normalized).digest("hex");
 }
 
-function evictExpired(): void {
-  const now = Date.now();
-  for (const [key, entry] of cache) {
-    if (entry.expiresAt <= now) {
-      cache.delete(key);
-    }
-  }
-}
-
-export function getCached<T>(params: {
+export async function getCached<T>(params: {
   indexName: string;
   query: string;
   filter?: unknown;
-}): T | undefined {
+}): Promise<T | undefined> {
   const key = makeCacheKey(params);
-  const entry = cache.get(key);
-  if (!entry) return undefined;
-  if (entry.expiresAt <= Date.now()) {
-    cache.delete(key);
-    return undefined;
-  }
-  // Move to end (LRU)
-  cache.delete(key);
-  cache.set(key, entry);
-  return entry.value as T;
+  return ragCache.get<T>(key);
 }
 
-export function setCached<T>(
+export async function setCached<T>(
   params: { indexName: string; query: string; filter?: unknown },
   value: T,
-): void {
+): Promise<void> {
   const key = makeCacheKey(params);
-
-  // Evict if at capacity
-  if (cache.size >= MAX_ENTRIES) {
-    evictExpired();
-    // If still at capacity, remove oldest entry
-    if (cache.size >= MAX_ENTRIES) {
-      const oldestKey = cache.keys().next().value;
-      if (oldestKey) cache.delete(oldestKey);
-    }
-  }
-
-  cache.set(key, { value, expiresAt: Date.now() + TTL_MS });
+  await ragCache.set(key, value, 10 * 60 * 1000);
 }
