@@ -39,7 +39,7 @@ RUN pnpm --filter @ournigeria/database run build
 # Inject NEXT_PUBLIC_* env vars from Infisical so they are inlined into the bundle
 # Using ARG to ensure we can pass the token at build time for CI environments
 # Or using the local .infisical.json for local development
-RUN if [ -z "$INFISICAL_TOKEN" ] || [ "$INFISICAL_TOKEN" = "REDACTED-REVOKED-TOKEN" ]; then \
+RUN if [ -z "$INFISICAL_TOKEN" ]; then \
       echo "Running without Infisical token or with old invalid token" && \
       pnpm --filter @ournigeria/web exec next build; \
     else \

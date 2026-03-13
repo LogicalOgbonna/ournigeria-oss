@@ -22,6 +22,7 @@ export interface MoneyEquivalent {
   count: number;
   unitCost: number;
   unitLabel: string;
+  contextNote?: string;
 }
 
 export interface StatHighlightData {
@@ -82,6 +83,7 @@ export interface AIResponseContent {
   };
   moneyEquivalents?: {
     title: string;
+    subtitle?: string;
     amount: number;
     items: MoneyEquivalent[];
   };

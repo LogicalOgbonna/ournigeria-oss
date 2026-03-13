@@ -136,6 +136,107 @@
       "difficulty": "medium",
       "why_it_breaks": "Starts with gratitude (general intent) but continues with a follow-up request. Router should classify as follow_up, not general. The 'Rivers State' mention provides context that this continues a previous topic.",
       "expected_answer": "Should route to follow_up (not general). Without conversation context, may default to budget for Rivers State. With context, should repeat the previous analysis for Rivers State. Must NOT just respond with a 'you're welcome' and ignore the data request."
+    },
+    {
+      "id": "rout-016",
+      "category": "cross_domain_multi_tool",
+      "question": "How much did Lagos State allocate to education in 2024, and were any education officials in Lagos charged with corruption?",
+      "expected_intent": "budget",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires both budget-search (Lagos education allocation) and corruption-search (education officials in Lagos). Agent must call multiple tools to answer fully.",
+      "expected_answer": "Should route to budget as primary intent. Agent should call budget-search for Lagos 2024 education figures AND corruption-search for Lagos education officials. Response should include both budget figures and any relevant corruption cases.",
+      "expected_tools": ["budgetSearchTool", "corruptionSearchTool"]
+    },
+    {
+      "id": "rout-017",
+      "category": "cross_domain_multi_tool",
+      "question": "Compare how much Rivers State received from FAAC in 2024 with what they actually budgeted for infrastructure",
+      "expected_intent": "faac",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires both faac-search (Rivers FAAC allocation) and budget-search (Rivers infrastructure budget). The comparison demands data from two different data sources.",
+      "expected_answer": "Should route to FAAC as primary intent. Agent should call faac-search for Rivers 2024 allocations AND budget-search for Rivers infrastructure budget. Should present a meaningful comparison between the two figures.",
+      "expected_tools": ["faacSearchTool", "budgetSearchTool"]
+    },
+    {
+      "id": "rout-018",
+      "category": "cross_domain_multi_tool",
+      "question": "Show me government payments to Julius Berger and tell me how many schools could be built with that money",
+      "expected_intent": "govspend",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires govspend-search (Julius Berger payments) and impact-calculator (real-world equivalents). Tests whether the agent can chain payment data retrieval with impact calculation.",
+      "expected_answer": "Should route to govspend. Agent should call govspend-search for Julius Berger payments AND impact-calculator to convert the total into school equivalents. Should present payment amounts and number of schools that money could build.",
+      "expected_tools": ["govspendSearchTool", "impactCalculatorTool"]
+    },
+    {
+      "id": "rout-019",
+      "category": "web_search_fallback",
+      "question": "What is Nigeria's current inflation rate and how does it affect state budget purchasing power?",
+      "expected_intent": "general",
+      "difficulty": "hard",
+      "why_it_breaks": "Current inflation rate is NOT in budget/corruption/FAAC data. Requires web-search for current macro data. Contains 'budget' keyword which may cause misrouting.",
+      "expected_answer": "Should route to general or budget. If budget, agent's primary search won't have inflation data and should fall back to web-search for current inflation figures. Response should include current inflation data and relate it to budget purchasing power.",
+      "expected_tools": ["webSearchTool"]
+    },
+    {
+      "id": "rout-020",
+      "category": "web_search_fallback",
+      "question": "How much does it cost to build a primary school in Nigeria in 2026?",
+      "expected_intent": "general",
+      "difficulty": "medium",
+      "why_it_breaks": "Current construction costs are not in our budget embeddings. Agent needs to use web-search or impact-calculator. Contains 'school' and 'Nigeria' which might trigger budget routing.",
+      "expected_answer": "Should provide current construction cost estimates for a primary school in Nigeria. May use web-search for current figures or impact-calculator for stored estimates. Should give a concrete Naira figure.",
+      "expected_tools": ["webSearchTool"]
+    },
+    {
+      "id": "rout-021",
+      "category": "web_search_fallback",
+      "question": "What recent reforms has the Nigerian government announced for FAAC distribution?",
+      "expected_intent": "general",
+      "difficulty": "hard",
+      "why_it_breaks": "Contains 'FAAC' keyword strongly suggesting faac intent, but 'recent reforms' and 'announced' indicate current news/policy updates not in our FAAC allocation data. Requires web search.",
+      "expected_answer": "Should ideally route to general and use web-search for recent policy announcements. If routed to FAAC, the agent should recognize its data doesn't cover policy reforms and fall back to web-search. Response should include recent FAAC-related government announcements.",
+      "expected_tools": ["webSearchTool"]
+    },
+    {
+      "id": "rout-022",
+      "category": "entity_extraction",
+      "question": "Compare Lagos, Kano, and Rivers States' education and health budgets for 2023 and 2024",
+      "expected_intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Tests entity extraction accuracy: 3 states (Lagos, Kano, Rivers), 2 years (2023, 2024), 2 sectors (education, health). Router must extract all entities correctly for targeted agent search.",
+      "expected_answer": "Should route to budget. Entity extraction should identify states: [Lagos, Kano, Rivers], years: [2023, 2024], sectors: [education, health]. Response should present a comparison grid of all 3 states across both sectors and both years.",
+      "expected_entities": {
+        "states": ["Lagos", "Kano", "Rivers"],
+        "years": [2023, 2024],
+        "sectors": ["education", "health"]
+      }
+    },
+    {
+      "id": "rout-023",
+      "category": "entity_extraction",
+      "question": "What are the corruption charges against Yahaya Bello and how much did Kogi State spend during his tenure?",
+      "expected_intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Tests entity extraction: officials: [Yahaya Bello], states: [Kogi]. Also a cross-domain query requiring corruption-search AND budget-search. Router must extract the official name and state correctly.",
+      "expected_answer": "Should route to corruption as primary intent. Entity extraction should identify officials: [Yahaya Bello], states: [Kogi]. Response should cover Bello's EFCC charges and ideally reference Kogi budget data during his tenure.",
+      "expected_entities": {
+        "officials": ["Yahaya Bello"],
+        "states": ["Kogi"]
+      },
+      "expected_tools": ["corruptionSearchTool", "budgetSearchTool"]
+    },
+    {
+      "id": "rout-024",
+      "category": "entity_extraction",
+      "question": "Show me FAAC allocations for Bayelsa and Delta states from January to June 2024",
+      "expected_intent": "faac",
+      "difficulty": "medium",
+      "why_it_breaks": "Tests entity extraction: states: [Bayelsa, Delta], years: [2024], plus temporal range (Jan-Jun). Router must extract both states and the year correctly.",
+      "expected_answer": "Should route to FAAC. Entity extraction should identify states: [Bayelsa, Delta], years: [2024]. Response should present monthly FAAC allocations for both states from January through June 2024.",
+      "expected_entities": {
+        "states": ["Bayelsa", "Delta"],
+        "years": [2024]
+      }
     }
   ]
 }

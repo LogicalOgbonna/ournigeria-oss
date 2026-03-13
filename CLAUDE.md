@@ -2,9 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Bug Fixing Workflow
+
+**CRITICAL RULE:** When a bug is reported, do NOT start by trying to fix it. Follow this process:
+1. **Reproduce first** — Write a test that reproduces the bug and confirms it fails.
+2. **Fix with subagents** — Have subagents attempt to fix the bug and prove the fix with a passing test.
+3. Never skip step 1. A fix without a reproducing test is not verified.
+
 ## AI Agent Workflow & Progress Tracking
 
-**CRITICAL RULE:** All AI agents working on this project MUST read and update `PROGRESS.md` during their run. 
+**CRITICAL RULE:** All AI agents working on this project MUST read and update `PROGRESS.md` during their run.
 - **Start of run:** Read `PROGRESS.md` to understand current active tasks and where the previous agent left off.
 - **End of run / Task update:** Update `PROGRESS.md` with exhaustive context. Note exactly what was completed, which files were touched, the current state of the application, and the exact next steps for the next agent. Do not leave the next agent guessing.
 
@@ -14,7 +21,7 @@ OurNigeria — an open-source AI-powered platform for Nigerian budget analysis a
 
 ## Monorepo Setup
 
-- **Package manager**: pnpm (with hoisted node-linker)
+- **Package manager**: pnpm (with hoisted node-linker via `.npmrc`)
 - **Orchestration**: Nx v21
 - **Workspaces**: `apps/*` and `packages/*`
 
@@ -45,6 +52,19 @@ pnpm web:build
 pnpm ingest:build
 pnpm dashboard:build
 
+# Lint (web only)
+pnpm web:lint             # ESLint v9 on the web app
+
+# E2E Tests (Playwright)
+pnpm test:e2e             # All E2E tests (excludes @human)
+pnpm test:e2e:web         # Web app tests only
+pnpm test:e2e:dashboard   # Dashboard tests only
+pnpm test:e2e:human       # Interactive headed tests
+
+# Evaluation (custom runner against live API)
+npx tsx packages/evaluation/run-eval.ts --api-url http://localhost:3000 --user-id <UUID>
+# Options: --file corruption.json, --concurrency 3, --timeout 120000
+
 # Production
 docker compose up -d
 ```
@@ -67,18 +87,46 @@ packages/
   source/     Raw budget documents (37 states, 959 files)
   scripts/    Scraping and data utilities
   evaluation/ Eval framework with test datasets (budget, corruption, faac, govspend, routing)
+  e2e/        Playwright E2E tests (web + dashboard)
 ```
+
+## Testing
+
+**No unit test framework.** The codebase uses two testing strategies:
+
+1. **E2E tests** (`packages/e2e/`): Playwright with 4 projects (web auth setup, dashboard auth setup, web-chromium desktop, web-mobile Pixel 5). Tests are tagged `@web`, `@dashboard`, `@human`. Config at `packages/e2e/playwright.config.ts`.
+
+2. **Evaluation framework** (`packages/evaluation/`): Custom TypeScript runner that sends questions to the live `/api/chat` SSE endpoint, parses streaming responses, and scores results (intent classification, tool usage, response quality). Five JSON datasets: `budget.json`, `corruption.json`, `govspend.json`, `faac.json`, `routing.json`. Results saved to `packages/evaluation/results/`.
 
 ## AI Agent Pipeline (apps/api/src/mastra/)
 
 Multi-agent system using Mastra framework:
-- **Router Agent** — intent detection, routes to specialist agents
+- **Router** (`router.ts`) — Three-stage intent classification: fast keyword scoring → LLM classification (with 5-min cache) → inferred fallback. Intents: `general`, `budget`, `corruption`, `govspend`, `faac`, `impact`, `follow_up`. Extracts entities (states, years, officials, sectors, MDAs, LGAs). Supports agent rerouting via `[REROUTE:target]` signals (max 1 reroute).
 - **Budget Analyst** — vector search on budget embeddings
-- **Corruption Analyst** — searches corruption case files
+- **Corruption Analyst** — searches EFCC case files
+- **GovSpend Analyst** — searches 891K+ government payment records
+- **FAAC Analyst** — federal allocation data
 - **Impact Analyst** — translates figures into real-world equivalents ("money could buy")
-- **FAAC/GovSpend Analysts** — specialized for federal allocation and government spending data
 
-RAG: pgvector similarity search with Voyage AI `voyage-3-large` (1024-dim). Four vector indexes configured via env vars: `VECTOR_INDEX_BUDGET`, `VECTOR_INDEX_CORRUPTION`, `VECTOR_INDEX_GOVSPEND`, `VECTOR_INDEX_FAAC`.
+### RAG Pipeline (apps/api/src/mastra/rag/)
+
+- **Hybrid search**: pgvector similarity + BM25 full-text, merged via Reciprocal Rank Fusion (RRF, K=60)
+- **Reranking**: Cohere `rerank-2` (configurable via settings table)
+- **Embeddings**: Voyage AI `voyage-3-large` (1024-dim)
+- **Four vector indexes** via env vars: `VECTOR_INDEX_BUDGET`, `VECTOR_INDEX_CORRUPTION`, `VECTOR_INDEX_GOVSPEND`, `VECTOR_INDEX_FAAC`
+- **Dynamic settings**: RAG parameters (top_k, search_ef, rerank, hybrid_search) configurable at runtime via system settings table
+
+### Tools (apps/api/src/mastra/tools/)
+
+`budgetSearchTool`, `corruptionSearchTool`, `govspendSearchTool`, `faacSearchTool`, `webSearchTool` (Tavily), `impactCalculatorTool`, `contextualImpactTool`. All agents have access to all tools.
+
+## Chat Flow (apps/api/src/chat/)
+
+SSE streaming endpoint at `POST /api/chat`. Event types: `meta`, `status`, `text`, `thinking`, `done`, `error`.
+
+Flow: Load conversation → build token-budgeted context (summary + recent messages + user profile) → classify intent → route to specialist agent → stream response → persist messages → background tasks (summarization, memory extraction, Langfuse scoring).
+
+Keepalive heartbeat every 15s to prevent reverse proxy timeouts. Message sequence collision handled with P2002 retry logic.
 
 ## Database (packages/database/)
 
@@ -86,7 +134,7 @@ Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/
 
 Key models: AdminUser, User, Conversation, Message, Document, SourceReference, BudgetSummary, IngestionRecord, Feedback, Notification, SystemBanner, SystemSetting.
 
-Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
+Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_chunks` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
 
 ### Migration Workflow
 
@@ -106,6 +154,14 @@ pnpm prisma:generate
 
 The `prisma:migrate:create` script (`packages/database/scripts/create-migration.ts`) automatically filters out operations on Mastra-managed chunk tables.
 
+## API Bootstrap (apps/api/src/main.ts)
+
+- Global prefix `/api` (excluding `/health`)
+- Global `AuthGuard` on all routes (public auth endpoints exempted)
+- Swagger UI at `/api/docs`
+- Runs RAG migrations at startup (idempotent)
+- CORS configured via `CORS_ORIGINS` env var
+
 ## Secrets Management
 
 Uses [Infisical](https://infisical.com/) CLI. Config in `.infisical.json`. Environment-specific paths: `/web`, `/dashboard`. Dev commands wrap with `infisical run --env dev --watch --`.
@@ -119,7 +175,7 @@ Key env vars (defined in `apps/api/src/config/env.validation.ts`):
 
 ## Frontend (apps/web/)
 
-Next.js v16 with React 19, Tailwind CSS v4, Radix UI (shadcn/ui). Charts use Recharts with 22 types. URL state managed with `nuqs`. Dark mode via `next-themes`. Output mode: `standalone`. API calls proxied via Next.js rewrites to `NEXT_PUBLIC_API_URL`.
+Next.js v16 with React 19, Tailwind CSS v4, Radix UI (shadcn/ui). Charts use Recharts with 22 types. URL state managed with `nuqs`. Dark mode via `next-themes`. Output mode: `standalone`. API calls proxied via Next.js rewrites (`/api/:path*` → `NEXT_PUBLIC_API_URL`).
 
 ## Authentication
 
@@ -129,11 +185,7 @@ Next.js v16 with React 19, Tailwind CSS v4, Radix UI (shadcn/ui). Charts use Rec
 
 ## Docker
 
-Multi-stage Dockerfiles with pnpm workspace filtering (`--filter @ournigeria/api...`). Dev compose runs PostgreSQL only. Production compose runs Postgres + API + Ingest with health checks and memory limits.
-
-## API Documentation
-
-Swagger UI at `/api/docs` when the API is running.
+Multi-stage Dockerfiles with pnpm workspace filtering (`--filter @ournigeria/api...`). Dev compose runs PostgreSQL only. Production compose runs Postgres + API + Ingest with health checks, memory limits (API 1GB, Ingest 4GB, Postgres 2GB), and 30s graceful shutdown.
 
 ## Planning
 - Save all plans to `.agent/plans/` folder
@@ -146,8 +198,27 @@ Swagger UI at `/api/docs` when the API is running.
   - ⚠️ **Medium** - May need iteration, some complexity
   - 🔴 **Complex** - Break into sub-plans before executing
 
+## gstack Skills
+
+This project uses [gstack](https://github.com/garrytan/gstack) skills installed at `.claude/skills/gstack/`.
+
+**Web browsing:** Always use the `/browse` skill for all web browsing and visual testing. Never use `mcp__claude-in-chrome__*` tools.
+
+Available skills:
+- `/plan-ceo-review` — Founder/CEO product review
+- `/plan-eng-review` — Engineering architecture review
+- `/review` — Staff engineer code review
+- `/ship` — Release engineer deployment
+- `/browse` — QA browser automation (use this for all web browsing)
+- `/retro` — Commit history & velocity analysis
+
+If gstack skills aren't working, rebuild by running:
+```bash
+cd .claude/skills/gstack && ./setup
+```
+
 ## Development Flow
 1. **Plan** - Create a detailed plan and save it to `.agent/plans/`
 2. **Build** - Execute the plan to implement the feature
-3. **Validate** - Test and verify the implementation works correctly. Use browser testing where applicable via an appropriate MCP
+3. **Validate** - Test and verify the implementation works correctly. Use `/browse` for browser testing.
 4. **Iterate** - Fix any issues found during validation

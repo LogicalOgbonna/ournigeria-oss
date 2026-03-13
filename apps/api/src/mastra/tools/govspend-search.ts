@@ -33,24 +33,24 @@ export const govspendSearchTool = createTool({
       ),
     organization: z
       .string()
-      .optional()
+      .nullish()
       .describe(
         "Filter by organization/MDA name, e.g. 'Nigeria Correctional Service', 'Federal Ministry of Education'",
       ),
     beneficiary: z
       .string()
-      .optional()
+      .nullish()
       .describe(
         "Filter by beneficiary name, e.g. 'National Housing Fund', 'Julius Berger'",
       ),
-    year: z.string().optional().describe("Filter by year, e.g. '2023', '2024'"),
+    year: z.string().nullish().describe("Filter by year, e.g. '2023', '2024'"),
     month: z
       .string()
-      .optional()
+      .nullish()
       .describe("Filter by month name, e.g. 'January', 'February', 'March'"),
     topK: z
       .number()
-      .optional()
+      .nullish()
       .describe(
         "Number of results to return. Use 10-15 for simple queries, 25-40 for comparisons across MDAs or years. Default: 15",
       ),

@@ -50,35 +50,36 @@ export const budgetSearchTool = createTool({
     query: z.string().describe("The search query about Nigerian budgets"),
     state: z
       .string()
-      .optional()
+      .nullish()
       .describe(
         "Filter by state name (lowercase), e.g. 'lagos', 'benue', 'kano'",
       ),
     year: z
       .number()
-      .optional()
+      .nullish()
       .describe("Filter by budget year, e.g. 2024, 2025"),
     sector: z
       .string()
-      .optional()
+      .nullish()
       .describe(
         "Filter by budget sector, e.g. 'education', 'health', 'infrastructure', 'agriculture', 'defence', 'energy', 'water_resources', 'transportation'",
       ),
     budget_category: z
       .string()
-      .optional()
+      .nullish()
       .describe(
         "Filter by budget category, e.g. 'capital', 'recurrent', 'personnel', 'overhead'",
       ),
     is_summary: z
       .boolean()
-      .optional()
+      .nullish()
+      .default(false)
       .describe(
         "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false or leave undefined for specific line items.",
       ),
     topK: z
       .number()
-      .optional()
+      .nullish()
       .describe(
         "Number of results to return. Use 10-15 for simple queries, 25-30 for comparisons, 40-50 for multi-state/multi-year analysis. Default: 15",
       ),
@@ -157,7 +158,7 @@ export const budgetSearchTool = createTool({
       if (budget_category) {
         conditions.push({ budget_category: { $eq: budget_category } });
       }
-      if (is_summary !== undefined) {
+      if (is_summary != null) {
         conditions.push({ is_summary: { $eq: is_summary } });
       }
 

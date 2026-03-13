@@ -5,7 +5,8 @@ import type {
   ThinkingStep,
   SourceCitation,
 } from "../types";
-import { createHash } from "crypto";
+import type { ContextualImpactResult } from "./tools/contextual-impact";
+import { createHash } from "node:crypto";
 import { mastra, AgentNames, type AgentName } from "./index";
 import {
   formatAgentResponse,
@@ -432,6 +433,7 @@ interface StreamResult {
   answerText: string;
   thinkingSteps: ThinkingStep[];
   sources: SourceCitation[];
+  impactEquivalents?: ContextualImpactResult;
   reroute?: string;
 }
 
@@ -498,6 +500,7 @@ async function streamWithThinking(
   let fullText = "";
   let currentStepText = "";
   let currentStepHasToolCalls = false;
+  let capturedImpact: ContextualImpactResult | undefined;
 
   // Reroute detection
   let rerouteBuffer = "";
@@ -552,6 +555,13 @@ async function streamWithThinking(
         const result = chunk.payload?.result;
         const extracted = extractSourcesFromToolResult(toolName, result);
         allSources.push(...extracted);
+        // Capture contextual-impact tool output
+        if (toolName === "contextual-impact" || toolName === "contextualImpactTool") {
+          console.log(`[streamWithThinking] Got tool-result for ${toolName}, has items: ${!!result?.items}, items count: ${result?.items?.length}`);
+          if (result?.items) {
+            capturedImpact = result as ContextualImpactResult;
+          }
+        }
       } else if (type === "step-finish") {
         // step-finish fires at the end of each LLM step (not "finish" which fires once at the very end)
         const reason = chunk.payload?.stepResult?.reason ?? "";
@@ -583,7 +593,7 @@ async function streamWithThinking(
       if (!fullText) {
         throw err;
       }
-      return { fullText, answerText: fullText, thinkingSteps: [], sources: [] };
+      return { fullText, answerText: fullText, thinkingSteps: [], sources: [], impactEquivalents: capturedImpact };
     }
     // If we already have partial text, log and continue with what we have
     console.warn(
@@ -641,7 +651,7 @@ async function streamWithThinking(
     return true;
   });
 
-  return { fullText, answerText, thinkingSteps, sources: dedupedSources };
+  return { fullText, answerText, thinkingSteps, sources: dedupedSources, impactEquivalents: capturedImpact };
 }
 
 async function runBudgetFlow(
@@ -659,14 +669,14 @@ async function runBudgetFlow(
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
   const agentStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } =
+  const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  const richContent = formatAgentResponse(answerText, language, sources);
+  const richContent = await formatAgentResponse(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: "budget", thinkingSteps };
 }
 
@@ -685,14 +695,14 @@ async function runCorruptionFlow(
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
   const agentStream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } =
+  const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  const richContent = formatCorruptionResponse(answerText, language, sources);
+  const richContent = await formatCorruptionResponse(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: "corruption", thinkingSteps };
 }
 
@@ -711,14 +721,14 @@ async function runGovspendFlow(
   const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
   const agentStream = await govspendAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } =
+  const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  const richContent = formatGovspendResponse(answerText, language, sources);
+  const richContent = await formatGovspendResponse(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: "govspend", thinkingSteps };
 }
 
@@ -737,14 +747,14 @@ async function runFaacFlow(
   const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
   const agentStream = await faacAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, reroute, sources } =
+  const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send);
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
   }
 
-  const richContent = formatAgentResponse(answerText, language, sources);
+  const richContent = await formatAgentResponse(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: "faac", thinkingSteps };
 }
 
@@ -767,13 +777,13 @@ async function runImpactFlow(
 
   const agentStream = await impactAgent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, sources } = await streamWithThinking(
+  const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,
     send,
     false,
   );
 
-  const richContent = formatImpactResponse(answerText, language, sources);
+  const richContent = await formatImpactResponse(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: "impact", thinkingSteps };
 }
 
@@ -1158,7 +1168,8 @@ async function runSpecialistFlowDirect(
         text: string,
         lang: Language,
         sources?: SourceCitation[],
-      ) => AIResponseContent;
+        toolEquivalents?: ContextualImpactResult,
+      ) => Promise<AIResponseContent>;
       resolvedTool: ToolId;
     }
   > = {
@@ -1198,12 +1209,12 @@ async function runSpecialistFlowDirect(
   const agent = mastra.getAgent(config.agentName);
   const agentStream = await agent.stream(prompt, { maxSteps: 10 });
 
-  const { answerText, thinkingSteps, sources } = await streamWithThinking(
+  const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,
     send,
     false,
   );
 
-  const richContent = config.formatter(answerText, language, sources);
+  const richContent = await config.formatter(answerText, language, sources, impactEquivalents);
   return { richContent, resolvedTool: config.resolvedTool, thinkingSteps };
 }

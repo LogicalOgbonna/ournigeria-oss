@@ -240,10 +240,17 @@ export class ChatService {
     await convMetaCache.del(convId);
     await invalidateConversationList(userId);
 
+    // Extract tool names from thinking steps for eval tracking
+    const toolsCalled = (thinkingSteps ?? [])
+      .filter((s) => s.type === "tool_call" && s.tool)
+      .map((s) => s.tool!);
+
     // Send final event with rich content + thinking steps
     send({
       type: "done",
       richContent,
+      resolvedTool,
+      ...(toolsCalled.length > 0 ? { toolsCalled } : {}),
       ...(thinkingSteps && thinkingSteps.length > 0 ? { thinking: thinkingSteps } : {}),
     });
 

@@ -31,6 +31,7 @@ export interface EnvConfig {
   RERANK_ENABLED?: string;
   RERANK_TOP_N?: string;
   HYBRID_SEARCH_ENABLED?: string;
+  CONTEXTUAL_IMPACT_ENABLED?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -106,5 +107,6 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     RERANK_ENABLED: (config.RERANK_ENABLED as string) || undefined,
     RERANK_TOP_N: (config.RERANK_TOP_N as string) || undefined,
     HYBRID_SEARCH_ENABLED: (config.HYBRID_SEARCH_ENABLED as string) || undefined,
+    CONTEXTUAL_IMPACT_ENABLED: (config.CONTEXTUAL_IMPACT_ENABLED as string) || undefined,
   };
 }

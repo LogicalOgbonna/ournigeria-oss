@@ -4,6 +4,7 @@ import { govspendSearchTool } from "./govspend-search";
 import { faacSearchTool } from "./faac-search";
 import { webSearchTool } from "./web-search";
 import { impactCalculatorTool } from "./impact-calculator";
+import { contextualImpactTool } from "./contextual-impact";
 
 /**
  * Shared tools registry — every specialist agent gets access to all search
@@ -16,4 +17,5 @@ export const sharedTools = {
   faacSearchTool,
   webSearchTool,
   impactCalculatorTool,
+  contextualImpactTool,
 };

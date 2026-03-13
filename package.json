@@ -36,8 +36,8 @@
     "start": "bash packages/scripts/start/start.sh"
   },
   "devDependencies": {
-    "nx": "^21.3.2",
-    "@nx/js": "^21.3.2"
+    "@nx/js": "^21.3.2",
+    "nx": "^21.3.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -50,5 +50,8 @@
       "tesseract.js",
       "unrs-resolver"
     ]
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
   }
 }

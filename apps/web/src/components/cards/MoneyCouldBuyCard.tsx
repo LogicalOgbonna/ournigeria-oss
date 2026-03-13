@@ -19,6 +19,14 @@ import {
   Swords,
   BookOpen,
   Download,
+  Truck,
+  Baby,
+  Wheat,
+  Laptop,
+  Stethoscope,
+  Building2,
+  Users,
+  Briefcase,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -34,6 +42,14 @@ const iconMap: Record<string, React.ElementType> = {
   shield: Shield,
   swords: Swords,
   "book-open": BookOpen,
+  truck: Truck,
+  baby: Baby,
+  wheat: Wheat,
+  laptop: Laptop,
+  stethoscope: Stethoscope,
+  building: Building2,
+  users: Users,
+  briefcase: Briefcase,
 };
 
 const bgColors = [
@@ -84,12 +100,14 @@ function AnimatedCount({ target }: { target: number }) {
 
 interface MoneyCouldBuyCardProps {
   title: string;
+  subtitle?: string;
   amount: number;
   items: MoneyEquivalent[];
 }
 
 export function MoneyCouldBuyCard({
   title,
+  subtitle,
   amount,
   items,
 }: MoneyCouldBuyCardProps) {
@@ -128,6 +146,11 @@ export function MoneyCouldBuyCard({
           <p className="text-xs text-slate-400 dark:text-slate-500">
             What {formatNaira(amount)} could fund
           </p>
+          {subtitle && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
+              {subtitle}
+            </p>
+          )}
         </div>
         <button
           onClick={handleDownload}
@@ -161,6 +184,11 @@ export function MoneyCouldBuyCard({
               <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
                 {item.unitLabel}
               </p>
+              {item.contextNote && (
+                <p className="mt-0.5 text-[9px] text-slate-400 dark:text-slate-500 italic">
+                  {item.contextNote}
+                </p>
+              )}
             </div>
           );
         })}
