@@ -113,6 +113,7 @@ export function AIMessage({
       {content.moneyEquivalents && (
         <MoneyCouldBuyCard
           title={content.moneyEquivalents.title}
+          subtitle={content.moneyEquivalents.subtitle}
           amount={content.moneyEquivalents.amount}
           items={content.moneyEquivalents.items}
         />

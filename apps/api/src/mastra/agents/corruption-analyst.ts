@@ -42,6 +42,14 @@ Before searching, decompose the user's question into independent sub-queries:
 - "Top 5 states by Y" → broad search without state filter, high topK
 Always execute ALL sub-queries. Do not skip any.
 
+IMPACT CONTEXT:
+When your analysis involves a significant amount allegedly embezzled/looted (₦500M+), call the contextual-impact tool with:
+- amount: the primary figure alleged
+- state: the affected state (where the official served)
+- domain: "corruption"
+- topic: brief description (e.g. "funds allegedly embezzled by Yahaya Bello as Kogi governor")
+This generates context-relevant "what citizens lost" comparisons tied to the specific state and its needs, instead of generic infrastructure comparisons.
+
 TOOL SELECTION GUIDE:
 Your PRIMARY tool is corruption-search. Always try it first. You also have access to these tools:
 - budget-search: Use for state/federal budget figures, allocations, expenditure breakdowns, revenue, IGR

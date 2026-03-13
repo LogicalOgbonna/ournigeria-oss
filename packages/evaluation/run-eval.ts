@@ -58,12 +58,24 @@ interface EvalQuestion {
   expected_answer?: string;
   metadata_filters_needed?: string[];
   officials_involved?: string;
+  expected_tools?: string[];
+  expected_entities?: Record<string, unknown>;
   // Added by runner:
   answer?: string;
   resolved_intent?: string;
+  tools_called?: string[];
   response_time_ms?: number;
   pass?: boolean;
   evaluation_notes?: string;
+  tool_metrics?: ToolMetrics;
+}
+
+interface ToolMetrics {
+  tools_called: string[];
+  tool_call_count: number;
+  expected_tools_hit: number;
+  expected_tools_total: number;
+  tool_efficiency_score: number;
 }
 
 interface EvalFile {
@@ -80,6 +92,8 @@ interface EvalSummary {
   errors: number;
   pass_rate: string;
   avg_response_time_ms: number;
+  avg_tool_calls: number;
+  avg_tool_efficiency: number;
   by_difficulty: Record<string, { total: number; passed: number }>;
   by_category: Record<string, { total: number; passed: number }>;
 }
@@ -89,7 +103,7 @@ interface EvalSummary {
 async function askQuestion(
   question: string,
   tool?: string,
-): Promise<{ text: string; resolvedTool: string; timeMs: number }> {
+): Promise<{ text: string; resolvedTool: string; toolsCalled: string[]; timeMs: number }> {
   const start = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
@@ -120,6 +134,7 @@ async function askQuestion(
     const decoder = new TextDecoder();
     let fullText = "";
     let resolvedTool = "unknown";
+    let toolsCalled: string[] = [];
     let buffer = "";
 
     while (true) {
@@ -148,6 +163,9 @@ async function askQuestion(
               fullText = event.richContent.text;
             }
             resolvedTool = event.resolvedTool ?? resolvedTool;
+            if (Array.isArray(event.toolsCalled)) {
+              toolsCalled = event.toolsCalled;
+            }
           }
         } catch {
           // Skip malformed JSON lines
@@ -155,10 +173,43 @@ async function askQuestion(
       }
     }
 
-    return { text: fullText, resolvedTool, timeMs: Date.now() - start };
+    return { text: fullText, resolvedTool, toolsCalled, timeMs: Date.now() - start };
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ─── Tool Metrics ────────────────────────────────────────────────
+
+function computeToolMetrics(q: EvalQuestion): ToolMetrics {
+  const toolsCalled = q.tools_called ?? [];
+  const expectedTools = q.expected_tools ?? [];
+
+  let expectedHit = 0;
+  if (expectedTools.length > 0) {
+    expectedHit = expectedTools.filter((t) => toolsCalled.includes(t)).length;
+  }
+
+  // Efficiency: ratio of expected tools hit vs total tools called.
+  // If no expected tools defined, efficiency = 1.0 (no penalty).
+  // If agent called exactly the right tools, efficiency = 1.0.
+  // Penalty for missing expected tools or calling unnecessary tools.
+  let efficiency = 1.0;
+  if (expectedTools.length > 0) {
+    const coverage = expectedTools.length > 0 ? expectedHit / expectedTools.length : 1;
+    const waste = toolsCalled.length > 0
+      ? Math.max(0, toolsCalled.length - expectedTools.length) / toolsCalled.length
+      : 0;
+    efficiency = Math.max(0, coverage - waste * 0.5);
+  }
+
+  return {
+    tools_called: toolsCalled,
+    tool_call_count: toolsCalled.length,
+    expected_tools_hit: expectedHit,
+    expected_tools_total: expectedTools.length,
+    tool_efficiency_score: Math.round(efficiency * 100) / 100,
+  };
 }
 
 // ─── Evaluator ───────────────────────────────────────────────────
@@ -337,6 +388,20 @@ function evaluateAnswer(q: EvalQuestion): { pass: boolean; notes: string } {
     }
   }
 
+  // Check 10: Tool usage — did the agent call expected tools?
+  if (q.expected_tools && q.expected_tools.length > 0 && q.tools_called) {
+    checks++;
+    const metrics = computeToolMetrics(q);
+    if (metrics.expected_tools_hit === metrics.expected_tools_total) {
+      score++;
+      notes.push(`All expected tools called (${metrics.tools_called.join(", ")}).`);
+    } else {
+      notes.push(
+        `Missing tools: called [${metrics.tools_called.join(", ")}], expected [${q.expected_tools.join(", ")}] (${metrics.expected_tools_hit}/${metrics.expected_tools_total} hit).`,
+      );
+    }
+  }
+
   const passThreshold = checks > 0 ? score / checks : 0;
   const pass = passThreshold >= 0.5;
 
@@ -376,10 +441,12 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
     console.log(`  ${qNum} Asking: "${shortQ}"`);
 
     try {
-      const { text, resolvedTool, timeMs } = await askQuestion(q.question);
+      const { text, resolvedTool, toolsCalled, timeMs } = await askQuestion(q.question);
       q.answer = text;
       q.resolved_intent = resolvedTool;
+      q.tools_called = toolsCalled;
       q.response_time_ms = timeMs;
+      q.tool_metrics = computeToolMetrics(q);
 
       const { pass, notes } = evaluateAnswer(q);
       q.pass = pass;
@@ -443,6 +510,18 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
   const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) : "0.0";
   const avgTime = total > 0 ? Math.round(totalTime / total) : 0;
 
+  // Compute aggregate tool metrics
+  const toolMetrics = results
+    .filter((q) => q.tool_metrics)
+    .map((q) => q.tool_metrics!);
+  const avgToolCalls = toolMetrics.length > 0
+    ? Math.round((toolMetrics.reduce((s, m) => s + m.tool_call_count, 0) / toolMetrics.length) * 10) / 10
+    : 0;
+  const metricsWithExpected = toolMetrics.filter((m) => m.expected_tools_total > 0);
+  const avgToolEfficiency = metricsWithExpected.length > 0
+    ? Math.round((metricsWithExpected.reduce((s, m) => s + m.tool_efficiency_score, 0) / metricsWithExpected.length) * 100) / 100
+    : 1.0;
+
   const summary: EvalSummary = {
     file: fileName,
     total,
@@ -451,6 +530,8 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
     errors,
     pass_rate: `${passRate}%`,
     avg_response_time_ms: avgTime,
+    avg_tool_calls: avgToolCalls,
+    avg_tool_efficiency: avgToolEfficiency,
     by_difficulty: byDifficulty,
     by_category: byCategory,
   };
@@ -459,6 +540,7 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
   console.log(`\n  Summary: ${passed}/${total} passed (${passRate}%)`);
   console.log(`  Failed: ${failed}, Errors: ${errors}`);
   console.log(`  Avg response time: ${(avgTime / 1000).toFixed(1)}s`);
+  console.log(`  Avg tool calls: ${avgToolCalls}, Avg tool efficiency: ${avgToolEfficiency}`);
 
   return summary;
 }

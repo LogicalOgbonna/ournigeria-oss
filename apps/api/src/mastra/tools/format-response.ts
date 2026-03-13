@@ -6,12 +6,19 @@ import {
   extractTrendLine,
 } from "../../chart/chart-data";
 import { extractChartBlocks } from "../../chart/chart-parser";
+import { generateText } from "ai";
+import { z } from "zod";
+import { chatModelSmall } from "../../mastra/rag/config";
+import { computeStaticEquivalents, type ContextualImpactResult } from "./contextual-impact";
+import { getSettingBool } from "../../config/settings-store";
+import { formatNairaInText } from "../../lib/format";
 
-export function formatAgentResponse(
+export async function formatAgentResponse(
   budgetAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
-): AIResponseContent {
+  toolEquivalents?: ContextualImpactResult,
+): Promise<AIResponseContent> {
   // Try to parse structured ```chart``` blocks from agent output first
   const { text: cleanedText, charts } = extractChartBlocks(budgetAnalysis);
   const hasStructuredCharts = charts.length > 0;
@@ -23,11 +30,11 @@ export function formatAgentResponse(
   const textForExtraction = hasStructuredCharts ? cleanedText : budgetAnalysis;
 
   const stats = extractStats(textForExtraction);
-  const equivalents = extractEquivalents(textForExtraction);
+  const equivalents = await extractEquivalentsContextual(textForExtraction, "budget", toolEquivalents);
   const followUps = generateFollowUps(textForExtraction, language);
 
   const response: AIResponseContent = {
-    text: displayText,
+    text: formatNairaInText(displayText),
     followUps,
   };
 
@@ -40,8 +47,10 @@ export function formatAgentResponse(
   }
 
   if (equivalents.items.length > 0) {
-    const budgetLabel = extractBudgetLabel(textForExtraction);
-    equivalents.title = tf("equivalents.budget", language, budgetLabel);
+    if (!toolEquivalents) {
+      const budgetLabel = extractBudgetLabel(textForExtraction);
+      equivalents.title = tf("equivalents.budget", language, budgetLabel);
+    }
     response.moneyEquivalents = equivalents;
   }
 
@@ -127,6 +136,7 @@ function extractLabel(context: string): string {
 
 interface EquivalentsResult {
   title: string;
+  subtitle?: string;
   amount: number;
   items: Array<{
     icon: string;
@@ -134,6 +144,7 @@ interface EquivalentsResult {
     count: number;
     unitCost: number;
     unitLabel: string;
+    contextNote?: string;
   }>;
 }
 
@@ -212,6 +223,164 @@ const AMENITIES = [
   },
 ];
 
+const SECTOR_PATTERNS: Record<string, RegExp> = {
+  education: /\b(education|school|university|scholarship|teacher|lecturer|student|UBEC|TETFUND|classroom|library|libraries|textbook|learning)\b/i,
+  health: /\b(health|hospital|clinic|nurse|doctor|medical|pharmaceutical|NHIS|primary health|ambulance|maternity|surgery)\b/i,
+  infrastructure: /\b(infrastructure|road|bridge|building|construction|housing|water supply|electrification|drainage|estate)\b/i,
+  agriculture: /\b(agriculture|farming|crop|livestock|irrigation|fertilizer|agric|harvest|fishery|poultry)\b/i,
+  security: /\b(security|police|military|army|defence|defense|intelligence|armed forces|prison|correctional)\b/i,
+  environment: /\b(environment|sanitation|waste|ecology|erosion|flood|climate|recycling)\b/i,
+  transport: /\b(transport|aviation|rail|railway|maritime|port|airport|vehicle|motor vehicle|bus|fleet)\b/i,
+  energy: /\b(energy|power|electricity|solar|gas|petroleum|NNPC|turbine|generator)\b/i,
+};
+
+function extractSector(text: string): string | undefined {
+  let bestSector: string | undefined;
+  let bestCount = 0;
+  for (const [sector, pattern] of Object.entries(SECTOR_PATTERNS)) {
+    const matches = text.match(new RegExp(pattern.source, "gi"));
+    const count = matches?.length ?? 0;
+    if (count > bestCount) {
+      bestCount = count;
+      bestSector = sector;
+    }
+  }
+  // Require at least 1 match (not 2) — even a single sector keyword is a useful signal
+  return bestCount >= 1 ? bestSector : undefined;
+}
+
+function extractState(text: string): string | undefined {
+  const statePattern =
+    /\b(Lagos|Kano|Rivers|Delta|Ogun|Kaduna|Benue|FCT|Akwa Ibom|Edo|Enugu|Oyo|Imo|Anambra|Abia|Bayelsa|Borno|Cross River|Ebonyi|Ekiti|Gombe|Jigawa|Katsina|Kebbi|Kogi|Kwara|Nasarawa|Niger|Ondo|Osun|Plateau|Sokoto|Taraba|Yobe|Zamfara|Adamawa|Bauchi)\b/i;
+  const match = statePattern.exec(text);
+  return match ? match[1] : undefined;
+}
+
+const contextualEquivalentSchema = z.object({
+  title: z.string(),
+  subtitle: z.string().optional(),
+  items: z.array(z.object({
+    icon: z.enum(["school", "hospital", "home", "graduation", "droplet", "road", "zap", "heart-pulse", "shield", "swords", "book-open", "streetlight", "truck", "baby", "wheat", "laptop", "stethoscope", "building", "users", "briefcase"]),
+    label: z.string(),
+    count: z.number().int(),
+    unitCost: z.number(),
+    unitLabel: z.string(),
+    contextNote: z.string().optional(),
+  })).describe("Return exactly 6-9 items"),
+});
+
+async function generateContextualEquivalents(
+  amount: number,
+  opts: { state?: string; sector?: string; domain: string },
+): Promise<EquivalentsResult> {
+  const formatted = amount >= 1e12 ? `₦${(amount/1e12).toFixed(1)}T` : amount >= 1e9 ? `₦${(amount/1e9).toFixed(1)}B` : `₦${(amount/1e6).toFixed(1)}M`;
+
+  const parts = [
+    `Generate 6-9 context-relevant real-world impact equivalents for ${formatted} (${amount.toLocaleString()} Naira) in Nigeria.`,
+  ];
+  if (opts.state) parts.push(`State: ${opts.state}`);
+  if (opts.sector) parts.push(`Sector: ${opts.sector}. Prioritize items relevant to this sector.`);
+  if (opts.domain === "corruption") {
+    parts.push(`Frame as what citizens lost to corruption.`);
+  } else {
+    parts.push(`Frame as what this budget could fund.`);
+  }
+  parts.push(`Use realistic Nigerian cost estimates. Format unitLabel as shorthand (₦20M per school). Each count must = floor(amount/unitCost) and be >= 1.`);
+
+  const jsonInstruction = `\n\nIMPORTANT: You MUST respond with ONLY a valid JSON object (no markdown, no explanation, no code fences). The JSON must match this schema:
+{
+  "title": "string",
+  "subtitle": "string (optional)",
+  "items": [
+    {
+      "icon": "one of: school, hospital, home, graduation, droplet, road, zap, heart-pulse, shield, swords, book-open, streetlight, truck, baby, wheat, laptop, stethoscope, building, users, briefcase",
+      "label": "string",
+      "count": "integer",
+      "unitCost": "number in Naira",
+      "unitLabel": "string e.g. ₦20M per school",
+      "contextNote": "string or empty"
+    }
+  ]
+}`;
+  const { text: rawText } = await generateText({
+    model: chatModelSmall,
+    prompt: parts.join("\n") + jsonInstruction,
+    abortSignal: AbortSignal.timeout(10_000),
+  });
+
+  // Extract JSON from response (handle possible markdown fences)
+  let jsonStr = rawText.trim();
+  const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) jsonStr = fenceMatch[1].trim();
+
+  const object = contextualEquivalentSchema.parse(JSON.parse(jsonStr));
+
+  type EquivItem = z.infer<typeof contextualEquivalentSchema>["items"][number];
+  return {
+    title: object.title as string,
+    subtitle: object.subtitle as string | undefined,
+    amount,
+    items: (object.items as EquivItem[]).map((item: EquivItem) => ({
+      ...item,
+      count: Math.floor(amount / item.unitCost),
+    })).filter((item: EquivItem & { count: number }) => item.count > 0).slice(0, 9),
+  };
+}
+
+async function extractEquivalentsContextual(
+  text: string,
+  domain: "budget" | "corruption" | "govspend" | "faac",
+  toolEquivalents?: ContextualImpactResult,
+): Promise<EquivalentsResult> {
+  // 1. If agent already generated equivalents via tool, convert and use those
+  if (toolEquivalents && toolEquivalents.items.length >= 4) {
+    console.log("[contextual-impact] Using agent-provided tool equivalents:", toolEquivalents.title);
+    const amount = extractBudgetAmount(text) || extractCorruptionAmount(text);
+    return {
+      title: toolEquivalents.title,
+      subtitle: toolEquivalents.subtitle,
+      amount,
+      items: toolEquivalents.items,
+    };
+  }
+
+  // 2. Check feature flag
+  const enabled = getSettingBool("contextual_impact.enabled", "CONTEXTUAL_IMPACT_ENABLED", true);
+  if (!enabled) {
+    console.log("[contextual-impact] Feature flag disabled, using static");
+    return extractEquivalentsStatic(text);
+  }
+
+  // 3. Extract context from text
+  const amount = domain === "corruption" ? extractCorruptionAmount(text) : extractBudgetAmount(text);
+  if (amount === 0) {
+    console.log("[contextual-impact] No amount found in text, skipping");
+    return { title: "", amount: 0, items: [] };
+  }
+
+  const state = extractState(text);
+  const sector = extractSector(text);
+  console.log(`[contextual-impact] Extracted context — amount: ${amount}, state: ${state}, sector: ${sector}, domain: ${domain}`);
+
+  // 4. Try contextual generation (only if we have at least some context)
+  if (state || sector) {
+    try {
+      console.log("[contextual-impact] Attempting LLM contextual generation...");
+      const result = await generateContextualEquivalents(amount, { state, sector, domain });
+      console.log(`[contextual-impact] LLM generated ${result.items.length} items: ${result.title}`);
+      return result;
+    } catch (err) {
+      console.warn("[contextual-impact] LLM generation failed, falling back to static:", err);
+      // Fall through to static
+    }
+  } else {
+    console.log("[contextual-impact] No state or sector detected, using static");
+  }
+
+  // 5. Fall back to static
+  return extractEquivalentsStatic(text);
+}
+
 /** Extract a budget context label like "Lagos 2023 Budget" or "2024 Federal Budget" from the analysis text. */
 function extractBudgetLabel(text: string): string {
   const yearPattern = /\b(20(?:19|20|21|22|23|24|25|26))\b/;
@@ -274,7 +443,7 @@ function extractBudgetAmount(text: string): number {
   return largest;
 }
 
-function extractEquivalents(budgetAnalysis: string): EquivalentsResult {
+function extractEquivalentsStatic(budgetAnalysis: string): EquivalentsResult {
   const amount = extractBudgetAmount(budgetAnalysis);
 
   if (amount === 0) {
@@ -394,11 +563,12 @@ function extractCorruptionStats(text: string): StatItem[] {
   return stats;
 }
 
-export function formatCorruptionResponse(
+export async function formatCorruptionResponse(
   corruptionAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
-): AIResponseContent {
+  toolEquivalents?: ContextualImpactResult,
+): Promise<AIResponseContent> {
   const { text: cleanedText, charts } = extractChartBlocks(corruptionAnalysis);
   const hasStructuredCharts = charts.length > 0;
   const displayText = hasStructuredCharts ? cleanedText : corruptionAnalysis;
@@ -408,35 +578,17 @@ export function formatCorruptionResponse(
 
   const stats = extractCorruptionStats(textForExtraction);
 
-  const amount = extractCorruptionAmount(textForExtraction);
   const officialName = extractOfficialName(textForExtraction);
-  const corruptionTitle = tf("equivalents.corruption", language, officialName);
+  const equivalents = await extractEquivalentsContextual(textForExtraction, "corruption", toolEquivalents);
 
-  let equivalents: EquivalentsResult = {
-    title: corruptionTitle,
-    amount: 0,
-    items: [],
-  };
-
-  if (amount > 0) {
-    const computed = AMENITIES.map((a) => ({
-      ...a,
-      count: Math.floor(amount / a.unitCost),
-    })).filter((a) => a.count > 0);
-
-    computed.sort((a, b) => b.count - a.count);
-
-    equivalents = {
-      title: corruptionTitle,
-      amount,
-      items: computed.slice(0, 9),
-    };
+  if (!toolEquivalents && equivalents.items.length > 0) {
+    equivalents.title = tf("equivalents.corruption", language, officialName);
   }
 
   const followUps = generateCorruptionFollowUps(textForExtraction, language);
 
   const response: AIResponseContent = {
-    text: displayText,
+    text: formatNairaInText(displayText),
     followUps,
   };
 
@@ -569,11 +721,12 @@ function generateFollowUps(
 
 // ─── GovSpend response formatting ───────────────────────────
 
-export function formatGovspendResponse(
+export async function formatGovspendResponse(
   govspendAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
-): AIResponseContent {
+  toolEquivalents?: ContextualImpactResult,
+): Promise<AIResponseContent> {
   const { text: cleanedText, charts } = extractChartBlocks(govspendAnalysis);
   const hasStructuredCharts = charts.length > 0;
   const displayText = hasStructuredCharts ? cleanedText : govspendAnalysis;
@@ -582,10 +735,11 @@ export function formatGovspendResponse(
     : govspendAnalysis;
 
   const stats = extractStats(textForExtraction);
+  const equivalents = await extractEquivalentsContextual(textForExtraction, "govspend", toolEquivalents);
   const followUps = generateGovspendFollowUps(textForExtraction, language);
 
   const response: AIResponseContent = {
-    text: displayText,
+    text: formatNairaInText(displayText),
     followUps,
   };
 
@@ -595,6 +749,10 @@ export function formatGovspendResponse(
 
   if (stats.length > 0) {
     response.stats = stats;
+  }
+
+  if (equivalents.items.length > 0) {
+    response.moneyEquivalents = equivalents;
   }
 
   // Legacy chart extraction — fallback when no structured charts found
@@ -670,11 +828,12 @@ function generateGovspendFollowUps(
 
 // ─── Impact response formatting ─────────────────────────────
 
-export function formatImpactResponse(
+export async function formatImpactResponse(
   impactAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
-): AIResponseContent {
+  toolEquivalents?: ContextualImpactResult,
+): Promise<AIResponseContent> {
   const { text: cleanedText, charts } = extractChartBlocks(impactAnalysis);
   const hasStructuredCharts = charts.length > 0;
   const displayText = hasStructuredCharts ? cleanedText : impactAnalysis;
@@ -682,36 +841,15 @@ export function formatImpactResponse(
   // Use cleaned text for regex extraction to avoid picking up raw numbers from chart JSON
   const textForExtraction = hasStructuredCharts ? cleanedText : impactAnalysis;
 
-  const budgetAmount = extractBudgetAmount(textForExtraction);
-  const corruptionAmount = extractCorruptionAmount(textForExtraction);
-  const amount = Math.max(budgetAmount, corruptionAmount);
-
   const stats = extractStats(textForExtraction);
   if (stats.length === 0) {
     stats.push(...extractCorruptionStats(textForExtraction));
   }
 
-  const impactTitle = t("equivalents.impact", language);
+  const equivalents = await extractEquivalentsContextual(textForExtraction, "budget", toolEquivalents);
 
-  let equivalents: EquivalentsResult = {
-    title: impactTitle,
-    amount: 0,
-    items: [],
-  };
-
-  if (amount > 0) {
-    const computed = AMENITIES.map((a) => ({
-      ...a,
-      count: Math.floor(amount / a.unitCost),
-    })).filter((a) => a.count > 0);
-
-    computed.sort((a, b) => b.count - a.count);
-
-    equivalents = {
-      title: impactTitle,
-      amount,
-      items: computed.slice(0, 9),
-    };
+  if (!toolEquivalents && equivalents.items.length > 0) {
+    equivalents.title = t("equivalents.impact", language);
   }
 
   const followUps: Array<{ text: string }> = [
@@ -721,7 +859,7 @@ export function formatImpactResponse(
   ];
 
   const response: AIResponseContent = {
-    text: displayText,
+    text: formatNairaInText(displayText),
     followUps,
   };
 

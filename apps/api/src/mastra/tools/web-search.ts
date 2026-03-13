@@ -21,7 +21,7 @@ export const webSearchTool = createTool({
       ),
     searchDepth: z
       .enum(["basic", "advanced"])
-      .optional()
+      .nullish()
       .describe(
         "Search depth: 'basic' for quick lookups (default), 'advanced' for thorough research requiring deeper analysis",
       ),
