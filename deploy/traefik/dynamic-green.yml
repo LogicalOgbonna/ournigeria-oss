@@ -1,0 +1,28 @@
+# Traefik dynamic config — GREEN stack active
+# This file is a template. deploy.sh copies it to dynamic.yml
+# Traefik watches dynamic.yml for hot-reload (no restart needed)
+
+http:
+  routers:
+    api:
+      rule: "Host(`spending-api.arinze.online`)"
+      service: api
+      entryPoints:
+        - web
+
+    ingest:
+      rule: "Host(`ingest.arinze.online`)"
+      service: ingest
+      entryPoints:
+        - web
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://api-green:3000"
+
+    ingest:
+      loadBalancer:
+        servers:
+          - url: "http://ingest-green:3002"

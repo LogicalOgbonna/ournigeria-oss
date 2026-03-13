@@ -25,8 +25,8 @@ import {
 export class GovspendPipeline extends PipelineBase {
   protected readonly logger = new Logger(GovspendPipeline.name);
 
-  /** Accumulates payment records during ingestion for aggregation chunk building */
-  private _monthlyRecords: GovspendPaymentRecord[] = [];
+  /** Payment records collected via onChunkMetadataBuilt hook during processFiles(). */
+  private _collectedRecords: GovspendPaymentRecord[] = [];
 
   constructor(
     config: ConfigService,
@@ -108,7 +108,7 @@ export class GovspendPipeline extends PipelineBase {
         totalFiles += files.length;
 
         // Clear accumulator before processing this month
-        this._monthlyRecords = [];
+        this._collectedRecords = [];
 
         // Process this month's files using the base class worker pattern
         const result = await this.processFiles(files, config);
@@ -118,14 +118,14 @@ export class GovspendPipeline extends PipelineBase {
         totalChunks += result.chunks;
 
         // Build MDA monthly summary chunks from accumulated records
-        if (result.processed > 0 && this._monthlyRecords.length > 0) {
+        if (result.processed > 0 && this._collectedRecords.length > 0) {
           yearHadProcessed = true;
-          const monthlyChunks = buildMdaMonthlyChunks(this._monthlyRecords, year, month);
+          const monthlyChunks = buildMdaMonthlyChunks(this._collectedRecords, year, month);
           totalChunks += await this.embedAggregationChunks(monthlyChunks, config, `${year}/${month} MDA monthly`);
         }
 
         // Accumulate for annual aggregation
-        yearRecords.push(...this._monthlyRecords);
+        yearRecords.push(...this._collectedRecords);
 
         this.emitLog(
           "log",
@@ -254,6 +254,27 @@ export class GovspendPipeline extends PipelineBase {
     };
   }
 
+  /** Collect payment records from chunk metadata for aggregation chunk building. */
+  protected onChunkMetadataBuilt(
+    _file: DiscoveredFile,
+    metadataBatch: Record<string, unknown>[],
+  ): void {
+    for (const m of metadataBatch) {
+      const orgName = m.organization_name as string;
+      const benefName = m.beneficiary_name as string;
+      const amount = m.amount_numeric as number;
+      if (orgName && benefName && amount > 0) {
+        this._collectedRecords.push({
+          organization_name: orgName,
+          beneficiary_name: benefName,
+          amount_numeric: amount,
+          year: m.year as string,
+          month: m.month as string,
+        });
+      }
+    }
+  }
+
   protected generateContextPrefix(
     _file: DiscoveredFile,
     metadata: Record<string, unknown>,
@@ -310,17 +331,6 @@ export class GovspendPipeline extends PipelineBase {
 
     const orgName = organizationMatch?.[1]?.trim() ?? "";
     const benefName = beneficiaryMatch?.[1]?.trim() ?? "";
-
-    // Accumulate for aggregation chunk building
-    if (orgName && benefName && amount_numeric > 0) {
-      this._monthlyRecords.push({
-        organization_name: orgName,
-        beneficiary_name: benefName,
-        amount_numeric,
-        year,
-        month,
-      });
-    }
 
     return {
       text: chunkText,

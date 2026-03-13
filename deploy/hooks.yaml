@@ -1,0 +1,51 @@
+- id: deploy
+  execute-command: /opt/ournigeria/deploy/deploy.sh
+  command-working-directory: /opt/ournigeria
+  pass-arguments-to-command:
+    - source: payload
+      name: ref
+    - source: payload
+      name: sha
+    - source: payload
+      name: timestamp
+  trigger-rule:
+    and:
+      - match:
+          type: payload-hmac-sha256
+          secret: "{{ getenv \"WEBHOOK_SECRET\" }}"
+          parameter:
+            source: header
+            name: X-Hub-Signature-256
+      - match:
+          type: value
+          value: push
+          parameter:
+            source: header
+            name: X-GitHub-Event
+
+- id: rollback
+  execute-command: /opt/ournigeria/deploy/rollback.sh
+  command-working-directory: /opt/ournigeria
+  pass-arguments-to-command:
+    - source: payload
+      name: sha
+  trigger-rule:
+    match:
+      type: payload-hmac-sha256
+      secret: "{{ getenv \"WEBHOOK_SECRET\" }}"
+      parameter:
+        source: header
+        name: X-Hub-Signature-256
+
+- id: deploy-status
+  execute-command: /opt/ournigeria/deploy/deploy-status.sh
+  command-working-directory: /opt/ournigeria
+  http-methods:
+    - GET
+  trigger-rule:
+    match:
+      type: value
+      value: "{{ getenv \"STATUS_BEARER_TOKEN\" }}"
+      parameter:
+        source: header
+        name: Authorization

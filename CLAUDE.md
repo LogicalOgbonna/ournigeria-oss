@@ -40,11 +40,11 @@ pnpm prisma:migrate       # Run migrations (requires Infisical)
 pnpm prisma:studio        # Open Prisma Studio
 
 # Start services
-pnpm api:dev              # NestJS API on :3000 use https://spending-api.arinze.online/api to test the API
-pnpm web:dev              # Next.js frontend on :3001 use https://spending.arinze.online to test the frontend
-pnpm ingest:dev           # Ingestion pipeline on :3002 use https://ingest.arinze.online/api/ingest to test the ingestion pipeline
-pnpm awanaija:dev         # Landing page on :3003 use https://ounigeria.arinze.online to test the landing page
-pnpm dashboard:dev        # Admin dashboard on :3004
+pnpm api:dev              # NestJS API on :3000 use  dev: https://spending-api.arinze.online/api. prod: https://api.example.invalid/api to test the API
+pnpm web:dev              # Next.js frontend on :3001 use dev: https://spending.arinze.online. prod: https://app.ournigeria.ng to test the frontend
+pnpm ingest:dev           # Ingestion pipeline on :3002 use dev: https://ingest.arinze.online/api/ingest. prod: https://ingest.example.invalid/api/ingest to test the ingestion pipeline
+pnpm awanaija:dev         # Landing page on :3003 use dev: https://ounigeria.arinze.online. prod: https://ournigeria.ng to test the landing page
+pnpm dashboard:dev        # Admin dashboard on :3004 use dev: https://dashboard.arinze.online. prod: https://dashboard.ournigeria.ng to test the dashboard
 
 # Build
 pnpm api:build

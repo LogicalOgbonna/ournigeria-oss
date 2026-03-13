@@ -475,8 +475,7 @@ function extractSourcesFromToolResult(
   if (!Array.isArray(results)) return [];
 
   const sourceType = SOURCE_TYPE_MAP[toolName] ?? "document";
-  const seen = new Set<string>();
-  const sources: SourceCitation[] = [];
+  const bestByFile = new Map<string, SourceCitation>();
 
   for (const r of results) {
     const filename = r.filename || r.fileName;
@@ -486,17 +485,16 @@ function extractSourcesFromToolResult(
     const score = r.score ?? 0;
 
     // Keep highest-scoring duplicate per fileName
-    if (seen.has(filename)) {
-      const existing = sources.find((s) => s.fileName === filename);
-      if (existing && score > existing.score) {
+    const existing = bestByFile.get(filename);
+    if (existing) {
+      if (score > existing.score) {
         existing.score = score;
         existing.snippet = snippet;
       }
       continue;
     }
-    seen.add(filename);
 
-    sources.push({
+    const source: SourceCitation = {
       title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       fileName: filename,
       location: r.s3_key || filename,
@@ -507,11 +505,12 @@ function extractSourcesFromToolResult(
       score,
       snippet,
       page: typeof r.chunk_index === "number" ? r.chunk_index + 1 : undefined,
-    });
+    };
+    bestByFile.set(filename, source);
   }
 
   // Return top sources sorted by score
-  return sources.sort((a, b) => b.score - a.score).slice(0, 8);
+  return [...bestByFile.values()].sort((a, b) => b.score - a.score).slice(0, 8);
 }
 
 /**
@@ -678,19 +677,14 @@ async function streamWithThinking(
   }
 
   // Deduplicate sources across multiple tool calls (keep highest score per fileName)
-  const seenFiles = new Map<string, number>();
-  const dedupedSources = allSources.filter((s, i) => {
-    const existingIdx = seenFiles.get(s.fileName);
-    if (existingIdx !== undefined) {
-      // Keep the one with higher score
-      if (s.score > allSources[existingIdx].score) {
-        allSources[existingIdx] = s;
-      }
-      return false;
+  const bestByFile = new Map<string, (typeof allSources)[0]>();
+  for (const s of allSources) {
+    const existing = bestByFile.get(s.fileName);
+    if (!existing || s.score > existing.score) {
+      bestByFile.set(s.fileName, s);
     }
-    seenFiles.set(s.fileName, i);
-    return true;
-  });
+  }
+  const dedupedSources = [...bestByFile.values()];
 
   // Citation post-processing: remove orphan [N] markers where N > sources count,
   // and log metrics. Orphans occur when the LLM references more sources than

@@ -1,0 +1,23 @@
+name: Cleanup Old Images
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Weekly, Sunday 3am UTC
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [ournigeria-api, ournigeria-ingest]
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: true

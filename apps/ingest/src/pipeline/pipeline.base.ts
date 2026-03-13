@@ -83,6 +83,14 @@ export abstract class PipelineBase {
     return ""; // default: no prefix
   }
 
+  /** Hook called after each batch of chunk metadata is built. Override to collect/inspect metadata. */
+  protected onChunkMetadataBuilt(
+    _file: DiscoveredFile,
+    _metadataBatch: Record<string, unknown>[],
+  ): void {
+    // default: no-op
+  }
+
   /** Override to enhance chunks (e.g., add LLM summaries) */
   protected async enhanceChunks(
     file: DiscoveredFile,
@@ -427,6 +435,8 @@ export abstract class PipelineBase {
         const metadata = batch.map((chunkText, j) =>
           this.buildChunkMetadata(file, chunkText, i + j),
         );
+
+        this.onChunkMetadataBuilt(file, metadata);
 
         // Generate prefixed text for embedding (improves retrieval quality)
         const textsToEmbed = batch.map((chunkText, j) => {
