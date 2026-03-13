@@ -56,10 +56,10 @@ cd /opt/ournigeria
 
 # Run the bootstrap script
 sudo ./deploy/bootstrap.sh \
-  --webhook-secret <SECRET> \
-  --status-token <TOKEN> \
-  --ghcr-token <GHCR_PAT> \
-  --ghcr-user <GITHUB_USERNAME>
+  --webhook-secret $WEBHOOK_SECRET \
+  --status-token $STATUS_BEARER_TOKEN \
+  --ghcr-token $GHCR_TOKEN \
+  --ghcr-user $GHCR_OWNER
 ```
 
 The bootstrap script will:
@@ -76,8 +76,8 @@ In Nginx Proxy Manager, create two proxy hosts:
 
 | Domain | Forward Hostname | Forward Port | Notes |
 |--------|-----------------|--------------|-------|
-| `spending-api.arinze.online` | `traefik` | `80` | API |
-| `ingest.arinze.online` | `traefik` | `80` | Ingestion pipeline |
+| `api.example.invalid` | `traefik` | `80` | API |
+| `ingest.example.invalid` | `traefik` | `80` | Ingestion pipeline |
 
 Both NPM and the OurNigeria stack share the `npm-proxy` Docker network (defined as `external: true` in `docker-compose.yml`). NPM handles TLS termination; Traefik handles blue-green routing internally over plain HTTP.
 
