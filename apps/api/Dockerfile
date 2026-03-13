@@ -15,6 +15,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/cache/package.json packages/cache/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
 
 # Hoisted layout + install only api workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -26,6 +27,7 @@ FROM deps AS api-build
 COPY apps/api/ apps/api/
 COPY packages/database/ packages/database/
 COPY packages/cache/ packages/cache/
+COPY packages/shared-types/ packages/shared-types/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
@@ -106,11 +108,13 @@ COPY --from=api-build /app/packages/database/dist/ packages/database/dist/
 COPY --from=api-build /app/packages/database/package.json packages/database/package.json
 COPY --from=api-build /app/packages/cache/dist/ packages/cache/dist/
 COPY --from=api-build /app/packages/cache/package.json packages/cache/package.json
+COPY --from=api-build /app/packages/shared-types/ packages/shared-types/
 
 # Link workspace packages so Node can resolve @ournigeria/*
 RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database && \
-    ln -s /app/packages/cache node_modules/@ournigeria/cache
+    ln -s /app/packages/cache node_modules/@ournigeria/cache && \
+    ln -s /app/packages/shared-types node_modules/@ournigeria/shared-types
 
 # Copy Infisical config
 COPY apps/api/.infisical.json .infisical.json
