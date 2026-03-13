@@ -64,6 +64,7 @@ interface EvalQuestion {
   answer?: string;
   resolved_intent?: string;
   tools_called?: string[];
+  sources_count?: number;
   response_time_ms?: number;
   pass?: boolean;
   evaluation_notes?: string;
@@ -103,7 +104,7 @@ interface EvalSummary {
 async function askQuestion(
   question: string,
   tool?: string,
-): Promise<{ text: string; resolvedTool: string; toolsCalled: string[]; timeMs: number }> {
+): Promise<{ text: string; resolvedTool: string; toolsCalled: string[]; sourcesCount: number; timeMs: number }> {
   const start = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
@@ -135,6 +136,7 @@ async function askQuestion(
     let fullText = "";
     let resolvedTool = "unknown";
     let toolsCalled: string[] = [];
+    let sourcesCount = 0;
     let buffer = "";
 
     while (true) {
@@ -166,6 +168,9 @@ async function askQuestion(
             if (Array.isArray(event.toolsCalled)) {
               toolsCalled = event.toolsCalled;
             }
+            if (Array.isArray(event.richContent?.sources)) {
+              sourcesCount = event.richContent.sources.length;
+            }
           }
         } catch {
           // Skip malformed JSON lines
@@ -173,7 +178,7 @@ async function askQuestion(
       }
     }
 
-    return { text: fullText, resolvedTool, toolsCalled, timeMs: Date.now() - start };
+    return { text: fullText, resolvedTool, toolsCalled, sourcesCount, timeMs: Date.now() - start };
   } finally {
     clearTimeout(timer);
   }
@@ -402,6 +407,29 @@ function evaluateAnswer(q: EvalQuestion): { pass: boolean; notes: string } {
     }
   }
 
+  // Check 11: Citation quality — are [N] markers present and valid?
+  const sourcesCount = q.sources_count ?? 0;
+  if (sourcesCount > 0) {
+    checks++;
+    const citationMatches = (q.answer ?? "").match(/\[(\d+)\]/g) || [];
+    const citationCount = citationMatches.length;
+    const citationNumbers = citationMatches.map((m) => parseInt(m.slice(1, -1)));
+    const orphans = citationNumbers.filter((n) => n < 1 || n > sourcesCount);
+
+    if (citationCount > 0 && orphans.length === 0) {
+      score++;
+      notes.push(`Citations: ${citationCount} valid inline citations.`);
+    } else if (citationCount > 0) {
+      // Partial credit — has citations but some are orphaned
+      score += 0.5;
+      notes.push(
+        `Citations: ${citationCount} inline (${orphans.length} orphaned, sources=${sourcesCount}).`,
+      );
+    } else {
+      notes.push(`No inline citations found (${sourcesCount} sources available).`);
+    }
+  }
+
   const passThreshold = checks > 0 ? score / checks : 0;
   const pass = passThreshold >= 0.5;
 
@@ -441,10 +469,11 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
     console.log(`  ${qNum} Asking: "${shortQ}"`);
 
     try {
-      const { text, resolvedTool, toolsCalled, timeMs } = await askQuestion(q.question);
+      const { text, resolvedTool, toolsCalled, sourcesCount, timeMs } = await askQuestion(q.question);
       q.answer = text;
       q.resolved_intent = resolvedTool;
       q.tools_called = toolsCalled;
+      q.sources_count = sourcesCount;
       q.response_time_ms = timeMs;
       q.tool_metrics = computeToolMetrics(q);
 

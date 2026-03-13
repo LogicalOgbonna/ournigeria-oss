@@ -11,6 +11,8 @@ import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
 import { ThinkingDropdown } from "./ThinkingDropdown";
 import { Markdown } from "./Markdown";
+import { SourceCitationModal } from "./SourceCitationModal";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   FileText,
   ChevronDown,
@@ -37,6 +39,10 @@ export function AIMessage({
   onFollowUpClick,
 }: AIMessageProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [citationModal, setCitationModal] = useState<{
+    open: boolean;
+    index: number;
+  }>({ open: false, index: 0 });
   const [feedback, setFeedback] = useState<"positive" | "negative" | null>(
     null,
   );
@@ -69,9 +75,18 @@ export function AIMessage({
 
       {/* Text (with chart blocks stripped out) */}
       {cleanedText.trim() && (
-        <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-          <Markdown>{cleanedText}</Markdown>
-        </div>
+        <TooltipProvider delayDuration={300}>
+          <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+            <Markdown
+              sources={content.sources}
+              onCitationClick={(index) =>
+                setCitationModal({ open: true, index })
+              }
+            >
+              {cleanedText}
+            </Markdown>
+          </div>
+        </TooltipProvider>
       )}
 
       {/* State Comparison */}
@@ -164,6 +179,18 @@ export function AIMessage({
             </div>
           )}
         </div>
+      )}
+
+      {/* Citation Modal */}
+      {content.sources && content.sources.length > 0 && (
+        <SourceCitationModal
+          sources={content.sources}
+          activeIndex={citationModal.index}
+          open={citationModal.open}
+          onOpenChange={(open) =>
+            setCitationModal((prev) => ({ ...prev, open }))
+          }
+        />
       )}
 
       {/* Feedback buttons */}

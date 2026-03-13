@@ -202,6 +202,23 @@ export class CorruptionPipeline extends PipelineBase {
     return null;
   }
 
+  protected generateContextPrefix(
+    file: DiscoveredFile,
+    metadata: Record<string, unknown>,
+  ): string {
+    const official = metadata.official || "";
+    const position = metadata.position || "";
+    const state = metadata.state || "";
+    const section = metadata.section || "";
+    const parts = ["This chunk is from the EFCC case file"];
+    if (official) parts[0] += ` for ${official}`;
+    if (position) parts[0] += ` (${position}`;
+    if (state) parts[0] += `, ${state}`;
+    if (position) parts[0] += `)`;
+    if (section) parts[0] += `, section: ${section}`;
+    return parts[0] + ": ";
+  }
+
   protected async enhanceChunks(
     file: DiscoveredFile,
     text: string,

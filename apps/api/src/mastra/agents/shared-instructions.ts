@@ -1,6 +1,22 @@
 /**
- * Chart output instructions appended to all agent system prompts.
- * Teaches agents to output structured ```chart``` JSON blocks.
+ * Shared instruction constants appended to all agent system prompts.
+ */
+
+export const CITATION_INSTRUCTIONS = `
+
+## Inline Citations
+
+When you reference specific data, figures, or facts from search results, add inline citation markers using the format [1], [2], [3], etc.
+- Number citations sequentially starting from [1] in the order the source documents appear in your search results.
+- Each unique source document (identified by filename) gets one citation number. If you reference the same document multiple times, reuse the same number.
+- Place the citation marker immediately after the claim it supports, before any punctuation.
+- Example: "Lagos State allocated ₦450 billion to education in 2024 [1], a 15% increase from the previous year [2]."
+- Do NOT add a references/sources section at the end — the system handles source display automatically.
+- Not every sentence needs a citation. Use them for specific numbers, quotes, and key facts.
+`;
+
+/**
+ * Chart output instructions — teaches agents to output structured chart JSON blocks.
  */
 export const CHART_INSTRUCTIONS = `
 

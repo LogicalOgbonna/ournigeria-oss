@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OurNigeria — Pitch Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --emerald: #059669;
+    --emerald-light: #10b981;
+    --emerald-dark: #047857;
+    --emerald-bg: #ecfdf5;
+    --gold: #d97706;
+    --dark: #0f172a;
+    --gray: #64748b;
+    --light-gray: #f8fafc;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    color: var(--dark);
+    background: var(--white);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1, h2, h3, h4 { font-family: 'DM Sans', sans-serif; }
+
+  .slide {
+    width: 100%;
+    max-width: 1024px;
+    min-height: 580px;
+    margin: 0 auto;
+    padding: 48px 56px;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide + .slide { border-top: 1px solid #e2e8f0; }
+
+  /* ---- Shared Elements ---- */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--emerald);
+    background: var(--emerald-bg);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  .slide-number {
+    position: absolute;
+    bottom: 24px;
+    right: 56px;
+    font-size: 12px;
+    color: var(--gray);
+    font-weight: 500;
+  }
+
+  .footer-logo {
+    position: absolute;
+    bottom: 24px;
+    left: 56px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--gray);
+  }
+
+  .footer-logo .dot {
+    width: 16px;
+    height: 16px;
+    background: var(--emerald);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 9px;
+  }
+
+  .stat-grid {
+    display: grid;
+    gap: 20px;
+  }
+
+  .stat-card {
+    background: var(--light-gray);
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .stat-card .number {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--emerald);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-card .label {
+    font-size: 13px;
+    color: var(--gray);
+    font-weight: 500;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  table th {
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--emerald-bg);
+    color: var(--emerald-dark);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--emerald-bg);
+    color: var(--emerald);
+  }
+
+  .pill.gold {
+    background: #fffbeb;
+    color: var(--gold);
+  }
+
+  @media print {
+    .slide {
+      min-height: 100vh;
+      padding: 40px 48px;
+      page-break-inside: avoid;
+    }
+  }
+
+  /* ===== SLIDE 1: COVER ===== */
+  .cover {
+    background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 50%, var(--emerald-light) 100%);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 580px;
+  }
+
+  .cover .logo-mark {
+    width: 56px;
+    height: 56px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 24px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  .cover h1 {
+    font-size: 44px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .cover .tagline {
+    font-size: 18px;
+    opacity: 0.9;
+    max-width: 560px;
+    line-height: 1.5;
+    margin: 0 auto 32px;
+  }
+
+  .cover .meta {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 8px;
+  }
+
+  .cover .divider {
+    width: 48px;
+    height: 2px;
+    background: rgba(255,255,255,0.3);
+    margin: 0 auto 20px;
+  }
+
+  .cover .subtitle {
+    font-size: 14px;
+    opacity: 0.8;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ===== CONTENT SLIDES ===== */
+  .content-slide h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--dark);
+  }
+
+  .content-slide .subtitle {
+    font-size: 14px;
+    color: var(--gray);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  /* Problem cards */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .problem-card {
+    border-radius: 12px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .problem-card.red {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  .problem-card h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .problem-card p {
+    font-size: 13px;
+    color: var(--gray);
+    line-height: 1.6;
+  }
+
+  .problem-card .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Solution */
+  .solution-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: start;
+    gap: 0;
+    flex: 1;
+    padding-top: 8px;
+  }
+
+  .solution-step {
+    text-align: center;
+    padding: 20px 12px;
+  }
+
+  .solution-step .step-icon {
+    width: 52px;
+    height: 52px;
+    background: var(--emerald-bg);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 12px;
+    border: 2px solid var(--emerald);
+  }
+
+  .solution-step h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .solution-step p {
+    font-size: 12px;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--emerald);
+    font-size: 20px;
+    padding-top: 28px;
+    font-weight: 700;
+  }
+
+  /* Features list */
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .feature-item {
+    background: var(--light-gray);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .feature-item .check {
+    color: var(--emerald);
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Traction */
+  .traction-top {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* Business model */
+  .bm-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .bm-card {
+    background: var(--light-gray);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .bm-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .bm-card .target {
+    font-size: 11px;
+    color: var(--gray);
+    margin-bottom: 8px;
+  }
+
+  .bm-card p {
+    font-size: 12px;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  /* Team */
+  .team-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .team-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .team-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--emerald);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .team-avatar.advisory {
+    background: var(--gold);
+  }
+
+  .team-info h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .team-info .role {
+    font-size: 12px;
+    color: var(--emerald);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .team-info p {
+    font-size: 12px;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+
+  /* Ask */
+  .ask-hero {
+    background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+    border-radius: 16px;
+    padding: 36px 40px;
+    color: white;
+    margin-bottom: 24px;
+  }
+
+  .ask-hero .amount {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .ask-hero .round {
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .use-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .use-card {
+    text-align: center;
+    padding: 20px 12px;
+    background: var(--light-gray);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .use-card .pct {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--emerald);
+  }
+
+  .use-card .use-label {
+    font-size: 12px;
+    color: var(--gray);
+    font-weight: 500;
+    margin-top: 4px;
+  }
+
+  /* Market */
+  .market-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+  }
+
+  .market-col h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .market-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .market-list li {
+    font-size: 13px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    color: var(--dark);
+  }
+
+  .market-list li span {
+    font-weight: 600;
+    color: var(--emerald);
+  }
+
+  .market-highlight {
+    background: var(--emerald-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    border: 1px solid #a7f3d0;
+  }
+
+  .market-highlight p {
+    font-size: 13px;
+    color: var(--emerald-dark);
+    line-height: 1.6;
+  }
+
+  .market-highlight strong {
+    color: var(--emerald);
+  }
+
+  /* Dual entity */
+  .entity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .entity-card {
+    border-radius: 12px;
+    padding: 24px;
+    border: 2px solid;
+  }
+
+  .entity-card.profit {
+    border-color: var(--emerald);
+    background: var(--emerald-bg);
+  }
+
+  .entity-card.nonprofit {
+    border-color: var(--gold);
+    background: #fffbeb;
+  }
+
+  .entity-card h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .entity-card .entity-type {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .entity-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .entity-card ul li {
+    font-size: 13px;
+    padding: 4px 0;
+    color: var(--dark);
+  }
+
+  .entity-card ul li::before {
+    content: "\2192 ";
+    color: var(--gray);
+    font-weight: 500;
+  }
+
+  .entity-connector {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--gray);
+    font-weight: 500;
+    padding: 10px;
+    background: var(--light-gray);
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+  }
+
+  /* Contact */
+  .contact-slide {
+    background: linear-gradient(135deg, var(--emerald-dark) 0%, var(--emerald) 50%, var(--emerald-light) 100%);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .contact-slide h2 {
+    color: white;
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+
+  .contact-slide .tagline {
+    font-size: 16px;
+    opacity: 0.85;
+    margin-bottom: 32px;
+  }
+
+  .contact-details {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .contact-item {
+    font-size: 14px;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .milestones-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 12px;
+  }
+
+  .milestone-card {
+    background: var(--light-gray);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid var(--emerald);
+  }
+
+  .milestone-card .timeline {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--emerald);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .milestone-card h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .milestone-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .milestone-card ul li {
+    font-size: 12px;
+    color: var(--gray);
+    padding: 2px 0;
+  }
+
+  .milestone-card ul li::before {
+    content: "\2022 ";
+    color: var(--emerald);
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: COVER ==================== -->
+<div class="slide cover">
+  <div class="logo-mark">&#9965;</div>
+  <h1>OurNigeria</h1>
+  <p class="tagline">AI-powered government data infrastructure for Africa.<br>Turning 700+ budget documents into enterprise intelligence.</p>
+  <div class="divider"></div>
+  <p class="subtitle">Pre-Seed Investment Deck</p>
+  <p class="meta">March 2026 &middot; Confidential</p>
+</div>
+
+<!-- ==================== SLIDE 2: PROBLEM ==================== -->
+<div class="slide content-slide">
+  <span class="badge">The Problem</span>
+  <h2>Nigeria's fiscal data is buried and broken</h2>
+  <p class="subtitle">Government spending data across 36 states exists only in scattered PDFs, scanned documents, and opaque portals. No one can access, query, or analyze it at scale.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card red">
+      <h4><span class="icon" style="background:#fef2f2;color:#dc2626;">&#9888;</span> Inaccessible Data</h4>
+      <p>700+ budget documents spread across 37 states in PDF/XLSX format. No unified database. No API. No way to search or compare across states.</p>
+    </div>
+    <div class="problem-card red">
+      <h4><span class="icon" style="background:#fef2f2;color:#dc2626;">&#9888;</span> No Credit Intelligence</h4>
+      <p>Banks lend billions to state governments without standardized fiscal health data. Credit agencies lack structured government financial profiles.</p>
+    </div>
+    <div class="problem-card red">
+      <h4><span class="icon" style="background:#fef2f2;color:#dc2626;">&#9888;</span> Opaque Spending</h4>
+      <p>891,000+ federal contractor payments with no searchable interface. Citizens, journalists, and researchers can't track where money goes.</p>
+    </div>
+    <div class="problem-card red">
+      <h4><span class="icon" style="background:#fef2f2;color:#dc2626;">&#9888;</span> Research Bottleneck</h4>
+      <p>NGOs, consultants, and media spend weeks manually extracting data from government PDFs. Every fiscal analysis starts from scratch.</p>
+    </div>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">02</span>
+</div>
+
+<!-- ==================== SLIDE 3: SOLUTION ==================== -->
+<div class="slide content-slide">
+  <span class="badge">The Solution</span>
+  <h2>AI that turns government documents into queryable intelligence</h2>
+  <p class="subtitle">A multi-agent AI pipeline ingests, structures, and serves Nigeria's fiscal data via natural language queries and enterprise APIs.</p>
+
+  <div class="solution-flow">
+    <div class="solution-step">
+      <div class="step-icon">&#128196;</div>
+      <h4>Ingest</h4>
+      <p>PDF, XLSX, DOCX extractors process 700+ budget docs, corruption records, and payment data across all 37 states.</p>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="solution-step">
+      <div class="step-icon">&#129504;</div>
+      <h4>Analyze</h4>
+      <p>6 specialist AI agents — Budget, Corruption, GovSpend, FAAC, Impact — analyze and cross-reference data in real time.</p>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="solution-step">
+      <div class="step-icon">&#128640;</div>
+      <h4>Serve</h4>
+      <p>Enterprise API, chat interface, Telegram bot, and embeddable widgets. Ask in English or Pidgin, get cited answers.</p>
+    </div>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-item"><span class="check">&#10003;</span> 708K+ vector embeddings</div>
+    <div class="feature-item"><span class="check">&#10003;</span> 22 chart types</div>
+    <div class="feature-item"><span class="check">&#10003;</span> Source citations on every answer</div>
+    <div class="feature-item"><span class="check">&#10003;</span> English + Pidgin support</div>
+    <div class="feature-item"><span class="check">&#10003;</span> Real-time SSE streaming</div>
+    <div class="feature-item"><span class="check">&#10003;</span> Shareable conversations</div>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">03</span>
+</div>
+
+<!-- ==================== SLIDE 4: MARKET ==================== -->
+<div class="slide content-slide">
+  <span class="badge">Market Opportunity</span>
+  <h2>Government data is a zero-dollar market becoming a billion-dollar one</h2>
+  <p class="subtitle">No structured, queryable source for Nigerian government fiscal data exists. We're building the infrastructure layer.</p>
+
+  <div class="market-cols">
+    <div>
+      <h3>&#127919; Who Needs This Data</h3>
+      <ul class="market-list">
+        <li>Credit rating agencies (CRC, FirstCentral, CreditRegistry) <span>High value</span></li>
+        <li>Banks lending to governments (Sterling, Premium Trust) <span>High value</span></li>
+        <li>Media houses (TechCabal, Premium Times, Arise) <span>Quick wins</span></li>
+        <li>Research & consulting firms <span>Recurring</span></li>
+        <li>NGOs & development partners (World Bank, DFID) <span>Grant-funded</span></li>
+        <li>Insurance companies & MFBs <span>Growing</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3>&#128200; Africa Macro Tailwinds</h3>
+      <ul class="market-list">
+        <li>Population under 35 <span>75%</span></li>
+        <li>Internet users <span>500M+</span></li>
+        <li>Mobile penetration <span>93%</span></li>
+        <li>GDP growth (projected) <span>3-6%/yr</span></li>
+        <li>Nigeria's annual budget <span>$30B+</span></li>
+        <li>States with budget data online <span>&lt;5</span></li>
+      </ul>
+
+      <div class="market-highlight">
+        <p><strong>First mover advantage:</strong> No competitor has structured fiscal data across all 37 Nigerian states. The data moat compounds — every document ingested makes the platform harder to replicate.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">04</span>
+</div>
+
+<!-- ==================== SLIDE 5: BUSINESS MODEL ==================== -->
+<div class="slide content-slide">
+  <span class="badge">Business Model</span>
+  <h2>Dual-entity: for-profit data company + non-profit civic platform</h2>
+  <p class="subtitle">Citizens never pay. Revenue comes from organizations that extract professional value from government data.</p>
+
+  <div class="entity-grid" style="margin-bottom: 20px;">
+    <div class="entity-card profit">
+      <h4>OurNigeria Research</h4>
+      <p class="entity-type" style="color: var(--emerald);">For-Profit &middot; Revenue Engine</p>
+      <ul>
+        <li>Data API subscriptions ($50-$500/mo)</li>
+        <li>Bulk data licensing for credit agencies & banks</li>
+        <li>Commissioned research reports</li>
+        <li>Government creditworthiness profiles</li>
+        <li>Media partnerships with revenue share</li>
+        <li>Embeddable widgets & fact-checking API</li>
+      </ul>
+    </div>
+    <div class="entity-card nonprofit">
+      <h4>OurNigeria Foundation</h4>
+      <p class="entity-type" style="color: var(--gold);">Non-Profit &middot; Civic Mission</p>
+      <ul>
+        <li>Free citizen-facing chat platform</li>
+        <li>Budget transparency tools for all</li>
+        <li>Civic education content & campaigns</li>
+        <li>University research access programs</li>
+        <li>Funded by grants + for-profit cross-subsidy</li>
+        <li>Editorial neutrality on all public content</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="entity-connector">
+    Same technology stack &middot; Same data pipeline &middot; Same AI agents<br>
+    <strong>For-profit revenue funds the non-profit mission. The civic platform drives brand & distribution.</strong>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">05</span>
+</div>
+
+<!-- ==================== SLIDE 6: TRACTION ==================== -->
+<div class="slide content-slide">
+  <span class="badge">Traction</span>
+  <h2>Pre-revenue, but the hard part is done</h2>
+  <p class="subtitle">The data moat and AI pipeline are built. Investment accelerates go-to-market.</p>
+
+  <div class="traction-top">
+    <div class="stat-card">
+      <div class="number">37</div>
+      <div class="label">States covered (100%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">708K+</div>
+      <div class="label">Vector embeddings</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">891K+</div>
+      <div class="label">Payment records</div>
+    </div>
+    <div class="stat-card">
+      <div class="number">700+</div>
+      <div class="label">Documents ingested</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>Status</th>
+        <th>Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Multi-agent AI pipeline</strong></td>
+        <td><span class="pill">Live</span></td>
+        <td>6 specialist agents (Budget, Corruption, GovSpend, FAAC, Impact, Router)</td>
+      </tr>
+      <tr>
+        <td><strong>Chat interface (Web)</strong></td>
+        <td><span class="pill">Live</span></td>
+        <td>English + Pidgin, 22 chart types, source citations, shareable links</td>
+      </tr>
+      <tr>
+        <td><strong>Telegram bot</strong></td>
+        <td><span class="pill">Live</span></td>
+        <td>Full query capability via Telegram</td>
+      </tr>
+      <tr>
+        <td><strong>Data ingestion pipeline</strong></td>
+        <td><span class="pill">Live</span></td>
+        <td>PDF/XLSX/DOCX extractors, Voyage AI embeddings, pgvector storage</td>
+      </tr>
+      <tr>
+        <td><strong>Admin dashboard</strong></td>
+        <td><span class="pill">Live</span></td>
+        <td>User management, analytics, system settings, ingestion tracking</td>
+      </tr>
+      <tr>
+        <td><strong>Enterprise API</strong></td>
+        <td><span class="pill gold">Next</span></td>
+        <td>Authenticated API layer for B2B customers — first product to monetize</td>
+      </tr>
+      <tr>
+        <td><strong>WhatsApp integration</strong></td>
+        <td><span class="pill gold">Next</span></td>
+        <td>Highest-reach channel for Nigerian users</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">06</span>
+</div>
+
+<!-- ==================== SLIDE 7: TEAM ==================== -->
+<div class="slide content-slide">
+  <span class="badge">Team</span>
+  <h2>Built by a technical founder, guided by market expertise</h2>
+  <p class="subtitle">Lean team with full-stack capability. Investment funds the first key hires.</p>
+
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-avatar">AO</div>
+      <div class="team-info">
+        <h4>Arinze Ogbonna</h4>
+        <p class="role">Founder &amp; CEO</p>
+        <p>Full-stack engineer who built the entire platform solo — multi-agent AI pipeline, ingestion system, frontend, admin dashboard, and Telegram bot. Deep expertise in AI/ML, distributed systems, and Nigerian civic data.</p>
+      </div>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar advisory">T</div>
+      <div class="team-info">
+        <h4>Timi</h4>
+        <p class="role" style="color: var(--gold);">Advisor &middot; Strategy &amp; GTM</p>
+        <p>Strategic advisor driving go-to-market, entity structuring, and customer pipeline. Guided the dual-entity model and B2B revenue strategy.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font-size:16px; margin-bottom:12px;">Hiring Plan (Post-Investment)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Phase</th>
+        <th>Role</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pill">Phase 2</span></td>
+        <td>Backend / Data Engineer</td>
+        <td>Build enterprise API, scale data pipeline, optimize RAG performance</td>
+      </tr>
+      <tr>
+        <td><span class="pill">Phase 2</span></td>
+        <td>Content Writer / Editor</td>
+        <td>Data narratives, social content, civic education materials</td>
+      </tr>
+      <tr>
+        <td><span class="pill gold">Phase 3</span></td>
+        <td>Sales / Partnerships</td>
+        <td>Close enterprise customers, manage media partnerships</td>
+      </tr>
+      <tr>
+        <td><span class="pill gold">Phase 3</span></td>
+        <td>Research Analyst</td>
+        <td>Commissioned reports, credit intelligence products</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">07</span>
+</div>
+
+<!-- ==================== SLIDE 8: ROADMAP ==================== -->
+<div class="slide content-slide">
+  <span class="badge">Roadmap</span>
+  <h2>18-month path to revenue and sustainability</h2>
+  <p class="subtitle">Clear milestones from current state to profitability.</p>
+
+  <div class="milestones-grid">
+    <div class="milestone-card">
+      <div class="timeline">Months 0-3</div>
+      <h4>Foundation</h4>
+      <ul>
+        <li>Incorporate OurNigeria Research Ltd</li>
+        <li>Build enterprise API layer</li>
+        <li>Hire backend engineer</li>
+        <li>Secure 3 LOIs from media houses</li>
+        <li>Launch WhatsApp channel</li>
+      </ul>
+    </div>
+    <div class="milestone-card">
+      <div class="timeline">Months 3-9</div>
+      <h4>First Revenue</h4>
+      <ul>
+        <li>Onboard 5-10 paying API customers</li>
+        <li>Launch credit intelligence MVP</li>
+        <li>Hire content writer</li>
+        <li>Reach $1,500/mo MRR</li>
+        <li>500+ daily active users (free tier)</li>
+      </ul>
+    </div>
+    <div class="milestone-card">
+      <div class="timeline">Months 9-18</div>
+      <h4>Scale &amp; Sustainability</h4>
+      <ul>
+        <li>20+ enterprise customers</li>
+        <li>$5,000+/mo MRR</li>
+        <li>Expand to 2 additional African markets</li>
+        <li>Register OurNigeria Foundation</li>
+        <li>Apply for follow-on grants</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Monthly Cost</th>
+          <th>Monthly Revenue</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Pre-launch (now)</td>
+          <td>~$50</td>
+          <td>$0</td>
+          <td><span class="pill">Current</span></td>
+        </tr>
+        <tr>
+          <td>Launch (Month 1-6)</td>
+          <td>~$350</td>
+          <td>$0-$500</td>
+          <td>First customers</td>
+        </tr>
+        <tr>
+          <td>Traction (Month 6-12)</td>
+          <td>$600-$1,200</td>
+          <td>$1,500-$3,000</td>
+          <td>Approaching break-even</td>
+        </tr>
+        <tr>
+          <td>Sustainability (Month 12-18)</td>
+          <td>$3,000-$6,000</td>
+          <td>$5,000-$8,000</td>
+          <td><span class="pill" style="background:#dcfce7;color:#166534;">Profitable</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">08</span>
+</div>
+
+<!-- ==================== SLIDE 9: THE ASK ==================== -->
+<div class="slide content-slide">
+  <span class="badge">The Ask</span>
+  <h2>Seed investment to go from built to sold</h2>
+  <p class="subtitle">The hardest part — building the data moat and AI pipeline — is done. Capital accelerates go-to-market.</p>
+
+  <div class="ask-hero">
+    <div class="amount">$250K &ndash; $500K</div>
+    <div class="round">Pre-Seed / Seed Round &middot; OurNigeria Research (For-Profit)</div>
+  </div>
+
+  <div class="use-grid">
+    <div class="use-card">
+      <div class="pct">40%</div>
+      <div class="use-label">Engineering<br><small style="color:#94a3b8">Enterprise API, premium features</small></div>
+    </div>
+    <div class="use-card">
+      <div class="pct">30%</div>
+      <div class="use-label">Go-to-Market<br><small style="color:#94a3b8">First 5 paying customers</small></div>
+    </div>
+    <div class="use-card">
+      <div class="pct">20%</div>
+      <div class="use-label">Content &amp; Distribution<br><small style="color:#94a3b8">Brand, social, partnerships</small></div>
+    </div>
+    <div class="use-card">
+      <div class="pct">10%</div>
+      <div class="use-label">Operations<br><small style="color:#94a3b8">Infra, legal, incorporation</small></div>
+    </div>
+  </div>
+
+  <div class="market-highlight" style="margin-top: 0;">
+    <p><strong>Why now?</strong> The data moat is built (708K+ embeddings, 37 states). The AI pipeline is live. The B2B revenue streams are defined. What's missing is the team and GTM push to convert this infrastructure into paying enterprise customers. Every month of delay is a month a competitor could start building.</p>
+  </div>
+
+  <div class="footer-logo"><span class="dot">&#9965;</span> OurNigeria</div>
+  <span class="slide-number">09</span>
+</div>
+
+<!-- ==================== SLIDE 10: CLOSING ==================== -->
+<div class="slide contact-slide">
+  <div class="logo-mark" style="width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px;border:1px solid rgba(255,255,255,0.2);">&#9965;</div>
+  <h2>OurNigeria</h2>
+  <p class="tagline">The innovation that doesn't just build companies &mdash; it builds countries.</p>
+
+  <div class="contact-details">
+    <div class="contact-item">&#127760;&ensp;spending.arinze.online</div>
+    <div class="contact-item">&#128231;&ensp;arinze@ournigeria.com</div>
+    <div class="contact-item">&#128241;&ensp;t.me/OurNigeriaBot</div>
+  </div>
+
+  <p style="margin-top: 36px; font-size: 12px; opacity: 0.5;">Confidential &middot; March 2026</p>
+</div>
+
+</body>
+</html>

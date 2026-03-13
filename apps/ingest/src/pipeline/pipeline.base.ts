@@ -75,6 +75,14 @@ export abstract class PipelineBase {
     return undefined;
   }
 
+  /** Generate a contextual prefix for a chunk to improve embedding quality. Override per pipeline. */
+  protected generateContextPrefix(
+    _file: DiscoveredFile,
+    _metadata: Record<string, unknown>,
+  ): string {
+    return ""; // default: no prefix
+  }
+
   /** Override to enhance chunks (e.g., add LLM summaries) */
   protected async enhanceChunks(
     file: DiscoveredFile,
@@ -416,11 +424,24 @@ export abstract class PipelineBase {
       const batchStart = Date.now();
 
       try {
-        const embeddings = await this.vector.embedBatch(batch);
-
         const metadata = batch.map((chunkText, j) =>
           this.buildChunkMetadata(file, chunkText, i + j),
         );
+
+        // Generate prefixed text for embedding (improves retrieval quality)
+        const textsToEmbed = batch.map((chunkText, j) => {
+          const prefix = this.generateContextPrefix(file, metadata[j]);
+          return prefix ? prefix + chunkText : chunkText;
+        });
+
+        const embeddings = await this.vector.embedBatch(textsToEmbed);
+
+        // Store prefixed text in metadata for debugging (only when prefix was added)
+        metadata.forEach((m, j) => {
+          if (textsToEmbed[j] !== batch[j]) {
+            m.embedding_text = textsToEmbed[j];
+          }
+        });
 
         await this.vector.upsert(this.indexName, embeddings, metadata);
 

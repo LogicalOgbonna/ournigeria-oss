@@ -103,6 +103,7 @@ export const faacSearchTool = createTool({
         geopolitical_zone: z.string(),
         total_allocation: z.number(),
         chunk_type: z.string(),
+        chunk_index: z.number().optional(),
         score: z.number(),
       }),
     ),
@@ -140,7 +141,7 @@ export const faacSearchTool = createTool({
       const requestedTopK = topK ?? RAG_CONFIG.topK;
       const cacheParams = { indexName: FAAC_INDEX, query, filter };
 
-      type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; score: number };
+      type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; chunk_index?: number; score: number };
       const cached = await getCached<FaacResult[]>(cacheParams);
 
       let results: FaacResult[];
@@ -172,6 +173,7 @@ export const faacSearchTool = createTool({
           geopolitical_zone: (r.metadata?.geopolitical_zone as string) ?? "",
           total_allocation: (r.metadata?.total_allocation as number) ?? 0,
           chunk_type: (r.metadata?.chunk_type as string) ?? "",
+          chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
           score: r.score,
         }));
 

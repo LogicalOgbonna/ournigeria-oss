@@ -86,6 +86,7 @@ export const corruptionSearchTool = createTool({
         party: z.string().optional(),
         agency: z.string().optional(),
         amount_alleged_ngn: z.number().optional(),
+        chunk_index: z.number().optional(),
         score: z.number(),
       }),
     ),
@@ -108,7 +109,7 @@ export const corruptionSearchTool = createTool({
       const requestedTopK = topK ?? RAG_CONFIG.topK;
       const cacheParams = { indexName: CORRUPTION_INDEX, query, filter };
 
-      type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; score: number };
+      type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; chunk_index?: number; score: number };
       const cached = await getCached<CorruptionResult[]>(cacheParams);
 
       let results: CorruptionResult[];
@@ -143,6 +144,7 @@ export const corruptionSearchTool = createTool({
           party: (r.metadata?.party as string) || undefined,
           agency: (r.metadata?.agency as string) || undefined,
           amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) || undefined,
+          chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
           score: r.score,
         }));
 
