@@ -7,27 +7,48 @@ WEBHOOK_SECRET=""
 STATUS_TOKEN=""
 GHCR_TOKEN=""
 GHCR_USER=""
+POSTGRES_PASSWORD=""
+INFISICAL_TOKEN=""
+TELEGRAM_BOT_TOKEN=""
+TELEGRAM_DEPLOY_CHAT_ID=""
 
 # ─── Parse args ───────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --webhook-secret|--status-token|--ghcr-token|--ghcr-user|--port)
+    --webhook-secret|--status-token|--ghcr-token|--ghcr-user|--port|--postgres-password|--infisical-token|--telegram-bot-token|--telegram-chat-id)
       if [[ $# -lt 2 ]]; then
         echo "Error: $1 requires a value"
         exit 1
       fi
       ;;&
-    --webhook-secret) WEBHOOK_SECRET="$2"; shift 2 ;;
-    --status-token)   STATUS_TOKEN="$2"; shift 2 ;;
-    --ghcr-token)     GHCR_TOKEN="$2"; shift 2 ;;
-    --ghcr-user)      GHCR_USER="$2"; shift 2 ;;
-    --port)           WEBHOOK_PORT="$2"; shift 2 ;;
+    --webhook-secret)      WEBHOOK_SECRET="$2"; shift 2 ;;
+    --status-token)        STATUS_TOKEN="$2"; shift 2 ;;
+    --ghcr-token)          GHCR_TOKEN="$2"; shift 2 ;;
+    --ghcr-user)           GHCR_USER="$2"; shift 2 ;;
+    --port)                WEBHOOK_PORT="$2"; shift 2 ;;
+    --postgres-password)   POSTGRES_PASSWORD="$2"; shift 2 ;;
+    --infisical-token)     INFISICAL_TOKEN="$2"; shift 2 ;;
+    --telegram-bot-token)  TELEGRAM_BOT_TOKEN="$2"; shift 2 ;;
+    --telegram-chat-id)    TELEGRAM_DEPLOY_CHAT_ID="$2"; shift 2 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
 
-if [ -z "$WEBHOOK_SECRET" ] || [ -z "$GHCR_TOKEN" ] || [ -z "$GHCR_USER" ] || [ -z "$STATUS_TOKEN" ]; then
-  echo "Usage: $0 --webhook-secret <SECRET> --status-token <TOKEN> --ghcr-token <TOKEN> --ghcr-user <USER>"
+if [ -z "$WEBHOOK_SECRET" ] || [ -z "$GHCR_TOKEN" ] || [ -z "$GHCR_USER" ] || [ -z "$STATUS_TOKEN" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$INFISICAL_TOKEN" ]; then
+  echo "Usage: $0 --webhook-secret <SECRET> --status-token <TOKEN> --ghcr-token <TOKEN> --ghcr-user <USER> [options]"
+  echo ""
+  echo "Required:"
+  echo "  --webhook-secret <SECRET>     Webhook secret for GitHub"
+  echo "  --status-token <TOKEN>        Bearer token for deploy status endpoint"
+  echo "  --ghcr-token <TOKEN>          GitHub Container Registry PAT"
+  echo "  --ghcr-user <USER>            GitHub Container Registry username"
+  echo "  --postgres-password <PASS>    PostgreSQL password"
+  echo "  --infisical-token <TOKEN>     Infisical service token"
+  echo ""
+  echo "Optional:"
+  echo "  --port <PORT>                 Webhook port (default: 9000)"
+  echo "  --telegram-bot-token <TOKEN>  Telegram bot token for deploy alerts"
+  echo "  --telegram-chat-id <ID>       Telegram chat ID for deploy alerts"
   exit 1
 fi
 
@@ -77,12 +98,12 @@ GHCR_OWNER=$GHCR_USER
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
 TELEGRAM_DEPLOY_CHAT_ID=$TELEGRAM_DEPLOY_CHAT_ID
 
-# ── App config (fill these in) ──
+# ── App config ──
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 INFISICAL_TOKEN=$INFISICAL_TOKEN
 INFISICAL_ENV=prod
 ENVEOF
-  echo "   WARNING: Edit $DEPLOY_DIR/.env to fill in POSTGRES_PASSWORD and INFISICAL_TOKEN"
+  echo "   .env created with all required values."
 else
   echo "5. .env already exists, appending missing deploy vars..."
   grep -q "ACTIVE_STACK" "$DEPLOY_DIR/.env" || echo "ACTIVE_STACK=blue" >> "$DEPLOY_DIR/.env"
@@ -113,11 +134,10 @@ echo "════════════════════════�
 echo "  Bootstrap complete!"
 echo ""
 echo "  Next steps:"
-echo "  1. Edit $DEPLOY_DIR/.env (fill in POSTGRES_PASSWORD, INFISICAL_TOKEN)"
+echo "  1. Verify $DEPLOY_DIR/.env has correct values"
 echo "  2. Configure NPM to forward API traffic to traefik:80"
 echo "     (NPM and Traefik are on the 'npm-proxy' network)"
 echo "  3. Run: cd $DEPLOY_DIR && docker compose up -d"
 echo "  4. Ensure port $WEBHOOK_PORT is reachable for GitHub webhooks"
 echo "  5. Set DEPLOY_WEBHOOK_URL and WEBHOOK_SECRET in GitHub repo secrets"
-echo "  6. (Optional) Set TELEGRAM_BOT_TOKEN and TELEGRAM_DEPLOY_CHAT_ID for alerts"
 echo "═══════════════════════════════════════════════════"

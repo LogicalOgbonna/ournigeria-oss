@@ -59,8 +59,14 @@ sudo ./deploy/bootstrap.sh \
   --webhook-secret $WEBHOOK_SECRET \
   --status-token $STATUS_BEARER_TOKEN \
   --ghcr-token $GHCR_TOKEN \
-  --ghcr-user $GHCR_OWNER
+  --ghcr-user $GHCR_OWNER \
+  --postgres-password $POSTGRES_PASSWORD \
+  --infisical-token $INFISICAL_TOKEN \
+  --telegram-bot-token $TELEGRAM_BOT_TOKEN \
+  --telegram-chat-id $TELEGRAM_DEPLOY_CHAT_ID
 ```
+
+All flags except `--telegram-bot-token` and `--telegram-chat-id` are required. The script will abort if any required flag is missing.
 
 The bootstrap script will:
 - Create `/var/log/ournigeria-deploy/` for deploy logs
