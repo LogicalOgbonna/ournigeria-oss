@@ -11,6 +11,12 @@ GHCR_USER=""
 # ─── Parse args ───────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --webhook-secret|--status-token|--ghcr-token|--ghcr-user|--port)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: $1 requires a value"
+        exit 1
+      fi
+      ;;&
     --webhook-secret) WEBHOOK_SECRET="$2"; shift 2 ;;
     --status-token)   STATUS_TOKEN="$2"; shift 2 ;;
     --ghcr-token)     GHCR_TOKEN="$2"; shift 2 ;;
