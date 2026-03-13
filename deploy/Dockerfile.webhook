@@ -1,4 +1,6 @@
-FROM almir/webhook:2.8.1
+FROM alpine:3.21
 
-# Install Docker CLI + Compose plugin for deploy script
-RUN apk add --no-cache docker-cli docker-cli-compose curl jq bash
+# Install webhook + Docker CLI + tools
+RUN apk add --no-cache webhook docker-cli docker-cli-compose curl jq bash
+
+ENTRYPOINT ["/usr/bin/webhook"]
