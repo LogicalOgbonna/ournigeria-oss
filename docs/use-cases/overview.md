@@ -41,6 +41,7 @@ Every institution in Nigeria that publishes data in PDFs that humans can't pract
 | A9 | [Embeddable Data Widgets](for-profit/A9-embeddable-widgets.md) | Ship with media | Month 1-2 | Low-Medium ($100-300/mo per customer) |
 | A10 | [White-Label Multi-Country](for-profit/A10-white-label.md) | Conversations now | Month 12+ | Very High ($10K-50K setup + recurring) |
 | A11 | [Adjacent Vertical Intelligence](for-profit/A11-adjacent-verticals.md) | Explore only | Month 9+ | High (varies by vertical) |
+| A12 | [Legislative Intelligence](for-profit/A12-legislative-intelligence.md) | Phase 2 | Month 6-9 | High (N200K-1M/mo per subscriber) |
 
 ---
 
@@ -58,6 +59,7 @@ Every institution in Nigeria that publishes data in PDFs that humans can't pract
 | E8 | [Secondary School Civic Ed](non-profit/E8-civic-education.md) | Phase 3 | Month 12+ | Very High (generational) |
 | E9 | [Open Fiscal Data Standard](non-profit/E9-open-data-standard.md) | Ongoing | Continuous | High (systemic change) |
 | E10 | [Diaspora Premium Tier](non-profit/E10-diaspora-premium.md) | **Month 3-4** | Month 3-4 | High (revenue + reach) |
+| E11 | [Legislative Accountability](non-profit/E11-legislative-accountability.md) | Phase 2 | Month 6-9 | Very High (469 legislators tracked) |
 
 **Note:** E4, E5, and E6 share a single implementation — one Sector Accountability Dashboard with configurable filters, pitched to different funders (UN Women, Global Fund, Green Climate Fund respectively).
 
@@ -70,7 +72,7 @@ Month 1-2:   A1 (contractor risk scores) + A9 (embeddable widgets)
 Month 2-3:   A2 (factoring API upsell) + E2 (report card design)
 Month 3-4:   A8 (fact-check API) + E10 (diaspora premium tier)
 Month 4-6:   E2 ship (6 months before 2027 election) + sector dashboard
-Month 6-9:   A3/A4 (financial services) + E1 (SMS/USSD) + E7 (university)
+Month 6-9:   A3/A4 (financial services) + A12/E11 (legislation pipeline) + E1 (SMS/USSD) + E7 (university)
 Month 9-12:  A5/A6/A7 (professional services) + E3 (community tracking)
 Month 12+:   A10 (white-label licensing) + E8 (schools)
 Ongoing:     A10 licensing conversations, grant applications, E9 advocacy
@@ -87,3 +89,4 @@ Ongoing:     A10 licensing conversations, grant applications, E9 advocacy
 5. **Enterprise doc intel:** Adjacent government verticals only (CBN, DPR, BPP), not generic
 6. **Diaspora:** For-profit premium tier under Research Ltd ($5-10/month)
 7. **Sector trackers:** One dashboard, three grant pitches (gender, climate, health)
+8. **Legislation:** Two use cases sharing one pipeline — A12 (enterprise bill intelligence) + E11 (citizen legislator accountability). Pipeline builds on existing ingest infrastructure. Unique moat: legislative-fiscal cross-reference connecting bills to budget/payment data.
