@@ -16,6 +16,7 @@ const PLACEHOLDER: Record<ToolId | "default", string> = {
   corruption: "Ask about EFCC corruption cases...",
   budget: "Ask about Nigerian budgets...",
   govspend: "Ask about government payments...",
+  faac: "Ask about federal allocation data...",
   impact: "Ask about the real-world impact of spending...",
   general: "Ask anything about Nigeria...",
   default: "Ask about budgets, corruption cases, or government payments...",

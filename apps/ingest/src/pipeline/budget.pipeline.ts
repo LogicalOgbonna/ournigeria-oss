@@ -115,6 +115,22 @@ export class BudgetPipeline extends PipelineBase {
     };
   }
 
+  protected generateContextPrefix(
+    file: DiscoveredFile,
+    metadata: Record<string, unknown>,
+  ): string {
+    const state = metadata.state || file.identity?.state || "";
+    const year = metadata.year || file.identity?.year || "";
+    const docType = metadata.document_type || "";
+    const sector = metadata.sector || "";
+    const category = metadata.budget_category || "";
+    const parts = [`This chunk is from the ${state} State ${year}`];
+    if (docType) parts[0] += ` ${docType}`;
+    if (sector) parts[0] += `, ${sector} sector`;
+    if (category) parts[0] += `, ${category} expenditure`;
+    return parts[0] + ": ";
+  }
+
   protected async enhanceChunks(
     file: DiscoveredFile,
     text: string,

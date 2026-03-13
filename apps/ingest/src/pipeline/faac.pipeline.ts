@@ -361,6 +361,20 @@ export class FaacPipeline extends PipelineBase {
     return files;
   }
 
+  protected generateContextPrefix(
+    _file: DiscoveredFile,
+    metadata: Record<string, unknown>,
+  ): string {
+    const chunkType = metadata.chunk_type || "raw";
+    const state = metadata.state || "";
+    const lga = metadata.lga || "";
+    const month = metadata.month || "";
+    const year = metadata.year || "";
+    const location = lga ? `${lga} LGA, ${state}` : state || "national";
+    const period = [month, year].filter(Boolean).join(" ");
+    return `This chunk is from the FAAC ${chunkType} allocation data for ${location}, ${period}: `;
+  }
+
   buildChunkMetadata(
     file: DiscoveredFile,
     chunkText: string,

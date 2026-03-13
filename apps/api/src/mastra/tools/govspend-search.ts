@@ -48,6 +48,12 @@ export const govspendSearchTool = createTool({
       .string()
       .nullish()
       .describe("Filter by month name, e.g. 'January', 'February', 'March'"),
+    chunk_type: z
+      .string()
+      .nullish()
+      .describe(
+        "Filter by data level: 'payment' for individual payment records, 'mda_monthly' for per-MDA monthly summaries, 'mda_annual' for per-MDA yearly summaries, 'beneficiary_annual' for per-beneficiary yearly summaries. Leave empty to search all types.",
+      ),
     topK: z
       .number()
       .nullish()
@@ -68,6 +74,7 @@ export const govspendSearchTool = createTool({
         year: z.string(),
         filename: z.string(),
         s3_key: z.string(),
+        chunk_index: z.number().optional(),
         score: z.number(),
       }),
     ),
@@ -79,6 +86,7 @@ export const govspendSearchTool = createTool({
     beneficiary,
     year,
     month,
+    chunk_type,
     topK,
   }) => {
     try {
@@ -89,6 +97,7 @@ export const govspendSearchTool = createTool({
         conditions.push({ beneficiary_name: { $eq: beneficiary } });
       if (year) conditions.push({ year: { $eq: year } });
       if (month) conditions.push({ month: { $eq: month } });
+      if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
 
       // Fallback to filter-based query if the LLM passes an empty string
       const query =
@@ -113,6 +122,7 @@ export const govspendSearchTool = createTool({
         year: string;
         filename: string;
         s3_key: string;
+        chunk_index?: number;
         score: number;
       };
       const cached = await getCached<GovspendResult[]>(cacheParams);
@@ -150,6 +160,7 @@ export const govspendSearchTool = createTool({
           year: (r.metadata?.year as string) ?? "",
           filename: (r.metadata?.filename as string) ?? "",
           s3_key: (r.metadata?.s3_key as string) ?? "",
+          chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
           score: r.score,
         }));
 

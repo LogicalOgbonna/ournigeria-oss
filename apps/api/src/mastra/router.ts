@@ -449,8 +449,22 @@ const SOURCE_TYPE_MAP: Record<string, string> = {
 };
 
 /**
+ * Truncate text at the last sentence boundary before maxLen,
+ * falling back to word boundary. Preserves clean readable snippets.
+ */
+function truncateAtSentence(text: string, maxLen = 500): string {
+  if (text.length <= maxLen) return text;
+  const truncated = text.slice(0, maxLen);
+  const lastPeriod = truncated.lastIndexOf(".");
+  if (lastPeriod > maxLen * 0.5) return truncated.slice(0, lastPeriod + 1);
+  const lastSpace = truncated.lastIndexOf(" ");
+  if (lastSpace > 0) return truncated.slice(0, lastSpace) + "...";
+  return truncated + "...";
+}
+
+/**
  * Extract unique source citations from a tool-result event.
- * Deduplicates by filename and limits to top results by score.
+ * Deduplicates by filename (keeping highest score) and limits to top results.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractSourcesFromToolResult(
@@ -461,27 +475,42 @@ function extractSourcesFromToolResult(
   if (!Array.isArray(results)) return [];
 
   const sourceType = SOURCE_TYPE_MAP[toolName] ?? "document";
-  const seen = new Set<string>();
-  const sources: SourceCitation[] = [];
+  const bestByFile = new Map<string, SourceCitation>();
 
   for (const r of results) {
     const filename = r.filename || r.fileName;
-    if (!filename || seen.has(filename)) continue;
-    seen.add(filename);
+    if (!filename) continue;
 
-    sources.push({
+    const snippet = r.text ? truncateAtSentence(r.text) : undefined;
+    const score = r.score ?? 0;
+
+    // Keep highest-scoring duplicate per fileName
+    const existing = bestByFile.get(filename);
+    if (existing) {
+      if (score > existing.score) {
+        existing.score = score;
+        existing.snippet = snippet;
+      }
+      continue;
+    }
+
+    const source: SourceCitation = {
       title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       fileName: filename,
       location: r.s3_key || filename,
       sourceType,
       state: r.state,
-      year: typeof r.year === "number" ? r.year : parseInt(r.year) || undefined,
-      score: r.score ?? 0,
-    });
+      year:
+        typeof r.year === "number" ? r.year : parseInt(r.year) || undefined,
+      score,
+      snippet,
+      page: typeof r.chunk_index === "number" ? r.chunk_index + 1 : undefined,
+    };
+    bestByFile.set(filename, source);
   }
 
   // Return top sources sorted by score
-  return sources.sort((a, b) => b.score - a.score).slice(0, 8);
+  return [...bestByFile.values()].sort((a, b) => b.score - a.score).slice(0, 8);
 }
 
 /**
@@ -619,10 +648,14 @@ async function streamWithThinking(
 
   // Reconstruct answerText by stripping captured thinking text from fullText.
   // This serves as a safety net alongside the step-finish event handling.
+  // IMPORTANT: Preserve thinking text that contains [N] citation markers —
+  // it's substantive answer content that was classified as thinking because
+  // the LLM called another tool (e.g., contextualImpactTool) after writing it.
   let answerText = fullText;
   if (thinkingSteps.length > 0) {
     const thinkingTexts = thinkingSteps
       .filter((s) => s.type === "text")
+      .filter((s) => !/\[\d+\]/.test(s.content)) // Keep citation-bearing text in answer
       .map((s) => s.content);
     let stripped = fullText;
     for (const t of thinkingTexts) {
@@ -643,13 +676,44 @@ async function streamWithThinking(
     throw new Error("Agent produced no response");
   }
 
-  // Deduplicate sources across multiple tool calls
-  const seenFiles = new Set<string>();
-  const dedupedSources = allSources.filter((s) => {
-    if (seenFiles.has(s.fileName)) return false;
-    seenFiles.add(s.fileName);
-    return true;
-  });
+  // Deduplicate sources across multiple tool calls (keep highest score per fileName)
+  const bestByFile = new Map<string, (typeof allSources)[0]>();
+  for (const s of allSources) {
+    const existing = bestByFile.get(s.fileName);
+    if (!existing || s.score > existing.score) {
+      bestByFile.set(s.fileName, s);
+    }
+  }
+  const dedupedSources = [...bestByFile.values()];
+
+  // Citation post-processing: remove orphan [N] markers where N > sources count,
+  // and log metrics. Orphans occur when the LLM references more sources than
+  // survive dedup (8-per-call limit + cross-call dedup reduces the total).
+  const citationMatches = answerText.match(/\[(\d+)\]/g) || [];
+  const citationCount = citationMatches.length;
+  if (citationCount > 0) {
+    const citationNumbers = citationMatches.map((m) => parseInt(m.slice(1, -1)));
+    const orphanCount = citationNumbers.filter(
+      (n) => n < 1 || n > dedupedSources.length,
+    ).length;
+
+    if (orphanCount > 0) {
+      // Remove orphan citations from the answer text
+      answerText = answerText.replace(/\[(\d+)\]/g, (match, numStr) => {
+        const n = parseInt(numStr);
+        return n >= 1 && n <= dedupedSources.length ? match : "";
+      });
+      // Clean up any double spaces left after removal
+      answerText = answerText.replace(/  +/g, " ");
+      console.log(
+        `[citations] count=${citationCount} orphans=${orphanCount} removed, sources=${dedupedSources.length}`,
+      );
+    } else {
+      console.log(
+        `[citations] count=${citationCount} orphans=0 sources=${dedupedSources.length}`,
+      );
+    }
+  }
 
   return { fullText, answerText, thinkingSteps, sources: dedupedSources, impactEquivalents: capturedImpact };
 }

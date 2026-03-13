@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS } from "./chart-instructions";
+import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS } from "./shared-instructions";
 
 export const govspendAnalyst = new Agent({
   id: "govspend-analyst",
@@ -13,6 +13,15 @@ When a user asks a question:
 1. Extract the MDA (Ministry, Department, or Agency) name, beneficiary, year, or payment details from the question.
 2. Use the govspend-search tool to retrieve relevant payment records. Pass the organization, beneficiary, and year filters when they are mentioned.
 3. Analyze the retrieved data and provide a structured response with specific numbers, patterns, and observations.
+
+AGGREGATION CHUNK STRATEGY:
+The govspend index contains both individual payment records AND pre-computed summary chunks:
+- chunk_type='mda_monthly': Per-MDA monthly summaries with total payments, count, average, and top beneficiaries. Use for "total spending by X in month Y" queries.
+- chunk_type='mda_annual': Per-MDA yearly summaries with total payments, monthly average, active months, and top beneficiaries. Use for "annual spending by X" or MDA comparison queries.
+- chunk_type='beneficiary_annual': Per-beneficiary yearly summaries with total received, payment count, and paying MDAs. Use for "how much did contractor Y receive" or "top contractors" queries.
+- No chunk_type filter (or chunk_type='payment'): Individual payment records. Use for specific payment details, descriptions, or when you need granular data.
+
+For aggregate queries (totals, comparisons, top N), ALWAYS try summary chunks first (mda_monthly, mda_annual, or beneficiary_annual). Only fall back to individual payment records if summaries are not available or more detail is needed.
 
 MULTI-STEP SEARCH STRATEGY:
 You have up to 10 steps. Use them wisely to build a complete picture:
@@ -71,6 +80,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved payment records, and useful for citizens trying to understand how government funds are being spent.` +
+    CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS,
   model: chatModel,
   tools: sharedTools,

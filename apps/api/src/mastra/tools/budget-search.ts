@@ -94,6 +94,7 @@ export const budgetSearchTool = createTool({
         s3_key: z.string(),
         sector: z.string(),
         budget_category: z.string(),
+        chunk_index: z.number().optional(),
         score: z.number(),
       }),
     ),
@@ -183,6 +184,7 @@ export const budgetSearchTool = createTool({
         s3_key: string;
         sector: string;
         budget_category: string;
+        chunk_index?: number;
         score: number;
       };
       const cached = await getCached<BudgetResult[]>(cacheParams);
@@ -217,6 +219,7 @@ export const budgetSearchTool = createTool({
           s3_key: (r.metadata?.s3_key as string) ?? "",
           sector: (r.metadata?.sector as string) ?? "general",
           budget_category: (r.metadata?.budget_category as string) ?? "general",
+          chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
           score: r.score,
         }));
 

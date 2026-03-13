@@ -13,10 +13,20 @@ import {
 } from "./pipeline.types";
 import { S3Object } from "../s3/s3.service";
 import { elapsed } from "../lib/timing.utils";
+import {
+  buildMdaMonthlyChunks,
+  buildMdaAnnualChunks,
+  buildBeneficiaryAnnualChunks,
+  type GovspendPaymentRecord,
+  type GovspendChunk,
+} from "./govspend-chunk-builder";
 
 @Injectable()
 export class GovspendPipeline extends PipelineBase {
   protected readonly logger = new Logger(GovspendPipeline.name);
+
+  /** Payment records collected via onChunkMetadataBuilt hook during processFiles(). */
+  private _collectedRecords: GovspendPaymentRecord[] = [];
 
   constructor(
     config: ConfigService,
@@ -74,6 +84,10 @@ export class GovspendPipeline extends PipelineBase {
       const monthPrefixes = await this.s3.listPrefixes(yearPrefix);
       this.emitLog("log", `Year ${year}: ${monthPrefixes.length} months`);
 
+      // Collect all payment records for the year (for annual aggregation)
+      const yearRecords: GovspendPaymentRecord[] = [];
+      let yearHadProcessed = false;
+
       for (const monthPrefix of monthPrefixes.sort()) {
         const month = monthPrefix.split("/")[2];
         const batchStart = Date.now();
@@ -93,6 +107,9 @@ export class GovspendPipeline extends PipelineBase {
 
         totalFiles += files.length;
 
+        // Clear accumulator before processing this month
+        this._collectedRecords = [];
+
         // Process this month's files using the base class worker pattern
         const result = await this.processFiles(files, config);
         processedFiles += result.processed;
@@ -100,10 +117,29 @@ export class GovspendPipeline extends PipelineBase {
         errorFiles += result.errors;
         totalChunks += result.chunks;
 
+        // Build MDA monthly summary chunks from accumulated records
+        if (result.processed > 0 && this._collectedRecords.length > 0) {
+          yearHadProcessed = true;
+          const monthlyChunks = buildMdaMonthlyChunks(this._collectedRecords, year, month);
+          totalChunks += await this.embedAggregationChunks(monthlyChunks, config, `${year}/${month} MDA monthly`);
+        }
+
+        // Accumulate for annual aggregation
+        yearRecords.push(...this._collectedRecords);
+
         this.emitLog(
           "log",
           `${year}/${month} done: ${result.processed} processed, ${result.skipped} skipped, ${result.errors} errors, ${result.chunks} chunks (${elapsed(batchStart)})`,
         );
+      }
+
+      // Build annual aggregation chunks after all months for this year
+      if (yearHadProcessed && yearRecords.length > 0) {
+        this.emitLog("log", `Building annual aggregation chunks for ${year}...`);
+        const mdaAnnual = buildMdaAnnualChunks(yearRecords, year);
+        const beneficiaryAnnual = buildBeneficiaryAnnualChunks(yearRecords, year);
+        totalChunks += await this.embedAggregationChunks(mdaAnnual, config, `${year} MDA annual`);
+        totalChunks += await this.embedAggregationChunks(beneficiaryAnnual, config, `${year} beneficiary annual`);
       }
     }
 
@@ -162,6 +198,38 @@ export class GovspendPipeline extends PipelineBase {
     return files;
   }
 
+  /** Embed and upsert aggregation chunks (MDA monthly/annual, beneficiary annual). */
+  private async embedAggregationChunks(
+    chunks: GovspendChunk[],
+    config: PipelineConfig,
+    label: string,
+  ): Promise<number> {
+    if (chunks.length === 0) return 0;
+
+    this.emitLog("log", `Embedding ${chunks.length} ${label} summary chunks...`);
+    let upserted = 0;
+
+    for (let i = 0; i < chunks.length; i += config.batchSize) {
+      const batch = chunks.slice(i, i + config.batchSize);
+      const batchTexts = batch.map((c) => c.text);
+      const batchMeta = batch.map((c) => c.metadata);
+
+      try {
+        const embeddings = await this.vector.embedBatch(batchTexts);
+        await this.vector.upsert(this.indexName, embeddings, batchMeta);
+        upserted += batch.length;
+      } catch (err) {
+        this.emitLog(
+          "error",
+          `${label} batch failed: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
+    this.emitLog("log", `${label}: ${upserted} summary chunks upserted`);
+    return upserted;
+  }
+
   /** discoverFiles is unused for govspend (run is overridden) but required by abstract base */
   async discoverFiles(): Promise<DiscoveredFile[]> {
     return [];
@@ -184,6 +252,37 @@ export class GovspendPipeline extends PipelineBase {
         filename: parts.slice(5).join("/"),
       },
     };
+  }
+
+  /** Collect payment records from chunk metadata for aggregation chunk building. */
+  protected onChunkMetadataBuilt(
+    _file: DiscoveredFile,
+    metadataBatch: Record<string, unknown>[],
+  ): void {
+    for (const m of metadataBatch) {
+      const orgName = m.organization_name as string;
+      const benefName = m.beneficiary_name as string;
+      const amount = m.amount_numeric as number;
+      if (orgName && benefName && amount > 0) {
+        this._collectedRecords.push({
+          organization_name: orgName,
+          beneficiary_name: benefName,
+          amount_numeric: amount,
+          year: m.year as string,
+          month: m.month as string,
+        });
+      }
+    }
+  }
+
+  protected generateContextPrefix(
+    _file: DiscoveredFile,
+    metadata: Record<string, unknown>,
+  ): string {
+    const org = metadata.organization_name || "";
+    const year = metadata.year || "";
+    const chunkType = metadata.chunk_type || "payment";
+    return `This chunk is a ${chunkType} government payment record from ${org}, ${year}: `;
   }
 
   buildChunkMetadata(
@@ -230,13 +329,16 @@ export class GovspendPipeline extends PipelineBase {
       amount_numeric = Math.round(parsed);
     }
 
+    const orgName = organizationMatch?.[1]?.trim() ?? "";
+    const benefName = beneficiaryMatch?.[1]?.trim() ?? "";
+
     return {
       text: chunkText,
       year,
       month,
       day,
-      organization_name: organizationMatch?.[1]?.trim() ?? "",
-      beneficiary_name: beneficiaryMatch?.[1]?.trim() ?? "",
+      organization_name: orgName,
+      beneficiary_name: benefName,
       amount: rawAmount,
       payment_no: paymentNoMatch?.[1]?.trim() ?? "",
       beneficiary_slug,

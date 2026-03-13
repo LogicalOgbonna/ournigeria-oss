@@ -1,0 +1,28 @@
+# This file is managed by deploy.sh — do not edit manually
+# deploy.sh copies dynamic-blue.yml or dynamic-green.yml here
+# Traefik watches this file for hot-reload
+
+http:
+  routers:
+    api:
+      rule: "Host(`api.example.invalid`)"
+      service: api
+      entryPoints:
+        - web
+
+    ingest:
+      rule: "Host(`ingest.example.invalid`)"
+      service: ingest
+      entryPoints:
+        - web
+
+  services:
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://api-blue:3000"
+
+    ingest:
+      loadBalancer:
+        servers:
+          - url: "http://ingest-blue:3002"

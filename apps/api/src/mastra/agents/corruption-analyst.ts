@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS } from "./chart-instructions";
+import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS } from "./shared-instructions";
 
 export const corruptionAnalyst = new Agent({
   id: "corruption-analyst",
@@ -94,6 +94,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved case documents, and useful for citizens trying to understand accountability in government.` +
+    CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS,
   model: chatModel,
   tools: sharedTools,

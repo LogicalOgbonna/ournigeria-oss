@@ -1,0 +1,4 @@
+FROM almir/webhook:2.8.1
+
+# Install Docker CLI + Compose plugin for deploy script
+RUN apk add --no-cache docker-cli docker-cli-compose curl jq bash

@@ -2,6 +2,7 @@
   "name": "@ournigeria/root",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@10.18.1",
   "scripts": {
     "web:dev": "nx run web:dev",
     "web:build": "nx run web:build",
