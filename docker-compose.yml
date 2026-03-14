@@ -101,7 +101,8 @@ services:
       - "--entrypoints.web.address=:80"
       - "--api.dashboard=false"
       - "--log.level=WARN"
-    # NO host ports — NPM forwards to traefik:80 on Docker network
+    ports:
+      - "80:80"
     networks:
       - internal
       - npm-proxy
