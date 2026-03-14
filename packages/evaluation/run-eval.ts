@@ -65,6 +65,8 @@ interface EvalQuestion {
   resolved_intent?: string;
   tools_called?: string[];
   sources_count?: number;
+  sources_data?: SourceData[];
+  citation_alignment_score?: number;
   response_time_ms?: number;
   pass?: boolean;
   evaluation_notes?: string;
@@ -99,12 +101,90 @@ interface EvalSummary {
   by_category: Record<string, { total: number; passed: number }>;
 }
 
+interface SourceData {
+  title: string;
+  fileName: string;
+  sourceType: string;
+  state?: string;
+  year?: number;
+  score: number;
+  snippet?: string;
+}
+
+// Nigerian states for citation alignment checking
+const NIGERIAN_STATES = [
+  "abia", "adamawa", "akwa ibom", "anambra", "bauchi", "bayelsa", "benue",
+  "borno", "cross river", "delta", "ebonyi", "edo", "ekiti", "enugu", "gombe",
+  "imo", "jigawa", "kaduna", "kano", "katsina", "kebbi", "kogi", "kwara",
+  "lagos", "nasarawa", "niger", "ogun", "ondo", "osun", "oyo", "plateau",
+  "rivers", "sokoto", "taraba", "yobe", "zamfara", "fct", "federal",
+];
+
+/**
+ * Check citation-to-source alignment: for each [N] in the text,
+ * extract the nearest state name and verify it matches sources[N-1].state.
+ * Returns alignment score (0-1) and descriptive notes.
+ */
+function checkCitationAlignment(
+  text: string,
+  sources: SourceData[],
+): { score: number; total: number; matched: number; notes: string } {
+  if (sources.length === 0) return { score: 1, total: 0, matched: 0, notes: "" };
+
+  const citationRegex = /\[(\d+)\]/g;
+  const seen = new Set<number>();
+  let total = 0;
+  let matched = 0;
+  const mismatches: string[] = [];
+
+  const sorted = [...NIGERIAN_STATES].sort((a, b) => b.length - a.length);
+
+  let match: RegExpExecArray | null;
+  while ((match = citationRegex.exec(text)) !== null) {
+    const num = parseInt(match[1]);
+    if (num < 1 || num > sources.length || seen.has(num)) continue;
+    seen.add(num);
+    total++;
+
+    const source = sources[num - 1];
+    if (!source?.state) continue;
+
+    // Extract state from 150 chars before citation
+    const contextStart = Math.max(0, match.index - 150);
+    const context = text.slice(contextStart, match.index).toLowerCase();
+
+    // Find nearest state name
+    let bestState: string | null = null;
+    let bestPos = -1;
+    for (const state of sorted) {
+      const pos = context.lastIndexOf(state);
+      if (pos !== -1 && pos > bestPos) {
+        bestPos = pos;
+        bestState = state;
+      }
+    }
+
+    if (bestState && bestState === source.state.toLowerCase()) {
+      matched++;
+    } else if (bestState) {
+      mismatches.push(`[${num}] text="${bestState}" src="${source.state}"`);
+    }
+  }
+
+  const score = total > 0 ? matched / total : 1;
+  let notes = `Citation alignment: ${matched}/${total} matched.`;
+  if (mismatches.length > 0) {
+    notes += ` Mismatches: ${mismatches.join(", ")}`;
+  }
+  return { score, total, matched, notes };
+}
+
 // ─── SSE Parser ──────────────────────────────────────────────────
 
 async function askQuestion(
   question: string,
   tool?: string,
-): Promise<{ text: string; resolvedTool: string; toolsCalled: string[]; sourcesCount: number; timeMs: number }> {
+): Promise<{ text: string; resolvedTool: string; toolsCalled: string[]; sourcesCount: number; sources: SourceData[]; timeMs: number }> {
   const start = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
@@ -137,6 +217,7 @@ async function askQuestion(
     let resolvedTool = "unknown";
     let toolsCalled: string[] = [];
     let sourcesCount = 0;
+    let sources: SourceData[] = [];
     let buffer = "";
 
     while (true) {
@@ -170,6 +251,7 @@ async function askQuestion(
             }
             if (Array.isArray(event.richContent?.sources)) {
               sourcesCount = event.richContent.sources.length;
+              sources = event.richContent.sources;
             }
           }
         } catch {
@@ -178,7 +260,7 @@ async function askQuestion(
       }
     }
 
-    return { text: fullText, resolvedTool, toolsCalled, sourcesCount, timeMs: Date.now() - start };
+    return { text: fullText, resolvedTool, toolsCalled, sourcesCount, sources, timeMs: Date.now() - start };
   } finally {
     clearTimeout(timer);
   }
@@ -430,6 +512,25 @@ function evaluateAnswer(q: EvalQuestion): { pass: boolean; notes: string } {
     }
   }
 
+  // Check 12: Citation alignment — does [N] point to the correct source?
+  if (sourcesCount > 0 && q.sources_data && q.sources_data.length > 0) {
+    const citationMatches2 = (q.answer ?? "").match(/\[(\d+)\]/g) || [];
+    if (citationMatches2.length > 0) {
+      checks++;
+      const alignment = checkCitationAlignment(q.answer ?? "", q.sources_data);
+      q.citation_alignment_score = Math.round(alignment.score * 100) / 100;
+      if (alignment.score >= 0.8) {
+        score++;
+        notes.push(alignment.notes);
+      } else if (alignment.score > 0) {
+        score += 0.5;
+        notes.push(alignment.notes);
+      } else {
+        notes.push(alignment.notes);
+      }
+    }
+  }
+
   const passThreshold = checks > 0 ? score / checks : 0;
   const pass = passThreshold >= 0.5;
 
@@ -469,11 +570,12 @@ async function runEvalFile(filePath: string): Promise<EvalSummary> {
     console.log(`  ${qNum} Asking: "${shortQ}"`);
 
     try {
-      const { text, resolvedTool, toolsCalled, sourcesCount, timeMs } = await askQuestion(q.question);
+      const { text, resolvedTool, toolsCalled, sourcesCount, sources, timeMs } = await askQuestion(q.question);
       q.answer = text;
       q.resolved_intent = resolvedTool;
       q.tools_called = toolsCalled;
       q.sources_count = sourcesCount;
+      q.sources_data = sources;
       q.response_time_ms = timeMs;
       q.tool_metrics = computeToolMetrics(q);
 

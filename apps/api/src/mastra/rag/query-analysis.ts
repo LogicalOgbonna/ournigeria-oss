@@ -4,7 +4,7 @@ import { tracingMetadata } from "../../lib/langfuse";
 
 // ─── Nigerian States ────────────────────────────────────────────
 
-const NIGERIAN_STATES = [
+export const NIGERIAN_STATES = [
   "abia",
   "adamawa",
   "akwa ibom",

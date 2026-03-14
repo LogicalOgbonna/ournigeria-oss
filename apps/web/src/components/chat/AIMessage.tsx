@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { AIResponseContent, ThinkingStep } from "@/types";
 import { StatHighlight } from "@/components/cards/StatHighlight";
 import { BudgetBarChart } from "@/components/charts/BarChart";
@@ -181,17 +182,19 @@ export function AIMessage({
         </div>
       )}
 
-      {/* Citation Modal */}
-      {content.sources && content.sources.length > 0 && (
-        <SourceCitationModal
-          sources={content.sources}
-          activeIndex={citationModal.index}
-          open={citationModal.open}
-          onOpenChange={(open) =>
-            setCitationModal((prev) => ({ ...prev, open }))
-          }
-        />
-      )}
+      {/* Citation Modal — portaled to document.body to escape ancestor transform */}
+      {content.sources && content.sources.length > 0 && citationModal.open &&
+        createPortal(
+          <SourceCitationModal
+            sources={content.sources}
+            activeIndex={citationModal.index}
+            open={citationModal.open}
+            onOpenChange={(open) =>
+              setCitationModal((prev) => ({ ...prev, open }))
+            }
+          />,
+          document.body,
+        )}
 
       {/* Feedback buttons */}
       {messageId && conversationId && (

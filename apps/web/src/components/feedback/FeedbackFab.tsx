@@ -43,6 +43,7 @@ const MAX_SIZE = 50 * 1024 * 1024;
 
 export function FeedbackFab() {
   const [open, setOpen] = useState(false);
+
   const [category, setCategory] = useState<Category>("general");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -192,8 +193,12 @@ export function FeedbackFab() {
 
       setSuccess(true);
       setTimeout(handleClose, 2000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setSubmitting(false);
     }

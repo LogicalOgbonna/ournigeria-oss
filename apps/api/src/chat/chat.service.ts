@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService, type Prisma } from "@ournigeria/database";
 import { cache } from "@ournigeria/cache";
 import { routeToAgent } from "../mastra/router";
-import type { ToolId, Language, AIResponseContent } from "../types";
+import type { ToolId, Language, AIResponseContent, SourceCitation } from "../types";
 import { summarizeRichContent } from "./rich-content-summary";
 import {
   estimateTokens,
@@ -99,12 +99,12 @@ export class ChatService {
     }
 
     // Persist user message (with retry on sequence collision)
-    nextSeq = await this.createMessageWithSeqRetry({
+    ({ sequenceNumber: nextSeq } = await this.createMessageWithSeqRetry({
       conversationId: convId,
       sequenceNumber: nextSeq,
       role: "user",
       content: message,
-    });
+    }));
 
     // Send conversation ID immediately
     send({ type: "meta", conversationId: convId });
@@ -194,7 +194,7 @@ export class ChatService {
     const processingTimeMs = Date.now() - startTime;
 
     // Persist assistant message (with retry on sequence collision)
-    const assistantSeq = await this.createMessageWithSeqRetry({
+    const { sequenceNumber: assistantSeq, messageId: assistantMsgId } = await this.createMessageWithSeqRetry({
       conversationId: convId,
       sequenceNumber: nextSeq + 1,
       role: "assistant",
@@ -291,6 +291,13 @@ export class ChatService {
       (err) => console.error("Summarization error:", err),
     );
 
+    // Phase 2: Persist source references for analytics
+    if (richContent.sources && richContent.sources.length > 0) {
+      this.persistSourceReferences(assistantMsgId, richContent.sources).catch(
+        (err) => console.error("SourceReference persist error:", err),
+      );
+    }
+
     // Phase 6: Extract user memory
     extractAndSaveMemory(this.prisma, userId, {
       mentionedStates: updatedStates,
@@ -314,13 +321,14 @@ export class ChatService {
       processingTimeMs?: number;
     },
     maxRetries = 3,
-  ): Promise<number> {
+  ): Promise<{ sequenceNumber: number; messageId: string }> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        await this.prisma.message.create({
+        const msg = await this.prisma.message.create({
           data: data as any,
+          select: { id: true },
         });
-        return data.sequenceNumber;
+        return { sequenceNumber: data.sequenceNumber, messageId: msg.id };
       } catch (err: any) {
         if (err?.code === "P2002" && attempt < maxRetries - 1) {
           // Unique constraint violation — re-calculate sequence number
@@ -335,7 +343,7 @@ export class ChatService {
       }
     }
     // Unreachable, but satisfies TypeScript
-    throw new Error("Failed to create message after retries");
+    throw new Error("Failed to create message after retries") as never;
   }
 
   /**
@@ -378,5 +386,52 @@ export class ChatService {
         },
       });
     }
+  }
+
+  /**
+   * Persist source citations as SourceReference rows for analytics.
+   * Looks up documents by fileName to get the required documentId FK.
+   * Non-blocking — errors are logged, not thrown.
+   */
+  private async persistSourceReferences(
+    messageId: string,
+    sources: SourceCitation[],
+  ) {
+    if (sources.length === 0) return;
+
+    // Look up documents by fileName to get documentIds
+    const fileNames = sources.map((s) => s.fileName);
+    const documents = await this.prisma.document.findMany({
+      where: { fileName: { in: fileNames } },
+      select: { id: true, fileName: true, stateCode: true, fiscalYear: true },
+    });
+
+    const docMap = new Map(documents.map((d) => [d.fileName, d]));
+
+    const refs = sources
+      .map((source, index) => {
+        const doc = docMap.get(source.fileName);
+        if (!doc) return null; // Skip if document not found in DB
+        return {
+          messageId,
+          documentId: doc.id,
+          pageNumber: source.page ?? null,
+          snippet: source.snippet ?? null,
+          confidenceScore: source.score,
+          stateCode: doc.stateCode,
+          fiscalYear: doc.fiscalYear,
+          relevanceRank: index + 1,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (refs.length === 0) return;
+
+    await this.prisma.sourceReference.createMany({
+      data: refs as any,
+      skipDuplicates: true,
+    });
+
+    console.log(`[SourceReference] Persisted ${refs.length}/${sources.length} references for message ${messageId}`);
   }
 }

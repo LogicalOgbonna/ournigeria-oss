@@ -20,6 +20,7 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { tracingMetadata, getPrompt } from "../lib/langfuse";
 import { cache as cacheManager } from "@ournigeria/cache";
+import { NIGERIAN_STATES } from "./rag/query-analysis";
 
 const intentCache = cacheManager.namespace("intent");
 
@@ -509,8 +510,169 @@ function extractSourcesFromToolResult(
     bestByFile.set(filename, source);
   }
 
-  // Return top sources sorted by score
-  return [...bestByFile.values()].sort((a, b) => b.score - a.score).slice(0, 8);
+  // Return top sources (preserve tool-result order for citation alignment)
+  return [...bestByFile.values()].slice(0, 8);
+}
+
+// ─── Citation alignment ─────────────────────────────────────────
+
+/**
+ * Extract the Nigerian state name that appears closest to the END of the text
+ * (nearest to the citation marker). This ensures that when the context window
+ * contains multiple state names, we pick the one most relevant to the citation.
+ */
+function extractStateName(text: string): string | null {
+  const lower = text.toLowerCase();
+  let bestState: string | null = null;
+  let bestPos = -1;
+
+  // Check multi-word states first (e.g., "akwa ibom", "cross river")
+  const sorted = [...NIGERIAN_STATES].sort((a, b) => b.length - a.length);
+  for (const state of sorted) {
+    const pos = lower.lastIndexOf(state);
+    if (pos !== -1 && pos > bestPos) {
+      bestPos = pos;
+      bestState = state;
+    }
+  }
+  return bestState;
+}
+
+/**
+ * Extract Naira amount strings from text (e.g., "₦1,315.5B", "₦619.4B").
+ * Returns the numeric portions for fuzzy matching against source snippets.
+ */
+function extractNairaAmounts(text: string): string[] {
+  const matches = text.match(/₦[\d,.]+[BTMK]?/gi) || [];
+  // Strip ₦ and normalise for matching
+  return matches.map((m) => m.replace(/₦/g, "").replace(/,/g, ""));
+}
+
+/**
+ * Match a single citation to the best source using a multi-signal chain:
+ * 1. State name within context window
+ * 2. Source title keywords in context
+ * 3. Naira amount match between context and source snippet
+ */
+function matchCitationToSource(
+  citationContext: string,
+  candidates: SourceCitation[],
+): SourceCitation | null {
+  if (candidates.length === 0) return null;
+
+  // Signal 1: State name (strongest)
+  const state = extractStateName(citationContext);
+  if (state) {
+    const match = candidates.find(
+      (s) => s.state?.toLowerCase() === state,
+    );
+    if (match) return match;
+  }
+
+  // Signal 2: Filename/title keywords (excluding terms that appear in every budget doc)
+  const TITLE_STOP_WORDS = new Set([
+    "state", "budget", "approved", "fiscal", "year",
+    "2020", "2021", "2022", "2023", "2024", "2025", "2026",
+    "expenditure", "capital", "recurrent", "total", "sector",
+  ]);
+  for (const src of candidates) {
+    const keywords = src.title
+      .split(/\s+/)
+      .filter((k) => k.length > 3 && !TITLE_STOP_WORDS.has(k.toLowerCase()));
+    if (
+      keywords.length > 0 &&
+      keywords.some((k) => citationContext.toLowerCase().includes(k.toLowerCase()))
+    ) {
+      return src;
+    }
+  }
+
+  // Signal 3: Naira amount match
+  const amounts = extractNairaAmounts(citationContext);
+  if (amounts.length > 0) {
+    for (const src of candidates) {
+      if (
+        src.snippet &&
+        amounts.some((a) => src.snippet!.includes(a))
+      ) {
+        return src;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Reorder sources array so that sources[N-1] corresponds to citation [N] in the text.
+ * Uses multi-signal matching (state name, title keywords, Naira amounts) to align
+ * each [N] marker in the answer text to the correct source.
+ *
+ * Unmatched citations keep their original source. Uncited sources are appended at the end.
+ */
+export function alignSourcesToCitations(
+  answerText: string,
+  sources: SourceCitation[],
+): SourceCitation[] {
+  if (sources.length === 0) return sources;
+
+  // Find all citation numbers and their positions (order of first appearance)
+  const citationRegex = /\[(\d+)\]/g;
+  const seen = new Set<number>();
+  const citationOrder: { num: number; pos: number }[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = citationRegex.exec(answerText)) !== null) {
+    const num = parseInt(match[1]);
+    if (num >= 1 && num <= sources.length && !seen.has(num)) {
+      seen.add(num);
+      citationOrder.push({ num, pos: match.index });
+    }
+  }
+
+  if (citationOrder.length === 0) return sources;
+
+  // Build aligned array
+  const aligned: (SourceCitation | null)[] = new Array(sources.length).fill(null);
+  const usedSources = new Set<SourceCitation>();
+
+  for (const { num, pos } of citationOrder) {
+    // Extract context: up to 150 chars before the citation marker
+    const contextStart = Math.max(0, pos - 150);
+    const context = answerText.slice(contextStart, pos);
+
+    // Filter to unused sources only
+    const candidates = sources.filter((s) => !usedSources.has(s));
+    const matched = matchCitationToSource(context, candidates);
+
+    if (matched) {
+      aligned[num - 1] = matched;
+      usedSources.add(matched);
+    }
+  }
+
+  // Fill unmatched citation slots with their original sources (if not already used)
+  for (let i = 0; i < aligned.length; i++) {
+    if (aligned[i] === null) {
+      const original = sources[i];
+      if (original && !usedSources.has(original)) {
+        aligned[i] = original;
+        usedSources.add(original);
+      }
+    }
+  }
+
+  // Append any remaining uncited sources to empty slots
+  const remaining = sources.filter((s) => !usedSources.has(s));
+  let remainIdx = 0;
+  for (let i = 0; i < aligned.length; i++) {
+    if (aligned[i] === null && remainIdx < remaining.length) {
+      aligned[i] = remaining[remainIdx++];
+    }
+  }
+
+  // Filter out any null slots (shouldn't happen, but safety)
+  return aligned.filter((s): s is SourceCitation => s !== null);
 }
 
 /**
@@ -684,7 +846,7 @@ async function streamWithThinking(
       bestByFile.set(s.fileName, s);
     }
   }
-  const dedupedSources = [...bestByFile.values()];
+  const dedupedSources = alignSourcesToCitations(answerText, [...bestByFile.values()]);
 
   // Citation post-processing: remove orphan [N] markers where N > sources count,
   // and log metrics. Orphans occur when the LLM references more sources than
