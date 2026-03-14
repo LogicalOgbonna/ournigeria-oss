@@ -12,7 +12,7 @@
     and:
       - match:
           type: payload-hmac-sha256
-          secret: "{{ getenv \"WEBHOOK_SECRET\" }}"
+          secret: '{{ getenv "WEBHOOK_SECRET" }}'
           parameter:
             source: header
             name: X-Hub-Signature-256
@@ -32,7 +32,7 @@
   trigger-rule:
     match:
       type: payload-hmac-sha256
-      secret: "{{ getenv \"WEBHOOK_SECRET\" }}"
+      secret: '{{ getenv "WEBHOOK_SECRET" }}'
       parameter:
         source: header
         name: X-Hub-Signature-256
@@ -40,12 +40,13 @@
 - id: deploy-status
   execute-command: /opt/ournigeria/deploy/deploy-status.sh
   command-working-directory: /opt/ournigeria
+  include-command-output-in-response: true
   http-methods:
     - GET
   trigger-rule:
     match:
       type: value
-      value: "Bearer {{ getenv \"STATUS_BEARER_TOKEN\" }}"
+      value: 'Bearer {{ getenv "STATUS_BEARER_TOKEN" }}'
       parameter:
         source: header
         name: Authorization
