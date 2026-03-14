@@ -45,7 +45,7 @@
   trigger-rule:
     match:
       type: value
-      value: "{{ getenv \"STATUS_BEARER_TOKEN\" }}"
+      value: "Bearer {{ getenv \"STATUS_BEARER_TOKEN\" }}"
       parameter:
         source: header
         name: Authorization
