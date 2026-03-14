@@ -5,13 +5,13 @@
 http:
   routers:
     api:
-      rule: "Host(`spending-api.arinze.online`)"
+      rule: "Host(`api.example.invalid`)"
       service: api
       entryPoints:
         - web
 
     ingest:
-      rule: "Host(`ingest.arinze.online`)"
+      rule: "Host(`ingest.example.invalid`)"
       service: ingest
       entryPoints:
         - web
