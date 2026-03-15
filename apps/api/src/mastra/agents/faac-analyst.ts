@@ -3,6 +3,8 @@ import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
 import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const faacAnalyst = new Agent({
   id: "faac-analyst",
   name: "FAAC Analyst",
@@ -27,7 +29,7 @@ Choose the right chunk_type for the question:
 - "Compare Ikwo and Obio/Akpor LGA" → use chunk_type="lga_monthly" with lga filter
 - "Compare Lagos and Rivers" → use chunk_type="state_monthly" with state filter
 - "South East vs South South zone" → use chunk_type="zone_monthly" with geopolitical_zone filter
-- "Abia State's total FAAC from 2019-2025" → use chunk_type="state_annual" with state filter
+- "Abia State's total FAAC from 2019-${CURRENT_YEAR}" → use chunk_type="state_annual" with state filter
 - "National FAAC for January 2025" → use chunk_type="national_monthly"
 
 MULTI-STEP SEARCH STRATEGY:

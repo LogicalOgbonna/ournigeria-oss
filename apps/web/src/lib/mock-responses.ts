@@ -523,8 +523,8 @@ export function getResponse(message: string): AIResponseContent {
           },
           {
             label: "Years Covered",
-            value: "2019-2025",
-            subtitle: "7 years of data",
+            value: `2019-${new Date().getFullYear()}`,
+            subtitle: `${new Date().getFullYear() - 2019 + 1} years of data`,
           },
         ],
         barChart: {

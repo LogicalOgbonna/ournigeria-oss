@@ -73,9 +73,8 @@ export const budgetSearchTool = createTool({
     is_summary: z
       .boolean()
       .optional()
-      .default(false)
       .describe(
-        "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false or leave undefined for specific line items.",
+        "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false for specific line items. Leave undefined to search both.",
       ),
     topK: z
       .number()

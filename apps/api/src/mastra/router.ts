@@ -20,8 +20,10 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { tracingMetadata, getPrompt } from "../lib/langfuse";
 import { cache as cacheManager } from "@ournigeria/cache";
-import { extractStateName } from "./rag/query-analysis";
+import { extractStateName, analyzeQueryComplexity } from "./rag/query-analysis";
 import { getOfficials } from "./tools/metadata";
+
+const MAX_STEPS = 25;
 
 const intentCache = cacheManager.namespace("intent");
 
@@ -346,7 +348,7 @@ function tryFastClassify(
     0,
   );
   if (impactScore >= 1) {
-    return { intent: "impact", entities: EMPTY_ENTITIES };
+    return { intent: "impact", entities: extractEntitiesFromMessage(message) };
   }
 
   // General greetings/meta
@@ -389,12 +391,16 @@ function tryFastClassify(
   const top = sorted[0];
   const runner = sorted[1];
 
+  // Extract entities so specialist agents get state/year/sector hints
+  // even on the fast path (avoids the LLM router but still provides context)
+  const entities = extractEntitiesFromMessage(message);
+
   // High confidence: top score >= 2 and clearly ahead, OR top score >= 1 with runner at 0
   if (top.score >= 2 && top.score > runner.score) {
-    return { intent: top.intent, entities: EMPTY_ENTITIES };
+    return { intent: top.intent, entities };
   }
   if (top.score >= 1 && runner.score === 0) {
-    return { intent: top.intent, entities: EMPTY_ENTITIES };
+    return { intent: top.intent, entities };
   }
 
   // Ambiguous or no keywords — return null to trigger LLM
@@ -757,9 +763,17 @@ async function streamWithThinking(
             capturedImpact = result as ContextualImpactResult;
           }
         }
+      } else if (type === "error") {
+        // Mastra emits error chunks when the LLM API fails (429, 402, etc.)
+        // Log the error so it's visible in server logs instead of silently swallowed.
+        const errorMsg = chunk.payload?.error?.message ?? chunk.payload?.message ?? "unknown";
+        console.error(`[streamWithThinking] LLM stream error: ${errorMsg}`);
       } else if (type === "step-finish") {
         // step-finish fires at the end of each LLM step (not "finish" which fires once at the very end)
         const reason = chunk.payload?.stepResult?.reason ?? "";
+        if (reason === "error") {
+          console.warn(`[streamWithThinking] Step finished with error — fullText so far: ${fullText.length} chars`);
+        }
         if (currentStepHasToolCalls || reason === "tool-calls") {
           if (currentStepText.trim()) {
             thinkingSteps.push({
@@ -841,6 +855,12 @@ async function streamWithThinking(
   // This can happen when all tool calls fail validation or the upstream LLM
   // returned 402/credit exhausted and Mastra ended the stream silently.
   if (!fullText.trim()) {
+    // If we have sources, the tools found data but the LLM failed to produce
+    // a response (e.g., rate limit/quota error mid-stream). Throw so the
+    // caller's retry logic can re-attempt instead of showing "no data".
+    if (allSources.length > 0) {
+      throw new Error("Agent found data but produced no response (likely upstream LLM error)");
+    }
     const noDataKey = (domain && NO_DATA_KEYS[domain]) || "noData.general";
     const fallback = t(noDataKey, language);
     send({ type: "text", content: fallback });
@@ -905,7 +925,7 @@ async function runBudgetFlow(
   prompt += getLanguageReminder(language);
 
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
-  const agentStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await budgetAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send, true, language, "budget");
@@ -931,7 +951,7 @@ async function runCorruptionFlow(
   prompt += getLanguageReminder(language);
 
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
-  const agentStream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await corruptionAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send, true, language, "corruption");
@@ -957,7 +977,7 @@ async function runGovspendFlow(
   prompt += getLanguageReminder(language);
 
   const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
-  const agentStream = await govspendAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await govspendAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send, true, language, "govspend");
@@ -983,7 +1003,7 @@ async function runFaacFlow(
   prompt += getLanguageReminder(language);
 
   const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
-  const agentStream = await faacAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await faacAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
     await streamWithThinking(agentStream, send, true, language, "faac");
@@ -1013,7 +1033,7 @@ async function runImpactFlow(
   prompt += message;
   prompt += getLanguageReminder(language);
 
-  const agentStream = await impactAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await impactAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,
@@ -1085,6 +1105,25 @@ const EMPTY_ENTITIES: RouterEntities = {
   mdas: [],
   lgas: [],
 };
+
+/**
+ * Extract entities from the message using rule-based analysis.
+ * Used on the fast-classify path so agents still get entity hints
+ * (states, years, sectors) even when we skip the LLM router.
+ */
+function extractEntitiesFromMessage(message: string): RouterEntities {
+  const analysis = analyzeQueryComplexity(message);
+  return {
+    states: analysis.states.map((s) =>
+      s.replace(/\b\w/g, (c) => c.toUpperCase()),
+    ),
+    years: analysis.years,
+    officials: [],
+    sectors: analysis.sectors,
+    mdas: [],
+    lgas: [],
+  };
+}
 
 /**
  * Classify user intent with conversation context so follow-ups
@@ -1246,7 +1285,28 @@ export async function routeToAgent({
     augmentedMessage += `Recent conversation:\n${historyContext}\n\n---\n\n`;
   }
 
-  const entityHints = buildEntityHints(extractedEntities);
+  // Merge conversation-level entities as fallbacks for follow-up messages.
+  // The router extracts entities from the current message only — if the user
+  // sends "do from 2019 to 2026" as a follow-up, states/sectors from prior
+  // turns are lost. Merging context.mentionedStates/mentionedYears ensures
+  // the specialist agent gets full entity context.
+  const mergedEntities: RouterEntities = { ...extractedEntities };
+  if (context) {
+    if (
+      (!mergedEntities.states || mergedEntities.states.length === 0) &&
+      context.mentionedStates?.length
+    ) {
+      mergedEntities.states = context.mentionedStates;
+    }
+    if (
+      (!mergedEntities.years || mergedEntities.years.length === 0) &&
+      context.mentionedYears?.length
+    ) {
+      mergedEntities.years = context.mentionedYears;
+    }
+  }
+
+  const entityHints = buildEntityHints(mergedEntities);
   if (entityHints) {
     augmentedMessage += entityHints + "\n";
   }
@@ -1523,7 +1583,7 @@ async function runSpecialistFlowDirect(
   prompt += getLanguageReminder(language);
 
   const agent = mastra.getAgent(config.agentName);
-  const agentStream = await agent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await agent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,

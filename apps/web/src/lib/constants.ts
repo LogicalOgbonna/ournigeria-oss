@@ -1,5 +1,7 @@
 import type { Language } from "@/types";
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const STATES = [
   "Abia",
   "Adamawa",
@@ -190,7 +192,7 @@ export const SUGGESTED_QUESTIONS: SuggestedQuestion[] = [
   // Trends
   {
     icon: "TrendingUp",
-    text: "How has Lagos budget changed from 2019 to 2025?",
+    text: `How has Lagos budget changed from 2019 to ${CURRENT_YEAR}?`,
     category: "Trends",
   },
   {
@@ -521,7 +523,7 @@ export const SUGGESTED_QUESTIONS_PCM: SuggestedQuestion[] = [
   // Trends
   {
     icon: "TrendingUp",
-    text: "How Lagos budget don change from 2019 to 2025?",
+    text: `How Lagos budget don change from 2019 to ${CURRENT_YEAR}?`,
     category: "Trends",
   },
   {
