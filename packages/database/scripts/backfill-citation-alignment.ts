@@ -51,10 +51,13 @@ function extractStateName(text: string): string | null {
   let bestPos = -1;
   const sorted = [...NIGERIAN_STATES].sort((a, b) => b.length - a.length);
   for (const state of sorted) {
-    const pos = lower.lastIndexOf(state);
-    if (pos !== -1 && pos > bestPos) {
-      bestPos = pos;
-      bestState = state;
+    const regex = new RegExp(`\\b${state.replace(/\s+/g, "\\s+")}\\b`, "gi");
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(lower)) !== null) {
+      if (match.index > bestPos) {
+        bestPos = match.index;
+        bestState = state;
+      }
     }
   }
   return bestState;

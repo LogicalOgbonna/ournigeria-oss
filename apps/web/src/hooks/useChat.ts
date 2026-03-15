@@ -16,6 +16,7 @@ interface ConversationSummary {
   title: string;
   visibility: "private" | "public";
   slug: string | null;
+  source: string;
   createdAt: string;
   updatedAt: string;
   lastMessage: string | null;
@@ -29,6 +30,7 @@ export interface ConversationForUI {
   title: string;
   visibility: "private" | "public";
   slug: string | null;
+  source: string;
   lastMessage: string | null;
   lastMessageRole: string | null;
   messageCount: number;
@@ -93,6 +95,7 @@ export function useChat(conversationId?: string) {
           title: c.title,
           visibility: c.visibility ?? "private",
           slug: c.slug ?? null,
+          source: c.source ?? "web",
           lastMessage: c.lastMessage,
           lastMessageRole: c.lastMessageRole,
           messageCount: c.messageCount,
@@ -316,6 +319,7 @@ export function useChat(conversationId?: string) {
                     content: errorText,
                     timestamp: new Date(),
                     isError: true,
+                    retryable: event.retryable === true,
                   };
                   setMessages((prev) => [...prev, serverErrorMessage]);
                   setStreamingText("");
@@ -371,6 +375,7 @@ export function useChat(conversationId?: string) {
             title: content.slice(0, 60),
             visibility: "private",
             slug: null,
+            source: "web",
             lastMessage: msgPreview,
             lastMessageRole: "assistant",
             messageCount: 1,

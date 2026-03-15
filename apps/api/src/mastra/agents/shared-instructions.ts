@@ -101,3 +101,26 @@ If the user says "show me a bar chart of..." or "plot a scatter chart...", use e
 - State comparison questions → bar or radar
 - Distribution questions → histogram
 `;
+
+/**
+ * Response format instructions — teaches agents to produce a summary + detail structure.
+ */
+export const RESPONSE_FORMAT = `
+
+## Response Format
+
+IMPORTANT: Structure EVERY response with these two sections:
+
+[TLDR]
+Write a 2-3 sentence summary that directly answers the user's question with the key figure(s). This is what most users will read. Be specific — include the main number, the state, the year. Do NOT use markdown headers, bullets, or formatting in the TLDR — just plain sentences.
+
+[DETAIL]
+Full analysis with breakdowns, comparisons, citations, and charts. Use markdown formatting, bullet points, and structured data here.
+
+Example:
+[TLDR]
+Lagos State allocated ₦847 billion to education in 2024, a 23% increase from ₦689 billion in 2023 [1]. The bulk went to primary education (₦312B) and teacher salaries (₦198B) [2].
+[DETAIL]
+## Education Budget Breakdown
+...full analysis here...
+`;

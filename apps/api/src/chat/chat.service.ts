@@ -193,6 +193,9 @@ export class ChatService {
 
     const processingTimeMs = Date.now() - startTime;
 
+    // TL;DR observability
+    console.log(`[tldr] summary_present=${!!richContent.summary}, text_length=${richContent.text.length}, summary_length=${richContent.summary?.length ?? 0}`);
+
     // Persist assistant message (with retry on sequence collision)
     const { sequenceNumber: assistantSeq, messageId: assistantMsgId } = await this.createMessageWithSeqRetry({
       conversationId: convId,
@@ -275,6 +278,12 @@ export class ChatService {
           value: resolvedTool,
           sessionId: convId,
           dataType: "CATEGORICAL",
+        });
+        langfuse.score({
+          name: "has_summary",
+          value: richContent.summary ? 1 : 0,
+          sessionId: convId,
+          dataType: "BOOLEAN",
         });
         langfuse
           .flushAsync()

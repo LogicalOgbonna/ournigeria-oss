@@ -11,6 +11,7 @@ import {
   Clock,
   LogOut,
   User,
+  Send,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
@@ -173,15 +174,20 @@ export function ChatSidebar({
                   >
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-2">
-                      <p
-                        className={`line-clamp-2 pr-6 text-[13px] leading-snug ${
-                          isActive
-                            ? "font-semibold text-emerald-900 dark:text-emerald-200"
-                            : "font-medium text-slate-700 dark:text-slate-200"
-                        }`}
-                      >
-                        {conv.title}
-                      </p>
+                      <div className="flex items-start gap-1.5 pr-6 min-w-0">
+                        {conv.source === "telegram" && (
+                          <Send className="mt-0.5 h-3 w-3 shrink-0 text-sky-500" />
+                        )}
+                        <p
+                          className={`line-clamp-2 text-[13px] leading-snug ${
+                            isActive
+                              ? "font-semibold text-emerald-900 dark:text-emerald-200"
+                              : "font-medium text-slate-700 dark:text-slate-200"
+                          }`}
+                        >
+                          {conv.title}
+                        </p>
+                      </div>
 
                       {/* Delete button */}
                       <button

@@ -11,8 +11,10 @@ import { ChartRenderer } from "@/components/charts/ChartRenderer";
 import { MoneyCouldBuyCard } from "@/components/cards/MoneyCouldBuyCard";
 import { StateComparisonCard } from "@/components/cards/StateComparisonCard";
 import { ThinkingDropdown } from "./ThinkingDropdown";
+import { TLDRCard } from "./TLDRCard";
 import { Markdown } from "./Markdown";
 import { SourceCitationModal } from "./SourceCitationModal";
+import { ShockMeter } from "@/components/cards/ShockMeter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   FileText,
@@ -47,6 +49,7 @@ export function AIMessage({
   const [feedback, setFeedback] = useState<"positive" | "negative" | null>(
     null,
   );
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // Parse any chart blocks embedded in the text markdown
   const { text: cleanedText, charts: inlineCharts } = useMemo(
@@ -69,6 +72,17 @@ export function AIMessage({
         <ThinkingDropdown steps={thinking} />
       )}
 
+      {/* TL;DR Card */}
+      {content.summary && (
+        <TLDRCard
+          summary={content.summary}
+          sources={content.sources}
+          onCitationClick={(index) =>
+            setCitationModal({ open: true, index })
+          }
+        />
+      )}
+
       {/* Stat Highlights */}
       {content.stats && content.stats.length > 0 && (
         <StatHighlight stats={content.stats} />
@@ -76,18 +90,54 @@ export function AIMessage({
 
       {/* Text (with chart blocks stripped out) */}
       {cleanedText.trim() && (
-        <TooltipProvider delayDuration={300}>
-          <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-            <Markdown
-              sources={content.sources}
-              onCitationClick={(index) =>
-                setCitationModal({ open: true, index })
-              }
+        content.summary ? (
+          /* Collapsible detail section */
+          <div>
+            <button
+              onClick={() => setDetailOpen((o) => !o)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
             >
-              {cleanedText}
-            </Markdown>
+              <ChevronDown
+                className={`h-3 w-3 transition-transform duration-300 ${detailOpen ? "rotate-180" : ""}`}
+              />
+              <span>{detailOpen ? "Hide full analysis" : "See full analysis"}</span>
+            </button>
+            <div
+              className={`grid transition-all duration-500 ease-in-out ${
+                detailOpen ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <TooltipProvider delayDuration={300}>
+                  <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+                    <Markdown
+                      sources={content.sources}
+                      onCitationClick={(index) =>
+                        setCitationModal({ open: true, index })
+                      }
+                    >
+                      {cleanedText}
+                    </Markdown>
+                  </div>
+                </TooltipProvider>
+              </div>
+            </div>
           </div>
-        </TooltipProvider>
+        ) : (
+          /* No summary — show text directly (backward compat) */
+          <TooltipProvider delayDuration={300}>
+            <div className="rounded-2xl rounded-tl-sm bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+              <Markdown
+                sources={content.sources}
+                onCitationClick={(index) =>
+                  setCitationModal({ open: true, index })
+                }
+              >
+                {cleanedText}
+              </Markdown>
+            </div>
+          </TooltipProvider>
+        )
       )}
 
       {/* State Comparison */}
@@ -132,6 +182,16 @@ export function AIMessage({
           subtitle={content.moneyEquivalents.subtitle}
           amount={content.moneyEquivalents.amount}
           items={content.moneyEquivalents.items}
+        />
+      )}
+
+      {/* Shock Meter */}
+      {content.shockMeter && (
+        <ShockMeter
+          amount={content.shockMeter.amount}
+          percentOfStateBudget={content.shockMeter.percentOfStateBudget}
+          percentLabel={content.shockMeter.percentLabel}
+          yearsOfMinWage={content.shockMeter.yearsOfMinWage}
         />
       )}
 

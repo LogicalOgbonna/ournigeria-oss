@@ -351,6 +351,20 @@ export class AuthService {
     });
   }
 
+  // ─── Dev test user ──────────────────────────────────────
+
+  async upsertTestUser() {
+    const TEST_PHONE = "+2340000000000";
+    return this.prisma.user.upsert({
+      where: { phoneNumber: TEST_PHONE },
+      update: { lastSeenAt: new Date() },
+      create: {
+        phoneNumber: TEST_PHONE,
+        name: "Test User (Dev)",
+      },
+    });
+  }
+
   // ─── Phone validation ─────────────────────────────────
 
   normalizeNigerianPhone(raw: string): string {

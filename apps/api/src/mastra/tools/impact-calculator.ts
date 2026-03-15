@@ -88,7 +88,7 @@ export const impactCalculatorTool = createTool({
       ),
     context: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Optional context for the amount, e.g. 'Lagos 2024 education budget' or 'amount allegedly looted by official X'",
       ),

@@ -26,6 +26,8 @@ export interface Message {
   timestamp: Date;
   /** Set when the message represents a server-side error. */
   isError?: boolean;
+  /** Set on error messages when the error is retryable (e.g., rate limits). */
+  retryable?: boolean;
 }
 
 export interface ToolOption {

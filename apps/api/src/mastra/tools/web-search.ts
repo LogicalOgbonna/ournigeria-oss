@@ -20,8 +20,11 @@ export const webSearchTool = createTool({
         "The search query — be specific and include 'Nigeria' when relevant",
       ),
     searchDepth: z
-      .enum(["basic", "advanced"])
-      .nullish()
+      .preprocess(
+        (val) => (val === "basic" || val === "advanced" ? val : "basic"),
+        z.enum(["basic", "advanced"]),
+      )
+      .optional()
       .describe(
         "Search depth: 'basic' for quick lookups (default), 'advanced' for thorough research requiring deeper analysis",
       ),

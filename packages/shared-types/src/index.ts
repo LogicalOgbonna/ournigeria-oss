@@ -70,6 +70,8 @@ export interface FollowUpSuggestion {
 
 export interface AIResponseContent {
   text: string;
+  summary?: string;
+  shockMeter?: { amount: number; percentOfStateBudget: number; percentLabel: string; yearsOfMinWage: number };
   stats?: StatHighlightData[];
   charts?: ChartBlock[];
   barChart?: {

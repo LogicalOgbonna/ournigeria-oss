@@ -13,21 +13,88 @@ import { computeStaticEquivalents, type ContextualImpactResult } from "./context
 import { getSettingBool } from "../../config/settings-store";
 import { formatNairaInText } from "../../lib/format";
 
+interface TldrSplit {
+  summary: string;
+  detail: string;
+}
+
+/**
+ * Parse [TLDR] and [DETAIL] markers from agent output.
+ * Returns null if markers not found (graceful degradation).
+ */
+export function parseTldrMarkers(text: string): TldrSplit | null {
+  // Match [TLDR] ... [DETAIL] ... pattern
+  const tldrMatch = text.match(/\[TLDR\]\s*([\s\S]*?)\[DETAIL\]\s*([\s\S]*)/i);
+  if (tldrMatch) {
+    const summary = tldrMatch[1].trim();
+    const detail = tldrMatch[2].trim();
+    if (summary) return { summary, detail: detail || summary };
+  }
+
+  // Match [TLDR] only (no [DETAIL] marker) — treat rest as detail
+  const tldrOnly = text.match(/\[TLDR\]\s*([\s\S]*)/i);
+  if (tldrOnly) {
+    const fullText = tldrOnly[1].trim();
+    // First paragraph is summary, rest is detail
+    const firstBreak = fullText.indexOf('\n\n');
+    if (firstBreak > 0) {
+      return {
+        summary: fullText.slice(0, firstBreak).trim(),
+        detail: fullText.slice(firstBreak).trim(),
+      };
+    }
+  }
+
+  // No markers found — log for observability and return null
+  console.log('[tldr-parser] No [TLDR]/[DETAIL] markers found in agent output');
+  return null;
+}
+
+interface ShockMeterData {
+  amount: number;
+  percentOfStateBudget: number;
+  percentLabel: string;
+  yearsOfMinWage: number;
+}
+
+const AVG_STATE_BUDGET = 300_000_000_000; // ₦300B
+const ANNUAL_MIN_WAGE = 780_000; // ₦65K/month × 12
+
+function computeShockMeter(amount: number): ShockMeterData | null {
+  if (amount < 100_000_000) return null; // Only show for ₦100M+
+  const pct = (amount / AVG_STATE_BUDGET) * 100;
+  let label: string;
+  if (pct >= 100) label = "God forbid!";
+  else if (pct >= 50) label = "Na wa o!";
+  else if (pct >= 10) label = "Terrible";
+  else label = "Bad";
+  return {
+    amount,
+    percentOfStateBudget: Math.round(pct * 10) / 10,
+    percentLabel: label,
+    yearsOfMinWage: Math.round(amount / ANNUAL_MIN_WAGE),
+  };
+}
+
 export async function formatAgentResponse(
   budgetAnalysis: string,
   language: Language = "en",
   sources?: SourceCitation[],
   toolEquivalents?: ContextualImpactResult,
 ): Promise<AIResponseContent> {
+  // Parse [TLDR]/[DETAIL] markers
+  const tldrSplit = parseTldrMarkers(budgetAnalysis);
+  const textForProcessing = tldrSplit ? tldrSplit.detail : budgetAnalysis;
+
   // Try to parse structured ```chart``` blocks from agent output first
-  const { text: cleanedText, charts } = extractChartBlocks(budgetAnalysis);
+  const { text: cleanedText, charts } = extractChartBlocks(textForProcessing);
   const hasStructuredCharts = charts.length > 0;
 
   // Use cleaned text (chart blocks removed) for display and regex extraction
-  const displayText = hasStructuredCharts ? cleanedText : budgetAnalysis;
+  const displayText = hasStructuredCharts ? cleanedText : textForProcessing;
 
   // Use cleaned text for regex extraction to avoid picking up raw numbers from chart JSON
-  const textForExtraction = hasStructuredCharts ? cleanedText : budgetAnalysis;
+  const textForExtraction = hasStructuredCharts ? cleanedText : textForProcessing;
 
   const stats = extractStats(textForExtraction);
   const equivalents = await extractEquivalentsContextual(textForExtraction, "budget", toolEquivalents);
@@ -37,6 +104,10 @@ export async function formatAgentResponse(
     text: formatNairaInText(displayText),
     followUps,
   };
+
+  if (tldrSplit) {
+    response.summary = tldrSplit.summary;
+  }
 
   if (hasStructuredCharts) {
     response.charts = charts;
@@ -56,17 +127,17 @@ export async function formatAgentResponse(
 
   // Legacy chart extraction — fallback when no structured charts found
   if (!hasStructuredCharts) {
-    const donut = extractDonutChart(budgetAnalysis);
+    const donut = extractDonutChart(textForProcessing);
     if (donut) {
       response.donutChart = donut;
     } else {
-      const bar = extractBarChart(budgetAnalysis);
+      const bar = extractBarChart(textForProcessing);
       if (bar) {
         response.barChart = bar;
       }
     }
 
-    const trend = extractTrendLine(budgetAnalysis);
+    const trend = extractTrendLine(textForProcessing);
     if (trend) {
       response.trendLine = trend;
     }
@@ -260,12 +331,43 @@ const contextualEquivalentSchema = z.object({
   title: z.string(),
   subtitle: z.string().optional(),
   items: z.array(z.object({
-    icon: z.enum(["school", "hospital", "home", "graduation", "droplet", "road", "zap", "heart-pulse", "shield", "swords", "book-open", "streetlight", "truck", "baby", "wheat", "laptop", "stethoscope", "building", "users", "briefcase"]),
+    icon: z.string().transform((val) => {
+      const ICON_ALIASES: Record<string, string> = {
+        graduate: "graduation",
+        "graduation-cap": "graduation",
+        water: "droplet",
+        electricity: "zap",
+        power: "zap",
+        health: "heart-pulse",
+        medical: "stethoscope",
+        security: "shield",
+        defense: "swords",
+        defence: "swords",
+        education: "book-open",
+        light: "streetlight",
+        transport: "truck",
+        housing: "home",
+        house: "home",
+        office: "building",
+        people: "users",
+        work: "briefcase",
+        computer: "laptop",
+        farm: "wheat",
+        farming: "wheat",
+        agriculture: "wheat",
+        child: "baby",
+        children: "baby",
+      };
+      const validIcons = ["school", "hospital", "home", "graduation", "droplet", "road", "zap", "heart-pulse", "shield", "swords", "book-open", "streetlight", "truck", "baby", "wheat", "laptop", "stethoscope", "building", "users", "briefcase"];
+      if (validIcons.includes(val)) return val;
+      if (ICON_ALIASES[val]) return ICON_ALIASES[val];
+      return "building"; // safe default
+    }) as unknown as z.ZodType<string>,
     label: z.string(),
     count: z.number().int(),
     unitCost: z.number(),
     unitLabel: z.string(),
-    contextNote: z.string().optional(),
+    contextNote: z.string().nullable().transform((v) => v ?? "").optional(),
   })).describe("Return exactly 6-9 items"),
 });
 
@@ -312,6 +414,10 @@ async function generateContextualEquivalents(
   let jsonStr = rawText.trim();
   const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenceMatch) jsonStr = fenceMatch[1].trim();
+
+  // Repair common LLM JSON mistakes
+  jsonStr = jsonStr.replace(/:\s*₦([^",}\]]*)/g, ': "₦$1"');
+  jsonStr = jsonStr.replace(/,\s*([}\]])/g, '$1');
 
   const object = contextualEquivalentSchema.parse(JSON.parse(jsonStr));
 
@@ -569,12 +675,16 @@ export async function formatCorruptionResponse(
   sources?: SourceCitation[],
   toolEquivalents?: ContextualImpactResult,
 ): Promise<AIResponseContent> {
-  const { text: cleanedText, charts } = extractChartBlocks(corruptionAnalysis);
+  // Parse [TLDR]/[DETAIL] markers
+  const tldrSplit = parseTldrMarkers(corruptionAnalysis);
+  const textForProcessing = tldrSplit ? tldrSplit.detail : corruptionAnalysis;
+
+  const { text: cleanedText, charts } = extractChartBlocks(textForProcessing);
   const hasStructuredCharts = charts.length > 0;
-  const displayText = hasStructuredCharts ? cleanedText : corruptionAnalysis;
+  const displayText = hasStructuredCharts ? cleanedText : textForProcessing;
   const textForExtraction = hasStructuredCharts
     ? cleanedText
-    : corruptionAnalysis;
+    : textForProcessing;
 
   const stats = extractCorruptionStats(textForExtraction);
 
@@ -592,6 +702,17 @@ export async function formatCorruptionResponse(
     followUps,
   };
 
+  if (tldrSplit) {
+    response.summary = tldrSplit.summary;
+  }
+
+  // Shock meter for corruption responses
+  const corruptionAmount = extractCorruptionAmount(textForExtraction);
+  const shockMeter = computeShockMeter(corruptionAmount);
+  if (shockMeter) {
+    response.shockMeter = shockMeter;
+  }
+
   if (hasStructuredCharts) {
     response.charts = charts;
   }
@@ -606,7 +727,7 @@ export async function formatCorruptionResponse(
 
   // Legacy chart extraction — fallback when no structured charts found
   if (!hasStructuredCharts) {
-    const bar = extractBarChart(corruptionAnalysis);
+    const bar = extractBarChart(textForProcessing);
     if (bar) {
       response.barChart = {
         ...bar,
@@ -727,12 +848,16 @@ export async function formatGovspendResponse(
   sources?: SourceCitation[],
   toolEquivalents?: ContextualImpactResult,
 ): Promise<AIResponseContent> {
-  const { text: cleanedText, charts } = extractChartBlocks(govspendAnalysis);
+  // Parse [TLDR]/[DETAIL] markers
+  const tldrSplit = parseTldrMarkers(govspendAnalysis);
+  const textForProcessing = tldrSplit ? tldrSplit.detail : govspendAnalysis;
+
+  const { text: cleanedText, charts } = extractChartBlocks(textForProcessing);
   const hasStructuredCharts = charts.length > 0;
-  const displayText = hasStructuredCharts ? cleanedText : govspendAnalysis;
+  const displayText = hasStructuredCharts ? cleanedText : textForProcessing;
   const textForExtraction = hasStructuredCharts
     ? cleanedText
-    : govspendAnalysis;
+    : textForProcessing;
 
   const stats = extractStats(textForExtraction);
   const equivalents = await extractEquivalentsContextual(textForExtraction, "govspend", toolEquivalents);
@@ -742,6 +867,10 @@ export async function formatGovspendResponse(
     text: formatNairaInText(displayText),
     followUps,
   };
+
+  if (tldrSplit) {
+    response.summary = tldrSplit.summary;
+  }
 
   if (hasStructuredCharts) {
     response.charts = charts;
@@ -757,7 +886,7 @@ export async function formatGovspendResponse(
 
   // Legacy chart extraction — fallback when no structured charts found
   if (!hasStructuredCharts) {
-    const bar = extractBarChart(govspendAnalysis);
+    const bar = extractBarChart(textForProcessing);
     if (bar) {
       response.barChart = bar;
     }
@@ -834,12 +963,16 @@ export async function formatImpactResponse(
   sources?: SourceCitation[],
   toolEquivalents?: ContextualImpactResult,
 ): Promise<AIResponseContent> {
-  const { text: cleanedText, charts } = extractChartBlocks(impactAnalysis);
+  // Parse [TLDR]/[DETAIL] markers
+  const tldrSplit = parseTldrMarkers(impactAnalysis);
+  const textForProcessing = tldrSplit ? tldrSplit.detail : impactAnalysis;
+
+  const { text: cleanedText, charts } = extractChartBlocks(textForProcessing);
   const hasStructuredCharts = charts.length > 0;
-  const displayText = hasStructuredCharts ? cleanedText : impactAnalysis;
+  const displayText = hasStructuredCharts ? cleanedText : textForProcessing;
 
   // Use cleaned text for regex extraction to avoid picking up raw numbers from chart JSON
-  const textForExtraction = hasStructuredCharts ? cleanedText : impactAnalysis;
+  const textForExtraction = hasStructuredCharts ? cleanedText : textForProcessing;
 
   const stats = extractStats(textForExtraction);
   if (stats.length === 0) {
@@ -862,6 +995,10 @@ export async function formatImpactResponse(
     text: formatNairaInText(displayText),
     followUps,
   };
+
+  if (tldrSplit) {
+    response.summary = tldrSplit.summary;
+  }
 
   if (hasStructuredCharts) {
     response.charts = charts;

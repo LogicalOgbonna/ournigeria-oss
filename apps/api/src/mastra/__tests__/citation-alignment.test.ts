@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { alignSourcesToCitations } from "../router";
+import { alignSourcesToCitations, normalizeCitations } from "../router";
 import type { SourceCitation } from "../../types";
 
 function makeSource(overrides: Partial<SourceCitation> = {}): SourceCitation {
@@ -12,6 +12,32 @@ function makeSource(overrides: Partial<SourceCitation> = {}): SourceCitation {
     ...overrides,
   };
 }
+
+describe("normalizeCitations", () => {
+  it("normalizes basic fullwidth brackets 【N】→ [N]", () => {
+    expect(normalizeCitations("text 【1】 more 【2】")).toBe("text [1] more [2]");
+  });
+
+  it("normalizes dagger notation 【N†L1-L4】→ [N]", () => {
+    expect(normalizeCitations("resolved in his favour 【1†L1-L4】 【4†L1-L8】.")).toBe(
+      "resolved in his favour [1] [4]."
+    );
+  });
+
+  it("normalizes mixed patterns", () => {
+    expect(normalizeCitations("fact 【1】 and 【2†source】 and 【3†L5-L10】")).toBe(
+      "fact [1] and [2] and [3]"
+    );
+  });
+
+  it("leaves standard square bracket citations unchanged", () => {
+    expect(normalizeCitations("already normal [1] [2]")).toBe("already normal [1] [2]");
+  });
+
+  it("handles text with no citations", () => {
+    expect(normalizeCitations("no citations here")).toBe("no citations here");
+  });
+});
 
 describe("alignSourcesToCitations", () => {
   it("reorders sources by state name match near citation markers", () => {

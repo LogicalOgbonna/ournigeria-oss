@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS } from "./shared-instructions";
+import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
 
 export const faacAnalyst = new Agent({
   id: "faac-analyst",
@@ -102,7 +102,8 @@ CRITICAL — Data source framing:
 
 Your response should be factual, based on the retrieved FAAC data, and useful for citizens trying to understand federal revenue distribution across Nigeria.` +
     CITATION_INSTRUCTIONS +
-    CHART_INSTRUCTIONS,
+    CHART_INSTRUCTIONS +
+    RESPONSE_FORMAT,
   model: chatModel,
   tools: sharedTools,
 });

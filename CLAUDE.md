@@ -183,6 +183,33 @@ Next.js v16 with React 19, Tailwind CSS v4, Radix UI (shadcn/ui). Charts use Rec
 - Telegram OAuth as alternative
 - Admin: separate password-based auth with `ADMIN_SESSION_SECRET`
 
+## Dev Testing
+
+All features and new code MUST be tested using the dev test user. To authenticate:
+
+```bash
+# Authenticate as test user (dev only — endpoint doesn't exist in production)
+curl -X POST https://spending-api.arinze.online/api/auth/dev-login -c cookies.txt
+
+# Use the cookie for subsequent API requests
+curl https://spending-api.arinze.online/api/auth/profile -b cookies.txt
+```
+
+To browse the web UI with `/browse` or Playwright, cookies must be set on **both** domains (web domain for Next.js middleware, API domain for cross-origin API calls):
+
+```javascript
+// Run this JS on the login page to set both cookies:
+(async () => {
+  await fetch('https://spending-api.arinze.online/api/auth/dev-login', { method: 'POST', credentials: 'include' });
+  await fetch('/api/auth/dev-login', { method: 'POST', credentials: 'include' });
+  window.location.href = '/';
+})();
+```
+
+With `/browse`: navigate to `spending.arinze.online/login`, run the fetch above via `$B js`, then navigate to `/`.
+
+The test user has phone number `+2340000000000` and is created automatically on first dev-login. Use this user for all automated testing, evaluation runs, and feature validation. The `/api/auth/dev-login` endpoint is conditionally registered and does not exist in production builds (`NODE_ENV=production`).
+
 ## Docker
 
 Multi-stage Dockerfiles with pnpm workspace filtering (`--filter @ournigeria/api...`). Dev compose runs PostgreSQL only. Production compose runs Postgres + API + Ingest with health checks, memory limits (API 1GB, Ingest 4GB, Postgres 2GB), and 30s graceful shutdown.

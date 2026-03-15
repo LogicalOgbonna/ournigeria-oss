@@ -33,41 +33,47 @@ export const corruptionSearchTool = createTool({
       ),
     official: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe(
         "Filter by official name, e.g. 'James Ibori', 'Yahaya Bello', 'Diezani Alison-Madueke'",
       ),
     section: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe(
         "Filter by case section: overview, charges, financial_details, court_proceedings, arrest_and_investigation, case_outcome, timeline, key_players, summary",
       ),
     status: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe(
         "Filter by case status: convicted, acquitted, ongoing, never_charged, abated_by_death, discharged, pardoned, plea_bargain",
       ),
     state: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe(
         "Filter by official's state, e.g. 'Delta', 'Lagos', 'Kogi', 'FCT'",
       ),
     party: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe("Filter by political party, e.g. 'PDP', 'APC', 'APGA'"),
     agency: z
       .string()
-      .nullish()
+      .nullable()
+      .optional()
       .describe(
         "Filter by investigating agency, e.g. 'EFCC', 'ICPC'. Matches against comma-separated agency field.",
       ),
     topK: z
       .number()
-      .nullish()
+      .optional()
       .describe(
         "Number of results to return. Use 10-15 for single-official queries, 25-40 for multi-official comparisons, 40-50 for aggregation queries. Default: 15",
       ),

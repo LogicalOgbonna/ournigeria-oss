@@ -157,10 +157,13 @@ function checkCitationAlignment(
     let bestState: string | null = null;
     let bestPos = -1;
     for (const state of sorted) {
-      const pos = context.lastIndexOf(state);
-      if (pos !== -1 && pos > bestPos) {
-        bestPos = pos;
-        bestState = state;
+      const regex = new RegExp(`\\b${state.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      let stateMatch: RegExpExecArray | null;
+      while ((stateMatch = regex.exec(context)) !== null) {
+        if (stateMatch.index > bestPos) {
+          bestPos = stateMatch.index;
+          bestState = state;
+        }
       }
     }
 

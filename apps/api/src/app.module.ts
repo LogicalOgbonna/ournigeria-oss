@@ -14,6 +14,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { AdminModule } from "./admin/admin.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { HealthModule } from "./health/health.module";
+import { DevAuthModule } from "./auth/dev-auth.module";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { HealthModule } from "./health/health.module";
     AdminModule,
     FeedbackModule,
     HealthModule,
+    ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [
     {

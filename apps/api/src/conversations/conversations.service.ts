@@ -11,6 +11,7 @@ interface ConversationListItem {
   title: string;
   visibility: string;
   slug: string | null;
+  source: string;
   createdAt: Date;
   updatedAt: Date;
   lastMessage: string | null;
@@ -39,6 +40,7 @@ export class ConversationsService {
         title: true,
         visibility: true,
         slug: true,
+        source: true,
         createdAt: true,
         updatedAt: true,
         messages: {
@@ -62,6 +64,7 @@ export class ConversationsService {
       title: c.title,
       visibility: c.visibility,
       slug: c.slug,
+      source: c.source,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
       lastMessage: c.messages[0]?.content ?? null,

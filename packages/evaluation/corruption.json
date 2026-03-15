@@ -283,6 +283,17 @@
       "expected_behavior": "Should search with status=convicted, high topK, then attempt to retrieve details for as many as possible within step limit.",
       "metadata_filters_needed": ["status=convicted", "section=summary", "section=case_outcome", "section=financial_details"],
       "expected_answer": "Should provide a structured table or list of all convicted governors including at minimum: Joshua Dariye (Plateau, convicted then pardoned), Jolly Nyame (Taraba, convicted then pardoned), Orji Uzor Kalu (Abia, convicted), and James Ibori (Delta, convicted in UK). For each governor, the response must include: state, party affiliation, amount_alleged_ngn, sentence length, and pardon status. The answer should also include officials with status 'pardoned' since they were convicted first. It should acknowledge if the step limit prevented retrieving details for all convicted governors."
+    },
+    {
+      "id": "corr-026",
+      "category": "provider_compatibility",
+      "question": "Tell me about Olisa Metuh's corruption case",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "This is a regression test for provider compatibility. When using LLM providers like Cerebras that omit optional tool parameters entirely (instead of sending null), the corruptionSearchTool validation would fail with 'status: Required, state: Required, party: Required, agency: Required' if optional fields are not properly marked in the JSON Schema sent to the provider.",
+      "expected_behavior": "Should successfully call corruptionSearchTool with only query and official fields, without validation errors for omitted optional fields (status, state, party, agency).",
+      "metadata_filters_needed": ["official=Olisa Metuh"],
+      "expected_answer": "Should return information about Olisa Metuh's corruption case including his role as PDP National Publicity Secretary, EFCC charges, alleged amounts, and case status. The critical success criterion is that the tool call succeeds without input validation errors — the response content is secondary to the tool schema working correctly with minimal arguments."
     }
   ]
 }

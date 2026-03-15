@@ -162,6 +162,10 @@ const strings = {
     en: 'I don\'t have government payment records that match your question. Our database contains over 891,000 payment records across MDAs. Try asking about a specific ministry, contractor, or beneficiary — for example: "How much was paid to Julius Berger?" or "Show me payments by the Ministry of Works."',
     pcm: 'I no get government payment records wey match your question. Our database get over 891,000 payment records across MDAs. Try ask about specific ministry, contractor, or beneficiary — like: "How much dem pay Julius Berger?" or "Show me payments by Ministry of Works."',
   },
+  "noData.faac": {
+    en: 'I don\'t have FAAC allocation data that matches your question. Our database covers federal revenue sharing and monthly disbursements to states and LGAs. Try asking about a specific state or period — for example: "How much FAAC did Rivers State receive in 2024?" or "Compare FAAC allocations for South East states."',
+    pcm: 'I no get FAAC allocation data wey match your question. Our database cover federal revenue sharing and monthly disbursements to states and LGAs. Try ask about specific state or period — like: "How much FAAC Rivers State collect for 2024?" or "Compare FAAC allocations for South East states."',
+  },
 
   // ─── Language directive (for agent prompts) ───
   "prompt.languageDirective": {
