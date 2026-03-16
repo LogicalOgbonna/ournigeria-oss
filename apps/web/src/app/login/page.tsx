@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 import { LoginFormWrapper } from "./LoginFormWrapper";
 
 export default function LoginPage() {
@@ -25,15 +25,22 @@ export default function LoginPage() {
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
         {/* Floating logo */}
         <div className="animate-fade-in-up mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
-            <Sparkles className="h-8 w-8 text-white" />
-          </div>
-          <h1 className="font-[var(--font-heading)] text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-            Our
-            <span className="text-emerald-600 dark:text-emerald-400">
-              Nigeria
-            </span>
-          </h1>
+          <Image
+            src="/long_logo_dark.svg"
+            alt="OurNigeria"
+            width={250}
+            height={70}
+            className="mx-auto mb-2 hidden dark:block"
+            priority
+          />
+          <Image
+            src="/long_logo_dark.svg"
+            alt="OurNigeria"
+            width={250}
+            height={70}
+            className="mx-auto mb-2 block brightness-0 dark:hidden"
+            priority
+          />
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Explore how Nigeria spends your money
           </p>
