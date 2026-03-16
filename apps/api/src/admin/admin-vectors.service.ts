@@ -24,6 +24,11 @@ const INDEX_MAP: Record<
     label: "GovSpend",
     groupKey: "organization_name",
   },
+  faac: {
+    envVar: "VECTOR_INDEX_FAAC",
+    label: "FAAC",
+    groupKey: "state",
+  },
 };
 
 const ALLOWED_INDEX_KEYS = new Set(Object.keys(INDEX_MAP));

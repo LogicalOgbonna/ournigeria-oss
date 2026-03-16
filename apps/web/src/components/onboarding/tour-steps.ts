@@ -25,6 +25,7 @@ export function buildTourSteps({
           '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(5,150,105,0.06);font-size:12px;color:#64748b;">&#x1F4CA; Budget — Nigerian budget data</span>',
           '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(5,150,105,0.06);font-size:12px;color:#64748b;">&#x1F50D; Corruption — EFCC case files</span>',
           '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(5,150,105,0.06);font-size:12px;color:#64748b;">&#x1F4B0; GovSpend — Government payments</span>',
+          // '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:rgba(5,150,105,0.06);font-size:12px;color:#64748b;">&#x1F4B3; FAAC — Federal allocations</span>',
           "</div>",
         ].join(""),
         side: "top",

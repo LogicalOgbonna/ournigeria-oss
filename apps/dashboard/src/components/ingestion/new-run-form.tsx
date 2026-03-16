@@ -62,6 +62,8 @@ export function NewRunForm({
               <SelectItem value="budget">Budget</SelectItem>
               <SelectItem value="corruption">Corruption</SelectItem>
               <SelectItem value="govspend">Govspend</SelectItem>
+              <SelectItem value="faac">FAAC</SelectItem>
+              <SelectItem value="impact">Impact</SelectItem>
             </SelectContent>
           </Select>
         </div>

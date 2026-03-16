@@ -99,19 +99,32 @@ export class ChatController {
           send(data);
         };
 
-        while (attempt < maxAttempts) {
+        // Phase 1: Prepare context ONCE (conversation creation, user message, context building).
+        // This must not be retried — it has non-idempotent side effects.
+        let prepared!: Awaited<ReturnType<ChatService["prepareChatContext"]>>;
+        try {
+          prepared = await this.chatService.prepareChatContext(
+            userId,
+            message,
+            conversationId,
+            tool,
+            trackingSend,
+            language,
+          );
+        } catch (err: any) {
+          lastError = err;
+        }
+
+        // Phase 2: Execute agent with retries (only the LLM call + response persistence).
+        while (!lastError && attempt < maxAttempts) {
           // Bail if client disconnected
           if (res.writableEnded || res.destroyed) break;
 
           const attemptStart = Date.now();
           try {
-            await this.chatService.processChat(
-              userId,
-              message,
-              conversationId,
-              tool,
+            await this.chatService.executeAgentAndPersist(
+              prepared,
               trackingSend,
-              language,
             );
             lastError = null;
             break; // success
@@ -155,6 +168,7 @@ export class ChatController {
             });
 
             await new Promise((resolve) => setTimeout(resolve, delay));
+            lastError = null;
             attempt++;
           }
         }

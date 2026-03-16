@@ -54,7 +54,7 @@ export class AdminSettingsController {
   @Post("test-connection")
   @ApiOperation({ summary: "Test LLM or embedding provider connectivity" })
   async testConnection(
-    @Body() body: { type: "llm" | "embedding"; config: Record<string, string> },
+    @Body() body: { type: "llm" | "embedding" | "ocr"; config: Record<string, string> },
     @Res() res: Response,
   ) {
     try {

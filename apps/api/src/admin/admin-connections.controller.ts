@@ -50,7 +50,7 @@ export class AdminConnectionsController {
     @Body()
     body: {
       name: string;
-      type: "llm" | "embedding";
+      type: "llm" | "embedding" | "ocr";
       provider: string;
       baseUrl: string;
       apiKey: string;
@@ -81,7 +81,7 @@ export class AdminConnectionsController {
   async testConnection(
     @Body()
     body: {
-      type: "llm" | "embedding";
+      type: "llm" | "embedding" | "ocr";
       provider: string;
       baseUrl: string;
       apiKey: string;

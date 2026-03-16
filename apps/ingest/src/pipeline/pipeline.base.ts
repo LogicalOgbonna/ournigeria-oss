@@ -102,6 +102,7 @@ export abstract class PipelineBase {
 
   async run(
     configOverrides?: Partial<PipelineConfig>,
+    shouldStop?: () => boolean,
   ): Promise<PipelineResult> {
     const config = { ...DEFAULT_PIPELINE_CONFIG, ...configOverrides };
     const pipelineStart = Date.now();
@@ -122,6 +123,7 @@ export abstract class PipelineBase {
         errorFiles: 0,
         totalChunks: 0,
         durationMs: Date.now() - pipelineStart,
+        stopped: false,
       };
     }
 
@@ -130,10 +132,15 @@ export abstract class PipelineBase {
       `Processing ${files.length} files with ${Math.min(config.concurrency, files.length)} workers`,
     );
 
-    const result = await this.processFiles(files, config);
+    const result = await this.processFiles(files, config, shouldStop);
 
     const durationMs = Date.now() - pipelineStart;
-    this.emitLog("log", `=== ${this.pipelineType} Complete ===`);
+
+    if (result.stopped) {
+      this.emitLog("log", `=== ${this.pipelineType} Stopped by user ===`);
+    } else {
+      this.emitLog("log", `=== ${this.pipelineType} Complete ===`);
+    }
     this.emitLog("log", `Total time: ${elapsed(pipelineStart)}`);
     this.emitLog(
       "log",
@@ -148,6 +155,7 @@ export abstract class PipelineBase {
       errorFiles: result.errors,
       totalChunks: result.chunks,
       durationMs,
+      stopped: result.stopped,
     };
   }
 
@@ -168,17 +176,20 @@ export abstract class PipelineBase {
       errorFiles: result.errors,
       totalChunks: result.chunks,
       durationMs: Date.now() - start,
+      stopped: false,
     };
   }
 
   protected async processFiles(
     files: DiscoveredFile[],
     config: PipelineConfig,
+    shouldStop?: () => boolean,
   ): Promise<{
     processed: number;
     skipped: number;
     errors: number;
     chunks: number;
+    stopped: boolean;
   }> {
     const queue = [...files];
     const workerCount = Math.min(config.concurrency, queue.length);
@@ -187,6 +198,7 @@ export abstract class PipelineBase {
     let skipped = 0;
     let errors = 0;
     let chunks = 0;
+    let stopped = false;
 
     const processItem = async (
       file: DiscoveredFile,
@@ -363,6 +375,10 @@ export abstract class PipelineBase {
 
     const worker = async (workerId: number): Promise<void> => {
       while (queue.length > 0) {
+        if (shouldStop?.()) {
+          stopped = true;
+          break;
+        }
         const file = queue.shift();
         if (!file) break;
         await processItem(file, workerId);
@@ -375,7 +391,7 @@ export abstract class PipelineBase {
       );
     }
 
-    return { processed, skipped, errors, chunks };
+    return { processed, skipped, errors, chunks, stopped };
   }
 
   private async ingestFile(

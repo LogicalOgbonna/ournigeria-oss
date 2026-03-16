@@ -117,6 +117,7 @@ function VectorsPageContent() {
           { key: "budget", label: "Budget", groupKey: "state" },
           { key: "corruption", label: "Corruption", groupKey: "official" },
           { key: "govspend", label: "GovSpend", groupKey: "organization_name" },
+          { key: "faac", label: "FAAC", groupKey: "state" },
         ];
         setIndexes(fallbacks);
         if (!fallbacks.find((i) => i.key === selectedIndex)) {

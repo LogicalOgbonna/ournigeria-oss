@@ -32,6 +32,8 @@ function statusVariant(status: string) {
       return "secondary" as const;
     case "failed":
       return "destructive" as const;
+    case "stopped":
+      return "outline" as const;
     case "stalled":
       return "outline" as const;
     default:

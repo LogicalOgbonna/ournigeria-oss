@@ -62,10 +62,12 @@ interface EnvVar {
   secret: boolean;
 }
 
+type ConnectionType = "llm" | "embedding" | "ocr";
+
 interface Connection {
   id: string;
   name: string;
-  type: "llm" | "embedding";
+  type: ConnectionType;
   provider: string;
   baseUrl: string;
   apiKeyMasked: string;
@@ -199,6 +201,53 @@ const EMBEDDING_PROVIDERS = [
   },
 ] as const;
 
+const OCR_PROVIDERS = [
+  {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+  },
+  {
+    id: "openrouter",
+    label: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    models: [
+      "anthropic/claude-sonnet-4",
+      "anthropic/claude-opus-4",
+      "google/gemini-2.5-pro-preview",
+      "openai/gpt-4o",
+    ],
+  },
+  {
+    id: "groq",
+    label: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    models: ["llama-3.3-70b-versatile", "meta-llama/llama-4-scout-17b-16e-instruct"],
+  },
+  {
+    id: "cerebras",
+    label: "Cerebras",
+    baseUrl: "https://api.cerebras.ai/v1",
+    models: ["llama-3.3-70b", "llama-3.1-8b"],
+  },
+  {
+    id: "together",
+    label: "Together AI",
+    baseUrl: "https://api.together.xyz/v1",
+    models: [
+      "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "Qwen/Qwen2.5-72B-Instruct-Turbo",
+    ],
+  },
+  {
+    id: "custom",
+    label: "Custom (OpenAI-compatible)",
+    baseUrl: "",
+    models: [],
+  },
+] as const;
+
 // ---------------------------------------------------------------------------
 // Tab definitions
 // ---------------------------------------------------------------------------
@@ -211,6 +260,7 @@ const TABS = [
     categories: ["embedding"],
     testable: true,
   },
+  { id: "ocr", label: "OCR", categories: ["ocr"], testable: true },
   {
     id: "rag-search",
     label: "RAG & Search",
@@ -283,8 +333,13 @@ function isDirty(
   return getChangedValues(original, current, settings).length > 0;
 }
 
-function providerLabel(providerId: string, type: "llm" | "embedding"): string {
-  const list = type === "llm" ? LLM_PROVIDERS : EMBEDDING_PROVIDERS;
+function providerLabel(providerId: string, type: ConnectionType): string {
+  const list =
+    type === "llm"
+      ? LLM_PROVIDERS
+      : type === "embedding"
+        ? EMBEDDING_PROVIDERS
+        : OCR_PROVIDERS;
   return list.find((p) => p.id === providerId)?.label || providerId;
 }
 
@@ -393,7 +448,7 @@ function ConnectionCard({
   onTest,
 }: {
   conn: Connection;
-  type: "llm" | "embedding";
+  type: ConnectionType;
   onActivate: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -608,7 +663,7 @@ function ConnectionFormDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "llm" | "embedding";
+  type: ConnectionType;
   editing: Connection | null;
   onSave: () => void;
 }) {
@@ -622,7 +677,12 @@ function ConnectionFormDialog({
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const providers = type === "llm" ? LLM_PROVIDERS : EMBEDDING_PROVIDERS;
+  const providers =
+    type === "llm"
+      ? LLM_PROVIDERS
+      : type === "embedding"
+        ? EMBEDDING_PROVIDERS
+        : OCR_PROVIDERS;
 
   useEffect(() => {
     if (open) {
@@ -733,7 +793,8 @@ function ConnectionFormDialog({
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editing ? "Edit" : "New"} {type === "llm" ? "LLM" : "Embedding"}{" "}
+            {editing ? "Edit" : "New"}{" "}
+            {type === "llm" ? "LLM" : type === "embedding" ? "Embedding" : "OCR"}{" "}
             Connection
           </DialogTitle>
         </DialogHeader>
@@ -972,12 +1033,18 @@ function ConnectionFormDialog({
 // Connections Tab (LLM or Embedding)
 // ---------------------------------------------------------------------------
 
+const CONNECTION_TYPE_LABEL: Record<ConnectionType, string> = {
+  llm: "LLM",
+  embedding: "Embedding",
+  ocr: "OCR",
+};
+
 function ConnectionsTabContent({
   type,
   connections,
   onRefresh,
 }: {
-  type: "llm" | "embedding";
+  type: ConnectionType;
   connections: Connection[];
   onRefresh: () => void;
 }) {
@@ -1012,7 +1079,7 @@ function ConnectionsTabContent({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {type === "llm" ? "LLM" : "Embedding"} Connections
+              {CONNECTION_TYPE_LABEL[type]} Connections
             </CardTitle>
             <Button size="sm" onClick={handleNew} className="h-7 text-xs">
               <Plus className="h-3 w-3 mr-1" />
@@ -1024,7 +1091,7 @@ function ConnectionsTabContent({
           {filtered.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-muted-foreground">
-                No {type === "llm" ? "LLM" : "embedding"} connections
+                No {CONNECTION_TYPE_LABEL[type].toLowerCase()} connections
                 configured.
               </p>
               <Button
@@ -1418,6 +1485,12 @@ function SettingsPageContent() {
             ) : t.id === "embedding" ? (
               <ConnectionsTabContent
                 type="embedding"
+                connections={connections}
+                onRefresh={refreshConnections}
+              />
+            ) : t.id === "ocr" ? (
+              <ConnectionsTabContent
+                type="ocr"
                 connections={connections}
                 onRefresh={refreshConnections}
               />

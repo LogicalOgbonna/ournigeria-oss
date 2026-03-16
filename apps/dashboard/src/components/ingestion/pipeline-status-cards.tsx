@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 export interface PipelineStatus {
   name: string;
   isRunning: boolean;
-  isPaused: boolean;
   processed: number;
   errors: number;
   totalChunks: number;
@@ -24,7 +23,7 @@ export function PipelineStatusCards({ pipelines }: { pipelines: PipelineStatus[]
             {p.isRunning ? (
               <Badge variant="default" className="text-xs gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                {p.isPaused ? "Paused" : "Running"}
+                Running
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-xs">Idle</Badge>

@@ -159,6 +159,7 @@ export class GovspendPipeline extends PipelineBase {
       errorFiles,
       totalChunks,
       durationMs,
+      stopped: false,
     };
   }
 

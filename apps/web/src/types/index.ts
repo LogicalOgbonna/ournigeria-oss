@@ -61,6 +61,14 @@ export const AVAILABLE_TOOLS: ToolOption[] = [
       pcm: "Search EFCC corruption cases — charges, wetin happen, and money details",
     },
   },
+  // {
+  //   id: "faac",
+  //   label: "FAAC",
+  //   description: {
+  //     en: "Search federal allocation data — monthly disbursements to states and local governments",
+  //     pcm: "Search federal allocation data — monthly money wey dem share to states and local governments",
+  //   },
+  // },
 ];
 
 export interface SuggestedQuestion {

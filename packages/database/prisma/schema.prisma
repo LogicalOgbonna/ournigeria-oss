@@ -395,6 +395,7 @@ model IngestionRun {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   pipeline       String    @db.VarChar(30)
   trigger        String    @db.VarChar(20)
+  status         String    @default("running") @db.VarChar(20)
   totalFiles     Int       @default(0) @map("total_files")
   processedFiles Int       @default(0) @map("processed_files")
   skippedFiles   Int       @default(0) @map("skipped_files")

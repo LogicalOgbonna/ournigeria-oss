@@ -83,6 +83,7 @@ export class FaacPipeline extends PipelineBase {
         errorFiles: 0,
         totalChunks: 0,
         durationMs: Date.now() - pipelineStart,
+        stopped: false,
       };
     }
 
@@ -320,6 +321,7 @@ export class FaacPipeline extends PipelineBase {
       errorFiles: errors,
       totalChunks,
       durationMs,
+      stopped: false,
     };
   }
 
@@ -329,6 +331,8 @@ export class FaacPipeline extends PipelineBase {
    */
   async discoverFiles(): Promise<DiscoveredFile[]> {
     const files: DiscoveredFile[] = [];
+    // Track year/month pairs to avoid processing multiple PDFs for the same period
+    const seen = new Set<string>();
 
     this.emitLog("log", `Listing S3 objects under ${S3_PREFIX}`);
     const objects = await this.s3.listObjects(S3_PREFIX);
@@ -345,6 +349,14 @@ export class FaacPipeline extends PipelineBase {
       const yearStr = parts[1];
       const month = parts[2];
       if (!/^\d{4}$/.test(yearStr)) continue;
+
+      // Deduplicate: only take the first PDF per year/month
+      const periodKey = `${yearStr}/${month}`;
+      if (seen.has(periodKey)) {
+        this.emitLog("log", `Skipping duplicate PDF for ${periodKey}: ${obj.key}`);
+        continue;
+      }
+      seen.add(periodKey);
 
       files.push({
         filePath: obj.key,

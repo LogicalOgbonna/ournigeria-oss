@@ -28,4 +28,5 @@ export interface PipelineResult {
   errorFiles: number;
   totalChunks: number;
   durationMs: number;
+  stopped: boolean;
 }
