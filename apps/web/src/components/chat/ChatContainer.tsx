@@ -7,6 +7,7 @@ import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
 import { ChatSidebar } from "./ChatSidebar";
+import Image from "next/image";
 import {
   Sparkles,
   MessageSquarePlus,
@@ -252,15 +253,20 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-[var(--font-heading)] text-base font-bold text-slate-800 dark:text-slate-100">
-              Our
-              <span className="text-emerald-600 dark:text-emerald-400">
-                Nigeria
-              </span>
-            </span>
+            <Image
+              src="/long_logo_dark.svg"
+              alt="OurNigeria"
+              width={140}
+              height={39}
+              className="hidden dark:block"
+            />
+            <Image
+              src="/long_logo_dark.svg"
+              alt="OurNigeria"
+              width={140}
+              height={39}
+              className="block brightness-0 dark:hidden"
+            />
           </div>
           <div className="flex items-center gap-1">
             {hasMessages && activeConversationId && (

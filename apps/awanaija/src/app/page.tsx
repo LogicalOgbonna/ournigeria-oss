@@ -4,7 +4,7 @@ import { Features } from "@/components/sections/Features";
 import { Philosophy } from "@/components/sections/Philosophy";
 import { Protocol } from "@/components/sections/Protocol";
 import { Stats } from "@/components/sections/Stats";
-import { Pricing } from "@/components/sections/Pricing";
+// import { Pricing } from "@/components/sections/Pricing";
 import { CallToAction } from "@/components/sections/CallToAction";
 import { Footer } from "@/components/sections/Footer";
 
@@ -17,7 +17,7 @@ export default function Home() {
       <Philosophy />
       <Protocol />
       <Stats />
-      <Pricing />
+      {/* <Pricing /> */}
       <CallToAction />
       <Footer />
     </main>

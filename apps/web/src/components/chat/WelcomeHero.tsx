@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { pickRandomQuestions } from "@/lib/constants";
 import { t } from "@/lib/i18n";
 import type { Language } from "@/types";
+import Image from "next/image";
 import {
   GraduationCap,
   TrendingUp,
@@ -59,15 +60,22 @@ export function WelcomeHero({ onSuggestionClick }: WelcomeHeroProps) {
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-8 md:py-16">
       {/* Logo & Title */}
       <div className="animate-fade-in-up mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
-          <Sparkles className="h-8 w-8 text-white" />
-        </div>
-        <h1 className="font-[var(--font-heading)] text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 md:text-4xl lg:text-5xl">
-          Our
-          <span className="text-emerald-600 dark:text-emerald-400">
-            Nigeria
-          </span>
-        </h1>
+        <Image
+          src="/long_logo_dark.svg"
+          alt="OurNigeria"
+          width={300}
+          height={84}
+          className="mx-auto mb-4 hidden dark:block"
+          priority
+        />
+        <Image
+          src="/long_logo_dark.svg"
+          alt="OurNigeria"
+          width={300}
+          height={84}
+          className="mx-auto mb-4 block brightness-0 dark:hidden"
+          priority
+        />
         <p className="mt-3 max-w-md text-base text-slate-500 dark:text-slate-400 md:text-lg">
           {t("welcome.subtitle", language)}
         </p>
