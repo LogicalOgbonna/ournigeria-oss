@@ -44,7 +44,7 @@ export default function DonutChartV2({ block }: { block: ChartBlock }) {
               formatter={((value: number) => [
                 formatChartValue(value, fmt),
                 "",
-              ]) as any}
+              ]) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
               contentStyle={chart.tooltipStyle}
             itemStyle={chart.tooltipItemStyle}
             labelStyle={chart.tooltipLabelStyle}

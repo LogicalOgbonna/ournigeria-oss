@@ -66,7 +66,7 @@ export default function StackedBarChart({ block }: { block: ChartBlock }) {
             formatter={((value: number, name: string) => {
               const s = series.find((l) => l.key === name);
               return [formatChartValue(value, fmt), s?.label ?? name];
-            }) as any}
+            }) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
             contentStyle={chart.tooltipStyle}
             itemStyle={chart.tooltipItemStyle}
             labelStyle={chart.tooltipLabelStyle}
@@ -128,7 +128,7 @@ export default function StackedBarChart({ block }: { block: ChartBlock }) {
           formatter={((value: number, name: string) => {
             const s = series.find((l) => l.key === name);
             return [formatChartValue(value, fmt), s?.label ?? name];
-          }) as any}
+          }) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
           contentStyle={chart.tooltipStyle}
             itemStyle={chart.tooltipItemStyle}
             labelStyle={chart.tooltipLabelStyle}

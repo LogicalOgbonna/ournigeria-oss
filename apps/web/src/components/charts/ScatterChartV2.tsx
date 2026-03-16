@@ -70,13 +70,13 @@ export default function ScatterChartV2({ block }: { block: ChartBlock }) {
           contentStyle={chart.tooltipStyle}
             itemStyle={chart.tooltipItemStyle}
             labelStyle={chart.tooltipLabelStyle}
-          formatter={((value: number) => formatChartValue(value, fmt)) as any}
+          formatter={((value: number) => formatChartValue(value, fmt)) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
           labelFormatter={((label: string) => {
             const point = block.data.find(
               (d) => String(d.x) === String(label),
             );
             return point?.name ?? point?.label ?? label;
-          }) as any}
+          }) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
         />
         <Scatter
           data={block.data}

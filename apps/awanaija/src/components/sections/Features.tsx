@@ -136,6 +136,7 @@ function TypewriterCard() {
   const lineIndexRef = useRef(0);
   const charIndexRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const tickRef = useRef<() => void>(null);
 
   const tick = useCallback(() => {
     const messages = TYPEWRITER_MESSAGES;
@@ -149,7 +150,7 @@ function TypewriterCard() {
         setCurrentLine("");
         lineIndexRef.current = 0;
         charIndexRef.current = 0;
-        tick();
+        tickRef.current?.();
       }, 2500);
       return;
     }
@@ -158,7 +159,7 @@ function TypewriterCard() {
     if (ci < msg.length) {
       setCurrentLine(msg.slice(0, ci + 1));
       charIndexRef.current = ci + 1;
-      timeoutRef.current = setTimeout(tick, 25 + Math.random() * 35);
+      timeoutRef.current = setTimeout(() => tickRef.current?.(), 25 + Math.random() * 35);
     } else {
       // Line done
       setCompletedLines((prev) => {
@@ -170,9 +171,13 @@ function TypewriterCard() {
       setCurrentLine("");
       lineIndexRef.current = li + 1;
       charIndexRef.current = 0;
-      timeoutRef.current = setTimeout(tick, 600);
+      timeoutRef.current = setTimeout(() => tickRef.current?.(), 600);
     }
   }, []);
+
+  useEffect(() => {
+    tickRef.current = tick;
+  }, [tick]);
 
   useEffect(() => {
     tick();

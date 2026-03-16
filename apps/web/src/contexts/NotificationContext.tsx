@@ -89,7 +89,7 @@ export function NotificationProvider({
   }, [fetchNotifications, fetchBanners]);
 
   useEffect(() => {
-    fetchAll();
+    fetchAll(); // eslint-disable-line react-hooks/set-state-in-effect -- data fetching on mount
     intervalRef.current = setInterval(fetchAll, POLL_INTERVAL);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

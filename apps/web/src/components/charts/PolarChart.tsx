@@ -43,7 +43,7 @@ export default function PolarChart({ block }: { block: ChartBlock }) {
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",
-          ]) as any}
+          ]) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
         />
         <Legend
           iconType="circle"

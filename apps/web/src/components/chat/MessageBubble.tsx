@@ -60,7 +60,9 @@ function RetryCountdown({
   useEffect(() => {
     if (secondsLeft === 0 && !firedRef.current && !isLoading) {
       firedRef.current = true;
-      setIsRetrying(true);
+      setTimeout(() => {
+        setIsRetrying(true);
+      }, 100);
       onRetry();
     }
   }, [secondsLeft, isLoading, onRetry]);

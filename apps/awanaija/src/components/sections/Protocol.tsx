@@ -111,7 +111,7 @@ export function Protocol() {
             The Data We Track
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            A comprehensive view of our country's resources, institutions, and
+            A comprehensive view of our country&apos;s resources, institutions, and
             leaders.
           </p>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { APP_URL } from "@/lib/constants";
@@ -36,7 +37,7 @@ export function Navbar() {
           }`}
         >
           {/* Logo */}
-          <a href="/" className="flex items-center hover-lift">
+          <Link href="/" className="flex items-center hover-lift">
             <Image
               src="/long_logo_dark.svg"
               alt="OurNigeria"
@@ -51,7 +52,7 @@ export function Navbar() {
               height={42}
               className="block brightness-0 dark:hidden"
             />
-          </a>
+          </Link>
 
           {/* Center nav links — hidden on mobile */}
           <div className="hidden items-center gap-6 md:flex">

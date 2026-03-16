@@ -133,7 +133,7 @@ export function Pricing() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-4 md:grid-cols-2">
-          {TIERS.map((tier, i) => (
+          {TIERS.map((tier) => (
             <div
               key={tier.name}
               className={cn(

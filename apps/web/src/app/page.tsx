@@ -6,7 +6,6 @@ import { ChatContainer } from "@/components/chat/ChatContainer";
 export default function Home() {
   // Read the initial pathname once on mount to determine the conversation ID.
   // Subsequent navigation is handled in-place by useChat via pushState.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const conversationId = useMemo(() => {
     if (typeof window === "undefined") return undefined;
     const path = window.location.pathname;
