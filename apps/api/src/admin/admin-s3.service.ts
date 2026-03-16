@@ -6,7 +6,7 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 
-const ALLOWED_PREFIXES = ["budgets/", "corruption/", "govspend/"];
+const ALLOWED_PREFIXES = ["budgets/", "corruption/", "govspend/", "faac/"];
 
 const PIPELINE_FILE_HINTS: Record<string, string[]> = {
   budgets: [".pdf", ".xlsx", ".docx"],

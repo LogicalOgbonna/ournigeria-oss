@@ -58,6 +58,10 @@ packages/source/corruption_discarded/
 packages/source/gemini_corruption/
 packages/source/institution/
 packages/source/govspend/
+packages/source/igr/
+packages/source/gdp/
+packages/source/debt/
+packages/source/population/
 packages/source/faac/
 docs/talk with timi/action_items/value_props/*.md
 

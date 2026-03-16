@@ -2,8 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, embed } from "ai";
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
 import { setSetting, notifySettingsChanged } from "../config/settings-store";
+
+export type ConnectionType = "llm" | "embedding" | "ocr";
 
 /* ------------------------------------------------------------------ */
 /*  Service                                                            */
@@ -104,7 +106,7 @@ export class AdminConnectionsService {
 
   async create(data: {
     name: string;
-    type: "llm" | "embedding";
+    type: ConnectionType;
     provider: string;
     baseUrl: string;
     apiKey: string;
@@ -290,6 +292,30 @@ export class AdminConnectionsService {
         });
         setSetting(s.key, s.value);
       }
+    } else if (row.type === "ocr") {
+      const settings = [
+        { key: "ocr.provider", value: row.provider || "custom" },
+        { key: "ocr.base_url", value: row.baseUrl },
+        { key: "ocr.api_key", value: plainApiKey },
+        { key: "ocr.model", value: row.modelId },
+      ];
+
+      for (const s of settings) {
+        const isSecret = s.key === "ocr.api_key";
+        const storedValue = isSecret ? this.encrypt(s.value) : s.value;
+        await this.prisma.systemSetting.upsert({
+          where: { key: s.key },
+          update: { value: storedValue, encrypted: isSecret },
+          create: {
+            key: s.key,
+            value: storedValue,
+            encrypted: isSecret,
+            category: "ocr",
+            valueType: isSecret ? "secret" : "string",
+          },
+        });
+        setSetting(s.key, s.value);
+      }
     }
 
     notifySettingsChanged();
@@ -298,7 +324,7 @@ export class AdminConnectionsService {
   /* ---- Test connection ------------------------------------------- */
 
   async testConnection(data: {
-    type: "llm" | "embedding";
+    type: ConnectionType;
     provider: string;
     baseUrl: string;
     apiKey: string;
@@ -311,7 +337,7 @@ export class AdminConnectionsService {
     }
 
     try {
-      if (data.type === "llm") {
+      if (data.type === "llm" || data.type === "ocr") {
         const provider = createOpenAI({
           baseURL: data.baseUrl,
           apiKey: data.apiKey,
@@ -383,7 +409,7 @@ export class AdminConnectionsService {
     }
 
     return this.testConnection({
-      type: row.type as "llm" | "embedding",
+      type: row.type as ConnectionType,
       provider: row.provider,
       baseUrl: row.baseUrl,
       apiKey: plainApiKey,
@@ -397,15 +423,16 @@ export class AdminConnectionsService {
     // Seed each type independently — only if no connections of that type exist
     await this.seedType("llm");
     await this.seedType("embedding");
+    await this.seedType("ocr");
   }
 
-  private async seedType(type: "llm" | "embedding") {
+  private async seedType(type: ConnectionType) {
     const existing = await this.prisma.providerConnection.count({
       where: { type },
     });
     if (existing > 0) return;
 
-    const category = type === "llm" ? "llm" : "embedding";
+    const category = type;
     const rows = await this.prisma.systemSetting.findMany({
       where: { category },
     });
@@ -421,7 +448,7 @@ export class AdminConnectionsService {
       }
     };
 
-    const prefix = type === "llm" ? "llm" : "embedding";
+    const prefix = type;
     const provider = get(`${prefix}.provider`);
     const baseUrl = get(`${prefix}.base_url`);
     const apiKey = get(`${prefix}.api_key`);

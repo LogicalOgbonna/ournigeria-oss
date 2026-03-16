@@ -12,6 +12,7 @@ import {
 import type { SystemBanner, Notification } from "@/types/notifications";
 import { apiUrl } from "@/lib/api";
 import { redirectToLogin, isRedirecting } from "@/lib/auth-redirect";
+import { isPublicRoute } from "@/lib/public-routes";
 
 const POLL_INTERVAL = 60_000; // 1 minute
 
@@ -51,7 +52,7 @@ export function NotificationProvider({
       });
       if (res.status === 401) {
         stopPolling();
-        redirectToLogin();
+        if (!isPublicRoute()) redirectToLogin();
         return;
       }
       if (!res.ok) return;
@@ -71,7 +72,7 @@ export function NotificationProvider({
       });
       if (res.status === 401) {
         stopPolling();
-        redirectToLogin();
+        if (!isPublicRoute()) redirectToLogin();
         return;
       }
       if (!res.ok) return;

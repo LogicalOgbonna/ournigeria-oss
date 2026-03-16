@@ -6,7 +6,7 @@ import {
   PipelineStatusCards,
   type PipelineStatus,
 } from "@/components/ingestion/pipeline-status-cards";
-import { PauseResumeButton } from "@/components/ingestion/pause-resume-button";
+import { StopButton } from "@/components/ingestion/stop-button";
 import {
   IngestionRunsTable,
   type IngestionRun,
@@ -21,7 +21,6 @@ const FALLBACK_PIPELINES: PipelineStatus[] = [
   {
     name: "budget",
     isRunning: false,
-    isPaused: false,
     processed: 937,
     errors: 1,
     totalChunks: 696222,
@@ -29,7 +28,6 @@ const FALLBACK_PIPELINES: PipelineStatus[] = [
   {
     name: "govspend",
     isRunning: false,
-    isPaused: false,
     processed: 320258,
     errors: 0,
     totalChunks: 320040,
@@ -37,7 +35,6 @@ const FALLBACK_PIPELINES: PipelineStatus[] = [
   {
     name: "corruption",
     isRunning: false,
-    isPaused: false,
     processed: 0,
     errors: 0,
     totalChunks: 0,
@@ -84,7 +81,6 @@ function mapPipelines(
   return Object.entries(pipelinesObj).map(([name, p]) => ({
     name,
     isRunning: active.includes(name),
-    isPaused: false,
     processed: p.done,
     errors: p.error,
     totalChunks: p.chunks,
@@ -96,6 +92,7 @@ function mapRuns(
     id: string;
     pipeline: string;
     trigger: string;
+    status: string;
     totalFiles: number;
     processedFiles: number;
     skippedFiles: number;
@@ -106,25 +103,17 @@ function mapRuns(
     completedAt: string | null;
     errorMsg: string | null;
   }>,
-  active: string[],
 ): IngestionRun[] {
-  return runs.map((r) => {
-    let status: string;
-    if (r.errorMsg) status = "failed";
-    else if (r.completedAt) status = "completed";
-    else if (active.includes(r.pipeline)) status = "running";
-    else status = "stalled";
-    return {
-      id: r.id,
-      pipeline: r.pipeline,
-      trigger: r.trigger,
-      totalFiles: r.totalFiles,
-      totalChunks: r.totalChunks,
-      duration: r.durationMs ? Math.round(r.durationMs / 1000) : null,
-      startedAt: r.startedAt,
-      status,
-    };
-  });
+  return runs.map((r) => ({
+    id: r.id,
+    pipeline: r.pipeline,
+    trigger: r.trigger,
+    totalFiles: r.totalFiles,
+    totalChunks: r.totalChunks,
+    duration: r.durationMs ? Math.round(r.durationMs / 1000) : null,
+    startedAt: r.startedAt,
+    status: r.status,
+  }));
 }
 
 export default function IngestionPage() {
@@ -141,7 +130,7 @@ export default function IngestionPage() {
     try {
       const data = await ingestFetch("/status");
       setPipelines(mapPipelines(data.pipelines ?? {}, data.active ?? []));
-      setRuns(mapRuns(data.recentRuns ?? [], data.active ?? []));
+      setRuns(mapRuns(data.recentRuns ?? []));
       setActiveRunIds(data.activeRunIds ?? {});
     } catch {
       setPipelines(FALLBACK_PIPELINES);
@@ -212,12 +201,11 @@ export default function IngestionPage() {
       <div className="flex items-center gap-2">
         {pipelines!.map((p) =>
           p.isRunning ? (
-            <PauseResumeButton
+            <StopButton
               key={p.name}
               pipeline={p.name}
-              isPaused={p.isPaused}
               isRunning={p.isRunning}
-              onToggle={load}
+              onStop={load}
             />
           ) : null,
         )}

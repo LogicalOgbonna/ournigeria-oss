@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService, type Prisma } from "@ournigeria/database";
 import { cache } from "@ournigeria/cache";
 import { routeToAgent } from "../mastra/router";
-import type { ToolId, Language, AIResponseContent } from "../types";
+import type { ToolId, Language, AIResponseContent, SourceCitation } from "../types";
 import { summarizeRichContent } from "./rich-content-summary";
 import {
   estimateTokens,
@@ -22,7 +22,11 @@ const VALID_TOOLS: Set<string> = new Set(["budget", "corruption", "govspend"]);
 export class ChatService {
   constructor(readonly prisma: PrismaService) {}
 
-  async processChat(
+  /**
+   * Phase 1: Set up conversation, persist user message, and build context.
+   * Called ONCE — must not be retried (non-idempotent side effects).
+   */
+  async prepareChatContext(
     userId: string,
     message: string,
     conversationId: string | undefined,
@@ -99,19 +103,17 @@ export class ChatService {
     }
 
     // Persist user message (with retry on sequence collision)
-    nextSeq = await this.createMessageWithSeqRetry({
+    ({ sequenceNumber: nextSeq } = await this.createMessageWithSeqRetry({
       conversationId: convId,
       sequenceNumber: nextSeq,
       role: "user",
       content: message,
-    });
+    }));
 
     // Send conversation ID immediately
     send({ type: "meta", conversationId: convId });
 
-    const startTime = Date.now();
-
-    // ─── Phase 1 + 4 + 5: Build context with summary, rich content, and token budgeting ───
+    // ─── Build context with summary, rich content, and token budgeting ───
 
     // Load recent messages (generous upper bound — selectMessagesByTokenBudget trims further)
     const historyRowsDesc = await this.prisma.message.findMany({
@@ -130,13 +132,12 @@ export class ChatService {
     });
     const historyRows = historyRowsDesc.reverse();
 
-    // Phase 4: Enrich assistant messages with rich content summaries
+    // Enrich assistant messages with rich content summaries
     const enrichedMessages = historyRows
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => {
         let content = `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`;
 
-        // Append rich content summary for assistant messages
         if (m.role === "assistant" && m.richContent) {
           const richSummary = summarizeRichContent(m.richContent);
           if (richSummary) {
@@ -147,8 +148,7 @@ export class ChatService {
         return { role: m.role, content };
       });
 
-    // Phase 5: Token-aware message selection
-    // Determine how much budget we have for messages after accounting for summary
+    // Token-aware message selection
     const summaryTokens = conversationMeta.summary
       ? estimateTokens(conversationMeta.summary)
       : 0;
@@ -165,19 +165,51 @@ export class ChatService {
 
     const historyContext = selectedMessages.map((m) => m.content).join("\n\n");
 
-    // Phase 6: Load user profile from memory
+    // Load user profile from memory
     const userProfile = await loadUserProfile(this.prisma, userId);
 
-    // Build conversation context for router
-    const context = {
-      summary: conversationMeta.summary,
-      mentionedStates: conversationMeta.mentionedStates,
-      mentionedYears: conversationMeta.mentionedYears,
-      lastAgentType: conversationMeta.lastAgentType,
-      userProfile,
-    };
-
     const validLanguage: Language = language === "pcm" ? "pcm" : "en";
+
+    return {
+      convId,
+      nextSeq,
+      selectedTool,
+      message,
+      userId,
+      historyContext,
+      conversationMeta,
+      validLanguage,
+      context: {
+        summary: conversationMeta.summary,
+        mentionedStates: conversationMeta.mentionedStates,
+        mentionedYears: conversationMeta.mentionedYears,
+        lastAgentType: conversationMeta.lastAgentType,
+        userProfile,
+      },
+    };
+  }
+
+  /**
+   * Phase 2: Route to agent, persist response, and run background tasks.
+   * Safe to retry — no non-idempotent side effects before the LLM call.
+   */
+  async executeAgentAndPersist(
+    prepared: Awaited<ReturnType<ChatService["prepareChatContext"]>>,
+    send: (data: Record<string, unknown>) => void,
+  ) {
+    const {
+      convId,
+      nextSeq,
+      selectedTool,
+      message,
+      userId,
+      historyContext,
+      conversationMeta,
+      validLanguage,
+      context,
+    } = prepared;
+
+    const startTime = Date.now();
 
     // Route to the correct agent workflow
     const { richContent, resolvedTool, thinkingSteps } = await routeToAgent({
@@ -193,8 +225,11 @@ export class ChatService {
 
     const processingTimeMs = Date.now() - startTime;
 
+    // TL;DR observability
+    console.log(`[tldr] summary_present=${!!richContent.summary}, text_length=${richContent.text.length}, summary_length=${richContent.summary?.length ?? 0}`);
+
     // Persist assistant message (with retry on sequence collision)
-    const assistantSeq = await this.createMessageWithSeqRetry({
+    const { sequenceNumber: assistantSeq, messageId: assistantMsgId } = await this.createMessageWithSeqRetry({
       conversationId: convId,
       sequenceNumber: nextSeq + 1,
       role: "assistant",
@@ -276,6 +311,12 @@ export class ChatService {
           sessionId: convId,
           dataType: "CATEGORICAL",
         });
+        langfuse.score({
+          name: "has_summary",
+          value: richContent.summary ? 1 : 0,
+          sessionId: convId,
+          dataType: "BOOLEAN",
+        });
         langfuse
           .flushAsync()
           .catch((err) => console.error("Langfuse flush error:", err));
@@ -286,12 +327,19 @@ export class ChatService {
 
     // ─── Post-response async tasks (non-blocking) ───────────────
 
-    // Phase 1: Summarize older messages if needed
+    // Summarize older messages if needed
     this.runSummarization(convId, assistantSeq, conversationMeta, userId).catch(
       (err) => console.error("Summarization error:", err),
     );
 
-    // Phase 6: Extract user memory
+    // Persist source references for analytics
+    if (richContent.sources && richContent.sources.length > 0) {
+      this.persistSourceReferences(assistantMsgId, richContent.sources).catch(
+        (err) => console.error("SourceReference persist error:", err),
+      );
+    }
+
+    // Extract user memory
     extractAndSaveMemory(this.prisma, userId, {
       mentionedStates: updatedStates,
       mentionedYears: updatedYears,
@@ -314,13 +362,14 @@ export class ChatService {
       processingTimeMs?: number;
     },
     maxRetries = 3,
-  ): Promise<number> {
+  ): Promise<{ sequenceNumber: number; messageId: string }> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        await this.prisma.message.create({
+        const msg = await this.prisma.message.create({
           data: data as any,
+          select: { id: true },
         });
-        return data.sequenceNumber;
+        return { sequenceNumber: data.sequenceNumber, messageId: msg.id };
       } catch (err: any) {
         if (err?.code === "P2002" && attempt < maxRetries - 1) {
           // Unique constraint violation — re-calculate sequence number
@@ -335,7 +384,7 @@ export class ChatService {
       }
     }
     // Unreachable, but satisfies TypeScript
-    throw new Error("Failed to create message after retries");
+    throw new Error("Failed to create message after retries") as never;
   }
 
   /**
@@ -378,5 +427,52 @@ export class ChatService {
         },
       });
     }
+  }
+
+  /**
+   * Persist source citations as SourceReference rows for analytics.
+   * Looks up documents by fileName to get the required documentId FK.
+   * Non-blocking — errors are logged, not thrown.
+   */
+  private async persistSourceReferences(
+    messageId: string,
+    sources: SourceCitation[],
+  ) {
+    if (sources.length === 0) return;
+
+    // Look up documents by fileName to get documentIds
+    const fileNames = sources.map((s) => s.fileName);
+    const documents = await this.prisma.document.findMany({
+      where: { fileName: { in: fileNames } },
+      select: { id: true, fileName: true, stateCode: true, fiscalYear: true },
+    });
+
+    const docMap = new Map(documents.map((d) => [d.fileName, d]));
+
+    const refs = sources
+      .map((source, index) => {
+        const doc = docMap.get(source.fileName);
+        if (!doc) return null; // Skip if document not found in DB
+        return {
+          messageId,
+          documentId: doc.id,
+          pageNumber: source.page ?? null,
+          snippet: source.snippet ?? null,
+          confidenceScore: source.score,
+          stateCode: doc.stateCode,
+          fiscalYear: doc.fiscalYear,
+          relevanceRank: index + 1,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    if (refs.length === 0) return;
+
+    await this.prisma.sourceReference.createMany({
+      data: refs as any,
+      skipDuplicates: true,
+    });
+
+    console.log(`[SourceReference] Persisted ${refs.length}/${sources.length} references for message ${messageId}`);
   }
 }

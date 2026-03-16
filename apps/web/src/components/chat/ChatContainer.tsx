@@ -313,14 +313,28 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             <WelcomeHero onSuggestionClick={handleSend} />
           ) : (
             <div className="py-4">
-              {messages.map((message) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  conversationId={activeConversationId}
-                  onFollowUpClick={handleSend}
-                />
-              ))}
+              {messages.map((message, index) => {
+                // Only scan for previous user message on retryable errors (short-circuits for 99% of messages)
+                const prevUserMsg =
+                  message.isError && message.retryable
+                    ? messages
+                        .slice(0, index)
+                        .reverse()
+                        .find((m) => m.role === "user")?.content
+                    : undefined;
+
+                return (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    conversationId={activeConversationId}
+                    onFollowUpClick={handleSend}
+                    onRetry={handleSend}
+                    previousUserMessage={prevUserMsg}
+                    isLoading={isLoading}
+                  />
+                );
+              })}
               {streamingText && <StreamingBubble text={streamingText} />}
               {isLoading && !streamingText && (
                 <TypingIndicator statusText={statusText} />

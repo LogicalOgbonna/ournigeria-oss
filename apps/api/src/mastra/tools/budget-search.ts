@@ -50,36 +50,35 @@ export const budgetSearchTool = createTool({
     query: z.string().describe("The search query about Nigerian budgets"),
     state: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by state name (lowercase), e.g. 'lagos', 'benue', 'kano'",
       ),
     year: z
       .number()
-      .nullish()
+      .optional()
       .describe("Filter by budget year, e.g. 2024, 2025"),
     sector: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by budget sector, e.g. 'education', 'health', 'infrastructure', 'agriculture', 'defence', 'energy', 'water_resources', 'transportation'",
       ),
     budget_category: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by budget category, e.g. 'capital', 'recurrent', 'personnel', 'overhead'",
       ),
     is_summary: z
       .boolean()
-      .nullish()
-      .default(false)
+      .optional()
       .describe(
-        "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false or leave undefined for specific line items.",
+        "Set to true if you are looking for aggregate totals (e.g. total health budget, overall state budget). Set to false for specific line items. Leave undefined to search both.",
       ),
     topK: z
       .number()
-      .nullish()
+      .optional()
       .describe(
         "Number of results to return. Use 10-15 for simple queries, 25-30 for comparisons, 40-50 for multi-state/multi-year analysis. Default: 15",
       ),

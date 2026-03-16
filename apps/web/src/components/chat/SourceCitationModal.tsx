@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { X, Download, Copy, Check, FileText, Scale, Banknote, BarChart3 } from "lucide-react";
 import type { SourceCitation } from "@/types";
 import { apiUrl } from "@/lib/api";
+import { Markdown } from "./Markdown";
 
 interface SourceCitationModalProps {
   sources: SourceCitation[];
@@ -138,12 +139,12 @@ export function SourceCitationModal({
             </p>
           )}
 
-          {/* Snippet */}
+          {/* Snippet — rendered as markdown for tables, lists, etc. */}
           <div className="mt-4 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 p-4">
             {source.snippet ? (
-              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 italic">
-                &ldquo;{source.snippet}&rdquo;
-              </p>
+              <div className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 [&_table]:text-xs [&_th]:px-2 [&_th]:py-1 [&_td]:px-2 [&_td]:py-1 [&_th]:text-left [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-slate-300 [&_td]:border-slate-300 [&_th]:dark:border-slate-600 [&_td]:dark:border-slate-600">
+                <Markdown>{source.snippet}</Markdown>
+              </div>
             ) : (
               <p className="text-sm text-slate-400 dark:text-slate-500 italic">
                 No preview available

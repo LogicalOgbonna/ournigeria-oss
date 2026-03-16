@@ -567,7 +567,7 @@ export class AdminSettingsService {
   }
 
   async testConnection(
-    type: "llm" | "embedding",
+    type: "llm" | "embedding" | "ocr",
     config: Record<string, string>,
   ): Promise<{ success: boolean; latencyMs?: number; error?: string }> {
     const start = Date.now();
@@ -575,7 +575,7 @@ export class AdminSettingsService {
     // The dashboard sends form values keyed by setting key (e.g. "llm.base_url")
     // Normalize to simple keys for convenience
     const get = (shortKey: string): string => {
-      const prefix = type === "llm" ? "llm." : "embedding.";
+      const prefix = `${type}.`;
       return config[`${prefix}${shortKey}`] ?? config[shortKey] ?? "";
     };
 
@@ -585,8 +585,7 @@ export class AdminSettingsService {
     // For API key: use provided value, or fall back to stored/encrypted DB value
     let apiKey = get("api_key");
     if (!apiKey) {
-      const keySettingKey =
-        type === "llm" ? "llm.api_key" : "embedding.api_key";
+      const keySettingKey = `${type}.api_key`;
       const row = await this.prisma.systemSetting.findUnique({
         where: { key: keySettingKey },
       });
@@ -604,7 +603,7 @@ export class AdminSettingsService {
     }
 
     try {
-      if (type === "llm") {
+      if (type === "llm" || type === "ocr") {
         const provider = createOpenAI({ baseURL: baseUrl, apiKey });
         const model = provider.chat(modelId);
         await generateText({

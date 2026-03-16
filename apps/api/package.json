@@ -6,7 +6,9 @@
     "dev": "infisical run --env dev --watch -- nest start",
     "build": "nest build",
     "start": "infisical run --env prod -- nest start",
-    "start:prod": "infisical run --env prod -- node dist/main"
+    "start:prod": "infisical run --env prod -- node dist/main",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.30",
@@ -50,6 +52,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }

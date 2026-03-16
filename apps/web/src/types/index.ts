@@ -26,6 +26,8 @@ export interface Message {
   timestamp: Date;
   /** Set when the message represents a server-side error. */
   isError?: boolean;
+  /** Set on error messages when the error is retryable (e.g., rate limits). */
+  retryable?: boolean;
 }
 
 export interface ToolOption {
@@ -59,6 +61,14 @@ export const AVAILABLE_TOOLS: ToolOption[] = [
       pcm: "Search EFCC corruption cases — charges, wetin happen, and money details",
     },
   },
+  // {
+  //   id: "faac",
+  //   label: "FAAC",
+  //   description: {
+  //     en: "Search federal allocation data — monthly disbursements to states and local governments",
+  //     pcm: "Search federal allocation data — monthly money wey dem share to states and local governments",
+  //   },
+  // },
 ];
 
 export interface SuggestedQuestion {

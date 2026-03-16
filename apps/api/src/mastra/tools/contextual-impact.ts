@@ -38,6 +38,8 @@ const equivalentItemSchema = z.object({
   unitLabel: z.string().describe("Formatted unit cost, e.g. '₦20M per school'"),
   contextNote: z
     .string()
+    .nullable()
+    .transform((v) => v ?? "")
     .describe("Brief contextual note, e.g. 'Ebonyi currently has only 13 general hospitals'. Empty string if not applicable"),
 });
 
@@ -221,19 +223,19 @@ export const contextualImpactTool = createTool({
       .describe("The amount in Nigerian Naira to calculate real-world equivalents for"),
     sector: z
       .string()
-      .nullish()
+      .optional()
       .describe("Budget sector if applicable, e.g. 'education', 'health', 'infrastructure'"),
     state: z
       .string()
-      .nullish()
+      .optional()
       .describe("Nigerian state for geographic context, e.g. 'Lagos', 'Ebonyi', 'Borno'"),
-    year: z.number().nullish().describe("Budget year if applicable"),
+    year: z.number().optional().describe("Budget year if applicable"),
     domain: z
       .enum(["budget", "corruption", "govspend", "faac"])
       .describe("The domain context for appropriate framing"),
     topic: z
       .string()
-      .nullish()
+      .optional()
       .describe("Brief description of what the amount relates to, e.g. 'Ebonyi education sector allocation'"),
   }),
   outputSchema: equivalentSchema,

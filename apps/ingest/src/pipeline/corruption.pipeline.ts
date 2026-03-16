@@ -63,6 +63,7 @@ export class CorruptionPipeline extends PipelineBase {
         errorFiles: 0,
         totalChunks: 0,
         durationMs: Date.now() - pipelineStart,
+        stopped: false,
       };
     }
 
@@ -108,6 +109,7 @@ export class CorruptionPipeline extends PipelineBase {
       errorFiles: result.errors,
       totalChunks: result.chunks,
       durationMs,
+      stopped: result.stopped,
     };
   }
 

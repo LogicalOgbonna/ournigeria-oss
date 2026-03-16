@@ -15,13 +15,28 @@ import {
   formatImpactResponse,
 } from "./tools/format-response";
 import { chatModelSmall } from "./rag/config";
-import { t } from "../lib/i18n";
+import { t, type StringKey } from "../lib/i18n";
 import { generateText } from "ai";
 import { z } from "zod";
 import { tracingMetadata, getPrompt } from "../lib/langfuse";
 import { cache as cacheManager } from "@ournigeria/cache";
+import { extractStateName, analyzeQueryComplexity } from "./rag/query-analysis";
+import { getOfficials } from "./tools/metadata";
+
+const MAX_STEPS = 25;
 
 const intentCache = cacheManager.namespace("intent");
+
+/** Map resolved agent/intent to domain-specific "no data" i18n key. */
+const NO_DATA_KEYS: Record<string, StringKey> = {
+  budget: "noData.budget",
+  corruption: "noData.corruption",
+  govspend: "noData.govspend",
+  faac: "noData.faac",
+  general: "noData.general",
+  impact: "noData.general",
+  follow_up: "noData.general",
+};
 
 const GENERAL_FOLLOW_UPS = [
   { text: "What is Lagos 2023 budget?" },
@@ -333,7 +348,7 @@ function tryFastClassify(
     0,
   );
   if (impactScore >= 1) {
-    return { intent: "impact", entities: EMPTY_ENTITIES };
+    return { intent: "impact", entities: extractEntitiesFromMessage(message) };
   }
 
   // General greetings/meta
@@ -376,12 +391,16 @@ function tryFastClassify(
   const top = sorted[0];
   const runner = sorted[1];
 
+  // Extract entities so specialist agents get state/year/sector hints
+  // even on the fast path (avoids the LLM router but still provides context)
+  const entities = extractEntitiesFromMessage(message);
+
   // High confidence: top score >= 2 and clearly ahead, OR top score >= 1 with runner at 0
   if (top.score >= 2 && top.score > runner.score) {
-    return { intent: top.intent, entities: EMPTY_ENTITIES };
+    return { intent: top.intent, entities };
   }
   if (top.score >= 1 && runner.score === 0) {
-    return { intent: top.intent, entities: EMPTY_ENTITIES };
+    return { intent: top.intent, entities };
   }
 
   // Ambiguous or no keywords — return null to trigger LLM
@@ -494,6 +513,9 @@ function extractSourcesFromToolResult(
       continue;
     }
 
+    // Skip synthetic summary chunks — they have no real S3 file to download
+    if (r.source_type === "synthetic" || filename === "summary") continue;
+
     const source: SourceCitation = {
       title: filename.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       fileName: filename,
@@ -509,8 +531,156 @@ function extractSourcesFromToolResult(
     bestByFile.set(filename, source);
   }
 
-  // Return top sources sorted by score
-  return [...bestByFile.values()].sort((a, b) => b.score - a.score).slice(0, 8);
+  // Return top sources (preserve tool-result order for citation alignment)
+  return [...bestByFile.values()].slice(0, 8);
+}
+
+// ─── Citation alignment ─────────────────────────────────────────
+
+
+/**
+ * Extract Naira amount strings from text (e.g., "₦1,315.5B", "₦619.4B").
+ * Returns the numeric portions for fuzzy matching against source snippets.
+ */
+function extractNairaAmounts(text: string): string[] {
+  const matches = text.match(/₦[\d,.]+[BTMK]?/gi) || [];
+  // Strip ₦ and normalise for matching
+  return matches.map((m) => m.replace(/₦/g, "").replace(/,/g, ""));
+}
+
+/**
+ * Match a single citation to the best source using a multi-signal chain:
+ * 1. State name within context window
+ * 2. Source title keywords in context
+ * 3. Naira amount match between context and source snippet
+ */
+function matchCitationToSource(
+  citationContext: string,
+  candidates: SourceCitation[],
+): SourceCitation | null {
+  if (candidates.length === 0) return null;
+
+  // Signal 1: State name (strongest)
+  const state = extractStateName(citationContext);
+  if (state) {
+    const match = candidates.find(
+      (s) => s.state?.toLowerCase() === state,
+    );
+    if (match) return match;
+  }
+
+  // Signal 2: Filename/title keywords (excluding terms that appear in every budget doc)
+  const TITLE_STOP_WORDS = new Set([
+    "state", "budget", "approved", "fiscal", "year",
+    "2020", "2021", "2022", "2023", "2024", "2025", "2026",
+    "expenditure", "capital", "recurrent", "total", "sector",
+  ]);
+  for (const src of candidates) {
+    const keywords = src.title
+      .split(/\s+/)
+      .filter((k) => k.length > 3 && !TITLE_STOP_WORDS.has(k.toLowerCase()));
+    if (
+      keywords.length > 0 &&
+      keywords.some((k) => citationContext.toLowerCase().includes(k.toLowerCase()))
+    ) {
+      return src;
+    }
+  }
+
+  // Signal 3: Naira amount match
+  const amounts = extractNairaAmounts(citationContext);
+  if (amounts.length > 0) {
+    for (const src of candidates) {
+      if (
+        src.snippet &&
+        amounts.some((a) => src.snippet!.includes(a))
+      ) {
+        return src;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Normalize fullwidth bracket citations to standard square brackets.
+ * Handles patterns like 【1】, 【1†L1-L4】, 【1†source】 → [1]
+ */
+export function normalizeCitations(text: string): string {
+  return text.replace(/\u3010(\d+)(?:[^\u3011]*)\u3011/g, '[$1]');
+}
+
+/**
+ * Reorder sources array so that sources[N-1] corresponds to citation [N] in the text.
+ * Uses multi-signal matching (state name, title keywords, Naira amounts) to align
+ * each [N] marker in the answer text to the correct source.
+ *
+ * Unmatched citations keep their original source. Uncited sources are appended at the end.
+ */
+export function alignSourcesToCitations(
+  answerText: string,
+  sources: SourceCitation[],
+): SourceCitation[] {
+  if (sources.length === 0) return sources;
+
+  // Find all citation numbers and their positions (order of first appearance)
+  const citationRegex = /\[(\d+)\]/g;
+  const seen = new Set<number>();
+  const citationOrder: { num: number; pos: number }[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = citationRegex.exec(answerText)) !== null) {
+    const num = parseInt(match[1]);
+    if (num >= 1 && num <= sources.length && !seen.has(num)) {
+      seen.add(num);
+      citationOrder.push({ num, pos: match.index });
+    }
+  }
+
+  if (citationOrder.length === 0) return sources;
+
+  // Build aligned array
+  const aligned: (SourceCitation | null)[] = new Array(sources.length).fill(null);
+  const usedSources = new Set<SourceCitation>();
+
+  for (const { num, pos } of citationOrder) {
+    // Extract context: up to 150 chars before the citation marker
+    const contextStart = Math.max(0, pos - 150);
+    const context = answerText.slice(contextStart, pos);
+
+    // Filter to unused sources only
+    const candidates = sources.filter((s) => !usedSources.has(s));
+    const matched = matchCitationToSource(context, candidates);
+
+    if (matched) {
+      aligned[num - 1] = matched;
+      usedSources.add(matched);
+    }
+  }
+
+  // Fill unmatched citation slots with their original sources (if not already used)
+  for (let i = 0; i < aligned.length; i++) {
+    if (aligned[i] === null) {
+      const original = sources[i];
+      if (original && !usedSources.has(original)) {
+        aligned[i] = original;
+        usedSources.add(original);
+      }
+    }
+  }
+
+  // Append any remaining uncited sources to empty slots
+  const remaining = sources.filter((s) => !usedSources.has(s));
+  let remainIdx = 0;
+  for (let i = 0; i < aligned.length; i++) {
+    if (aligned[i] === null && remainIdx < remaining.length) {
+      aligned[i] = remaining[remainIdx++];
+    }
+  }
+
+  // Filter out any null slots (shouldn't happen, but safety)
+  return aligned.filter((s): s is SourceCitation => s !== null);
 }
 
 /**
@@ -523,6 +693,8 @@ async function streamWithThinking(
   agentStream: AgentStream,
   send: SendFn,
   detectReroute = true,
+  language: Language = "en",
+  domain?: string,
 ): Promise<StreamResult> {
   const thinkingSteps: ThinkingStep[] = [];
   const allSources: SourceCitation[] = [];
@@ -591,9 +763,17 @@ async function streamWithThinking(
             capturedImpact = result as ContextualImpactResult;
           }
         }
+      } else if (type === "error") {
+        // Mastra emits error chunks when the LLM API fails (429, 402, etc.)
+        // Log the error so it's visible in server logs instead of silently swallowed.
+        const errorMsg = chunk.payload?.error?.message ?? chunk.payload?.message ?? "unknown";
+        console.error(`[streamWithThinking] LLM stream error: ${errorMsg}`);
       } else if (type === "step-finish") {
         // step-finish fires at the end of each LLM step (not "finish" which fires once at the very end)
         const reason = chunk.payload?.stepResult?.reason ?? "";
+        if (reason === "error") {
+          console.warn(`[streamWithThinking] Step finished with error — fullText so far: ${fullText.length} chars`);
+        }
         if (currentStepHasToolCalls || reason === "tool-calls") {
           if (currentStepText.trim()) {
             thinkingSteps.push({
@@ -670,11 +850,25 @@ async function streamWithThinking(
     }
   }
 
-  // If the stream completed but produced no text, treat as an error
-  // (e.g. upstream LLM returned 402/credit exhausted and Mastra ended the stream silently)
+  // If the stream completed but produced no text, yield a fallback message
+  // instead of throwing (which would crash the SSE stream for the user).
+  // This can happen when all tool calls fail validation or the upstream LLM
+  // returned 402/credit exhausted and Mastra ended the stream silently.
   if (!fullText.trim()) {
-    throw new Error("Agent produced no response");
+    // If we have sources, the tools found data but the LLM failed to produce
+    // a response (e.g., rate limit/quota error mid-stream). Throw so the
+    // caller's retry logic can re-attempt instead of showing "no data".
+    if (allSources.length > 0) {
+      throw new Error("Agent found data but produced no response (likely upstream LLM error)");
+    }
+    const noDataKey = (domain && NO_DATA_KEYS[domain]) || "noData.general";
+    const fallback = t(noDataKey, language);
+    send({ type: "text", content: fallback });
+    return { fullText: fallback, answerText: fallback, thinkingSteps: [], sources: [], impactEquivalents: capturedImpact };
   }
+
+  // Normalize fullwidth bracket citations 【N】→ [N] (LLM formatting quirk)
+  answerText = normalizeCitations(answerText);
 
   // Deduplicate sources across multiple tool calls (keep highest score per fileName)
   const bestByFile = new Map<string, (typeof allSources)[0]>();
@@ -684,7 +878,7 @@ async function streamWithThinking(
       bestByFile.set(s.fileName, s);
     }
   }
-  const dedupedSources = [...bestByFile.values()];
+  const dedupedSources = alignSourcesToCitations(answerText, [...bestByFile.values()]);
 
   // Citation post-processing: remove orphan [N] markers where N > sources count,
   // and log metrics. Orphans occur when the LLM references more sources than
@@ -731,10 +925,10 @@ async function runBudgetFlow(
   prompt += getLanguageReminder(language);
 
   const budgetAgent = mastra.getAgent(AgentNames.budgetAnalyst);
-  const agentStream = await budgetAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await budgetAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
-    await streamWithThinking(agentStream, send);
+    await streamWithThinking(agentStream, send, true, language, "budget");
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -757,10 +951,10 @@ async function runCorruptionFlow(
   prompt += getLanguageReminder(language);
 
   const corruptionAgent = mastra.getAgent(AgentNames.corruptionAnalyst);
-  const agentStream = await corruptionAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await corruptionAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
-    await streamWithThinking(agentStream, send);
+    await streamWithThinking(agentStream, send, true, language, "corruption");
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -783,10 +977,10 @@ async function runGovspendFlow(
   prompt += getLanguageReminder(language);
 
   const govspendAgent = mastra.getAgent(AgentNames.govspendAnalyst);
-  const agentStream = await govspendAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await govspendAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
-    await streamWithThinking(agentStream, send);
+    await streamWithThinking(agentStream, send, true, language, "govspend");
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -809,10 +1003,10 @@ async function runFaacFlow(
   prompt += getLanguageReminder(language);
 
   const faacAgent = mastra.getAgent(AgentNames.faacAnalyst);
-  const agentStream = await faacAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await faacAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, reroute, sources, impactEquivalents } =
-    await streamWithThinking(agentStream, send);
+    await streamWithThinking(agentStream, send, true, language, "faac");
 
   if (reroute) {
     return { kind: REROUTE_SENTINEL, target: reroute as ToolId };
@@ -839,12 +1033,14 @@ async function runImpactFlow(
   prompt += message;
   prompt += getLanguageReminder(language);
 
-  const agentStream = await impactAgent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await impactAgent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,
     send,
     false,
+    language,
+    "impact",
   );
 
   const richContent = await formatImpactResponse(answerText, language, sources, impactEquivalents);
@@ -909,6 +1105,25 @@ const EMPTY_ENTITIES: RouterEntities = {
   mdas: [],
   lgas: [],
 };
+
+/**
+ * Extract entities from the message using rule-based analysis.
+ * Used on the fast-classify path so agents still get entity hints
+ * (states, years, sectors) even when we skip the LLM router.
+ */
+function extractEntitiesFromMessage(message: string): RouterEntities {
+  const analysis = analyzeQueryComplexity(message);
+  return {
+    states: analysis.states.map((s) =>
+      s.replace(/\b\w/g, (c) => c.toUpperCase()),
+    ),
+    years: analysis.years,
+    officials: [],
+    sectors: analysis.sectors,
+    mdas: [],
+    lgas: [],
+  };
+}
 
 /**
  * Classify user intent with conversation context so follow-ups
@@ -976,28 +1191,9 @@ async function classifyIntent(
 
     routerPrompt += `User message: ${message}`;
 
-    // Try Langfuse-managed prompt; fall back to the agent's built-in instructions
-    const langfuseSystemPrompt = await getPrompt("router-agent-system", "");
-    let resultText: string;
+    const { text } = await router.generate(routerPrompt);
 
-    if (langfuseSystemPrompt) {
-      const { text } = await generateText({
-        model: chatModelSmall,
-        system: langfuseSystemPrompt,
-        prompt: routerPrompt,
-        ...tracingMetadata({
-          functionId: "classify-intent",
-          sessionId,
-          userId,
-        }),
-      });
-      resultText = text;
-    } else {
-      const result = await router.generate(routerPrompt);
-      resultText = result.text;
-    }
-
-    const parsed = routerSchema.parse(JSON.parse(resultText));
+    const parsed = routerSchema.parse(JSON.parse(text));
     const result = {
       intent: parsed.intent,
       response: parsed.response ?? "",
@@ -1089,7 +1285,28 @@ export async function routeToAgent({
     augmentedMessage += `Recent conversation:\n${historyContext}\n\n---\n\n`;
   }
 
-  const entityHints = buildEntityHints(extractedEntities);
+  // Merge conversation-level entities as fallbacks for follow-up messages.
+  // The router extracts entities from the current message only — if the user
+  // sends "do from 2019 to 2026" as a follow-up, states/sectors from prior
+  // turns are lost. Merging context.mentionedStates/mentionedYears ensures
+  // the specialist agent gets full entity context.
+  const mergedEntities: RouterEntities = { ...extractedEntities };
+  if (context) {
+    if (
+      (!mergedEntities.states || mergedEntities.states.length === 0) &&
+      context.mentionedStates?.length
+    ) {
+      mergedEntities.states = context.mentionedStates;
+    }
+    if (
+      (!mergedEntities.years || mergedEntities.years.length === 0) &&
+      context.mentionedYears?.length
+    ) {
+      mergedEntities.years = context.mentionedYears;
+    }
+  }
+
+  const entityHints = buildEntityHints(mergedEntities);
   if (entityHints) {
     augmentedMessage += entityHints + "\n";
   }
@@ -1099,6 +1316,101 @@ export async function routeToAgent({
   // General intent — respond directly, no RAG
   if (tool === "general") {
     let text = generalResponse;
+
+    // If the user asks about officials and we can extract a state,
+    // look up from the DB instead of relying on the LLM's (often wrong) response.
+    const lowerMsg = message.toLowerCase();
+    const isGovernorQuery = /\b(governor|deputy governor|commissioner|speaker|accountant general)\b/i.test(lowerMsg);
+    const isLegislatorQuery = /\b(senator|senat|represent|rep\b|house of assembly|house of rep|national assembly|nass)\b/i.test(lowerMsg);
+
+    // Try to resolve state from extracted entities, state name in text, or LGA name in DB
+    let resolvedStates = extractedEntities.states ?? [];
+    if (resolvedStates.length === 0) {
+      const stateName = extractStateName(lowerMsg);
+      if (stateName) {
+        resolvedStates = [stateName.charAt(0).toUpperCase() + stateName.slice(1)];
+      } else if (isGovernorQuery || isLegislatorQuery) {
+        // Last resort: check if any word in the message is an LGA name → resolve to state
+        try {
+          const { getSharedPool } = await import("./rag/db-pool");
+          const pool = getSharedPool();
+          const words = lowerMsg.split(/\s+/).filter((w: string) => w.length > 2);
+          for (const word of words) {
+            const lgaResult = await pool.query(
+              `SELECT s.name as state_name FROM nigerian_lgas l
+               JOIN nigerian_states s ON s.code = l.state_code
+               WHERE lower(l.name) = $1
+               LIMIT 1`,
+              [word],
+            );
+            if (lgaResult.rows.length > 0) {
+              resolvedStates = [lgaResult.rows[0].state_name];
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn("[router] LGA lookup failed:", err instanceof Error ? err.message : err);
+        }
+      }
+    }
+
+    if (isGovernorQuery && resolvedStates.length > 0) {
+      const currentYear = new Date().getFullYear();
+      const officialsResults = await Promise.all(
+        resolvedStates.map((s: string) => getOfficials(s, currentYear)),
+      );
+      const found = officialsResults.filter(Boolean);
+      if (found.length > 0) {
+        const parts = found.map((o) => {
+          const officialsList = o!.officials
+            .map((off) => `${off.role}: **${off.name}**${off.party ? ` (${off.party})` : ""}`)
+            .join("\n");
+          return `**${o!.state} State Officials:**\n${officialsList}`;
+        });
+        text = parts.join("\n\n");
+      }
+    } else if (isLegislatorQuery && resolvedStates.length > 0) {
+      // Look up senators and/or reps for the state
+      const isSenateQuery = /\b(senator|senat|senate)\b/i.test(lowerMsg);
+      const isRepQuery = /\b(represent|rep\b|house of rep)\b/i.test(lowerMsg);
+      const roles = isSenateQuery && !isRepQuery ? ["senator"] : isRepQuery && !isSenateQuery ? ["representative"] : ["senator", "representative"];
+
+      try {
+        const { getSharedPool } = await import("./rag/db-pool");
+        const pool = getSharedPool();
+        const stateCode = resolvedStates[0].toLowerCase().replace(/ /g, "_");
+        const result = await pool.query(
+          `SELECT o.name, o.party, p.role, c.name as constituency_name
+           FROM official_positions p
+           JOIN nigerian_officials o ON o.id = p.official_id
+           LEFT JOIN nigerian_constituencies c ON c.code = p.jurisdiction_code
+           WHERE p.jurisdiction_type = 'constituency'
+             AND p.is_current = true
+             AND p.role = ANY($1)
+             AND c.state_code = $2
+           ORDER BY p.role, c.name`,
+          [roles, stateCode],
+        );
+        if (result.rows.length > 0) {
+          const stateName = resolvedStates[0];
+          const grouped: Record<string, string[]> = {};
+          for (const row of result.rows) {
+            const roleLabel = row.role === "senator" ? "Senators" : "House of Representatives";
+            if (!grouped[roleLabel]) grouped[roleLabel] = [];
+            grouped[roleLabel].push(
+              `- **${row.name}** (${row.party}) — ${row.constituency_name}`,
+            );
+          }
+          const parts = Object.entries(grouped).map(
+            ([role, members]) => `**${stateName} ${role}:**\n${members.join("\n")}`,
+          );
+          text = parts.join("\n\n");
+        }
+      } catch (err) {
+        console.warn("[router] Legislator lookup failed:", err instanceof Error ? err.message : err);
+      }
+    }
+
     if (!text) {
       text = t("general.greeting", language);
     } else if (language !== "en") {
@@ -1271,12 +1583,14 @@ async function runSpecialistFlowDirect(
   prompt += getLanguageReminder(language);
 
   const agent = mastra.getAgent(config.agentName);
-  const agentStream = await agent.stream(prompt, { maxSteps: 10 });
+  const agentStream = await agent.stream(prompt, { maxSteps: MAX_STEPS });
 
   const { answerText, thinkingSteps, sources, impactEquivalents } = await streamWithThinking(
     agentStream,
     send,
     false,
+    language,
+    config.resolvedTool,
   );
 
   const richContent = await config.formatter(answerText, language, sources, impactEquivalents);

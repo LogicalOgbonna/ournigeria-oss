@@ -268,6 +268,17 @@
     },
     {
       "id": "budg-025",
+      "category": "citation_alignment",
+      "question": "What is Niger State's 2024 budget allocation for education?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Citation alignment regression: 'niger' from NIGERIAN_STATES can false-match inside 'Nigeria'/'Nigerian' in the LLM response context window. Since responses constantly mention 'Nigeria', extractStateName may return 'niger' when the actual citation context refers to a different state or to Nigeria generally. This test verifies that citations referencing Niger State are correctly aligned and not confused with general 'Nigeria' mentions.",
+      "expected_behavior": "Should search with state=Niger, year=2024, sector=education. Citations in the response should correctly reference Niger State sources, not sources from other states that happen to appear near the word 'Nigeria'.",
+      "metadata_filters_needed": ["state=Niger", "year=2024", "sector=education"],
+      "expected_answer": "Should present Niger State's 2024 education budget allocation in Naira. Citations should reference Niger State budget documents specifically. Must not confuse Niger State with Nigeria generally or with other states."
+    },
+    {
+      "id": "budg-025-b",
       "category": "follow_up_chain",
       "question": "What is the Borno State 2024 budget?",
       "follow_ups": [
@@ -282,6 +293,51 @@
       "why_it_breaks": "Progressive drill-down. Each follow-up adds complexity. 'Show me the trend from 2021 to 2024' requires 4 years of data. 'Which sector grew the fastest?' requires all sectors across multiple years — a combinatorial explosion.",
       "expected_behavior": "Should maintain Borno context throughout and attempt each follow-up with increasing search complexity.",
       "expected_answer": "The initial answer should present Borno State's total 2024 budget in Naira. Follow-ups should progressively provide: a sector-by-sector breakdown with amounts, a direct education vs health comparison with figures, 2023 total budget for year-over-year context, a 2021-2024 trend with figures for each available year, and identification of the fastest-growing sector with percentage growth. Must maintain Borno State context throughout and note any years with missing data."
+    },
+    {
+      "id": "budg-026",
+      "category": "no_data_fallback",
+      "question": "What was the Ebonyi State health budget for 2015?",
+      "intent": "budget",
+      "difficulty": "easy",
+      "why_it_breaks": "2015 is outside the indexed range (2019-2026). Tests that the system returns a domain-specific 'no data' message rather than a generic failure. The response should mention budget data coverage years and suggest rephrasing.",
+      "expected_behavior": "Should search with state=Ebonyi, year=2015, sector=health. When no results are found, should return the noData.budget message mentioning coverage years (2019-2026) rather than a generic 'I wasn't able to find the information' fallback.",
+      "metadata_filters_needed": ["state=Ebonyi", "year=2015", "sector=health"],
+      "expected_answer": "Should explicitly state that budget data for Ebonyi State 2015 is not available in the system. Must mention the database coverage period (2019-2026) and suggest the user ask about a year within that range. Must NOT return a generic error message like 'I wasn't able to find the information.' The response should be helpful and guide the user toward available data."
+    },
+    {
+      "id": "budg-027",
+      "category": "year_2026_coverage",
+      "question": "Which states spend less than 10% on education 2026?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "2026 budget data exists in the system but the AI incorrectly reports coverage only up to 2025. Tests that 2026 queries are not rejected with a no-data fallback.",
+      "expected_behavior": "Should search with year=2026, sector=education. Must NOT return the noData.budget fallback. Should return actual 2026 budget data for states with education allocation below 10%.",
+      "metadata_filters_needed": ["year=2026", "sector=education"],
+      "expected_answer": "Should return actual 2026 education budget data for Nigerian states, identifying which ones allocate less than 10% to education. Must NOT say 'database covers 2019 to 2025' or suggest 2026 is unavailable."
+    },
+    {
+      "id": "budg-028",
+      "category": "year_2026_coverage",
+      "question": "How has Akwa Ibom's budget allocation changed?",
+      "intent": "budget",
+      "difficulty": "medium",
+      "why_it_breaks": "Multi-year trend question should include 2026 data when available. Tests that the system searches all available years including 2026.",
+      "expected_behavior": "Should search with state=akwa ibom across multiple years. Must include 2026 in the trend if data exists. Should NOT cap the year range at 2025.",
+      "metadata_filters_needed": ["state=akwa ibom"],
+      "expected_answer": "Should present Akwa Ibom's budget allocation trend across available years including 2026. Must include actual figures. Should NOT say the database only covers up to 2025."
+    },
+    {
+      "id": "budg-029",
+      "category": "multi_year_trend",
+      "question": "show ebonyi education budget trend over the years",
+      "intent": "budget",
+      "difficulty": "hard",
+      "why_it_breaks": "Multi-year education trend for Ebonyi requires searching 8 years (2019-2026). Previously failed because: (1) is_summary defaulted to false, filtering out ~50% of chunks missing that metadata field; (2) LLM errors during multi-step searches were silently swallowed, producing an empty response that triggered a misleading 'no data' fallback.",
+      "expected_behavior": "Should search with state=Ebonyi, sector=education across available years. Must return actual education budget figures for at least some years. Must NOT return the noData.budget fallback when data exists.",
+      "metadata_filters_needed": ["state=Ebonyi", "sector=education"],
+      "expected_tools": ["budgetSearchTool"],
+      "expected_answer": "Should provide Ebonyi State education budget figures for available years (data exists for 2019, 2020, 2021, 2026). Must include actual Naira amounts and note any years with missing data. Must NOT claim no data exists for Ebonyi."
     }
   ]
 }

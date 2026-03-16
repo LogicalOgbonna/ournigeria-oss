@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '@ournigeria/database';
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import * as fs from 'node:fs';
+import * as crypto from 'node:crypto';
 import { PDFParse } from 'pdf-parse';
 import { elapsed } from '../lib/timing.utils';
 import { ITextExtractor, ExtractContext } from './extractor.interface';
@@ -36,24 +38,83 @@ Rules:
 export class PdfExtractor implements ITextExtractor {
   readonly supportedTypes = ['pdf'];
   private readonly logger = new Logger(PdfExtractor.name);
-  private ocrModel: string;
-  private openaiProvider: ReturnType<typeof createOpenAI>;
+  private cachedProvider: ReturnType<typeof createOpenAI> | null = null;
+  private cachedModel = '';
+  private cachedKey = '';
 
-  constructor(private config: ConfigService) {
-    this.ocrModel = this.config.getOrThrow<string>('OCR_MODEL');
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {}
+
+  private decrypt(ciphertext: string): string {
+    const secret = process.env.ADMIN_SESSION_SECRET;
+    if (!secret) throw new Error('ADMIN_SESSION_SECRET is not set');
+    const key = crypto.createHash('sha256').update(secret).digest();
+    const [ivHex, authTagHex, encryptedHex] = ciphertext.split(':');
+    if (!ivHex || !authTagHex || !encryptedHex) throw new Error('Invalid ciphertext format');
+    const iv = Buffer.from(ivHex, 'hex');
+    const authTag = Buffer.from(authTagHex, 'hex');
+    const encrypted = Buffer.from(encryptedHex, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  }
+
+  private async getOcrConfig(): Promise<{ baseUrl: string; apiKey: string; model: string }> {
+    try {
+      const rows = await this.prisma.systemSetting.findMany({
+        where: { key: { in: ['ocr.base_url', 'ocr.api_key', 'ocr.model'] } },
+      });
+
+      if (rows.length > 0) {
+        const get = (key: string) => {
+          const row = rows.find((r) => r.key === key);
+          if (!row) return '';
+          if (row.encrypted) {
+            try { return this.decrypt(row.value); } catch { return row.value; }
+          }
+          return row.value;
+        };
+
+        const baseUrl = get('ocr.base_url');
+        const apiKey = get('ocr.api_key');
+        const model = get('ocr.model');
+        if (baseUrl && apiKey && model) return { baseUrl, apiKey, model };
+      }
+    } catch (err) {
+      this.logger.warn('Failed to read OCR settings from DB, falling back to env vars', err);
+    }
+
+    return {
+      baseUrl: this.config.getOrThrow<string>('OCR_BASE_URL'),
+      apiKey: this.config.getOrThrow<string>('OCR_API_KEY'),
+      model: this.config.getOrThrow<string>('OCR_MODEL'),
+    };
+  }
+
+  private async getProviderAndModel() {
+    const ocrConfig = await this.getOcrConfig();
+    const cacheKey = `${ocrConfig.baseUrl}|${ocrConfig.model}`;
+
+    if (this.cachedProvider && this.cachedKey === cacheKey) {
+      return { provider: this.cachedProvider, model: this.cachedModel };
+    }
+
+    this.logger.log(`Building OCR provider: ${ocrConfig.model} @ ${ocrConfig.baseUrl}`);
 
     const timeoutMs = 5 * 60 * 1000;
     const fetchWithTimeout: typeof globalThis.fetch = (input, init) =>
-      globalThis.fetch(input, {
-        ...init,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      globalThis.fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 
-    this.openaiProvider = createOpenAI({
-      baseURL: this.config.getOrThrow<string>('OCR_BASE_URL'),
-      apiKey: this.config.getOrThrow<string>('OCR_API_KEY'),
+    this.cachedProvider = createOpenAI({
+      baseURL: ocrConfig.baseUrl,
+      apiKey: ocrConfig.apiKey,
       fetch: fetchWithTimeout,
     });
+    this.cachedModel = ocrConfig.model;
+    this.cachedKey = cacheKey;
+    return { provider: this.cachedProvider, model: this.cachedModel };
   }
 
   async extract(filePath: string, _context?: ExtractContext): Promise<string> {
@@ -82,6 +143,7 @@ export class PdfExtractor implements ITextExtractor {
     }
 
     // --- Tier 2: Page-by-page Vision OCR ---
+    const { provider, model: ocrModel } = await this.getProviderAndModel();
     const info = await pdf.getInfo();
     const totalPages = info.total;
     this.logger.log(
@@ -109,7 +171,7 @@ export class PdfExtractor implements ITextExtractor {
       try {
         const ocrStart = Date.now();
         const { text } = await generateText({
-          model: this.openaiProvider.chat(this.ocrModel),
+          model: provider.chat(ocrModel),
           messages: [
             {
               role: 'user',

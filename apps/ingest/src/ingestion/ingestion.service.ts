@@ -13,6 +13,8 @@ export class IngestionService {
   private readonly activePipelines = new Set<string>();
   /** Maps pipeline type → active runId for log streaming */
   private readonly activeRunIds = new Map<string, string>();
+  /** Pipeline types that have been requested to stop */
+  private readonly stopRequests = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -59,11 +61,16 @@ export class IngestionService {
     this.activeRunIds.set(pipelineType, run.id);
     pipeline.setRunContext(run.id, this.logEmitter);
     pipeline
-      .run(concurrency ? { concurrency } : undefined)
+      .run(
+        concurrency ? { concurrency } : undefined,
+        () => this.stopRequests.has(pipelineType),
+      )
       .then(async (result) => {
+        const status = result.stopped ? "stopped" : "completed";
         await this.prisma.ingestionRun.update({
           where: { id: run.id },
           data: {
+            status,
             totalFiles: result.totalFiles,
             processedFiles: result.processedFiles,
             skippedFiles: result.skippedFiles,
@@ -71,9 +78,12 @@ export class IngestionService {
             totalChunks: result.totalChunks,
             durationMs: result.durationMs,
             completedAt: new Date(),
+            ...(result.stopped && { errorMsg: "Stopped by user" }),
           },
         });
-        this.logger.log(`Pipeline ${pipelineType} (run: ${run.id}) completed`);
+        this.logger.log(
+          `Pipeline ${pipelineType} (run: ${run.id}) ${status}`,
+        );
       })
       .catch(async (err) => {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -83,18 +93,43 @@ export class IngestionService {
         );
         await this.prisma.ingestionRun.update({
           where: { id: run.id },
-          data: { completedAt: new Date(), errorMsg: errMsg },
+          data: {
+            status: "failed",
+            completedAt: new Date(),
+            errorMsg: errMsg,
+          },
         });
       })
       .finally(() => {
         pipeline.clearRunContext();
         this.activePipelines.delete(pipelineType);
         this.activeRunIds.delete(pipelineType);
+        this.stopRequests.delete(pipelineType);
       });
 
     return {
       runId: run.id,
       message: `Pipeline "${pipelineType}" started. Check /api/ingest/status?pipeline=${pipelineType} for progress.`,
+    };
+  }
+
+  stopPipeline(pipelineType: string): { runId: string; message: string } {
+    if (!this.activePipelines.has(pipelineType)) {
+      throw new BadRequestException(
+        `Pipeline "${pipelineType}" is not running.`,
+      );
+    }
+
+    this.stopRequests.add(pipelineType);
+    const runId = this.activeRunIds.get(pipelineType) ?? "unknown";
+
+    this.logger.log(
+      `Stop requested for ${pipelineType} pipeline (run: ${runId})`,
+    );
+
+    return {
+      runId,
+      message: `Stop requested for "${pipelineType}" pipeline. The current file will finish processing, then the pipeline will stop.`,
     };
   }
 

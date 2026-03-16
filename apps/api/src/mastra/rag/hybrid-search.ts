@@ -100,6 +100,10 @@ async function runBm25Search(
   topK: number,
   filter?: MastraFilter,
 ): Promise<HybridResult[]> {
+  if (!indexName) {
+    console.warn("[hybrid-search] BM25 skipped: no index name provided");
+    return [];
+  }
   try {
     const { clause, values } = buildBm25WhereClause(filter, 2);
 

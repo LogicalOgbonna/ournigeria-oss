@@ -4,7 +4,7 @@ import { tracingMetadata } from "../../lib/langfuse";
 
 // ─── Nigerian States ────────────────────────────────────────────
 
-const NIGERIAN_STATES = [
+export const NIGERIAN_STATES = [
   "abia",
   "adamawa",
   "akwa ibom",
@@ -44,6 +44,31 @@ const NIGERIAN_STATES = [
   "fct",
   "federal",
 ];
+
+/**
+ * Extract the Nigerian state name that appears closest to the END of the text
+ * (nearest to the citation marker). Uses word-boundary matching to avoid
+ * "niger" matching inside "Nigeria"/"Nigerian".
+ */
+export function extractStateName(text: string): string | null {
+  const lower = text.toLowerCase();
+  let bestState: string | null = null;
+  let bestPos = -1;
+
+  // Check multi-word states first (e.g., "akwa ibom", "cross river")
+  const sorted = [...NIGERIAN_STATES].sort((a, b) => b.length - a.length);
+  for (const state of sorted) {
+    const regex = new RegExp(`\\b${state.replace(/\s+/g, "\\s+")}\\b`, "gi");
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(lower)) !== null) {
+      if (match.index > bestPos) {
+        bestPos = match.index;
+        bestState = state;
+      }
+    }
+  }
+  return bestState;
+}
 
 // ─── Comparative & complexity signals ───────────────────────────
 
@@ -275,7 +300,7 @@ export async function decomposeQuery(
       system: `You decompose complex Nigerian budget questions into 2-6 targeted sub-queries for vector similarity search against a budget document database.
 
 Available states: ${NIGERIAN_STATES.join(", ")}
-Available budget years: 2019 to 2025
+Available budget years: 2019 to ${new Date().getFullYear()}
 
 Rules:
 - Each sub-query should be a concise phrase (under 15 words) optimised for cosine similarity search against budget document chunks.

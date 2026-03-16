@@ -112,6 +112,7 @@ export class SqsConsumerService implements OnModuleInit, OnModuleDestroy {
           where: { id: run.id },
           data: {
             ...this.resultFields(result),
+            status: "completed",
             completedAt: new Date(),
           },
         });
@@ -123,7 +124,7 @@ export class SqsConsumerService implements OnModuleInit, OnModuleDestroy {
         this.logger.error(`SQS processing failed: ${s3Key}`, errMsg);
         await this.prisma.ingestionRun.update({
           where: { id: run.id },
-          data: { completedAt: new Date(), errorMsg: errMsg },
+          data: { status: "failed", completedAt: new Date(), errorMsg: errMsg },
         });
         throw err; // Let message retry via SQS visibility timeout
       }

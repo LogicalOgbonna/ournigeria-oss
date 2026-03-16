@@ -93,6 +93,21 @@ export class IngestionController {
     };
   }
 
+  @Post("stop")
+  @ApiOperation({ summary: "Stop a running ingestion pipeline" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["pipeline"],
+      properties: {
+        pipeline: { type: "string", example: "budget" },
+      },
+    },
+  })
+  async stop(@Body() body: { pipeline: string }) {
+    return this.ingestionService.stopPipeline(body.pipeline);
+  }
+
   @Get("active")
   @ApiOperation({ summary: "List currently running pipelines" })
   async active() {

@@ -245,7 +245,7 @@ export class TelegramService {
       const language = await this.getLanguagePreference(userId);
 
       // Get or create conversation
-      const convId = await this.getOrCreateConversation(userId);
+      const convId = await this.getOrCreateConversation(userId, text);
 
       // Persist user message atomically
       await this.appendMessage(convId, {
@@ -339,12 +339,12 @@ export class TelegramService {
     }
   }
 
-  private async getOrCreateConversation(userId: string): Promise<string> {
+  private async getOrCreateConversation(userId: string, message: string): Promise<string> {
     const existing = await this.prisma.conversation.findFirst({
       where: {
         userId,
         status: "active",
-        title: "Telegram Chat", // Only reuse conversations started from Telegram
+        source: "telegram",
       },
       orderBy: { updatedAt: "desc" },
       select: { id: true },
@@ -352,8 +352,15 @@ export class TelegramService {
 
     if (existing) return existing.id;
 
+    const trimmed = message.trim();
+    const title = trimmed.length === 0
+      ? "Telegram Chat"
+      : trimmed.length <= 60
+        ? trimmed
+        : trimmed.slice(0, 60).trimEnd() + "...";
+
     const conv = await this.prisma.conversation.create({
-      data: { userId, title: "Telegram Chat" },
+      data: { userId, title, source: "telegram" },
     });
     return conv.id;
   }
@@ -395,7 +402,7 @@ export class TelegramService {
       where: {
         userId,
         status: "active",
-        title: "Telegram Chat", // Only archive Telegram conversations
+        source: "telegram",
       },
       data: { status: "deleted" },
     });

@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS } from "./shared-instructions";
+import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
 
 export const budgetAnalyst = new Agent({
   id: "budget-analyst",
@@ -77,9 +77,9 @@ Guidelines:
 
 Governor & Cabinet Officials:
 - The budget-search tool returns an "officials" field listing the Governor and key cabinet members (Commissioner of Finance, Speaker, Accountant General, etc.) responsible for each budget.
-- When the user asks about who was responsible for a budget, who the governor was, or about budget leadership, include the officials' names and roles in your response.
-- Even when not explicitly asked, briefly mention the Governor's name when discussing a specific state-year budget (e.g. "Under Governor X's administration...").
-- If the user asks to compare budgets across governors or administrations, highlight which governor oversaw each budget period.
+- ONLY mention governor or official names when the "officials" field in the tool response actually contains data. If the officials array is empty, do NOT mention any governor or official names at all.
+- NEVER guess, infer, or recall governor names from your own knowledge. If the officials data is not available from the tool, simply omit any mention of officials — do not fill in names from memory, as they may be outdated or wrong.
+- When officials data IS available: include their names and roles, and if comparing across administrations, highlight which governor oversaw each budget period.
 
 SELF-CORRECTION / REROUTE:
 If you determine that this question is primarily about a different domain than your expertise (e.g., the question is really about corruption cases, government payments, or FAAC allocations rather than budget data), include [REROUTE:corruption], [REROUTE:govspend], [REROUTE:faac], or [REROUTE:impact] at the very beginning of your response. The system will then route to the correct specialist. Valid reroute targets: budget, corruption, govspend, faac, impact. Only reroute if the question clearly belongs to another domain — if it spans multiple domains, handle it yourself using your available tools.
@@ -92,7 +92,8 @@ CRITICAL — Data source framing:
 
 Your response should be factual, based on the retrieved budget documents, and useful for citizens trying to understand government spending.` +
     CITATION_INSTRUCTIONS +
-    CHART_INSTRUCTIONS,
+    CHART_INSTRUCTIONS +
+    RESPONSE_FORMAT,
   model: chatModel,
   tools: sharedTools,
 });

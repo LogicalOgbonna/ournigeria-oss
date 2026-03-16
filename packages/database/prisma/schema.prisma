@@ -117,8 +117,66 @@ model NigerianState {
   documents        Document[]
   budgetSummaries  BudgetSummary[]
   sourceReferences SourceReference[]
+  lgas             NigerianLga[]
+  constituencies   NigerianConstituency[]
 
   @@map("nigerian_states")
+}
+
+model NigerianLga {
+  code      String @id @db.VarChar(60)
+  name      String @db.VarChar(100)
+  stateCode String @map("state_code") @db.VarChar(30)
+
+  state NigerianState @relation(fields: [stateCode], references: [code])
+
+  @@index([stateCode], map: "idx_lgas_state")
+  @@map("nigerian_lgas")
+}
+
+model NigerianConstituency {
+  code      String @id @db.VarChar(80)
+  name      String @db.VarChar(200)
+  type      String @db.VarChar(20)
+  stateCode String @map("state_code") @db.VarChar(30)
+
+  state NigerianState @relation(fields: [stateCode], references: [code])
+
+  @@index([stateCode, type], map: "idx_constituencies_state_type")
+  @@map("nigerian_constituencies")
+}
+
+model NigerianOfficial {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String   @db.VarChar(200)
+  party     String?  @db.VarChar(50)
+  imageUrl  String?  @map("image_url") @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  positions OfficialPosition[]
+
+  @@map("nigerian_officials")
+}
+
+model OfficialPosition {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId       String    @map("official_id") @db.Uuid
+  role             String    @db.VarChar(50)
+  jurisdictionType String    @map("jurisdiction_type") @db.VarChar(20)
+  jurisdictionCode String    @map("jurisdiction_code") @db.VarChar(60)
+  startDate        DateTime  @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
+  isCurrent        Boolean   @default(true) @map("is_current")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  // NOTE: Partial unique index (WHERE is_current = true) is in migration SQL only.
+  // Prisma doesn't support partial unique indexes natively.
+  @@index([jurisdictionCode, jurisdictionType, isCurrent], map: "idx_positions_jurisdiction_current")
+  @@index([officialId], map: "idx_positions_official")
+  @@map("official_positions")
 }
 
 model User {
@@ -186,6 +244,7 @@ model Conversation {
   summary         String?                @db.Text
   summaryUpTo     Int?                   @map("summary_up_to")
   lastAgentType   String?                @map("last_agent_type") @db.VarChar(20)
+  source          String                 @default("web") @db.VarChar(20)
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages Message[]
@@ -336,6 +395,7 @@ model IngestionRun {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   pipeline       String    @db.VarChar(30)
   trigger        String    @db.VarChar(20)
+  status         String    @default("running") @db.VarChar(20)
   totalFiles     Int       @default(0) @map("total_files")
   processedFiles Int       @default(0) @map("processed_files")
   skippedFiles   Int       @default(0) @map("skipped_files")

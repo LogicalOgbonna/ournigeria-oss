@@ -69,8 +69,19 @@ To render a chart, output a fenced code block with the language tag "chart" cont
 
 1. All monetary values must be in raw numbers (not formatted): \`150200000000\` not "₦150.2B"
 2. Set \`config.formatValue: "naira"\` for the frontend to format as ₦
-3. For multi-series charts (line, area, stacked), use \`config.series\` to define each line:
+3. **Single-value charts** (bar, column, pie, donut, treemap, funnel, waterfall, gauge, polar): each data point MUST have \`"name"\` (label) and \`"value"\` (number):
    \`\`\`json
+   "data": [
+     { "name": "Education", "value": 150200000000 },
+     { "name": "Health", "value": 98000000000 }
+   ]
+   \`\`\`
+4. **Multi-series charts** (line, area, stacked-area, stacked-bar, radar): each data point MUST have \`"name"\` (x-axis label) AND a field for EACH series key. The series keys in \`config.series\` must match field names in the data:
+   \`\`\`json
+   "data": [
+     { "name": "2021", "education": 62000000000, "health": 45000000000 },
+     { "name": "2022", "education": 77000000000, "health": 52000000000 }
+   ],
    "config": {
      "series": [
        { "key": "education", "label": "Education", "color": "#059669" },
@@ -78,16 +89,29 @@ To render a chart, output a fenced code block with the language tag "chart" cont
      ]
    }
    \`\`\`
-4. For histogram charts, each data point must have \`name\` (bin label) and \`value\` (numeric count/frequency):
+   For a single-series line/area chart, use \`"value"\` as the key:
+   \`\`\`json
+   "data": [
+     { "name": "2021", "value": 62000000000 },
+     { "name": "2022", "value": 77000000000 }
+   ]
+   \`\`\`
+5. **Scatter/bubble charts**: each data point MUST have \`"x"\` and \`"y"\` (numbers), plus optional \`"name"\` and \`"z"\` (for bubble size):
+   \`\`\`json
+   "data": [
+     { "name": "Lagos", "x": 15000000, "y": 847000000000, "z": 40 },
+     { "name": "Kano", "x": 9000000, "y": 320000000000, "z": 25 }
+   ]
+   \`\`\`
+6. **Histogram charts**: each data point must have \`"name"\` (bin label) and \`"value"\` (count):
    \`\`\`json
    "data": [
      { "name": "0-100B", "value": 5 },
-     { "name": "100B-500B", "value": 12 },
-     { "name": "500B-1T", "value": 8 }
+     { "name": "100B-500B", "value": 12 }
    ]
    \`\`\`
-5. Include 3-15 data points for readability. Aggregate if you have more.
-6. You may include multiple chart blocks in one response if the analysis warrants it.
+7. Include 3-15 data points for readability. Aggregate if you have more.
+8. You may include multiple chart blocks in one response if the analysis warrants it.
 
 ### When the user explicitly requests a chart:
 
@@ -100,4 +124,27 @@ If the user says "show me a bar chart of..." or "plot a scatter chart...", use e
 - Year-over-year questions → line or area
 - State comparison questions → bar or radar
 - Distribution questions → histogram
+`;
+
+/**
+ * Response format instructions — teaches agents to produce a summary + detail structure.
+ */
+export const RESPONSE_FORMAT = `
+
+## Response Format
+
+IMPORTANT: Structure EVERY response with these two sections:
+
+[TLDR]
+Write a 2-3 sentence summary that directly answers the user's question with the key figure(s). This is what most users will read. Be specific — include the main number, the state, the year. Do NOT use markdown headers, bullets, or formatting in the TLDR — just plain sentences.
+
+[DETAIL]
+Full analysis with breakdowns, comparisons, citations, and charts. Use markdown formatting, bullet points, and structured data here.
+
+Example:
+[TLDR]
+Lagos State allocated ₦847 billion to education in 2024, a 23% increase from ₦689 billion in 2023 [1]. The bulk went to primary education (₦312B) and teacher salaries (₦198B) [2].
+[DETAIL]
+## Education Budget Breakdown
+...full analysis here...
 `;

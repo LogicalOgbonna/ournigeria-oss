@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, lazy, Suspense } from "react";
+import { useRef, useMemo, lazy, Suspense } from "react";
 import type { ChartBlock } from "@/types/charts";
 import { Card } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { formatChartValue } from "./chart-theme";
+import { normalizeChartData } from "@/lib/chart-parser";
 
 const renderers: Record<
   string,
@@ -79,7 +80,16 @@ function FallbackTable({ block }: { block: ChartBlock }) {
 
 export function ChartRenderer({ block }: { block: ChartBlock }) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const Renderer = renderers[block.type];
+
+  // Normalize data keys before rendering — handles LLM key mismatches
+  // (e.g. "year" instead of "name", mismatched series keys).
+  const normalized = useMemo(() => normalizeChartData(block), [block]);
+
+  const renderBlock = normalized ?? block;
+  const Renderer = renderers[renderBlock.type];
+
+  // If normalization failed (no numeric data) or no renderer exists, fall back to table
+  const canRenderChart = normalized !== null && Renderer != null;
 
   const downloadChart = async () => {
     if (!chartRef.current) return;
@@ -90,7 +100,7 @@ export function ChartRenderer({ block }: { block: ChartBlock }) {
       pixelRatio: 2,
     });
     const link = document.createElement("a");
-    link.download = `${block.title.replace(/\s+/g, "-").toLowerCase()}.png`;
+    link.download = `${renderBlock.title.replace(/\s+/g, "-").toLowerCase()}.png`;
     link.href = dataUrl;
     link.click();
   };
@@ -104,11 +114,11 @@ export function ChartRenderer({ block }: { block: ChartBlock }) {
         <div className="border-b border-slate-100 dark:border-slate-700 px-5 py-3 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {block.title}
+              {renderBlock.title}
             </h3>
-            {block.description && (
+            {renderBlock.description && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                {block.description}
+                {renderBlock.description}
               </p>
             )}
           </div>
@@ -128,8 +138,8 @@ export function ChartRenderer({ block }: { block: ChartBlock }) {
               </div>
             }
           >
-            {Renderer ? (
-              <Renderer block={block} />
+            {canRenderChart && Renderer ? (
+              <Renderer block={renderBlock} />
             ) : (
               <FallbackTable block={block} />
             )}

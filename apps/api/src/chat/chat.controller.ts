@@ -12,6 +12,23 @@ import { ChatService } from "./chat.service";
 import { PrismaService } from "@ournigeria/database";
 import { getLangfuse } from "../lib/langfuse";
 
+/** Errors that are worth retrying (transient LLM capacity issues). */
+export function isRetryableLLMError(err: any): boolean {
+  const status = err?.statusCode ?? err?.cause?.statusCode;
+  const msg = typeof err?.message === "string" ? err.message : "";
+  return (
+    status === 402 ||
+    status === 429 ||
+    (status >= 500 && status < 600) ||
+    msg.includes("more credits") ||
+    msg.includes("ETIMEDOUT") ||
+    msg.includes("ECONNRESET")
+  );
+}
+
+const RETRY_DELAYS = [1000, 3000]; // ms — two retries with backoff
+const SLOW_FAILURE_THRESHOLD = 10_000; // ms — skip retry if attempt took >10s
+
 @ApiTags("Chat")
 @Controller("chat")
 export class ChatController {
@@ -71,40 +88,129 @@ export class ChatController {
       }, 15_000);
 
       try {
-        await this.chatService.processChat(
-          userId,
-          message,
-          conversationId,
-          tool,
-          send,
-          language,
-        );
-      } catch (err: any) {
-        if (err.message === "Conversation not found") {
-          send({ type: "error", content: "Conversation not found" });
-        } else {
-          console.error("Stream error:", err);
-          // Detect upstream LLM credit/payment errors and surface a friendly message
-          const statusCode = err?.statusCode ?? err?.cause?.statusCode;
-          const errMsg = typeof err?.message === "string" ? err.message : "";
-          const isCreditsError =
-            statusCode === 402 ||
-            errMsg.includes("more credits") ||
-            errMsg.includes("402");
-          const isNoResponse = errMsg === "Agent produced no response";
-          if (isCreditsError || isNoResponse) {
+        let lastError: any = null;
+        let attempt = 0;
+        let hasStreamedText = false;
+        const maxAttempts = 1 + RETRY_DELAYS.length; // 1 initial + 2 retries
+
+        // Wrap send to track whether text events have been streamed
+        const trackingSend = (data: Record<string, unknown>) => {
+          if (data.type === "text") hasStreamedText = true;
+          send(data);
+        };
+
+        // Phase 1: Prepare context ONCE (conversation creation, user message, context building).
+        // This must not be retried — it has non-idempotent side effects.
+        let prepared!: Awaited<ReturnType<ChatService["prepareChatContext"]>>;
+        try {
+          prepared = await this.chatService.prepareChatContext(
+            userId,
+            message,
+            conversationId,
+            tool,
+            trackingSend,
+            language,
+          );
+        } catch (err: any) {
+          lastError = err;
+        }
+
+        // Phase 2: Execute agent with retries (only the LLM call + response persistence).
+        while (!lastError && attempt < maxAttempts) {
+          // Bail if client disconnected
+          if (res.writableEnded || res.destroyed) break;
+
+          const attemptStart = Date.now();
+          try {
+            await this.chatService.executeAgentAndPersist(
+              prepared,
+              trackingSend,
+            );
+            lastError = null;
+            break; // success
+          } catch (err: any) {
+            lastError = err;
+            const attemptDuration = Date.now() - attemptStart;
+
+            // Non-retryable errors: surface immediately
+            if (!isRetryableLLMError(err) || attempt >= maxAttempts - 1) {
+              break;
+            }
+
+            // If text was already streamed, don't retry (would produce garbled output)
+            if (hasStreamedText) {
+              console.warn(
+                `[chat] skipping retry — text already streamed for user ${userId}`,
+              );
+              break;
+            }
+
+            // If attempt was slow (>10s), it's a timeout, not a fast rate limit
+            if (attemptDuration > SLOW_FAILURE_THRESHOLD) {
+              console.warn(
+                `[chat] skipping retry — attempt took ${attemptDuration}ms (slow failure) for user ${userId}`,
+              );
+              break;
+            }
+
+            // Retryable fast failure: log, notify client, wait, retry
+            const delay = RETRY_DELAYS[attempt];
+            console.warn(
+              `[chat] retry attempt ${attempt + 1}/${RETRY_DELAYS.length} after ${delay}ms for user ${userId}:`,
+              err.message,
+            );
             send({
-              type: "error",
+              type: "status",
               content:
-                "Our AI service is temporarily unavailable due to capacity limits. Please try again shortly.",
+                attempt === 0
+                  ? "Retrying your request..."
+                  : "Still trying — hang tight...",
             });
-          } else {
-            send({
-              type: "error",
-              content:
-                "Something went wrong while processing your request. Please try again.",
-            });
+
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            lastError = null;
+            attempt++;
           }
+        }
+
+        // Surface error to client
+        if (lastError) {
+          if (res.writableEnded || res.destroyed) {
+            console.warn(
+              `[chat] connection closed before error could be sent for user ${userId}`,
+            );
+          } else if (lastError.message === "Conversation not found") {
+            send({ type: "error", content: "Conversation not found" });
+          } else {
+            console.error("Stream error:", lastError);
+            const retryable = isRetryableLLMError(lastError);
+            if (retryable) {
+              send({
+                type: "error",
+                content:
+                  "Our AI is popular right now — please try again in a moment.",
+                retryable: true,
+              });
+            } else {
+              send({
+                type: "error",
+                content:
+                  "Something went wrong while processing your request. Please try again.",
+                retryable: false,
+              });
+            }
+          }
+
+          // Retry outcome logging
+          if (isRetryableLLMError(lastError) && attempt > 0) {
+            console.warn(
+              `[chat] all ${attempt} retries exhausted for user ${userId}`,
+            );
+          }
+        } else if (attempt > 0) {
+          console.log(
+            `[chat] retry succeeded on attempt ${attempt + 1} for user ${userId}`,
+          );
         }
       } finally {
         clearInterval(keepalive);

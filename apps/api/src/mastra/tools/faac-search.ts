@@ -53,41 +53,41 @@ export const faacSearchTool = createTool({
       ),
     state: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by state name (lowercase), e.g. 'lagos', 'abia', 'akwa ibom'",
       ),
     year: z
       .number()
-      .nullish()
+      .optional()
       .describe("Filter by disbursement year, e.g. 2024, 2025"),
     month: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by disbursement month (Title Case), e.g. 'January', 'February'",
       ),
     lga: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by LGA name (Title Case), e.g. 'Aba North', 'Ikwo', 'Obio/Akpor'",
       ),
     geopolitical_zone: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by geopolitical zone, e.g. 'South East', 'North Central', 'South South'",
       ),
     chunk_type: z
       .string()
-      .nullish()
+      .optional()
       .describe(
         "Filter by data level: 'lga_monthly' for per-LGA data, 'state_monthly' for per-state summaries, 'national_monthly' for national totals, 'zone_monthly' for zone aggregates, 'state_annual' for yearly state summaries",
       ),
     topK: z
       .number()
-      .nullish()
+      .optional()
       .describe(
         "Number of results to return. Use 10-15 for single-entity queries, 25-30 for comparisons, 40-50 for multi-state/zone analysis. Default: 15",
       ),
