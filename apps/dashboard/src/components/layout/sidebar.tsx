@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +11,6 @@ import {
   History,
   FileText,
   LogOut,
-  Activity,
   MessageSquare,
   Flag,
   BarChart3,
@@ -156,12 +156,20 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <Activity className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-heading text-base font-semibold">
-            OurNigeria
-          </span>
+          <Image
+            src="/long_logo_dark.svg"
+            alt="OurNigeria"
+            width={140}
+            height={39}
+            className="hidden dark:block"
+          />
+          <Image
+            src="/long_logo_dark.svg"
+            alt="OurNigeria"
+            width={140}
+            height={39}
+            className="block brightness-0 dark:hidden"
+          />
           <span className="text-xs text-muted-foreground font-medium bg-muted px-1.5 py-0.5 rounded">
             Admin
           </span>

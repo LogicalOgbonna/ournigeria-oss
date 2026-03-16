@@ -7,12 +7,14 @@ import { apiUrl } from "@/lib/api";
 
 export default function BannedPage() {
   const router = useRouter();
-  const [reason, setReason] = useState<string | null>(null);
+  const [reason] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("ban_reason");
+    }
+    return null;
+  });
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("ban_reason");
-    if (stored) setReason(stored);
-
     // Re-check ban status — if unbanned, redirect to home
     fetch(apiUrl("/api/auth/profile"), { credentials: "include" })
       .then((res) => {

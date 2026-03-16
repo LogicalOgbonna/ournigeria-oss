@@ -13,6 +13,14 @@ DECLARE
 BEGIN
   FOREACH idx_name IN ARRAY idx_names LOOP
     IF idx_name IS NOT NULL AND idx_name != '' THEN
+      -- Skip if the table does not exist yet (created by ingest pipeline)
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_name = idx_name
+      ) THEN
+        RAISE NOTICE 'Table % does not exist yet, skipping', idx_name;
+        CONTINUE;
+      END IF;
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = idx_name AND column_name = 'tsv'

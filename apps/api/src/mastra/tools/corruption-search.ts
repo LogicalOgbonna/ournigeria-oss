@@ -73,6 +73,7 @@ export const corruptionSearchTool = createTool({
       ),
     topK: z
       .number()
+      .nullable()
       .optional()
       .describe(
         "Number of results to return. Use 10-15 for single-official queries, 25-40 for multi-official comparisons, 40-50 for aggregation queries. Default: 15",

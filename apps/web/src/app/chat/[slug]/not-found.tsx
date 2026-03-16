@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Sparkles, EyeOff } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -24,7 +25,7 @@ export default function ChatNotFound() {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
@@ -34,7 +35,7 @@ export default function ChatNotFound() {
                 Nigeria
               </span>
             </span>
-          </a>
+          </Link>
           <ThemeToggle />
         </div>
       </header>
@@ -59,13 +60,13 @@ export default function ChatNotFound() {
           </p>
 
           {/* CTA */}
-          <a
+          <Link
             href="/"
             className="animate-fade-in-up stagger-3 mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:from-emerald-500 hover:to-emerald-600 hover:shadow-md opacity-0"
           >
             <Sparkles className="h-4 w-4" />
             Explore Nigerian Budgets
-          </a>
+          </Link>
 
           {/* Footer note */}
           <p className="animate-fade-in-up stagger-4 mt-10 text-xs text-slate-400 dark:text-slate-500 opacity-0">

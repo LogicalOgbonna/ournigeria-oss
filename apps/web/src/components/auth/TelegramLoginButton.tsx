@@ -5,7 +5,7 @@ import { apiUrl } from "@/lib/api";
 
 declare global {
   interface Window {
-    onTelegramAuth: (user: any) => void;
+    onTelegramAuth: (user: Record<string, string | number>) => void;
   }
 }
 
@@ -35,7 +35,7 @@ export function TelegramLoginButton() {
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
 
     // Instead of directly redirecting via GET, use a POST request for linking if authenticated
-    window.onTelegramAuth = async function (user: any) {
+    window.onTelegramAuth = async function (user: Record<string, string | number>) {
       let isLoggedIn = false;
       try {
         // First check if user has an active session via the profile endpoint
@@ -77,7 +77,9 @@ export function TelegramLoginButton() {
       }
 
       // Fallback to the standard GET login flow if not logged in
-      const params = new URLSearchParams(user).toString();
+      const params = new URLSearchParams(
+        Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
+      ).toString();
       window.location.href = `${authUrl}?${params}`;
     };
     script.setAttribute("data-request-access", "write");

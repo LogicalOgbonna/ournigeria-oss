@@ -41,7 +41,7 @@ export function SourceCitationModal({
   // Sync with external activeIndex when modal opens
   useEffect(() => {
     if (open) {
-      setCurrentIndex(Math.min(activeIndex, sources.length - 1));
+      setCurrentIndex(Math.min(activeIndex, sources.length - 1)); // eslint-disable-line react-hooks/set-state-in-effect -- syncing nav state with prop
     }
   }, [activeIndex, open, sources.length]);
 

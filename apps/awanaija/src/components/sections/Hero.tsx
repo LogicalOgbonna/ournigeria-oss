@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowRight,
   ChevronDown,
   Bot,
   TrendingUp,
@@ -428,7 +427,7 @@ export function Hero() {
               </div>
               <h3 className="mb-2 text-lg font-semibold">WhatsApp is coming</h3>
               <p className="text-sm text-muted-foreground">
-                We're currently working on bringing Our Nigeria to WhatsApp. In
+                We&apos;re currently working on bringing Our Nigeria to WhatsApp. In
                 the meantime, please try our Telegram bot or the Web app.
               </p>
               <button

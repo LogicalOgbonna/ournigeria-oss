@@ -33,7 +33,7 @@ export default function FunnelChartV2({ block }: { block: ChartBlock }) {
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",
-          ]) as any}
+          ]) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
         />
         <Funnel dataKey="value" data={funnelData} isAnimationActive={false}>
           {funnelData.map((_, i) => (

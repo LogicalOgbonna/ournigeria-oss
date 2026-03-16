@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   BarChart,
   Bar,
@@ -20,25 +21,34 @@ export default function WaterfallChart({ block }: { block: ChartBlock }) {
   const fmt = block.config?.formatValue ?? "naira";
 
   // Build waterfall data: each bar has an invisible base + visible amount
-  let running = 0;
-  const waterfallData = block.data.map((d) => {
-    const value = Number(d.value) || 0;
-    const itemType = (d.type as string) ?? (value >= 0 ? "increase" : "decrease");
-    const isTotal = itemType === "total";
+  const waterfallData = useMemo(() => {
+    const { items } = block.data.reduce<{
+      running: number;
+      items: { name: string; base: number; amount: number; rawValue: number; type: string }[];
+    }>(
+      (acc, d) => {
+        const value = Number(d.value) || 0;
+        const itemType = (d.type as string) ?? (value >= 0 ? "increase" : "decrease");
+        const isTotal = itemType === "total";
 
-    const base = isTotal ? 0 : Math.min(running, running + value);
-    const visibleHeight = isTotal ? running : Math.abs(value);
+        const base = isTotal ? 0 : Math.min(acc.running, acc.running + value);
+        const visibleHeight = isTotal ? acc.running : Math.abs(value);
+        const nextRunning = isTotal ? acc.running : acc.running + value;
 
-    if (!isTotal) running += value;
+        acc.items.push({
+          name: String(d.name ?? d.label ?? ""),
+          base,
+          amount: visibleHeight,
+          rawValue: isTotal ? acc.running : value,
+          type: itemType,
+        });
 
-    return {
-      name: d.name ?? d.label ?? "",
-      base,
-      amount: visibleHeight,
-      rawValue: isTotal ? running : value,
-      type: itemType,
-    };
-  });
+        return { running: nextRunning, items: acc.items };
+      },
+      { running: 0, items: [] },
+    );
+    return items;
+  }, [block.data]);
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -71,7 +81,7 @@ export default function WaterfallChart({ block }: { block: ChartBlock }) {
           formatter={((value: number, name: string) => {
             if (name === "base") return [null, null];
             return [formatChartValue(value, fmt), ""];
-          }) as any}
+          }) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
         />
         <ReferenceLine y={0} stroke={chart.gridStroke} />
         {/* Invisible base bar */}

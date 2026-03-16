@@ -58,7 +58,7 @@ export default function TreemapChart({ block }: { block: ChartBlock }) {
               )}
             </g>
           );
-        }) as any}
+        }) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts content type
       >
         <Tooltip
           contentStyle={chart.tooltipStyle}
@@ -67,7 +67,7 @@ export default function TreemapChart({ block }: { block: ChartBlock }) {
           formatter={((value: number) => [
             formatChartValue(value, fmt),
             "",
-          ]) as any}
+          ]) as any} // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
         />
       </Treemap>
     </ResponsiveContainer>

@@ -360,6 +360,7 @@ export function FeedbackFab() {
                                 </span>
                               </div>
                             ) : (
+                              // eslint-disable-next-line @next/next/no-img-element -- blob preview URL, not optimizable
                               <img
                                 src={item.preview}
                                 alt=""

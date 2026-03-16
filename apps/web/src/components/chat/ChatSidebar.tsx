@@ -41,9 +41,26 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString("en-NG", { month: "short", day: "numeric" });
 }
 
+function stripMarkdown(md: string): string {
+  return md
+    .replaceAll(/^#{1,6}\s+/gm, "")     // headings
+    .replaceAll(/\*\*(.+?)\*\*/g, "$1")  // bold
+    .replaceAll(/\*(.+?)\*/g, "$1")      // italic
+    .replaceAll(/__(.+?)__/g, "$1")      // bold (underscore)
+    .replaceAll(/_(.+?)_/g, "$1")        // italic (underscore)
+    .replaceAll(/~~(.+?)~~/g, "$1")      // strikethrough
+    .replaceAll(/`(.+?)`/g, "$1")        // inline code
+    .replaceAll(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replaceAll(/^\s*[-*+]\s+/gm, "")    // list markers
+    .replaceAll(/^\s*\d+\.\s+/gm, "")    // ordered list markers
+    .replaceAll(/\n{2,}/g, " ")          // collapse newlines
+    .replaceAll("\n", " ")
+    .trim();
+}
+
 function getPreview(conv: ConversationForUI): string {
   if (!conv.lastMessage) return "No response yet";
-  const text = conv.lastMessage;
+  const text = stripMarkdown(conv.lastMessage);
   if (text.length <= 50) return text;
   return text.slice(0, 50).trimEnd() + "...";
 }

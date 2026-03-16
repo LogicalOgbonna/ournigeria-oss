@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Landmark } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { APP_URL } from "@/lib/constants";
 
@@ -35,14 +37,22 @@ export function Navbar() {
           }`}
         >
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2.5 hover-lift">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white">
-              <Landmark className="h-4 w-4" />
-            </div>
-            <span className="font-[family-name:var(--font-heading)] text-base font-bold tracking-tight">
-              Our Nigeria
-            </span>
-          </a>
+          <Link href="/" className="flex items-center hover-lift">
+            <Image
+              src="/long_logo_dark.svg"
+              alt="OurNigeria"
+              width={150}
+              height={42}
+              className="hidden dark:block"
+            />
+            <Image
+              src="/long_logo_dark.svg"
+              alt="OurNigeria"
+              width={150}
+              height={42}
+              className="block brightness-0 dark:hidden"
+            />
+          </Link>
 
           {/* Center nav links — hidden on mobile */}
           <div className="hidden items-center gap-6 md:flex">

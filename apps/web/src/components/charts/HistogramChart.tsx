@@ -87,7 +87,7 @@ export default function HistogramChart({ block }: { block: ChartBlock }) {
           itemStyle={chart.tooltipItemStyle}
           labelStyle={chart.tooltipLabelStyle}
           formatter={
-            ((value: number) => [formatChartValue(value, fmt), "Count"]) as any
+            ((value: number) => [formatChartValue(value, fmt), "Count"]) as any // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
           }
         />
         <Bar

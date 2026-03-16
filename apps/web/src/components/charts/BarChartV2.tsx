@@ -79,7 +79,7 @@ export default function BarChartV2({ block }: { block: ChartBlock }) {
           />
           <Tooltip
             formatter={
-              ((value: number) => [formatChartValue(value, fmt), ""]) as any
+              ((value: number) => [formatChartValue(value, fmt), ""]) as any // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
             }
             contentStyle={chart.tooltipStyle}
             itemStyle={chart.tooltipItemStyle}
@@ -128,7 +128,7 @@ export default function BarChartV2({ block }: { block: ChartBlock }) {
               value: number,
               _key: string,
               entry: { payload: { name: string } },
-            ) => [formatChartValue(value, fmt), entry.payload.name]) as any
+            ) => [formatChartValue(value, fmt), entry.payload.name]) as any // eslint-disable-line @typescript-eslint/no-explicit-any -- Recharts formatter type
           }
           contentStyle={chart.tooltipStyle}
           itemStyle={chart.tooltipItemStyle}
