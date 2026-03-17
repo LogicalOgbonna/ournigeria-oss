@@ -111,7 +111,7 @@ services:
     volumes:
       - ./deploy/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
     healthcheck:
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ping || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 3

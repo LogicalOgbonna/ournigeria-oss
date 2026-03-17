@@ -56,11 +56,15 @@ verify_traefik_routing() {
   local health_path="$2"   # e.g. /health
   local max_wait="${3:-15}"
 
+  # NOTE: deploy.sh runs inside the webhook container, so we reach
+  # Traefik via its Docker service name, not localhost.
+  local traefik_url="http://traefik:80"
+
   echo "Verifying Traefik routes to $host_header (up to ${max_wait}s)..."
 
   # First attempt: wait for file watch to pick up the change
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "http://localhost:80${health_path}" >/dev/null 2>&1; then
+    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after ${i}s"
       return 0
     fi
@@ -73,7 +77,7 @@ verify_traefik_routing() {
 
   # Wait for Traefik to come back up and route correctly
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "http://localhost:80${health_path}" >/dev/null 2>&1; then
+    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after restart (${i}s)"
       return 0
     fi
