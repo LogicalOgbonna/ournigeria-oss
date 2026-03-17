@@ -48,6 +48,42 @@ verify_traefik_switch() {
   echo "Traefik config verified: $expected_url present"
 }
 
+# ─── Helper: verify Traefik actually routes to the new backend ─────
+# Curls through Traefik's entrypoint to confirm routing is live.
+# If routing fails, restarts Traefik and retries.
+verify_traefik_routing() {
+  local host_header="$1"   # e.g. api.example.invalid
+  local health_path="$2"   # e.g. /health
+  local max_wait="${3:-15}"
+
+  echo "Verifying Traefik routes to $host_header (up to ${max_wait}s)..."
+
+  # First attempt: wait for file watch to pick up the change
+  for i in $(seq 1 "$max_wait"); do
+    if curl -sf -H "Host: $host_header" "http://localhost:80${health_path}" >/dev/null 2>&1; then
+      echo "Traefik routing verified for $host_header after ${i}s"
+      return 0
+    fi
+    sleep 1
+  done
+
+  # File watch failed — restart Traefik as fallback
+  echo "WARNING: Traefik did not pick up config change. Restarting Traefik..."
+  docker compose -f "$COMPOSE_FILE" restart traefik
+
+  # Wait for Traefik to come back up and route correctly
+  for i in $(seq 1 "$max_wait"); do
+    if curl -sf -H "Host: $host_header" "http://localhost:80${health_path}" >/dev/null 2>&1; then
+      echo "Traefik routing verified for $host_header after restart (${i}s)"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "ERROR: Traefik routing verification FAILED for $host_header even after restart"
+  return 1
+}
+
 # ─── Helper: check if container is still running ──────────────────
 check_container_alive() {
   local container="$1"
@@ -203,23 +239,37 @@ Action: Rolled back"
   exit 1
 fi
 
-# Switch Traefik routing for API (atomic template copy)
+# Switch Traefik routing for API
+# NOTE: Use 'cat src > dst' instead of 'cp' to preserve the file inode.
+# Docker bind mounts track inodes — 'cp' creates a new inode, leaving
+# the container's mount pointing at the old (stale) file.
 echo "Switching API traffic to $STANDBY..."
-if ! cp "$TRAEFIK_DIR/dynamic-${STANDBY}.yml" "$TRAEFIK_DIR/dynamic.yml"; then
-  echo "CRITICAL: Failed to copy Traefik config. Aborting."
+if ! cat "$TRAEFIK_DIR/dynamic-${STANDBY}.yml" > "$TRAEFIK_DIR/dynamic.yml"; then
+  echo "CRITICAL: Failed to write Traefik config. Aborting."
   log_deploy "traefik_copy_failed" "rollback"
   notify "❌ *Deploy FAILED*
-Stage: Traefik config copy
+Stage: Traefik config write
 Tag: \`$NEW_IMAGE_TAG\`"
   exit 1
 fi
 verify_traefik_switch "http://api-${STANDBY}:3000" "$TRAEFIK_DIR/dynamic.yml" || {
   echo "CRITICAL: Traefik switch verification failed for API. Aborting."
-  # Restore previous config
-  cp "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" "$TRAEFIK_DIR/dynamic.yml"
+  # Restore previous config (preserve inode)
+  cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
   log_deploy "traefik_switch_failed" "rollback"
   notify "❌ *Deploy FAILED*
 Stage: Traefik verification
+Tag: \`$NEW_IMAGE_TAG\`"
+  exit 1
+}
+
+# Verify Traefik actually routes traffic to the new API backend
+verify_traefik_routing "api.example.invalid" "/health" 15 || {
+  echo "CRITICAL: Traefik routing failed. Rolling back config..."
+  cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
+  log_deploy "traefik_routing_failed" "rollback"
+  notify "❌ *Deploy FAILED*
+Stage: Traefik routing verification
 Tag: \`$NEW_IMAGE_TAG\`"
   exit 1
 }
@@ -268,7 +318,7 @@ if [ "$INGEST_HEALTHY" != "true" ]; then
   docker compose -f "$COMPOSE_FILE" rm -f "ingest-${STANDBY}"
   # Also rollback API back to original stack
   echo "Rolling back API to $ACTIVE..."
-  cp "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" "$TRAEFIK_DIR/dynamic.yml"
+  cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
   docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}"
   docker compose -f "$COMPOSE_FILE" stop "api-${STANDBY}"
   log_deploy "ingest_health_check_failed" "rollback"

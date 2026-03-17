@@ -39,11 +39,18 @@ RUN pnpm --filter @ournigeria/database run build
 # Inject NEXT_PUBLIC_* env vars from Infisical so they are inlined into the bundle
 # Using ARG to ensure we can pass the token at build time for CI environments
 # Or using the local .infisical.json for local development
+#
+# Build guard: when Infisical is available, verify NEXT_PUBLIC_API_URL is set.
+# Without it, Next.js rewrites fall back to a default and API calls may fail.
 RUN if [ -z "$INFISICAL_TOKEN" ]; then \
       echo "Running without Infisical token or with old invalid token" && \
       pnpm --filter @ournigeria/web exec next build; \
     else \
       echo "Running with Infisical token" && \
+      export $(infisical export --env prod --path /web --format=dotenv 2>/dev/null | xargs) 2>/dev/null || true && \
+      if [ -z "${NEXT_PUBLIC_API_URL:-}" ]; then \
+        echo "WARNING: NEXT_PUBLIC_API_URL is not set in Infisical prod /web. Falling back to default." ; \
+      fi && \
       infisical run --env prod --path /web -- pnpm --filter @ournigeria/web exec next build; \
     fi
 
