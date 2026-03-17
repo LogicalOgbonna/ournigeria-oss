@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@nx/js": "^21.3.2",
+    "marked": "^17.0.4",
     "nx": "^21.3.2"
   },
   "pnpm": {
