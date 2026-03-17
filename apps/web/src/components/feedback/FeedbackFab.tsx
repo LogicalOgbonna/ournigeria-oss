@@ -212,7 +212,7 @@ export function FeedbackFab() {
       <button
         data-tour="feedback-button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-42 right-1 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95 sm:bottom-6 sm:right-6 sm:px-5"
+        className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95 sm:right-6 sm:px-5"
         aria-label="Send feedback"
       >
         <MessageSquarePlus className="h-5 w-5" />
