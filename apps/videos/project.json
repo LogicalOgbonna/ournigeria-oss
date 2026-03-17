@@ -8,18 +8,7 @@
       "options": {
         "cwd": "apps/videos"
       }
-    },
-    "build": {
-      "command": "remotion render",
-      "options": {
-        "cwd": "apps/videos"
-      }
-    },
-    "lint": {
-      "command": "eslint",
-      "options": {
-        "cwd": "apps/videos"
-      }
     }
+    
   }
 }
