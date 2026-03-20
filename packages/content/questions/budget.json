@@ -1,0 +1,70 @@
+{
+  "name": "Budget Exposé",
+  "description": "Questions designed to surface budget allocation vs release discrepancies",
+  "questions": [
+    {
+      "id": "budget-001",
+      "type": "budget_expose",
+      "question": "How much did Kano State budget for education in 2024 and how much was actually released?",
+      "state": "Kano",
+      "year": 2024,
+      "tags": ["education", "discrepancy"]
+    },
+    {
+      "id": "budget-002",
+      "type": "budget_expose",
+      "question": "What is the total healthcare budget for Borno State in 2024 compared to 2023? Break down capital vs recurrent spending.",
+      "state": "Borno",
+      "year": 2024,
+      "tags": ["health", "comparison", "year-over-year"]
+    },
+    {
+      "id": "budget-003",
+      "type": "budget_expose",
+      "question": "Show me the infrastructure spending in Lagos State 2024 budget breakdown. How much went to roads vs water vs energy?",
+      "state": "Lagos",
+      "year": 2024,
+      "tags": ["infrastructure", "breakdown"]
+    },
+    {
+      "id": "budget-004",
+      "type": "budget_expose",
+      "question": "How much did Ebonyi State budget for agriculture in 2025? What percentage of the total budget does agriculture represent?",
+      "state": "Ebonyi",
+      "year": 2025,
+      "tags": ["agriculture", "percentage"]
+    },
+    {
+      "id": "budget-005",
+      "type": "budget_expose",
+      "question": "What is the education budget per student in Zamfara State for 2024? How does the capital expenditure compare to recurrent?",
+      "state": "Zamfara",
+      "year": 2024,
+      "tags": ["education", "per-capita"]
+    },
+    {
+      "id": "budget-006",
+      "type": "budget_expose",
+      "question": "How much did Rivers State allocate to healthcare in their 2024 budget? What could that money build in terms of hospitals and health centers?",
+      "state": "Rivers",
+      "year": 2024,
+      "tags": ["health", "impact"]
+    },
+    {
+      "id": "budget-007",
+      "type": "budget_expose",
+      "question": "What is the total budget for Kaduna State in 2025? How much is capital expenditure vs recurrent? What percentage goes to education?",
+      "state": "Kaduna",
+      "year": 2025,
+      "tags": ["total", "breakdown", "education"]
+    },
+    {
+      "id": "budget-008",
+      "type": "budget_expose",
+      "question": "How much did Bayelsa State spend on water resources in 2024? How many boreholes could that money have built?",
+      "state": "Bayelsa",
+      "year": 2024,
+      "tags": ["water", "impact"]
+    }
+  ]
+}

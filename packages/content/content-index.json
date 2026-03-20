@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "6761cdb8-f837-48ed-a883-bb791b1a5e14",
+      "recipeId": "faac-allocation",
+      "params": {
+        "state": "Lagos",
+        "year": 2025
+      },
+      "generatedAt": "2026-03-19T02:23:49.025Z",
+      "outputFiles": [
+        "faac-allocation-lagos-2025-2026-03-19T02-23-49.md",
+        "faac-allocation-lagos-raw-2026-03-19T02-23-49.txt"
+      ],
+      "status": "draft"
+    },
+    {
+      "id": "bb03443c-c2ed-4347-a0d6-121755911d38",
+      "recipeId": "budget-expose",
+      "params": {
+        "state": "Ebonyi",
+        "year": 2026
+      },
+      "generatedAt": "2026-03-19T02:27:08.211Z",
+      "outputFiles": [
+        "budget-expose-ebonyi-2026-2026-03-19T02-27-08.md",
+        "budget-expose-ebonyi-raw-2026-03-19T02-27-08.txt"
+      ],
+      "status": "draft"
+    }
+  ]
+}

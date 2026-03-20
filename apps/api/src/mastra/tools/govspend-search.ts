@@ -114,7 +114,7 @@ export const govspendSearchTool = createTool({
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;
-      const cacheParams = { indexName: GOVSPEND_INDEX, query, filter };
+      const cacheParams = { indexName: GOVSPEND_INDEX, query, filter, topK: requestedTopK };
 
       type GovspendResult = {
         text: string;

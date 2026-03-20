@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, DM_Sans, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
+import {
+  Instrument_Sans,
+  DM_Sans,
+  Instrument_Serif,
+  IBM_Plex_Mono,
+} from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
-const inter = Inter({
+const instrumentSans = Instrument_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const dmSans = DM_Sans({
@@ -57,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${dmSans.variable} ${instrumentSerif.variable} ${ibmPlexMono.variable} font-sans antialiased`}
+        className={`${instrumentSans.variable} ${dmSans.variable} ${instrumentSerif.variable} ${ibmPlexMono.variable} font-sans antialiased`}
       >
         {/* Film-grain noise overlay */}
         <div className="noise-overlay" aria-hidden="true">

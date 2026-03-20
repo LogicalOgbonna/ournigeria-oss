@@ -899,8 +899,8 @@ add_rect(slide, contact_x, contact_y, contact_w, contact_h, fill_color=DARK_3, b
 
 add_multiline_text(slide, contact_x + Inches(0.3), contact_y + Inches(0.2), contact_w - Inches(0.6), Inches(1.5), [
     {"text": "Let's Talk", "size": 18, "color": WHITE, "bold": True, "spacing_after": 10},
-    {"text": "Web:  ournigeria.com    |    Telegram:  @ournigeria", "size": 14, "color": LIGHT, "spacing_after": 4},
-    {"text": "Twitter/X:  @awanaija    |    GitHub:  awanaija", "size": 14, "color": MUTED, "spacing_after": 4},
+    {"text": "Web:  ournigeria.com    |    Telegram:  @ournigeria_bot", "size": 14, "color": LIGHT, "spacing_after": 4},
+    {"text": "Twitter/X:  @awanigeria    |    GitHub:  ournigeria", "size": 14, "color": MUTED, "spacing_after": 4},
     {"text": "[your-email@domain.com]", "size": 14, "color": EMERALD},
 ], alignment=PP_ALIGN.CENTER)
 

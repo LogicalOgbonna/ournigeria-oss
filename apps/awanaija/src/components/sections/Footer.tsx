@@ -25,7 +25,7 @@ export function Footer() {
             {/* Social links */}
             <div className="mt-6 flex gap-4">
               <a
-                href="https://x.com/awanaija"
+                href="https://x.com/awanigeria"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/30 transition-colors hover:text-white/70 hover-lift"
@@ -36,7 +36,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://github.com/awanaija"
+                href="https://github.com/ournigeria"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/30 transition-colors hover:text-white/70 hover-lift"

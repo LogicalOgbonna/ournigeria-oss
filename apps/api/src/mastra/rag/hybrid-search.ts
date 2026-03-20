@@ -125,12 +125,19 @@ async function runBm25Search(
       }),
     );
   } catch (err) {
-    console.warn("[hybrid-search] BM25 search failed, using vector only:", err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[hybrid-search] BM25 search failed for index '${indexName}', query '${query.slice(0, 50)}': ${errorMsg}`);
     return [];
   }
 }
 
 function getDocId(result: HybridResult): string {
+  const filename = (result.metadata?.filename as string) ?? "";
+  const chunkIndex = result.metadata?.chunk_index;
+  if (filename && chunkIndex !== undefined) {
+    return `${filename}#${chunkIndex}`;
+  }
+  // Fallback for chunks without filename/chunk_index metadata
   const text = (result.metadata?.text as string) ?? "";
   return text.slice(0, 200);
 }

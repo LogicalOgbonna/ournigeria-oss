@@ -146,7 +146,7 @@ export const faacSearchTool = createTool({
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;
-      const cacheParams = { indexName: FAAC_INDEX, query, filter };
+      const cacheParams = { indexName: FAAC_INDEX, query, filter, topK: requestedTopK };
 
       type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; chunk_index?: number; score: number };
       const cached = await getCached<FaacResult[]>(cacheParams);

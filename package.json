@@ -27,6 +27,8 @@
     "videos:dev": "nx run videos:dev",
     "videos:build": "nx run videos:build",
     "videos:start": "nx run videos:dev",
+    "videos:generate": "cd apps/videos && infisical run --env dev -- npx tsx scripts/generate.ts",
+    "videos:smoke-test": "cd apps/videos && npx tsx scripts/smoke-test.ts",
     "dashboard:dev": "nx run dashboard:dev",
     "dashboard:build": "nx run dashboard:build",
     "dashboard:start": "nx run dashboard:start",
@@ -34,7 +36,13 @@
     "test:e2e:web": "nx run e2e:test:web",
     "test:e2e:dashboard": "nx run e2e:test:dashboard",
     "test:e2e:human": "nx run e2e:test:human",
-    "start": "bash packages/scripts/start/start.sh"
+    "start": "bash packages/scripts/start/start.sh",
+    "content:generate": "infisical run --env dev -- npx tsx packages/content/generate.ts",
+    "content:query": "infisical run --env dev -- npx tsx packages/content/query.ts",
+    "content:render": "npx tsx packages/content/render.ts",
+    "content:engine": "infisical run --env dev -- npx tsx packages/content/engine.ts",
+    "content:batch": "infisical run --env dev -- npx tsx packages/content/batch.ts",
+    "content:coverage": "npx tsx packages/content/batch.ts --coverage"
   },
   "devDependencies": {
     "@nx/js": "^21.3.2",
@@ -43,7 +51,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@napi-rs/canvas",
       "@prisma/engines",
+      "canvas",
       "esbuild",
       "lightningcss",
       "nx",

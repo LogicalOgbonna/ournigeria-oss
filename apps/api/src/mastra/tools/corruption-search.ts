@@ -114,7 +114,7 @@ export const corruptionSearchTool = createTool({
 
       const filter = conditions.length > 0 ? { $and: conditions } : undefined;
       const requestedTopK = topK ?? RAG_CONFIG.topK;
-      const cacheParams = { indexName: CORRUPTION_INDEX, query, filter };
+      const cacheParams = { indexName: CORRUPTION_INDEX, query, filter, topK: requestedTopK };
 
       type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; chunk_index?: number; score: number };
       const cached = await getCached<CorruptionResult[]>(cacheParams);
