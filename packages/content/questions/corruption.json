@@ -1,0 +1,60 @@
+{
+  "name": "Corruption Spotlight",
+  "description": "Questions targeting EFCC corruption case details for emotional storytelling",
+  "questions": [
+    {
+      "id": "corruption-001",
+      "type": "corruption_spotlight",
+      "question": "What are the details of James Ibori's corruption case? How much was allegedly embezzled and what happened in court?",
+      "state": "Delta",
+      "official": "James Ibori",
+      "tags": ["governor", "embezzlement", "conviction"]
+    },
+    {
+      "id": "corruption-002",
+      "type": "corruption_spotlight",
+      "question": "Tell me about Diezani Alison-Madueke's corruption case. What amounts were involved and what is the current status?",
+      "state": "Bayelsa",
+      "official": "Diezani Alison-Madueke",
+      "tags": ["minister", "oil", "ongoing"]
+    },
+    {
+      "id": "corruption-003",
+      "type": "corruption_spotlight",
+      "question": "What are the corruption charges against Joshua Dariye? How much was allegedly stolen and what was the outcome?",
+      "state": "Plateau",
+      "official": "Joshua Dariye",
+      "tags": ["governor", "conviction", "pardon"]
+    },
+    {
+      "id": "corruption-004",
+      "type": "corruption_spotlight",
+      "question": "What is the full story of the Yahaya Bello corruption case? How much money is allegedly involved and what has EFCC done?",
+      "state": "Kogi",
+      "official": "Yahaya Bello",
+      "tags": ["governor", "ongoing", "efcc"]
+    },
+    {
+      "id": "corruption-005",
+      "type": "corruption_spotlight",
+      "question": "List corruption cases in Delta State with amounts involved. Who are the officials and what happened to each case?",
+      "state": "Delta",
+      "tags": ["state-wide", "multiple-officials"]
+    },
+    {
+      "id": "corruption-006",
+      "type": "corruption_spotlight",
+      "question": "What are the details of the Sambo Dasuki arms procurement fraud? How much was diverted and what could it have funded for Nigeria's security?",
+      "official": "Sambo Dasuki",
+      "tags": ["national-security", "diversion", "impact"]
+    },
+    {
+      "id": "corruption-007",
+      "type": "corruption_spotlight",
+      "question": "Tell me about Orji Uzor Kalu's corruption case. How much was involved, what was the conviction, and what is his current status?",
+      "state": "Abia",
+      "official": "Orji Uzor Kalu",
+      "tags": ["governor", "conviction"]
+    }
+  ]
+}

@@ -16,10 +16,9 @@ import {
   Paperclip,
   Clock,
   Reply,
-  CreditCard,
+  Heart,
 } from "lucide-react";
 import { apiUrl } from "@/lib/api";
-import { PricingPlans } from "@/components/pricing/PricingPlans";
 
 interface Profile {
   id: string;
@@ -183,7 +182,7 @@ function ProfilePageContent() {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
         <div
-          className={`mx-auto flex h-14 items-center gap-3 px-4 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+          className="mx-auto flex h-14 items-center gap-3 px-4 max-w-lg"
         >
           <button
             onClick={() => router.push("/")}
@@ -200,12 +199,12 @@ function ProfilePageContent() {
       {/* Tabs */}
       <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <div
-          className={`mx-auto flex px-4 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+          className="mx-auto flex px-4 max-w-lg"
         >
           {(
             [
               { key: "profile", label: "Profile", icon: User },
-              { key: "billing", label: "Billing", icon: CreditCard },
+              { key: "billing", label: "Billing", icon: Heart },
               { key: "feedback", label: "Feedback", icon: MessageSquare },
             ] as const
           ).map(({ key, label, icon: Icon }) => (
@@ -227,7 +226,7 @@ function ProfilePageContent() {
 
       {/* Content */}
       <main
-        className={`mx-auto w-full flex-1 px-4 py-6 ${tab === "billing" ? "max-w-5xl" : "max-w-lg"}`}
+        className="mx-auto w-full flex-1 px-4 py-6 max-w-lg"
       >
         {tab === "profile" && (
           <>
@@ -404,22 +403,24 @@ function ProfilePageContent() {
         )}
 
         {tab === "billing" && (
-          <div className="py-2">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-                Billing & Plans
-              </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Manage your subscription and upgrade your plan to unlock more
-                features.
-              </p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40 mb-4">
+              <Heart className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <PricingPlans
-              onUpgrade={(plan) => {
-                console.log(`User initiated upgrade from profile to ${plan}`);
-                // TODO: Handle billing portal/checkout redirect
-              }}
-            />
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+              Support OurNigeria
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-xs">
+              OurNigeria is free and open-source. Your donation helps us keep
+              the platform running and improving.
+            </p>
+            <button
+              onClick={() => router.push("/donate")}
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
+            >
+              <Heart className="h-4 w-4" />
+              Donate
+            </button>
           </div>
         )}
       </main>

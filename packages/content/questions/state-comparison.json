@@ -1,0 +1,66 @@
+{
+  "name": "State Comparison",
+  "description": "Questions comparing two states on the same metric to highlight inequality",
+  "questions": [
+    {
+      "id": "comparison-001",
+      "type": "state_comparison",
+      "question": "Compare education spending between Lagos and Zamfara in 2024. What is the per-student spending in each state?",
+      "stateA": "Lagos",
+      "stateB": "Zamfara",
+      "metric": "education spending",
+      "year": 2024,
+      "tags": ["education", "per-capita", "inequality"]
+    },
+    {
+      "id": "comparison-002",
+      "type": "state_comparison",
+      "question": "Compare healthcare budget between Rivers State and Borno State in 2024. How much does each state spend per citizen on health?",
+      "stateA": "Rivers",
+      "stateB": "Borno",
+      "metric": "healthcare spending",
+      "year": 2024,
+      "tags": ["health", "per-capita"]
+    },
+    {
+      "id": "comparison-003",
+      "type": "state_comparison",
+      "question": "Compare infrastructure spending between Kano and Ebonyi in 2024. How many kilometers of road could each state build with their budget?",
+      "stateA": "Kano",
+      "stateB": "Ebonyi",
+      "metric": "infrastructure spending",
+      "year": 2024,
+      "tags": ["infrastructure", "impact"]
+    },
+    {
+      "id": "comparison-004",
+      "type": "state_comparison",
+      "question": "Compare total budget size between Delta State and Osun State in 2024. Which state gets more per citizen?",
+      "stateA": "Delta",
+      "stateB": "Osun",
+      "metric": "total budget per capita",
+      "year": 2024,
+      "tags": ["total", "per-capita"]
+    },
+    {
+      "id": "comparison-005",
+      "type": "state_comparison",
+      "question": "Compare water resources spending between Bayelsa and Kaduna in 2024. How many boreholes could each state fund?",
+      "stateA": "Bayelsa",
+      "stateB": "Kaduna",
+      "metric": "water resources",
+      "year": 2024,
+      "tags": ["water", "impact"]
+    },
+    {
+      "id": "comparison-006",
+      "type": "state_comparison",
+      "question": "Compare agriculture budget between Kebbi and Enugu in 2024. Which state invests more in food security for its people?",
+      "stateA": "Kebbi",
+      "stateB": "Enugu",
+      "metric": "agriculture spending",
+      "year": 2024,
+      "tags": ["agriculture", "food-security"]
+    }
+  ]
+}

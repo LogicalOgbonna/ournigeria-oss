@@ -32,6 +32,11 @@ export interface EnvConfig {
   RERANK_TOP_N?: string;
   HYBRID_SEARCH_ENABLED?: string;
   CONTEXTUAL_IMPACT_ENABLED?: string;
+  PAYSTACK_SECRET_KEY?: string;
+  PAYSTACK_PUBLIC_KEY?: string;
+  FLUTTERWAVE_SECRET_KEY?: string;
+  FLUTTERWAVE_PUBLIC_KEY?: string;
+  FLUTTERWAVE_SECRET_HASH?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -108,5 +113,10 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     RERANK_TOP_N: (config.RERANK_TOP_N as string) || undefined,
     HYBRID_SEARCH_ENABLED: (config.HYBRID_SEARCH_ENABLED as string) || undefined,
     CONTEXTUAL_IMPACT_ENABLED: (config.CONTEXTUAL_IMPACT_ENABLED as string) || undefined,
+    PAYSTACK_SECRET_KEY: (config.PAYSTACK_SECRET_KEY as string) || undefined,
+    PAYSTACK_PUBLIC_KEY: (config.PAYSTACK_PUBLIC_KEY as string) || undefined,
+    FLUTTERWAVE_SECRET_KEY: (config.FLUTTERWAVE_SECRET_KEY as string) || undefined,
+    FLUTTERWAVE_PUBLIC_KEY: (config.FLUTTERWAVE_PUBLIC_KEY as string) || undefined,
+    FLUTTERWAVE_SECRET_HASH: (config.FLUTTERWAVE_SECRET_HASH as string) || undefined,
   };
 }

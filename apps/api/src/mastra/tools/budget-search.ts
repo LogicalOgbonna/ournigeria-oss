@@ -179,7 +179,7 @@ export const budgetSearchTool = createTool({
         "budget allocation";
 
       const requestedTopK = topK ?? RAG_CONFIG.topK;
-      const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter };
+      const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter, topK: requestedTopK };
 
       type BudgetResult = {
         text: string;

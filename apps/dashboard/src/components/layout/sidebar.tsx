@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Megaphone,
   ShieldCheck,
+  Heart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,6 +49,7 @@ const generalNav = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Users", href: "/dashboard/users", icon: Users },
   { title: "Feedback", href: "/dashboard/feedback", icon: MessageSquare },
+  { title: "Donations", href: "/dashboard/donations", icon: Heart },
 ];
 
 const conversationNav = [

@@ -1,0 +1,59 @@
+{
+  "name": "FAAC Allocation",
+  "description": "Questions about federal allocation disbursements and accountability",
+  "questions": [
+    {
+      "id": "faac-001",
+      "type": "faac_allocation",
+      "question": "How much did Bayelsa State receive from FAAC in 2024? Break down the allocation by components — statutory, VAT, derivation.",
+      "state": "Bayelsa",
+      "year": 2024,
+      "tags": ["derivation", "oil-state", "breakdown"]
+    },
+    {
+      "id": "faac-002",
+      "type": "faac_allocation",
+      "question": "Compare FAAC allocations between South-South and North-East zones in 2024. Which zone received more and why?",
+      "tags": ["zone-comparison", "inequality"]
+    },
+    {
+      "id": "faac-003",
+      "type": "faac_allocation",
+      "question": "How much did Lagos State receive from FAAC in the last 6 months of 2024? What could that money fund in terms of infrastructure?",
+      "state": "Lagos",
+      "year": 2024,
+      "tags": ["impact", "infrastructure"]
+    },
+    {
+      "id": "faac-004",
+      "type": "faac_allocation",
+      "question": "What is the total FAAC allocation to Kano State LGAs in 2024? How much does each LGA receive on average?",
+      "state": "Kano",
+      "year": 2024,
+      "tags": ["lga", "breakdown"]
+    },
+    {
+      "id": "faac-005",
+      "type": "faac_allocation",
+      "question": "How much did Akwa Ibom State receive from the 13% derivation fund in 2024? What percentage of their total FAAC allocation does derivation represent?",
+      "state": "Akwa Ibom",
+      "year": 2024,
+      "tags": ["derivation", "oil-state"]
+    },
+    {
+      "id": "faac-006",
+      "type": "faac_allocation",
+      "question": "Compare monthly FAAC allocations to Borno State across 2024. Which months had the highest and lowest allocations?",
+      "state": "Borno",
+      "year": 2024,
+      "tags": ["monthly", "trend"]
+    },
+    {
+      "id": "faac-007",
+      "type": "faac_allocation",
+      "question": "How much total FAAC allocation did all 36 states and FCT receive in 2024? Which state got the most and which got the least?",
+      "year": 2024,
+      "tags": ["national", "ranking"]
+    }
+  ]
+}

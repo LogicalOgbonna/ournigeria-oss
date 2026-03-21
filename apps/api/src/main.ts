@@ -11,7 +11,7 @@ import { closeSharedPool } from "./mastra/rag/db-pool";
 import { runRagMigrations } from "./mastra/rag/migrations/run-migrations";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(cookieParser());
   app.setGlobalPrefix("api", { exclude: ["health"] });

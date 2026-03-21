@@ -183,6 +183,33 @@ const SECTOR_ALIAS_MAP: Record<string, string> = {
   science: "science_technology",
   technology: "science_technology",
   justice: "justice",
+  // Budget categories
+  recurrent: "recurrent",
+  capital: "capital",
+  overhead: "overhead",
+  personnel: "personnel",
+  // Additional aliases
+  healthcare: "health",
+  clinic: "health",
+  primary_health: "health",
+  secondary: "education",
+  primary: "education",
+  tertiary: "education",
+  construction: "infrastructure",
+  building: "infrastructure",
+  livestock: "agriculture",
+  crop: "agriculture",
+  police: "defence",
+  army: "defence",
+  navy: "defence",
+  electricity: "energy",
+  solar: "energy",
+  drainage: "environment",
+  sanitation: "environment",
+  rail: "transportation",
+  railway: "transportation",
+  aviation: "transportation",
+  airport: "transportation",
 };
 
 /**
