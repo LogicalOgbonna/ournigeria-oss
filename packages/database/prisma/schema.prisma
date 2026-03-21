@@ -89,6 +89,21 @@ enum FeedbackCategory {
   @@map("feedback_category")
 }
 
+enum DonationProvider {
+  PAYSTACK
+  FLUTTERWAVE
+
+  @@map("donation_provider")
+}
+
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+
+  @@map("donation_status")
+}
+
 // ============================================================
 // Models
 // ============================================================
@@ -198,6 +213,7 @@ model User {
   notifications    Notification[]
   dismissedBanners BannerDismissal[]
   feedbacks        Feedback[]
+  donations        Donation[]
 
   @@map("users")
 }
@@ -540,4 +556,33 @@ model FeedbackAttachment {
 
   @@index([feedbackId], map: "idx_feedback_attachments_feedback")
   @@map("feedback_attachments")
+}
+
+// ============================================================
+// Donations
+// ============================================================
+
+model Donation {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference        String           @unique @db.VarChar(100)
+  amount           Int
+  currency         String           @default("NGN") @db.VarChar(3)
+  email            String           @db.VarChar(255)
+  donorName        String?          @map("donor_name") @db.VarChar(200)
+  provider         DonationProvider
+  status           DonationStatus   @default(PENDING)
+  isRecurring      Boolean          @default(false) @map("is_recurring")
+  subscriptionCode String?          @map("subscription_code") @db.VarChar(200)
+  providerRef      String?          @map("provider_ref") @db.VarChar(200)
+  userId           String?          @map("user_id") @db.Uuid
+  metadata         Json?            @db.JsonB
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_donations_status_date")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_donations_user_date")
+  @@index([provider, status], map: "idx_donations_provider_status")
+  @@map("donations")
 }

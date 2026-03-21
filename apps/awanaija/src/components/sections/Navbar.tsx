@@ -56,24 +56,30 @@ export function Navbar() {
 
           {/* Center nav links — hidden on mobile */}
           <div className="hidden items-center gap-6 md:flex">
-            <a
-              href="#features"
+            <Link
+              href="/#features"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground hover-lift"
             >
               Features
-            </a>
-            <a
-              href="#process"
+            </Link>
+            <Link
+              href="/#process"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground hover-lift"
             >
               Process
-            </a>
-            <a
-              href="#data"
+            </Link>
+            <Link
+              href="/#data"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground hover-lift"
             >
               Data
-            </a>
+            </Link>
+            <Link
+              href="/donate"
+              className="text-sm text-emerald-400 transition-colors hover:text-emerald-300 hover-lift"
+            >
+              Support Us
+            </Link>
           </div>
 
           {/* Right side */}

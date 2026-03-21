@@ -87,6 +87,14 @@ export function Footer() {
                   Enter App
                 </a>
               </li>
+              <li>
+                <a
+                  href="/donate"
+                  className="text-sm text-emerald-400/70 transition-colors hover:text-emerald-400 hover-lift inline-block"
+                >
+                  Support Us
+                </a>
+              </li>
             </ul>
           </div>
 

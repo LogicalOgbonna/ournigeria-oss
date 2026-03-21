@@ -9,6 +9,8 @@ import {
   Siren,
   Users,
   Wheat,
+  BarChart3,
+  MessageSquare,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -27,6 +29,8 @@ const iconMap: Record<string, LucideIcon> = {
   Siren,
   Users,
   Wheat,
+  BarChart3,
+  MessageSquare,
 };
 
 // Progress bar widths proportional to amounts (Defence ₦3.25T is largest)

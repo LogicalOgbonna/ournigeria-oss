@@ -72,9 +72,8 @@ export function PricingModal({
         </div>
 
         <div className="overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50">
-          <PricingPlans onUpgrade={(plan) => {
-            console.log(`User wants to upgrade to ${plan}`);
-            // TODO: integrate with paystack or redirect to checkout
+          <PricingPlans onUpgrade={() => {
+            window.location.href = '/donate';
           }} />
         </div>
       </div>

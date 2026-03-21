@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Heart } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
 
 export function CallToAction() {
@@ -54,6 +54,16 @@ export function CallToAction() {
         <p className="mt-8 font-[family-name:var(--font-mono)] text-xs text-white/30 uppercase tracking-[0.2em]">
           Free &middot; No sign-up &middot; Built for every Nigerian
         </p>
+
+        <div className="mt-6">
+          <a
+            href="/donate"
+            className="inline-flex items-center gap-2 text-sm text-emerald-300/70 transition-colors hover:text-emerald-200"
+          >
+            <Heart className="h-4 w-4" />
+            <span>Support this project with a donation</span>
+          </a>
+        </div>
       </div>
     </section>
   );
