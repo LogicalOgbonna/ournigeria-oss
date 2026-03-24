@@ -159,6 +159,18 @@ const LLM_PROVIDERS = [
     ],
   },
   {
+    id: "ollama",
+    label: "Ollama (Local)",
+    baseUrl: "http://localhost:11434/v1",
+    models: [
+      "qwen2.5vl",
+      "qwen2.5:72b",
+      "llama3.3:70b",
+      "deepseek-r1:32b",
+      "mistral:7b",
+    ],
+  },
+  {
     id: "custom",
     label: "Custom (OpenAI-compatible)",
     baseUrl: "",
@@ -238,6 +250,17 @@ const OCR_PROVIDERS = [
     models: [
       "meta-llama/Llama-3.3-70B-Instruct-Turbo",
       "Qwen/Qwen2.5-72B-Instruct-Turbo",
+    ],
+  },
+  {
+    id: "ollama",
+    label: "Ollama (Local)",
+    baseUrl: "http://localhost:11434/v1",
+    models: [
+      "qwen2.5vl",
+      "llava:13b",
+      "llama3.2-vision:11b",
+      "minicpm-v:8b",
     ],
   },
   {
@@ -746,7 +769,7 @@ function ConnectionFormDialog({
       setError("Name, base URL, and model ID are required.");
       return;
     }
-    if (!editing && !form.apiKey.trim()) {
+    if (!editing && !form.apiKey.trim() && form.provider !== "ollama") {
       setError("API key is required for new connections.");
       return;
     }
@@ -761,7 +784,7 @@ function ConnectionFormDialog({
         baseUrl: form.baseUrl.trim(),
         modelId: form.modelId.trim(),
       };
-      if (form.apiKey) body.apiKey = form.apiKey;
+      body.apiKey = form.apiKey || "";
       if (type === "llm" && form.modelSmall)
         body.modelSmall = form.modelSmall.trim();
       if (type === "embedding" && form.dimension)
@@ -851,10 +874,15 @@ function ConnectionFormDialog({
                   (leave blank to keep existing)
                 </span>
               )}
+              {form.provider === "ollama" && !editing && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  (optional — Ollama runs locally)
+                </span>
+              )}
             </Label>
             <SecretInput
               value={form.apiKey}
-              placeholder={editing ? editing.apiKeyMasked : "Enter API key"}
+              placeholder={editing ? editing.apiKeyMasked : form.provider === "ollama" ? "Not required" : "Enter API key"}
               onChange={(v) => setForm((f) => ({ ...f, apiKey: v }))}
             />
           </div>
@@ -988,7 +1016,7 @@ function ConnectionFormDialog({
                   testing ||
                   !form.baseUrl ||
                   !form.modelId ||
-                  (!form.apiKey && !editing)
+                  (!form.apiKey && !editing && form.provider !== "ollama")
                 }
               >
                 {testing ? (

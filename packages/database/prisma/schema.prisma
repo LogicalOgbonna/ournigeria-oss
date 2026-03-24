@@ -559,6 +559,28 @@ model FeedbackAttachment {
 }
 
 // ============================================================
+// Graph Extraction
+// ============================================================
+
+model GraphExtractionJob {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domain          String    @db.VarChar(20)
+  pass            Int       @default(1)
+  status          String    @default("pending") @db.VarChar(20)
+  lastChunkId     String?   @map("last_chunk_id") @db.Text
+  chunksTotal     Int       @default(0) @map("chunks_total")
+  chunksProcessed Int       @default(0) @map("chunks_processed")
+  costUsd         Float     @default(0) @map("cost_usd")
+  errorLog        Json      @default("[]") @map("error_log") @db.JsonB
+  startedAt       DateTime? @map("started_at") @db.Timestamptz()
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([domain, pass, status], map: "idx_graph_jobs_domain_pass_status")
+  @@map("graph_extraction_jobs")
+}
+
+// ============================================================
 // Donations
 // ============================================================
 

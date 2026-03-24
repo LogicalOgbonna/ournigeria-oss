@@ -37,6 +37,9 @@ export interface EnvConfig {
   FLUTTERWAVE_SECRET_KEY?: string;
   FLUTTERWAVE_PUBLIC_KEY?: string;
   FLUTTERWAVE_SECRET_HASH?: string;
+  NEO4J_URI?: string;
+  NEO4J_USER?: string;
+  NEO4J_PASSWORD?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -118,5 +121,8 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     FLUTTERWAVE_SECRET_KEY: (config.FLUTTERWAVE_SECRET_KEY as string) || undefined,
     FLUTTERWAVE_PUBLIC_KEY: (config.FLUTTERWAVE_PUBLIC_KEY as string) || undefined,
     FLUTTERWAVE_SECRET_HASH: (config.FLUTTERWAVE_SECRET_HASH as string) || undefined,
+    NEO4J_URI: (config.NEO4J_URI as string) || undefined,
+    NEO4J_USER: (config.NEO4J_USER as string) || undefined,
+    NEO4J_PASSWORD: (config.NEO4J_PASSWORD as string) || undefined,
   };
 }

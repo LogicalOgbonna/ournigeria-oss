@@ -15,8 +15,8 @@ export class MetadataGraphBuilder {
   private readonly logger = new Logger(MetadataGraphBuilder.name);
 
   constructor(
-    private neo4j: Neo4jService,
-    private entityResolver: EntityResolver,
+    private readonly neo4j: Neo4jService,
+    private readonly entityResolver: EntityResolver,
   ) {}
 
   async buildFromMetadata(

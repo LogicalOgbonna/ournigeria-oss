@@ -17,12 +17,30 @@ export type {
 
 // Web-only types below
 
+export interface DisambiguationCandidate {
+  name: string;
+  type: string;
+  state: string | null;
+  position: string | null;
+  connectionCount: number;
+  score: number;
+}
+
+export interface GraphSuggestion {
+  text: string;
+  query: string;
+  domain: string;
+  icon: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   richContent?: import("@ournigeria/shared-types").AIResponseContent;
   thinking?: import("@ournigeria/shared-types").ThinkingStep[];
+  disambiguation?: { query: string; candidates: DisambiguationCandidate[] };
+  suggestions?: GraphSuggestion[];
   timestamp: Date;
   /** Set when the message represents a server-side error. */
   isError?: boolean;

@@ -24,11 +24,11 @@ Rules:
 
 function decodeXmlEntities(s: string): string {
   return s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'");
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&apos;', "'");
 }
 
 function imageMime(ext: string): string | null {
@@ -48,10 +48,10 @@ function imageMime(ext: string): string | null {
 export class PptxExtractor implements ITextExtractor {
   readonly supportedTypes = ['pptx'];
   private readonly logger = new Logger(PptxExtractor.name);
-  private ocrModel: string;
-  private openaiProvider: ReturnType<typeof createOpenAI>;
+  private readonly ocrModel: string;
+  private readonly openaiProvider: ReturnType<typeof createOpenAI>;
 
-  constructor(private config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     this.ocrModel = this.config.getOrThrow<string>('OCR_MODEL');
 
     const timeoutMs = 5 * 60 * 1000;
@@ -86,8 +86,8 @@ export class PptxExtractor implements ITextExtractor {
         .map((line) => line.trim().split(/\s+/).pop() ?? '')
         .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
         .sort((a, b) => {
-          const numA = parseInt(a.match(/slide(\d+)/)?.[1] ?? '0');
-          const numB = parseInt(b.match(/slide(\d+)/)?.[1] ?? '0');
+          const numA = Number.parseInt(a.match(/slide(\d+)/)?.[1] ?? '0', 10);
+          const numB = Number.parseInt(b.match(/slide(\d+)/)?.[1] ?? '0', 10);
           return numA - numB;
         });
 
@@ -168,8 +168,8 @@ export class PptxExtractor implements ITextExtractor {
         .split('\n')
         .map((line) => {
           const parts = line.trim().split(/\s+/);
-          const size = parseInt(parts[0]);
-          const name = parts[parts.length - 1];
+          const size = Number.parseInt(parts[0], 10);
+          const name = parts.at(-1) ?? "";
           return { name, size };
         })
         .filter(({ name, size }) => {

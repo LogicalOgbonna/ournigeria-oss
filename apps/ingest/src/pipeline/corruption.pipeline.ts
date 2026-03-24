@@ -121,6 +121,8 @@ export class CorruptionPipeline extends PipelineBase {
     this.emitLog("log", `Found ${objects.length} objects in S3`);
 
     for (const obj of objects) {
+      // TODO: Handle official's name better 
+      // /corruption/{official}/{filename}.md
       if (!obj.key.endsWith(".md")) continue;
       if (obj.size === 0) continue;
 

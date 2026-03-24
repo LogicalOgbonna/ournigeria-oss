@@ -38,6 +38,8 @@
     "cookie-parser": "^1.4.7",
     "langfuse": "^3.38.6",
     "langfuse-vercel": "^3.38.6",
+    "neo4j-driver": "^6.0.1",
+    "opossum": "^9.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^3.25.76"
@@ -49,6 +51,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.3",
     "@types/node": "^20",
+    "@types/opossum": "^8.1.9",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

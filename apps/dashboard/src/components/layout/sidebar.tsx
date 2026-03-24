@@ -30,6 +30,7 @@ import {
   Megaphone,
   ShieldCheck,
   Heart,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
@@ -82,6 +83,10 @@ const vectorNav = [
   },
 ];
 
+const graphNav = [
+  { title: "Graph Management", href: "/dashboard/graph", icon: Network },
+];
+
 const contentNav = [
   { title: "Documents", href: "/dashboard/documents", icon: FolderOpen },
   { title: "Coverage", href: "/dashboard/documents/coverage", icon: Map },
@@ -123,6 +128,7 @@ const navGroups = [
   { label: "Notifications", items: notificationNav },
   { label: "AI & RAG", items: aiNav },
   { label: "Vector Store", items: vectorNav },
+  { label: "Knowledge Graph", items: graphNav },
   { label: "Content", items: contentNav },
   { label: "Ingestion", items: ingestionNav },
   { label: "System", items: systemNav },

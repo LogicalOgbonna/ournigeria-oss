@@ -1,0 +1,474 @@
+{
+  "name": "Corruption Data Source Evaluation",
+  "description": "Stress-test questions designed to break or expose weaknesses in the EFCC corruption case RAG pipeline. Covers edge cases in filtering, aggregation, multi-agency officials, status transitions, name resolution, and cross-official comparisons.",
+  "questions": [
+    {
+      "id": "corr-001",
+      "category": "aggregation_broad",
+      "question": "Can you list governors and ex governors under EFCC investigation?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Broad aggregation with agency filter. The $eq filter on agency='EFCC' misses officials stored as 'EFCC, ICPC'. Also requires topK=50 to cover 200+ officials, but vector similarity alone may not surface all relevant summary chunks.",
+      "expected_behavior": "Should list all officials with agency containing EFCC, regardless of whether they have co-investigating agencies.",
+      "metadata_filters_needed": [
+        "agency",
+        "section=summary"
+      ],
+      "officials_involved": "all",
+      "expected_answer": "Should return a comprehensive list of 20+ officials investigated by EFCC including prominent names like James Ibori, Diezani Alison-Madueke, Yahaya Bello, Joshua Dariye, Jolly Nyame, Ayo Fayose, Orji Uzor Kalu, Sambo Dasuki, etc. Each entry should mention their position, state, and case status. The response should NOT say 'no data found'.",
+      "answer": "Governors/ex-governors (and a few governor-linked cases) **currently shown in our EFCC case records as “ongoing” (under investigation and/or in court)** include the following:\n\n## A) Governors / ex-governors under EFCC investigation / ongoing cases\n- **Aliyu Wamakko** (ex-Governor, Sokoto) — *investigation reopened/reviewed;* alleged **₦15bn diversion** (Punch, Jan 2024 case records).\n- **Rabiu Musa Kwankwaso** (ex-Governor, Kano) — *ongoing EFCC investigations;* reported interrogation over alleged **₦2.5bn pension fraud** (case records, 2024).\n- **Ifeanyi Okowa** (ex-Governor, Delta) — *ongoing investigation;* no charges filed as of latest record; allegations referenced include derivation-funds fraud reporting (THISDAY, Nov 2024; EFCC legal director comment in records).\n- **Willie Obiano** (ex-Governor, Anambra) — *under EFCC prosecution/trial (ongoing)* (summary records show ongoing status).\n- **Abdulfatah (Abdulfattah) Ahmed** (ex-Governor, Kwara) — *under EFCC prosecution/trial (ongoing)*; case records reference alleged diversion (Premium Times report context).\n- **Darius Ishaku** (ex-Governor, Taraba) — *under EFCC prosecution/trial (ongoing)* (summary records show ongoing status).\n- **Timipre Sylva** (ex-Governor, Bayelsa / ex-Minister) — *ongoing EFCC case status* (summary records show ongoing).\n- **Peter Odili** (ex-Governor, Rivers) — *case status listed as ongoing* in our records (long-running EFCC matter historically tied to injunction litigation).\n- **Theodore Orji** (ex-Governor, Abia) — *case status listed as ongoing* in our records.\n- **Aminu Tambuwal** (ex-Governor, Sokoto) — *case status listed as ongoing* in our records.\n- **Rauf Aregbesola** (ex-Governor, Osun) — *case status listed as ongoing* in our records.\n- **Bello Matawalle** (ex-Governor, Zamfara) — *case status listed as ongoing* in our records.\n- **Ahmadu Umaru Fintiri** (Governor, Adamawa) — *case status listed as ongoing* in our records.\n\n## B) Governor-linked “ongoing” EFCC cases in the same results set (not governors themselves)\nThese are **not governors**, but they show up in the same “ongoing” EFCC pull:\n- **Abdulaziz Nyako** (linked to ex-Gov Nyako) — ongoing.\n- **Chinedum Orji** (linked to ex-Gov Theodore Orji) — ongoing.\n- Others in the pull include non-governors (e.g., officials/agency heads).\n\n## Important notes (to avoid mix-ups)\n- “**Under EFCC investigation**” can mean *invited/questioned/reviewed/reopened probe* **even where no charges have been filed yet** (e.g., Okowa in our records as of Oct 2025).\n- Some names mentioned in media as “under probe” may be **“never charged”** in our database unless/ until EFCC files charges.\n\nIf you want, I can also **separate the list into**:\n1) *Under investigation only (no charges filed)* vs 2) *Already in court (trial ongoing)* — and include the **amounts alleged** for each where our records state them.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 19348,
+      "pass": true,
+      "evaluation_notes": "Only mentioned 1 officials (expected 3+). Low term match: 2/25 expected terms."
+    },
+    {
+      "id": "corr-002",
+      "category": "aggregation_count",
+      "question": "How many Nigerian officials have been convicted of corruption?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires pulling ALL summary chunks with status=convicted. With topK=50 max, may not retrieve every convicted official if there are more than 50. Count accuracy depends on complete retrieval.",
+      "expected_behavior": "Should return an accurate count by searching with status=convicted, section=summary, and high topK.",
+      "metadata_filters_needed": [
+        "status=convicted",
+        "section=summary"
+      ],
+      "expected_answer": "Should provide a specific numeric count of all officials with status 'convicted' in the database, including names such as James Ibori, Joshua Dariye, Jolly Nyame, Orji Uzor Kalu, and others. The answer must acknowledge that some convicted officials were later pardoned (e.g., Dariye, Nyame), clarifying whether they are counted as convicted or pardoned. A disclaimer about data coverage limitations is acceptable.",
+      "answer": "Based on available EFCC case records (filtered to **case status = “convicted”**, section = **summary**, topK = 50), there are **29 unique Nigerian officials** in the retrieved dataset marked as **convicted**.\n\nKey caveat from the case data: the search returns **duplicate profile cards** for some officials (e.g., Walter Onnoghen, James Ibori, Abba Moro, etc., sometimes with conflicting “total amount alleged” figures). The **29** figure is a **de-duplicated count of unique names** within the 50 retrieved “convicted” summary records—not necessarily the total number of convicted officials in the full database.\n\n**Unique convicted officials appearing in this pull (29):**  \nWalter Onnoghen; James Ibori; Dan Etete; Abba Moro; Reuben Abati; Chimaroke Nnamani; Orji Uzor Kalu; Bola Tinubu; Olusola Obada; Ike Ekweremadu; Ibrahim Magu; Jolly Nyame; Abdulrasheed Maina; Farouk Lawan; Diepreye Alamieyeseigha; Liyel Imoke; Sylvester Ngwuta; Danjuma Goje; Jibrin Usman; Olabode George; Theophilus Danjuma; Jeremiah Useni; Hope Uzodinma; Femi Thomas; Tafa Balogun; Muhammadu Buhari; Olisa Metuh; Oladipo Diya.\n\nIf you want, I can run a **broader aggregation** (multiple pages/pulls beyond topK=50, or by agency=EFCC only) to estimate a fuller total and remove duplicates/incorrect status tags systematically.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 11413,
+      "pass": true,
+      "evaluation_notes": "Matched 9/31 expected terms."
+    },
+    {
+      "id": "corr-003",
+      "category": "aggregation_ranking",
+      "question": "Who are the top 10 officials by total amount alleged stolen?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires sorting by amount_alleged_ngn across ALL officials. Vector similarity search cannot sort by numeric metadata fields. The agent must retrieve a large number of summary chunks and manually rank them.",
+      "expected_behavior": "Should pull summary chunks with high topK and present ranked list by amount.",
+      "metadata_filters_needed": [
+        "section=summary"
+      ],
+      "expected_answer": "Should present a ranked list of 10 officials ordered by amount_alleged_ngn from highest to lowest. Sani Abacha and Diezani Alison-Madueke should appear near the top given the scale of their alleged theft (billions of dollars). Each entry should include the official's name, position, and the alleged amount in Naira (and ideally USD equivalent). The list must be based on actual data, not hallucinated figures.",
+      "answer": "## Top 10 officials by **total amount alleged stolen/diverted** (from available case summaries)\n\nRanked by the **“Total Amount Alleged”** figures in the EFCC case-profile summaries (amounts are allegations, not proof of guilt).\n\n1. **Abubakar Malami** — **₦70.0 trillion** *(status: ongoing; EFCC)*\n2. **Jimoh Olasunkanmi** — **₦10.8 trillion** *(status: ongoing; EFCC)*\n3. **Mohammed Bello Adoke** — **₦9.0 trillion** *(status: acquitted; EFCC/US DOJ)*\n4. **Olu Agunloye** — **₦9.0 trillion** *(status: ongoing; EFCC)*\n5. **Saleh Mamman** — **₦8.7 trillion** *(status: ongoing; EFCC)*\n6. **Sambo Dasuki** — **₦4.35 trillion** *(status: ongoing; DSS)*\n7. **Mohammed Babagana Monguno** — **₦3.8 trillion** *(status: never charged; NPF)*\n8. **Reuben Abati** — **₦3.15 trillion** *(status: convicted; EFCC)*\n9. **Abdulfattah Ahmed** — **₦578.0 billion** *(status: ongoing; EFCC)*\n10. **Abdulsalami Abubakar** — **₦562.5 billion** *(status: acquitted; EFCC)*\n\n\n\n**Data quality note:** some profiles have **multiple conflicting “total alleged” figures** across records (e.g., different filings/media-based totals). The ranking above uses the highest “Total Amount Alleged” entries returned in the summary profiles for each official. If you want, I can drill into each of the top 10 and list the *underlying components* (charges/transactions) that make up those totals.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 14651,
+      "pass": true,
+      "evaluation_notes": "Matched 6/29 expected terms."
+    },
+    {
+      "id": "corr-004",
+      "category": "multi_agency",
+      "question": "Which officials were investigated by both EFCC and ICPC?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Agency is stored as comma-separated string (e.g., 'EFCC, ICPC'). The $eq filter cannot match partial strings. Searching agency='EFCC' misses 'EFCC, ICPC' and vice versa. No $contains operator available.",
+      "expected_behavior": "Should find officials whose agency field contains both EFCC and ICPC.",
+      "metadata_filters_needed": [
+        "agency"
+      ],
+      "expected_answer": "Should return a list of officials whose agency field contains both 'EFCC' and 'ICPC', indicating joint investigation by both anti-corruption bodies. Each entry should include the official's name, position, state, and a brief description of their case. The response should not miss officials stored with comma-separated agency values like 'EFCC, ICPC'.",
+      "answer": "Officials in our case records who were **investigated by both the EFCC and the ICPC**:\n\n1) **Usman Yusuf** (Executive Secretary, **NHIS**) — **EFCC + ICPC**\n- **EFCC probe opened:** December 2017 (letter dated **21 Dec 2017**) covering training programmes, payments to Katamaya First Call Hospital, e‑library procurement, foreign trips, fuel खर्च, NEED assessment funds, and audit verification (per case records citing *Punch*, Dec 2017).\n- **ICPC probe:** December 2017 for alleged violations of the Corrupt Practices Act; ICPC reportedly **directed recovery** of money advanced for an aborted Netherlands trip (Section 45(3) referenced in case records).\n\n2) **Herman Hembe** (Former House Committee chair; Hembe–Oteh dispute) — **EFCC + ICPC**\n- Case records note the National Assembly context and state that Hembe was **referred to the ICPC for investigation**, while also stating the **EFCC investigated/prosecuted** (EFCC counsel listed as **Onjekwu Obe**; court leave to prefer charge granted **10 May 2012**, and trial ordered **4 July 2012** in the file metadata).\n\n**Not counted (important clarification):**\n- **Olusegun Agagu** is shown as having **EFCC + ICPC joint scrutiny** in our records, but his status is **“never charged”** and the excerpt is under “Key Players,” not a clear “both investigated” finding in the investigation section.\n- Several others in the excerpts are **EFCC-only** (e.g., Martin Elechi; refinery rehab probe names like Umar Ajiya/Jimoh Olasunkanmi) or **ICPC-only** (e.g., Oseni Adeolu Olayinka, Netufo Alaba, Hassan Saddiq, Blessing Lere‑Adams).\n\nIf you want, I can run a broader sweep across the database (all sections) to list every instance where both agencies appear on the same official’s profile.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 13264,
+      "pass": true,
+      "evaluation_notes": "Low term match: 3/25 expected terms."
+    },
+    {
+      "id": "corr-005",
+      "category": "status_transition",
+      "question": "Which officials were convicted and then pardoned?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Status is a single field per chunk, not a history. An official who was convicted then pardoned will have status='pardoned' (latest), losing the conviction history. The agent must cross-reference case_outcome and timeline sections.",
+      "expected_behavior": "Should identify officials like Joshua Dariye and Jolly Nyame who were convicted then pardoned.",
+      "metadata_filters_needed": [
+        "status=pardoned",
+        "section=case_outcome"
+      ],
+      "expected_answer": "Must identify Joshua Dariye (former Plateau State Governor) and Jolly Nyame (former Taraba State Governor) as officials who were convicted and subsequently pardoned. The answer should mention their original convictions, sentences, and the presidential pardon they received. If additional pardoned officials exist in the data, they should also be listed. The response should explain the status transition from convicted to pardoned.",
+      "answer": "Based on available EFCC case records in our database excerpts, the following officials were **convicted** and later **pardoned** (state/presidential clemency):\n\n## Convicted → Pardoned (Nigeria)\n1. **Joshua Dariye** (Former Governor, Plateau State)  \n   - **Convicted:** 12 June 2018 (FCT High Court, Justice Adebukola Banjoko); **15 of 23 counts**  \n   - **Sentence:** 14 years (reduced to **10 years** on appeal; later affirmed)  \n   - **Pardoned:** **14 April 2022** (presidential pardon); **released 8 August 2022** from Kuje\n\n2. **Jolly Nyame** (Former Governor, Taraba State)  \n   - **Convicted/Sentence upheld:** Supreme Court upheld **12-year** jail term (Feb 2020)  \n   - **Pardoned:** **14 April 2022** (presidential pardon via Council of State); released from Kuje\n\n3. **Diepreye Alamieyeseigha** (Former Governor, Bayelsa State)  \n   - **Convicted:** **July 2007** (pleaded guilty to 6 counts; Lagos High Court, Justice Mohammed Shuaibu)  \n   - **Pardoned:** **12 March 2013** (presidential pardon under President Goodluck Jonathan)\n\n4. **Salisu Buhari** (Former Speaker, House of Representatives)  \n   - **Convicted:** certificate forgery/perjury; **2 years imprisonment with option of fine** (fine paid)  \n   - **Pardoned:** later granted a **state pardon** by President Olusegun Obasanjo (circa 2000)\n\n## Convicted → Pardoned (Outside Nigeria, per records)\n5. **Dan Etete** (Former Petroleum Minister) — **France**  \n   - **Convicted:** 2007 (aggravated money laundering; 3 years + fine)  \n   - **Pardoned:** **2014** (French state pardon; conviction cleared from record per Bulletin No. 3)\n\n### Notable clarification from the same records\n- **Boni Haruna** is *not* in the “convicted then pardoned” category in our case data: the file states he was **discharged on no-case submission (no conviction)**, though some **co-defendants/entities were convicted**.\n\nIf you want, I can also list **the pardoning authority and dates** side-by-side for the Nigeria cases (2013 vs 2022 clemency).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 13567,
+      "pass": false,
+      "evaluation_notes": "FAIL: Said 'no data' for an aggregation query."
+    },
+    {
+      "id": "corr-006",
+      "category": "comparative_complex",
+      "question": "Compare the corruption cases of all former governors from the South-South geopolitical zone — who stole the most and what were the outcomes?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires: (1) knowing which states are South-South (Delta, Rivers, Bayelsa, Edo, Cross River, Akwa Ibom), (2) finding all former governors from those states, (3) comparing amounts and outcomes. No geopolitical_zone metadata exists in corruption index. Agent must search by state for each South-South state.",
+      "expected_behavior": "Should make 6 separate searches by state filter, compile results, and compare.",
+      "metadata_filters_needed": [
+        "state",
+        "section=summary"
+      ],
+      "expected_answer": "Should cover former governors from all six South-South states: Delta (James Ibori), Rivers, Bayelsa (Diepreye Alamieyeseigha and/or others), Edo, Cross River, and Akwa Ibom. For each governor found, the response should include alleged amounts (amount_alleged_ngn), case outcomes (convicted, acquitted, ongoing, etc.), and a comparative ranking of who allegedly stole the most. James Ibori (convicted in the UK) should feature prominently. The answer should acknowledge if no data exists for certain states.",
+      "answer": "## South–South ex-governors (EFCC-linked case records): “who stole the most” + outcomes\n\n**Scope note (data limits):** From the EFCC case files available in our records, the South–South former governors with clear profile totals/outcomes captured include **James Ibori (Delta), Godswill Akpabio (Akwa Ibom), Peter Odili (Rivers), Timipre Sylva (Bayelsa), Lucky Igbinedion (Edo)**. We also have **Diepreye Alamieyeseigha (Bayelsa)** but his *profile record* is tied mainly to **foreign (US/UK) proceedings**, not an EFCC conviction record. **Cross River ex-governors** were not returned with usable “total alleged” summaries in the retrieved dataset, so they are **not ranked** below.\n\n---\n\n## Ranking by total amount alleged (highest → lowest) and case outcome\n\n1) **James Ibori (Delta)** — **₦380bn–₦399bn alleged**  \n   - **Outcome:** **Convicted** (UK). Our case records also note later **UK confiscation order of £101.5m (July 2023)** and a **13-year sentence (2012)** in UK reporting.  \n   - **Status in summary card:** *convicted*.\n\n2) **Godswill Akpabio (Akwa Ibom)** — **₦108.1bn alleged**  \n   - **Outcome:** **Never formally charged** (in the available EFCC profile summary).  \n   - **Status in summary card:** *never_charged*.\n\n3) **Timipre Sylva (Bayelsa)** — **₦32.3bn alleged** (summary record)  \n   - **Outcome:** **Ongoing** (trial/prosecution not concluded in the summary record).  \n   - **Status in summary card:** *ongoing*.\n\n4) **Diepreye Alamieyeseigha (Bayelsa)** — **₦19.0bn or ₦60.8bn alleged (two profile totals exist in our records)**  \n   - **Outcome:** **Convicted** (profile summary lists **US DOJ** as the investigating/prosecuting authority).  \n   - **Status in summary card:** *convicted*.  \n   - **Data caution:** because there are *two different totals* captured in separate profile cards, the exact “total alleged” needs reconciliation against the underlying case file(s).\n\n5) **Lucky Igbinedion (Edo)** — **₦4.4bn alleged**  \n   - **Outcome:** **Convicted in Nigeria via plea bargain**; records cite a **₦3.5m fine**, **~₦500m refund**, and **forfeiture of three properties** (Reuters/Sahara Reporters coverage in the database).  \n   - **Status in summary card:** *convicted*.\n\n6) **Peter Odili (Rivers)** — **₦2.0bn in the summary card**, but **₦100bn appears repeatedly in the detailed case materials**  \n   - **Outcome:** **Ongoing / stalled for years**. Case-outcome records describe a long period where a **perpetual injunction blocked EFCC**, with later court developments referenced for renewed probing (not yet concluded as a conviction/acquittal in the record).  \n   - **Status in summary card:** *ongoing*.  \n   - **Data caution:** for Odili, the **summary-card total (₦2bn)** conflicts with the **case narrative/financial details (₦100bn)** in our records—so he cannot be cleanly ranked without choosing which figure is authoritative.\n\n---\n\n## Direct answer: who “stole” (allegedly) the most, and what happened?\n- **Highest alleged total in the available summaries:** **James Ibori (Delta) — ₦380bn–₦399bn alleged**, and he is **convicted (UK)**.\n- **Highest alleged total among those not convicted (in these summaries):** **Godswill Akpabio — ₦108.1bn alleged**, but **never charged** (per the EFCC profile summary).\n- **Most “in limbo”/procedurally stalled in our records:** **Peter Odili (Rivers)** — **case remains ongoing**; records emphasize years of litigation blocking EFCC action.\n\n---\n\n\n\nIf you want, I can rerun this comparison **state-by-state (all South–South states)** and include **Cross River** once we pull the relevant former governors’ EFCC profile summaries (names you want included also helps, e.g., Donald Duke, Liyel Imoke, etc.).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 31137,
+      "pass": true,
+      "evaluation_notes": "Matched 15/41 expected terms."
+    },
+    {
+      "id": "corr-007",
+      "category": "name_resolution",
+      "question": "Tell me about Bello's corruption case",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Ambiguous name. 'Bello' maps to 'Haliru Bello' in OFFICIALS_MAP, but user likely means 'Yahaya Bello' (more prominent). The surname-only matching picks the wrong official. 'Yahaya Bello' is a full-name entry but 'bello' alone resolves to Haliru.",
+      "expected_behavior": "Should either ask for clarification or default to the most prominent Bello (Yahaya Bello).",
+      "metadata_filters_needed": [
+        "official"
+      ],
+      "expected_answer": "Should either ask the user to clarify which Bello they mean (listing options like Yahaya Bello, Haliru Bello, and any others in the database), or default to Yahaya Bello (former Kogi State Governor) as the most high-profile match. If it defaults to Yahaya Bello, the response should cover his EFCC case, the alleged amounts, his ongoing status, and key case details. It should NOT silently return data for Haliru Bello without acknowledging the ambiguity.",
+      "answer": "## Haliru Bello’s corruption case (EFCC) — what the records show\n\n### 1) Who and what the case is about\n- **Official:** **Haliru Mohammed Bello** (former **Minister of Defence, 2011–2012**; former/acting **PDP Board of Trustees** leadership).\n- **Case theme:** Part of the wider **Dasuki “arms funds”** investigation—money released for national security/arms procurement was allegedly diverted for **2015 election-related political purposes**.\n- **Status:** **Ongoing** (no final judgment yet). EFCC case records show **no conviction or acquittal** as of the latest updates (March 2024).\n\n### 2) Core allegation and amount\n- The prosecution case is built around an alleged **₦300 million** payment said to have come from the **Office of the National Security Adviser (ONSA)** under **Col. Sambo Dasuki (rtd.)**.\n- **Key transaction date:** **17 March 2015** — ₦300m allegedly transferred from the NSA/CBN-side source into a **Sterling Bank** account operated by **BAM Projects and Properties Ltd** (linked to Bello’s son).  \n- Context in the records: the ₦300m is described as part of a broader **₦30 billion** released for “security issues” (arms/Boko Haram operations). Some profile summaries in the database display **₦30bn** as a wider-context figure, while Bello’s *specific* alleged receipt in this case is **₦300m**.\n\n### 3) Defendants / co-accused in this case\nFrom EFCC case files, the defendants were:\n- **Haliru Mohammed Bello**\n- **Abba Mohammed Bello** (his son) — **died January 2023** (so he is no longer a defendant as of the 2024 re-arraignment records)\n- **BAM Projects and Properties Ltd** (company linked to Abba)\n\n### 4) Charges filed (summary)\nThe EFCC filed a **4-count** case involving **money laundering** and **criminal breach of trust** themes, including allegations of:\n- **Accepting proceeds of unlawful activity** (₦300m allegedly received knowing/ought-to-know it was proceeds of unlawful activity tied to Dasuki)\n- **Conversion** of the ₦300m (described as purported “safe house” funds but allegedly used for **political campaign** purposes)\n- **Retention/concealment** of the funds in the company’s bank account\n- **Money laundering** under **Section 17(a)** of the Money Laundering (Prohibition) Act 2011 (as amended), punishable under **Section 17(b)**\n\nAll defendants **pleaded not guilty** at arraignment/re-arraignment (January 2016; March 2024).\n\n### 5) Financial trail highlighted by EFCC forensic evidence\nEFCC forensic testimony referenced in the case records describes rapid movements after receipt, including transfers to entities such as:\n- **Kumugumu Ltd** (e.g., **₦137m**)\n- **North Pole Ltd** (e.g., **₦178m**)\n- **Hijra Textiles Ltd** (e.g., **₦163m**, stated to be on Bello’s instruction in the records)\n- Cash withdrawals (recorded as **₦20m** in two tranches of ₦10m)\n- Transfer to **Abba Bello’s personal savings** (e.g., **₦50m**)\n\n*(The records note some figures may overlap as different “legs” of the same overall flow, but the consistent principal amount in this case is ₦300m.)*\n\n### 6) Court history and key events\n- **Charges filed:** **26 Dec 2015** (case timeline record)\n- **Arraignment:** **7 Jan 2016** (Federal High Court, Abuja per records). Bello appeared **in a wheelchair** and was transferred to hospital when the matter was adjourned; his son was **remanded** pending bail hearing.\n- **Feb 2016:** EFCC forensic witness (**Roukayya Ibrahim**) testified the ₦300m was **not** payment for any executed NSA contract; **Bashir Yuguda** (former Minister of State for Finance) is named in the records as a **facilitator** of the transaction.\n- **Bail:** Bello was granted bail (Justice **Ahmed Mohammed**). EFCC later stated bail was **once revoked** for breach of conditions, but it was subsequently restored.\n- **Reassignment / re-arraignment:** **18 Mar 2024**, before **Justice Peter Lifu**, after reassignment from Justice Ahmed Mohammed (elevated to Court of Appeal). Bello and **BAM Projects** were re-arraigned on an amended charge; plea: **not guilty**. Trial dates were set for **7–8 May 2024** (per case records).\n\n### 7) Outcome so far\n- **No final outcome yet**: as of the latest available case data (March 2024), it remains **ongoing** with **no conviction or acquittal** recorded.\n\nIf you want, I can also summarise **(a)** what evidence the EFCC says it relies on (witnesses/bank documents), or **(b)** how Bello’s case connects procedurally to the separate **Dasuki** prosecutions.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 32696,
+      "pass": true,
+      "evaluation_notes": "Matched 6/27 expected terms."
+    },
+    {
+      "id": "corr-008",
+      "category": "name_resolution",
+      "question": "What happened to Mohammed?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Extremely ambiguous. 'mohammed' maps to 'Bala Mohammed' in OFFICIALS_MAP, but there are multiple Mohammeds: Bala Mohammed, Danjuma Mohammed, Mohammed Bello Adoke, Mohammed Abubakar IGP, Mohammed Yinusa, Mohammed Babagana Monguno. Single surname resolution is unreliable.",
+      "expected_behavior": "Should ask for clarification listing the possible Mohammed matches.",
+      "metadata_filters_needed": [
+        "official"
+      ],
+      "expected_answer": "Should recognize the ambiguity and ask the user to clarify which Mohammed they mean, listing multiple possibilities such as Bala Mohammed, Danjuma Mohammed, Mohammed Bello Adoke, Mohammed Abubakar, Mohammed Yinusa, and Mohammed Babagana Monguno. If it proceeds without clarification, it should explicitly state which Mohammed it is presenting data for. It should NOT silently return data for just one Mohammed without acknowledging the ambiguity.",
+      "answer": "Which Mohammed abeg—full name or office, and is it about budget spending, a specific government payment, or an EFCC corruption case? If you tell me the state/federal agency and the year (if any), I’ll pull the right records.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 2220,
+      "pass": true,
+      "evaluation_notes": "Low term match: 2/23 expected terms."
+    },
+    {
+      "id": "corr-009",
+      "category": "cross_section",
+      "question": "For James Ibori, show me his charges, how much was allegedly stolen, the court proceedings, and what happened in the end — including the UK case",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires multiple section retrievals (charges, financial_details, court_proceedings, case_outcome) and potentially artifact chunks for UK proceedings. The agent has 10 steps but must use them strategically.",
+      "expected_behavior": "Should make sequential searches: overview first, then charges, financial_details, court_proceedings, case_outcome, and possibly artifacts.",
+      "metadata_filters_needed": [
+        "official=James Ibori",
+        "section"
+      ],
+      "expected_answer": "Should provide a comprehensive multi-section profile of James Ibori (former Delta State Governor) covering: (1) specific charges filed against him, (2) the alleged amount stolen in Naira from financial_details, (3) Nigerian court proceedings and their outcome, (4) the UK case where he was convicted by Southwark Crown Court after pleading guilty to money laundering and fraud, and (5) his sentencing and any asset recovery. The UK conviction is a critical part that must not be omitted.",
+      "answer": "## James Onanefe Ibori (Former Governor, Delta State 1999–2007) — EFCC/UK case snapshot\n\n### 1) Charges (Nigeria + UK)\n\n**Nigeria (EFCC)**\n- **Kaduna Federal High Court (arraignment: 12 Dec 2007):** **103 counts** including **money laundering** and **abuse of office** (EFCC lead counsel recorded as **Rotimi Jacobs**). Key allegations listed in the charge narratives include:  \n  - **Alleged bribe to EFCC (26 Apr 2007):** **₦1.8 billion (~$15m)** cash allegedly offered to influence the investigation (Money Laundering (Prohibition) Act reference appears in the case file).  \n  - **Afribank share purchases using allegedly concealed funds:** **₦280m** (Lipopo Nigeria Ltd) and **₦220m** (Kent) allegedly used to buy shares in fictitious names.  \n  - **Delta State funds allegedly diverted:** **₦5bn** allegedly transferred from Delta State accounts to buy Afribank shares via a fictitious company.  \n  - **Personal enrichment transfers:** entries include **₦5m** and **₦1m** moved from Delta State accounts to Ibori’s personal **GTB** account (as particularised in the charges summary).\n\n- **Asaba Federal High Court (verdict: 17 Dec 2009):** EFCC filed **170 counts** of corruption/abuse of office after the matter was transferred; Ibori was **discharged and acquitted** at first instance (later overturned on appeal—see outcomes below).\n\n**United Kingdom (Southwark Crown Court)**\n- **Guilty plea (27 Feb 2012):** Ibori pleaded guilty to **10 counts** of:\n  - **Money laundering**\n  - **Conspiracy to defraud**\n- UK case particulars in the records include:\n  - **V‑Mobile transaction fraud:** **$37m** allegedly siphoned from sale of Delta State’s V‑Mobile stake; laundered via offshore structures and associates (including solicitor **Bhadresh Gohil** referenced in UK proceedings).\n  - **“General plunder”/systematic theft** during 1999–2007 with laundering of proceeds through the UK.\n  - **Fraudulent qualification to hold office:** alleged false details (DOB/criminal record concealment) used to become governor (raised in UK prosecution narrative).\n\n---\n\n### 2) How much was allegedly stolen (amounts cited in the case records)\n\nCase records cite multiple figures (different authorities/contexts):\n\n- **British police estimate (reported 2012):** **$250 million** stolen over eight years as governor.  \n- **Amount admitted in UK court via plea:** **£50 million** (Ibori’s guilty plea basis).  \n- **UK sentencing judge’s assessment:** total may be **“in excess of £200 million”** (judge’s statement on potential scale beyond the admitted sum).  \n- **EFCC/Nigeria “second wave” allegation (2010 reopening):** **₦40 billion** (also described as about **$266m** in the file’s conversion).  \n- **Database summary card total alleged:** shown as about **₦380bn** in one profile card and **₦399bn** in another (both tagged “summary [convicted]”, reflecting aggregation/normalisation in the profile layer).\n\n**Asset restraint / recovery figures appearing in records**\n- **UK asset freeze (Aug 2007):** about **£17m** (≈ **$35m**) frozen.  \n- **UK confiscation order (21 Jul 2023):** **£101.5m** ordered confiscated.  \n- **Returned to Nigeria (Mar 2021):** **£4.2m** returned under the UK–Nigeria asset return MoU (noted as ~2.7% of the targeted amount in the same records).\n\n---\n\n### 3) Court proceedings (key courts, judges, and steps)\n\n**Nigeria**\n- **Federal High Court, Kaduna (Dec 2007):**\n  - **Judge:** Justice **Mohammed Lawal Shuaibu**\n  - **Event:** arraigned on **103 counts**; **bail refused**; remanded in EFCC custody (flight-risk rationale noted, including reference to prior UK convictions).\n- **Court of Appeal, Kaduna (jurisdiction/transfer):**\n  - **Justice Amina Augie** referenced in the transfer/jurisdiction sequence; matter moved toward Delta/Benin jurisdiction.\n- **Federal High Court, Asaba (17 Dec 2009):**\n  - **Judge:** Justice **Marcel Awokulehin**\n  - **Outcome:** **acquitted** on **170 counts** (EFCC appealed).\n- **Court of Appeal, Benin (15 May 2014):**\n  - **Outcome:** set aside the Asaba acquittal; held Ibori **had a case to answer**, opening the way for a fresh Nigerian trial after the UK process (case records note no completed Nigerian re-prosecution reported).\n\n**United Kingdom**\n- **Southwark Crown Court**\n  - **Guilty plea:** **27 Feb 2012**\n  - **Sentencing:** **17 Apr 2012**\n  - **Sentencing judge:** **Anthony Pitts**\n  - **Prosecution:** **Sasha Wass QC** (CPS) (named in records)\n  - **Defence:** **Nicholas Purnell**\n- **Appeals (2017–2018):**\n  - **Outcome:** conviction appeal **rejected**; further appeal **dismissed Oct 2018** (as recorded).\n- **Confiscation proceedings:**\n  - Began **2013**, delayed for years; effectively resumed around **2020**.\n  - **21 Jul 2023:** **Judge David Tomlinson** ordered confiscation of **£101.5m**, payable immediately **or** an **additional 8 years** imprisonment (alternative sentence) per the UK order terms.\n\n---\n\n### 4) What happened in the end (status/outcome, including the UK case)\n\n**UK (final status in records)**\n- **Convicted (2012)** after guilty plea; **13-year** sentence.\n- **Released:** **Dec 2016** (served roughly half; record notes this as standard, including pre-trial custody) and returned to Nigeria in early **2017**.\n- **Appeal against conviction:** **unsuccessful (2018)**.\n- **Confiscation:** **£101.5m** confiscation order issued **21 Jul 2023**; records note Ibori **said he would appeal** the confiscation order.\n\n**Nigeria (final status in records)**\n- **2009 acquittal** on **170 counts** at Asaba Federal High Court was **overturned on appeal (15 May 2014)**, with the appellate court holding he had a case to answer.\n- **Current Nigerian endpoint in the available case data:** records state **no further Nigerian prosecution has been reported as completed** after the UK imprisonment.\n\n---\n\nIf you want, I can also lay this out as a dated timeline (Nigeria vs UK side-by-side) or extract a clean list of the Nigerian 103-count allegations vs the UK 10-count guilty-plea counts from the case records.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 28752,
+      "pass": true,
+      "evaluation_notes": "Matched 26/39 expected terms."
+    },
+    {
+      "id": "corr-010",
+      "category": "unknown_official",
+      "question": "What is the EFCC case against Governor Adeleke of Osun State?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "If Adeleke is not in OFFICIALS_MAP, query analysis won't extract an official name. The search will be purely semantic with no official filter, likely returning irrelevant results or no results.",
+      "expected_behavior": "Should clearly state no data found for this official rather than hallucinating.",
+      "metadata_filters_needed": [
+        "official"
+      ],
+      "expected_answer": "Should clearly state that no corruption case data exists for Governor Adeleke of Osun State in the database. The response must NOT hallucinate charges, amounts, or case details. It may suggest searching for other Osun State officials if any exist in the data, but it must be transparent that Adeleke was not found in the corruption case files.",
+      "answer": "## Official/topic extracted from your question\n- **Official:** Governor **Ademola Adeleke** (Osun State)\n- **Topic:** Whether there is an **EFCC corruption case** (investigation/charges/prosecution) against him.\n\n## What our EFCC case records show (Adeleke)\nBased on available EFCC case data, **there is no EFCC case file/charge/prosecution record indexed under “Ademola Adeleke” as an accused person** (no summary/overview/charges/court proceedings/case outcome entries returned for him).\n\n## What *is* in the Osun-related EFCC material (but not an Adeleke-as-defendant case)\nThe Osun excerpts in our records that mention Adeleke do so **as a successor governor referencing legacy projects** from the **Rauf Aregbesola** era—e.g., Adeleke’s administration reportedly cited “inflated/uncompleted projects” left behind. Those records relate to **petitions to EFCC about Aregbesola-era allegations**, not an EFCC prosecution of Adeleke.\n\n## Current status (as per our records)\n- **Governor Ademola Adeleke:** **No EFCC case found in database** (as defendant).\n- **Osun/Aregbesola-related petitions:** Recorded as **petitions submitted** to EFCC (Ibadan zonal office), with **no documented prosecution initiated** in those entries.\n\nIf you want, tell me whether you mean **a different kind of case** (e.g., ICPC, police, election/tribunal matters, or a non-EFCC allegation), and I’ll search specifically for that agency/category.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 15128,
+      "pass": true,
+      "evaluation_notes": "Matched 6/20 expected terms."
+    },
+    {
+      "id": "corr-011",
+      "category": "party_filter",
+      "question": "List all APC governors that have been charged with corruption",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires combining party=APC filter with aggregation. Party metadata may not be consistently populated for all officials. Some officials changed parties (e.g., decamped from PDP to APC) but only one party is stored.",
+      "expected_behavior": "Should search with party=APC, section=summary, high topK and list results.",
+      "metadata_filters_needed": [
+        "party=APC",
+        "section=summary"
+      ],
+      "expected_answer": "Should return a list of officials tagged with party=APC who have corruption cases, including names like Yahaya Bello (Kogi) and any others stored with APC affiliation. Each entry should include the official's name, state, position, and case status. The response should acknowledge that some officials may have switched parties (e.g., from PDP to APC) and the data may reflect only one party affiliation. It should not miss officials due to party-switching ambiguity.",
+      "answer": "From EFCC case records available, the following **APC governors (serving or former)** have **had formal corruption charges filed in court** (i.e., were *charged*, not just investigated/petitioned):\n\n## APC governors charged with corruption\n\n### 1) **Rochas Anayo Okorocha** — Former Governor, **Imo State**\n- **Party at time in focus:** APC (as stated in the charging reports)\n- **Charging authority:** **EFCC**\n- **Charge details:** EFCC filed a **17-count charge** at the Federal High Court, Abuja, alleging conspiracy and theft/money laundering involving **public funds** (reported as **₦2.9 billion**).\n- **Court status in our records:** **Discharged** (the charge was filed and arraignment reported).  \n  **Source in records:** TheCable (Feb 8, 2022); Legit (May 30, 2022).\n\n### 2) **Yahaya Adoza Bello** — Former Governor, **Kogi State**\n- **Party:** APC\n- **Charging authority:** **EFCC**\n- **Charge posture:** **Charges filed** (arraignment has faced delays/litigation per the overview in our records).\n- **Amounts referenced in case profile:** allegations evolving across filings/charges (noted in overview) from about **₦80.2bn** to **₦84bn** and **₦110.4bn** (separate matters referenced).\n- **Case status:** **Ongoing**.  \n  **Source in records:** Yahaya Bello case overview (EFCC prosecution context).\n\n## Important clarification (to avoid over-listing)\nSeveral APC figures in the retrieved case data are **under investigation / accused in petitions / publicly alleged**, but **not shown as formally charged** in the EFCC-linked case records we pulled here—for example:\n- **Akinwunmi Ambode (Lagos)** — investigation reported; **no formal charges** recorded.\n- **Godswill Akpabio (Akwa Ibom)** — petitions/investigation mentions; **no formal charges** recorded.\n- **Abdullahi Ganduje (Kano)** — **charged**, but the charge reflected in our record is **in Kano State High Court** (state prosecution), and the EFCC note says **no federal EFCC charge** yet.\n\nIf you want, I can narrow the list to **(a) sitting APC governors only** or **(b) EFCC-only charges only** (excluding state-filed cases), depending on what you mean by “APC governors.”",
+      "resolved_intent": "unknown",
+      "response_time_ms": 17670,
+      "pass": true,
+      "evaluation_notes": "Low term match: 5/27 expected terms."
+    },
+    {
+      "id": "corr-012",
+      "category": "state_aggregation",
+      "question": "Which Nigerian state has produced the most corrupt officials?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires aggregating officials by state metadata across ALL entries. No built-in group-by capability in vector search. Agent must pull all summary chunks and manually count per state. TopK=50 may not be enough.",
+      "expected_behavior": "Should attempt broad search with high topK and manually tally states, with disclaimer about data coverage.",
+      "metadata_filters_needed": [
+        "section=summary"
+      ],
+      "expected_answer": "Should provide a state-by-state tally of officials with corruption cases, identifying which state has the highest count. The answer should list at least the top 3-5 states by number of officials. It must include a disclaimer that results are limited to the ~200+ officials in the database and may not reflect complete reality. The methodology (counting officials per state from available data) should be transparent.",
+      "answer": "No single Nigerian state can be **factually** labelled “the most corrupt” from EFCC case records alone, because:\n\n- EFCC cases are **not a census** of corruption; they reflect **who was investigated/charged/convicted** and what data is captured.\n- Many EFCC profiles in our records have **messy or missing “State” fields** (often showing “, Nigeria” or biography text), which makes clean state-by-state counting unreliable.\n- “Most corrupt” also needs a metric: **most officials investigated**, **most convictions**, or **highest total amount alleged/recovered**—these can point to different states.\n\n## What can be said from the available EFCC case data (examples)\nEven with the limitations, our records show **multiple high-profile EFCC matters** tied to certain states:\n\n- **Abia State**: Multiple linked ongoing EFCC cases around the Theodore Orji network (e.g., Chinedum Orji; Philip Nto), with totals cited around **₦60.85bn–₦60.9bn** in the Abia matters (case profiles + arraignment reporting in our records).\n- **Delta State**: Prominent convictions include **James Ibori** (UK conviction for laundering/embezzling about **£50m / $79m**) and EFCC-linked convictions like **Peter Nwaoboshi** (amounts alleged in our EFCC profile include **₦805m** / also appears as **₦3.6bn** in another record entry—indicating data duplication/inconsistency).\n\n## A more defensible way to answer your question\nIf you tell me which metric you want, I can rank states using EFCC case files, for example:\n\n1) **Most EFCC-convicted officials by state**  \n2) **Most EFCC cases (ongoing + concluded) by state**  \n3) **Highest total amount alleged by state (sum of “Total Amount Alleged”)**\n\nWhich one should I use?",
+      "resolved_intent": "unknown",
+      "response_time_ms": 13142,
+      "pass": true,
+      "evaluation_notes": "Matched 8/26 expected terms."
+    },
+    {
+      "id": "corr-013",
+      "category": "financial_comparison",
+      "question": "Compare the total amounts allegedly stolen by Diezani Alison-Madueke, Sani Abacha, and James Ibori — convert everything to USD",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires: (1) retrieving financial_details for 3 officials, (2) handling mixed currencies (NGN, USD, GBP), (3) converting to USD. The stored amount_alleged_ngn uses fixed exchange rates (USD=1500 NGN) that may not reflect actual case amounts in USD.",
+      "expected_behavior": "Should retrieve financial details for each official and present comparison, noting currency conversion limitations.",
+      "metadata_filters_needed": [
+        "official",
+        "section=financial_details"
+      ],
+      "expected_answer": "Should present a side-by-side comparison of the alleged amounts for Diezani Alison-Madueke (former Petroleum Minister), Sani Abacha (former military head of state), and James Ibori (former Delta State Governor). Abacha's alleged theft (estimated $3-5 billion USD) should be the largest. Amounts should be converted from amount_alleged_ngn to USD, with the conversion rate noted (e.g., 1 USD = 1500 NGN). The response must flag that the fixed exchange rate may not accurately reflect historical USD values at the time of the alleged crimes.",
+      "answer": "## Totals alleged — converted to USD (from EFCC case records / linked case files)\n\nBecause the database entries already include USD equivalents for Diezani and Ibori, I used those provided conversions. For Abacha, the records state the alleged theft directly in USD (a range), so no FX conversion is needed.\n\n| Official | Total amount alleged (as recorded) | USD equivalent (normalized) | Notes on what “total” represents |\n|---|---:|---:|---|\n| **Diezani Alison‑Madueke** | **₦120.0 billion** | **~$80.0 million** | EFCC/US-linked profile summary figure (ongoing case profile). |\n| **James Ibori** | **₦399.0 billion** | **~$266.0 million** | Profile summary figure; database also contains an alternate summary entry: ₦380.0bn (~£200.0m). |\n| **Sani Abacha** | **$2.0–$5.0 billion** | **$2.0–$5.0 billion** | Range cited in overview (Transparency International up to $5bn); this is regime-era “Abacha loot” estimate, not a single charge sheet figure. |\n\n### Comparison (using the USD figures above)\n- **Largest (by far): Sani Abacha** at **$2B–$5B** alleged.\n- **Next: James Ibori** at **~$266M** alleged.\n- **Then: Diezani Alison‑Madueke** at **~$80M** alleged (noting other larger allegations exist in narrative sections, but the profile “Total Amount Alleged” shows ~$80M).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 14514,
+      "pass": true,
+      "evaluation_notes": "Matched 11/35 expected terms."
+    },
+    {
+      "id": "corr-014",
+      "category": "temporal",
+      "question": "Which corruption cases have been ongoing for more than 10 years without a verdict?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "No date metadata (charge_date, trial_start_date) in the vector index. Agent must search for status=ongoing cases, then parse timeline sections for dates, and calculate duration. Extremely dependent on timeline data quality.",
+      "expected_behavior": "Should search for ongoing cases and attempt to identify long-running ones from timeline data.",
+      "metadata_filters_needed": [
+        "status=ongoing",
+        "section=timeline"
+      ],
+      "expected_answer": "Should identify officials with status 'ongoing' whose cases began more than 10 years ago (before 2016 given the current date). Likely candidates include Diezani Alison-Madueke (case ongoing since around 2015) and Sambo Dasuki (charged around 2015). The answer should extract dates from timeline sections and calculate durations. It must acknowledge that date information may be incomplete and that the 10-year threshold is approximate based on available timeline data.",
+      "answer": "Corruption cases in our EFCC case records that have **run for 10+ years without a final verdict (no conviction/acquittal/judgment delivered)** include:\n\n## 1) Gabriel Suswam (Former Governor, Benue State) — **EFCC ₦3.1bn case**\n- **Status:** Ongoing; **judgment pending**\n- **Age of case:** **~10+ years** (trial timeline in records: **2015–2025/2026**)\n- **Latest procedural update:** Final written addresses slated for **20 Jan 2026**, after which judgment is expected.  \n  (From court proceedings/case outcome records)\n\n## 2) Aminu Baba‑Kusa (ex‑ONSA official; “Dasukigate” linked proceedings)\n- **Status:** Ongoing (trial continues)\n- **Age of case:** **Over a decade** (records state **since 2015**, still ongoing as of early 2026)\n- **Notes on why it has dragged:** multiple judicial reassignments, bail controversies, procedural delays.  \n  (From overview records)\n\n## 3) Ramalan Yero (Former Governor, Kaduna State)\n- **Status:** Ongoing (no final verdict reported in records)\n- **Age of case:** **10+ years** *in practical duration terms* based on the record that it was already in court by **Nov 2018** (re‑arraignment) and remained unresolved through **2022–2026**; the file treats it as an **ongoing long-running matter** with no reported judgment.\n- **Caveat:** the excerpted timeline does not show the original filing year, only that proceedings have persisted for years and remain unresolved.  \n  (From timeline records)\n\n## Not counted (because a verdict/outcome exists or trial not yet 10+ years)\n- **Joshua Dariye** — had a **verdict (convicted)**, even though it took about 10 years.\n- **Adebayo Alao‑Akala** — **acquitted** (so not “without a verdict”).\n- **Abdullahi Ganduje / Willie Obiano / Tersoo Loko / Godwin Obaseki** — shown as **ongoing**, but the extracted records here don’t establish **10+ years of court proceedings without a verdict** for these specific matters.\n\nIf you want, I can list them strictly by **“10+ years since charges/arraignment filed”** (not just “case has been ongoing for a decade” language), but I’ll need to pull each official’s **timeline + court_proceedings** sections to confirm exact start dates.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 12448,
+      "pass": true,
+      "evaluation_notes": "Matched 11/40 expected terms."
+    },
+    {
+      "id": "corr-015",
+      "category": "negation",
+      "question": "Which former governors have NEVER been investigated for corruption despite allegations?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires knowledge of ALL former governors (not just those in the database) and identifying those with status=never_charged. The database only contains officials who HAVE case files — governors with zero EFCC involvement may not exist in the index at all.",
+      "expected_behavior": "Should search for never_charged status and note the limitation that absence from the database doesn't mean no allegations exist.",
+      "metadata_filters_needed": [
+        "status=never_charged"
+      ],
+      "expected_answer": "Should return officials with status 'never_charged' from the database, if any exist. Critically, the response must explain the inherent limitation: the database only contains officials who have case files, so governors with zero formal investigation would not appear at all. The answer should NOT claim to provide a complete list of uninvestigated governors, and should clearly distinguish between 'never_charged' status in the data versus complete absence from the data.",
+      "answer": "From available EFCC case records, the former governors below have **corruption allegations/petitions in the public domain but no documented anti‑graft investigation action** (i.e., no confirmed EFCC investigation steps such as invitation/interrogation/arrest, or any formal investigative outcome) **as captured in the “arrest & investigation” files**:\n\n## Former governors with allegations but *no documented EFCC investigation*\n1. **Donald Duke** (former Governor, Cross River State, 1999–2007)  \n   - Case records note petitioners complained the EFCC “refused to investigate” and that petitions “gathered dust” in EFCC archives.  \n   - BBC (Sept 2006) also reported Duke was the only governor specifically named as *not* under EFCC investigation at the time.  \n   - **No EFCC charges were brought.**\n\n2. **Adams Oshiomhole** (former Governor, Edo State, 2008–2016)  \n   - EFCC received petitions (notably 2012 and 2016; evidence delivered in January 2017).  \n   - Case records state **no investigation, arrest, or prosecution reported** following those petitions.\n\n## Important clarification (so the list isn’t misleading)\nSome officials attract “EFCC inaction” claims, but the records still indicate **some level of investigation** (petitions logged, invitations, interrogations, or stated EFCC investigations). Those **do not** fit your “never been investigated” threshold. Examples from the records you surfaced include:\n- **Ahmed Makarfi** — reported as “investigated” by EFCC (Africa Confidential), even though no charges/court case exist.\n- **Rabiu Kwankwaso / Adamu Muazu** — multiple allegations/EFCC “investigations” referenced, but no prosecution.\n- **Hope Uzodinma** — EFCC matters exist but prosecution is blocked while in office (immunity).\n\nIf you want, I can re-run this as a **strict “ex-governors only” table across the whole database** and separate:\n- *no investigation documented*, vs\n- *investigated but not charged*, vs\n- *charged/prosecuted/convicted*.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 16243,
+      "pass": true,
+      "evaluation_notes": "Matched 7/26 expected terms."
+    },
+    {
+      "id": "corr-016",
+      "category": "international",
+      "question": "Which Nigerian officials have been investigated by foreign agencies like the FBI, UK Metropolitan Police, or DOJ?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Agency filter uses $eq which requires exact match. Foreign agencies stored as 'FBI', 'UK Metropolitan Police', 'US DOJ'. Must make separate searches per agency. Also, agency is comma-separated so $eq won't match 'EFCC, UK Metropolitan Police'.",
+      "expected_behavior": "Should search for each foreign agency separately and compile results.",
+      "metadata_filters_needed": [
+        "agency"
+      ],
+      "expected_answer": "Should list officials investigated by international agencies, including at minimum: James Ibori (UK Metropolitan Police, convicted in UK), Diezani Alison-Madueke (UK agencies, ongoing), and Sani Abacha (multiple international investigations for asset recovery). The response should cover FBI, UK Metropolitan Police, UK SFO, and US DOJ investigations. Each entry should name the official, the foreign agency involved, and the nature/outcome of the international case. Officials with comma-separated agency values (e.g., 'EFCC, UK Metropolitan Police') must not be missed.",
+      "answer": "From the EFCC-linked case records in our database, the following Nigerian officials/figures show *documented involvement of foreign law‑enforcement or justice authorities* (FBI, UK Metropolitan Police, and/or U.S. DOJ):\n\n## FBI (United States)\n- **James Ibori** (former Governor, Delta State) — case records describe a joint EFCC–London Metropolitan Police investigation and note offshore structures and overseas assets; the same network is tied to UK investigations (Met Police) and international cooperation.  \n- **Chimaroke Nnamani** (former Governor, Enugu State) — listed with **EFCC, FBI** as investigating agencies; records reference FBI involvement in money-laundering/forfeiture support. *(Case status in our records: convicted.)*\n- **Abba Kyari** (senior police officer; former IRT/SARS leadership) — listed with **NDLEA, NPF, FBI** as investigating agencies. *(Case status: ongoing in our records.)*\n- **Goodluck Jonathan** (former President) — appears in our summaries with **EFCC, FBI** as investigating bodies in connected matters, while his specific status is **never charged** in the same dataset (i.e., foreign inquiries/cooperation referenced, but no EFCC charge recorded against him).\n- **Dapo Abiodun** (Governor, Ogun State) — appears in our summary index with **EFCC, FBI** listed. *(Status: never charged in our records.)*\n- **Abdulrasheed Bawa** (former EFCC Chairman) — appears in our summary index with **EFCC, NPF, DSS, FBI** listed. *(Status: never charged in our records.)*\n\n## UK Metropolitan Police (United Kingdom)\n- **James Ibori** — records describe a **joint EFCC–Metropolitan Police** enquiry dating from **2005**, including overseas properties and financial trails.\n- **Victor Attah** (former Governor, Akwa Ibom State) — summary records list **EFCC, NPF, UK Metropolitan Police**; the case narrative references the Met Police Proceeds of Corruption Unit’s interest and attempts to have “other parties…clear their names.” *(Status: never charged in our records.)*\n\n## U.S. Department of Justice (DOJ) / Kleptocracy Asset Recovery & civil forfeiture\n- **Diezani Alison‑Madueke** (former Minister of Petroleum Resources) — summary records list **EFCC, US DOJ**; case files reference U.S. civil forfeiture activity tied to alleged oil-sector corruption proceeds. *(Status: ongoing in our records.)*\n- **Kola Aluko** (oil-sector businessman; linked to NPDC SAAs) — case files list **EFCC** actions plus **US DOJ** Kleptocracy Asset Recovery involvement (civil forfeiture focus). *(Status: unknown/at large context in our records.)*\n- **Mohammed Bello Adoke** (former Attorney‑General of the Federation) — summary records list **EFCC, US DOJ** in connection with OPL 245-related international dimensions. *(Status: acquitted in our records.)*\n\n### Notes on interpretation (to avoid overclaiming)\n- Some names above are **public officials**, while others (e.g., **Kola Aluko**) are **key private-sector figures** in EFCC case files who attracted foreign asset recovery actions.\n- “Investigated by” here reflects **foreign agency participation/cooperation, parallel inquiries, or civil forfeiture actions** recorded in the case data—not necessarily that the person was criminally charged abroad.\n\nIf you want, I can break this down into a table (Official → Foreign agency → nature of foreign involvement → current Nigerian case status) for just the FBI, just the UK, or just DOJ.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 21437,
+      "pass": true,
+      "evaluation_notes": "Matched 16/34 expected terms."
+    },
+    {
+      "id": "corr-017",
+      "category": "plea_bargain",
+      "question": "List all officials who took plea bargains — what did they forfeit and what sentences did they get?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires status=plea_bargain filter plus case_outcome and financial_details sections for each matched official. Multi-step: first find plea bargain officials, then drill into each one's details.",
+      "expected_behavior": "Should search with status=plea_bargain first, then retrieve case_outcome for each official found.",
+      "metadata_filters_needed": [
+        "status=plea_bargain",
+        "section=case_outcome"
+      ],
+      "expected_answer": "Should list all officials with status 'plea_bargain', and for each one provide: (1) their name and position, (2) the assets or funds forfeited as part of the deal, (3) the sentence received (if any), and (4) a brief description of the original charges. The answer should draw from both case_outcome and financial_details sections. If no plea bargain officials exist in the data, the response should state that clearly rather than hallucinating examples.",
+      "answer": "I don't have EFCC case data that matches your question in our records. Our database covers cases involving former governors and officials investigated by the EFCC. Try asking about a specific official, for example: \"What happened to James Ibori?\" or \"Tell me about Diezani's case.\"",
+      "resolved_intent": "unknown",
+      "response_time_ms": 1668,
+      "pass": false,
+      "evaluation_notes": "FAIL: Said 'no data' for an aggregation query."
+    },
+    {
+      "id": "corr-018",
+      "category": "dead_officials",
+      "question": "What happened to the corruption cases of officials who died before their trials concluded?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Requires status=abated_by_death filter. Relatively straightforward but tests whether this status value is properly indexed and retrievable.",
+      "expected_behavior": "Should find officials with abated_by_death status and describe what happened to their cases.",
+      "metadata_filters_needed": [
+        "status=abated_by_death"
+      ],
+      "expected_answer": "Should identify officials with status 'abated_by_death', most notably Sani Abacha (former military head of state who died in 1998). For each official found, the response should explain what happened to their case after death — typically cases are legally abated (discontinued) but asset recovery efforts may continue. The answer should mention any ongoing civil forfeiture proceedings or international asset recovery efforts that survived the official's death.",
+      "answer": "When an accused person dies before a Nigerian criminal corruption trial is concluded, the case typically **cannot proceed to conviction or acquittal against that person**. In practice, the matter is treated as **abated/terminated as to the deceased**, even if there were investigations, pending charges, or ongoing proceedings.\n\nBased on EFCC case records, here is how that played out for officials in the database:\n\n## What usually happens (pattern in the records)\n1. **No final verdict is entered against the deceased** (no conviction, no acquittal).\n2. **Ongoing trial stops** because the defendant can no longer be tried/punished.\n3. **Any “future prosecution” becomes impossible** once death is confirmed.\n4. **Co-accused may still face separate proceedings**, but outcomes are often documented separately (and are sometimes unclear in available sources).\n\n## Examples from the case files\n\n### 1) Olusegun Agagu (Former Governor, Ondo State) — case effectively ended without charges\n- EFCC **arrested him on 3 March 2009** at Abuja airport, but he was **released the same day** “on instructions from the Presidency.”\n- **No charges were filed** and **no criminal trial took place**.\n- He **died 13 September 2013**, and the case is recorded as **abated—no conviction, no acquittal**. (Case outcome/court proceedings sections)\n\n### 2) Babalola Borishade — unresolved at death; no conviction recorded\n- Records indicate a long-running matter that **remained ongoing/inconclusive**; EFCC reportedly **reopened the file in 2016**.\n- He **died on 26 April 2017 (London)**.\n- The case had **no verdict** at the time of death: **neither convicted nor acquitted**; proceedings could not reach final judgment against him. (Case outcome section)\n- Co-defendants are mentioned (e.g., Tunde Dairo, Rowland Iyayi, etc.), but **their outcomes are not fully documented** in the sources referenced in the file.\n\n### 3) Abubakar Audu (Former Governor, Kogi State) — “effectively closed upon death”\n- EFCC allegations existed, but the case outcome summary states:\n  - **No conviction**\n  - **No acquittal**\n  - **Case status: effectively closed upon death**\n- A co-accused (Alfa Ibn Mustapha) is listed, but the **outcome is not clearly documented** in the gathered sources. (Case outcome section)\n\n### 4) Andrew Azazi — never arraigned; death ended any further action\n- Court proceedings section notes he was **never arraigned, tried, or convicted**.\n- He **died 15 December 2012** (helicopter crash); **no further legal action** was taken. (Court proceedings section)\n\n## Important distinction: death vs. acquittal\nNot every case involving a later death “abates” due to death—some defendants are **already discharged/acquitted** before they die.\n\n### Example: Hassan Lawal\n- Premium Times is cited in the records as reporting that he was **discharged and acquitted** of corruption charges.\n- He later **died on 24 March 2018**; the file notes some accounts suggesting ancillary aspects/appeals may not have fully concluded, but the recorded **court outcome is discharge and acquittal**. (Court proceedings/charges/overview sections)\n\nIf you want, I can pull a **short list of all “abated_by_death” cases** in the database and summarize (1) whether charges were ever filed, (2) the last known court step, and (3) any recorded co-accused outcomes.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 15620,
+      "pass": true,
+      "evaluation_notes": "Matched 11/33 expected terms."
+    },
+    {
+      "id": "corr-019",
+      "category": "routing_ambiguity",
+      "question": "How much of Lagos State's budget was stolen by its former governors?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Touches BOTH corruption and budget intents. Router must decide: is this about budget figures or corruption cases? The word 'stolen' suggests corruption, but 'budget' suggests budget intent. May misroute.",
+      "expected_behavior": "Should route to corruption and search for Lagos state officials with their financial details.",
+      "metadata_filters_needed": [
+        "state=Lagos",
+        "section=financial_details"
+      ],
+      "expected_answer": "Should correctly route to the corruption data source (not budget) and search for former Lagos State governors with corruption cases. The response should list any Lagos State officials found, their alleged amounts from financial_details, and case outcomes. If no Lagos State governors exist in the corruption database, it should state that clearly. The answer should NOT conflate budget allocation data with corruption case amounts, and should clarify that 'amount alleged stolen' comes from EFCC case files, not budget analysis.",
+      "answer": "There isn’t enough EFCC case data in our records to calculate **“how much of Lagos State’s budget was stolen by its former governors”**—because:\n\n1. **No EFCC Lagos ex-governor case profiles with quantified “total diverted” amounts** were returned under **state = Lagos** (summary search returned **0 results**).\n2. For the one Lagos ex-governor explicitly visible in the available case excerpts—**Akinwumi Ambode (former Governor of Lagos State)**—the material on record is **not an EFCC charge sheet or EFCC financial schedule**. It is **Lagos State House of Assembly allegations** about expenditures made **without appropriation**, including:\n   - **₦7 billion** for **820 buses** allegedly purchased without budgetary approval\n   - A broader **potential exposure/waste up to ₦45 billion** tied to the bus reform initiative and related costs (as alleged)\n\nThose figures describe **alleged unauthorised/irregular spending and potential waste**, **not a proven “stolen budget” total**, and they are **not aggregated across multiple former governors**.\n\n### What I can do next (to answer your question properly)\nIf you tell me **which former Lagos governors** you mean (e.g., **Bola Tinubu, Babatunde Fashola, Akinwunmi Ambode**), I can run **separate name-based searches** for each and summarize:\n- **Amounts alleged** (₦ / $)\n- **Charges filed (if any)**\n- **Court status/outcome** (convicted/acquitted/ongoing/never charged)\n- **Any forfeitures/recoveries** recorded\n\nAs it stands, the only Lagos-related quantified figures currently visible in the retrieved excerpts are **₦7bn** (buses) and **up to ₦45bn** (project exposure/waste) tied to **Ambode**, and that still does **not** equal “Lagos budget stolen by former governors.”",
+      "resolved_intent": "unknown",
+      "response_time_ms": 13164,
+      "pass": true,
+      "evaluation_notes": "Matched 8/30 expected terms."
+    },
+    {
+      "id": "corr-020",
+      "category": "follow_up_chain",
+      "question": "Tell me about Dariye's case",
+      "follow_ups": [
+        "What about Nyame?",
+        "Compare the two",
+        "Who got a harsher sentence?",
+        "Were they both pardoned?",
+        "By whom?"
+      ],
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Tests follow-up routing. After first question about Dariye, 'What about Nyame?' must maintain corruption context. 'Compare the two' requires the system to remember both officials. 'By whom?' requires deep case knowledge about who granted the pardon.",
+      "expected_behavior": "Each follow-up should maintain conversation context and route correctly back to corruption agent.",
+      "expected_answer": "For the initial question, should provide a comprehensive overview of Joshua Dariye's case (former Plateau State Governor), including charges, alleged amount, conviction, sentence, and subsequent pardon. For follow-ups: 'What about Nyame?' should return Jolly Nyame's case (former Taraba State Governor) without losing corruption context. 'Compare the two' should juxtapose both cases side by side. 'Who got a harsher sentence?' should compare their sentences. 'Were they both pardoned?' should confirm yes, both were pardoned. 'By whom?' should identify the president who granted the pardons.",
+      "answer": "## Joshua Dariye — EFCC corruption case (Plateau State)\n\n### 1) Who he is / context\n- **Joshua Chibi Dariye** was **Governor of Plateau State (May 1999–May 2007)** and later **Senator for Plateau Central** (per case records).\n- The case centred on **diversion/mismanagement of Plateau State ecological funds** and related **criminal breach of trust / misappropriation**.\n\n### 2) Investigation background (UK angle)\n- Case records note he was **arrested in London by the UK Metropolitan Police** on **20 Jan 2004** (some sources in the file also cite **Sept 2004**) during a **money laundering investigation**.\n- A key prosecution witness was **UK Metropolitan Police detective Peter Clark**, who testified about the London investigation, cash movements, and that Dariye **jumped bail**.\n\n### 3) Nigerian charges and core allegation\n- **EFCC arraigned Dariye in July 2007** at the **FCT High Court, Gudu, Abuja** on **23 counts**.\n- The allegations included diversion of ecological funds—case excerpts cite figures including **₦1.62 billion** (and some references in the records also cite about **₦1.126 billion**).\n- One specific factual detail in the case file: funds meant for Plateau State were allegedly **paid into an account in the name of an unregistered company, “Ebenezer Retnan Ventures,” at All States Trust Bank Plc**, rather than a Plateau State Government account.\n\n### 4) Court proceedings (why it took long)\n- **Trial Judge:** **Justice Adebukola Banjoko** (FCT High Court).\n- **Prosecution:** EFCC, led by **Rotimi Jacobs, SAN** (with **Tayo Olukotun**).\n- **Defence:** **G. S. Pwul, SAN** (and **Festus Jombo** at appeal stage).\n- Major delay driver: Dariye’s **jurisdiction challenge** (arguing he should be tried in Plateau, not FCT) was dismissed by the trial court (13 Dec 2007), but he pursued appeals up to the **Supreme Court**.  \n  - The **Supreme Court (27 Feb 2015)** dismissed his appeal and ordered accelerated hearing/submission for trial.\n- The prosecution called **10 witnesses** (including **Peter Clark**). Records note exhibits such as **bank documents, property records, and certified court orders**.\n- **Amended charge** was accepted **9 May 2016**; prosecution closed its case around June 2016; conviction came in 2018.\n\n### 5) Outcome (conviction, sentence, appeals)\n- **Convicted:** **12 June 2018**\n  - **Convicted on:** **15 of 23 counts**\n  - **Counts dismissed:** **8** (noted as duplicity/insufficient evidence in the case file)\n  - **Initial sentence:** **14 years’ imprisonment** (sentences ordered to run concurrently)\n- **Court of Appeal (Abuja), 16 Nov 2018 (Justice Stephen Adah-led panel):**\n  - **Conviction upheld**\n  - **Sentence reduced to 10 years** (court said the trial court “went too far” with the maximum sentence; also referenced “first offender” considerations)\n  - A diversion count sentence referenced in the records was reduced from **2 years to 1 year**, with sentences still running concurrently.\n- **Supreme Court:** Case records state it **affirmed the 10-year sentence** (the exact date of that final affirmation isn’t specified in the collected excerpts).\n\n### 6) Imprisonment, pardon, release\n- **Custody:** **Kuje Correctional Centre, FCT**\n- Served from **June 2018** until release in **August 2022** (records describe this as ~4 years).\n- **Presidential pardon:** **14 April 2022**\n- **Release:** **8 August 2022**\n\n### 7) Key names that feature prominently in the case records\n- **Justice Adebukola Banjoko** (trial judge)\n- **Justice Stephen Adah** (Court of Appeal)\n- **Rotimi Jacobs, SAN** (EFCC lead prosecutor)\n- **Peter Clark** (UK Met Police witness)\n- **Kawu Mohammed** (EFCC Asset Forfeiture/Recovery; records mention property/rent recovery evidence, including **₦67 million rent** linked to an Abuja property)\n\nIf you want, tell me what angle you care about—**charges breakdown**, **money trail/financial amounts**, or **pardon details**—and I’ll pull that part together in a tighter summary.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 17030,
+      "pass": true,
+      "evaluation_notes": "Matched 10/45 expected terms."
+    },
+    {
+      "id": "corr-021",
+      "category": "pidgin_query",
+      "question": "Wetin happen to dat Kogi governor wey dem dey find?",
+      "intent": "corruption",
+      "difficulty": "medium",
+      "why_it_breaks": "Nigerian Pidgin English. Router must understand this refers to Yahaya Bello (Kogi governor under EFCC investigation). Query analysis won't extract 'Yahaya Bello' from Pidgin. Must rely on 'Kogi' and 'governor' context.",
+      "expected_behavior": "Should identify this as corruption intent, search for Kogi state officials, and find Yahaya Bello.",
+      "metadata_filters_needed": [
+        "state=Kogi"
+      ],
+      "expected_answer": "Should correctly interpret the Nigerian Pidgin English query and identify Yahaya Bello as the former Kogi State Governor under EFCC investigation. The response should cover his case overview, the alleged amounts, charges, and current status (ongoing). The system must not fail to understand the Pidgin phrasing or misroute the query. Key contextual clues are 'Kogi' and 'governor'.",
+      "answer": "The “Kogi governor wey dem dey find” fit mean **two different people**, depending on the time you mean—because EFCC don “declare wanted” for one, and another get “wanted”-style public manhunt for arrest/arraignment.\n\n## 1) If na **Prince Abubakar Audu** (ex–Kogi governor, 1999–2003)\n- **EFCC once declare am wanted** over alleged **₦4 billion** fraud (case records say: conspiracy/stealing/misappropriation; reason: alleged failure to honour EFCC invitations).\n- EFCC investigation/charges started **after he left office in 2003**, and the case drag for years at **FCT High Court, Abuja**.\n- **Wetín happen?** Audu **die on 22 Nov 2015** (bleeding ulcer) while he still dey face the case.\n- **Case end how?** **No conviction, no acquittal**—case **effectively closed because the defendant died before judgment** (from EFCC case outcome records).\n\n## 2) If you mean **Yahaya Bello** (ex–Kogi governor, 2016–2024)\n- He no be “declared wanted” inside the excerpts you posted, but **EFCC dey prosecute am** for big money-laundering/diversion allegations:\n  - **₦80.2 billion** (19-count money laundering case), and\n  - a **separate case alleging ₦110 billion** diversion (both in **FCT High Court**, per case records from Premium Times excerpt).\n- **Status:** **Ongoing trial** (not yet concluded).\n\n### Quick question make I answer you sharp:\nYou dey talk of **Audu** (the one EFCC once “declare wanted” and later die), or **Yahaya Bello** (the one wey dey face ₦80.2bn/₦110bn cases now)?",
+      "resolved_intent": "unknown",
+      "response_time_ms": 12347,
+      "pass": true,
+      "evaluation_notes": "Low term match: 6/31 expected terms."
+    },
+    {
+      "id": "corr-022",
+      "category": "artifact_source",
+      "question": "What did BBC report about Diezani's case? Are there any Premium Times articles about her charges?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "Requires searching artifact chunks specifically. The artifact_source metadata may not be filterable via the search tool's current schema. Agent must retrieve artifacts section and hope chunk text mentions the source.",
+      "expected_behavior": "Should search for Diezani with broad query mentioning BBC/Premium Times and find relevant artifact chunks.",
+      "metadata_filters_needed": [
+        "official=Diezani Alison-Madueke"
+      ],
+      "expected_answer": "Should retrieve artifact chunks related to Diezani Alison-Madueke (former Petroleum Minister) that reference BBC and Premium Times reporting. The response should summarize what these sources reported about her case, including UK-based charges, asset seizures, and alleged misappropriation of oil revenues. If no artifact chunks with those specific sources are found, the response should state that clearly and offer what data is available from her case files rather than fabricating media reports.",
+      "answer": "## 1) What BBC reported about Diezani Alison‑Madueke’s case (from our case records)\nIn the EFCC case database materials currently indexed for **Diezani Alison‑Madueke**, I **did not find any BBC article/excerpt** captured as an “artifact” (i.e., no BBC-sourced record returned for “BBC” queries under her file at the moment).\n\nWhat *is* available in the records from other outlets (Reuters/Vanguard/TheCable) is that:\n- **UK NCA charged her on 22 Aug 2023** with **six bribery offences**, alleging she accepted rewards for awarding oil and gas contracts; she **denies the charges** and has been **on bail since her Oct 2015 arrest in London**. (Reuters, 2023-08-22; Vanguard, 2026-02-25)\n- Trial in the UK is recorded as having **commenced 26 Jan 2026** at **Southwark Crown Court**. (timeline; Vanguard, 2026-02-25)\n\nIf you want, tell me **the BBC headline or approximate date**, and I can re-run a narrower search (sometimes BBC items are stored under a slightly different “source” tag or title).\n\n## 2) Are there any Premium Times articles about her charges?\nYes—our records contain at least **one Premium Times artifact** linked to her case:\n\n- **Premium Times (Published: 2017-08-07)** — notes that Diezani was **in the UK under probe for alleged money laundering**, and that she had been **named in corruption charges against associates Jide Omokore and Kola Aluko in the United States**. (PremiumTimes_downloaded_2026-03-01_published_2017-08-07)\n\n### Related charge context in the EFCC file (Nigeria)\nSeparately from that Premium Times clipping, the **EFCC charges section** in our records lists Nigerian proceedings including:\n- **Money laundering (INEC/2015 election):** alleged conspiracy to take possession of **₦264.9 million** (dated **27 March 2015**), and references to EFCC including her in a **₦450 million** money-laundering charge (**March 2017**) and an **₦23 billion** alleged bribe charge involving INEC staff (**April 2017**). Status noted: **arrest warrant obtained; extradition proceedings initiated (Oct 2023)**. (charges; timeline)\n\nIf you want, I can pull **all Premium Times entries** in the database for her (not just the top result) by running a broader “source: PremiumTimes” sweep.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 14949,
+      "pass": true,
+      "evaluation_notes": "Matched 11/36 expected terms."
+    },
+    {
+      "id": "corr-023",
+      "category": "amount_edge_case",
+      "question": "Which officials had corruption cases involving more than $1 billion USD?",
+      "intent": "corruption",
+      "difficulty": "hard",
+      "why_it_breaks": "amount_alleged_ngn is stored in Naira. $1B USD ≈ ₦1.5T at the fixed rate. Vector search has no numeric range filter ($gt/$gte). Agent must retrieve all summary chunks and manually filter by amount.",
+      "expected_behavior": "Should pull high-topK summary chunks and filter for amount_alleged_ngn > 1.5 trillion.",
+      "metadata_filters_needed": [
+        "section=summary"
+      ],
+      "expected_answer": "Should identify officials whose amount_alleged_ngn exceeds approximately 1.5 trillion Naira (equivalent to $1 billion USD at the 1500 NGN/USD rate). Sani Abacha should almost certainly appear (estimated $3-5 billion). Diezani Alison-Madueke is also a strong candidate. The response should list each qualifying official with their name, position, alleged amount in both NGN and USD, and note the exchange rate used for conversion. It must perform the currency math correctly and not miss high-value cases.",
+      "answer": "Officials in our EFCC case records whose **case profiles** show totals **above US$1 billion** (either explicitly in USD equivalents on the summary card, or in USD-range allegations in the financial details) are:\n\n## Above $1 billion (explicitly shown on summary cards)\n1. **Mohammed Bello Adoke** — **₦9.0 trillion (~$6.0 billion)** (case status: *acquitted*; agency: EFCC, US DOJ).\n2. **Olu Agunloye** — **₦9.0 trillion (~$6.0 billion)** (case status: *ongoing*; agency: EFCC).\n3. **Jimoh Olasunkanmi** — **₦10.8 trillion (~$7.2 billion)** (case status: *ongoing*; agency: EFCC).\n4. **Saleh Mamman** — **₦8.7 trillion (~$5.8 billion)** (case status: *ongoing*; agency: EFCC).\n5. **Jide Omokore** — **₦2.4 trillion (~$1.6 billion)** (case status: *convicted*; agency: EFCC, US DOJ).\n\n## Above $1 billion (from financial-details allegations, not a summary-card USD equivalent)\n6. **Umaru Dikko** — alleged **$1 billion to ~$6 billion** (case status: *unknown/never tried or convicted* per the financial-details note; amounts are reported allegations, not a judicial finding).\n\n### Notably *not* above $1 billion based on the excerpts shown\n- **James Ibori** — shown as **~$266 million** (despite very large NGN figures listed).\n- **Ngozi Okonjo‑Iweala** — **never charged** in the records excerpt; total alleged shown as **₦63.0 billion** (well below $1bn at typical exchange rates).\n\nIf you want, I can list the **exact “Total Amount Alleged” fields** as recorded for each of the $1bn+ profiles and their current case statuses in one table.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 11914,
+      "pass": true,
+      "evaluation_notes": "Matched 8/35 expected terms."
+    },
+    {
+      "id": "corr-024",
+      "category": "multi_position",
+      "question": "Are there any officials who held multiple government positions and were charged for corruption in more than one role?",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Position is stored as a single field. Officials who served as governor then senator would only have one position recorded. The system cannot track multi-position histories from metadata alone.",
+      "expected_behavior": "Should note limitation and search overview/timeline sections for officials with documented multiple positions.",
+      "metadata_filters_needed": [
+        "section=overview"
+      ],
+      "expected_answer": "Should search overview and timeline sections for officials who held multiple government positions. The response should identify any officials whose case files mention serving in more than one role (e.g., governor then senator, minister then governor). It must acknowledge the data limitation that position is stored as a single field, so multi-position officials may only show their primary role in metadata. The answer should draw from narrative text in overview/timeline sections rather than relying solely on the position metadata field.",
+      "answer": "Yes—based on the EFCC/ICPC case records, there are officials whose case allegations explicitly span **more than one official capacity/appointment** (i.e., the alleged conduct is tied to different roles they held at different times).\n\n## 1) Winifred Ekanem Oyo‑Ita — multiple senior civil-service postings\n**Positions held (per case overview):**\n- Head of the Civil Service of the Federation (2015–2019)\n- Permanent Secretary (e.g., Ministry of Special Duties; previously Science & Technology)\n- Earlier senior roles in **Ministry of Power / PHCN** (Deputy Director/Director level)\n\n**How the charges cut across roles (per EFCC charges/overview):**\n- EFCC’s allegations are described as spanning her time as **Director, Permanent Secretary, and Head of Service**, involving:\n  - Contract-related offences using proxy companies across ministries (Special Duties, Power, Works & Housing)\n  - Bogus **DTA/estacode** claims\n  - Kickbacks/bribery and money laundering structures through fronts (Frontline Ace, Asanaya Projects, etc.)\n- Case is recorded as **ongoing** (trial reported as continuing into early 2026).\n\n## 2) Timipre Sylva — charged in different phases tied to different offices (state + federal)\n**Positions held (per case profile):**\n- Governor of Bayelsa State (2007–2012)\n- Minister of State for Petroleum Resources (2019–2023)\n\n**Distinct charge tracks tied to different roles (per EFCC charges record):**\n- **Bayelsa State-era cases** (while governor / relating to Bayelsa funds): e.g., EFCC filings including 2012 money-laundering-related counts and later Bayelsa-linked fraud allegations (e.g., the **₦19.2–₦19.5bn** movements alleged).\n- **Federal appointment-era case**: allegations connected to his role as **Minister of State for Petroleum / NCDMB Governing Council Chair**, including alleged dishonest conversion/conspiracy involving **$14,859,257** (NCDMB refinery investment matter).\n- Case status in our records: **ongoing** (with some sub-matters withdrawn/consolidated/dismissed and fresh filings noted in the charges summary).\n\n## Not clearly “more than one role” in the available records (important caveat)\nSome officials held multiple public positions, but the **charge sheet/data we pulled ties the prosecution to one principal role**, not “charged in more than one role.” For example:\n- **Sule Lamido**: charges are framed around his tenure as **Governor of Jigawa State** (abuse of office/money laundering), with sons allegedly used as fronts—no second, separate charged role is specified in the excerpted charges data.\n- **Hassan Arivi Saddiq**: charged (ICPC) in the REA-related matter; the record doesn’t show a separate second role with a separate corruption charge.\n\nIf you want, I can expand this into a longer list by running a targeted scan for keywords like **“former governor and minister,” “also served as…,” “charged again,”** and then verifying from each official’s **charges + timeline** sections whether there are truly **separate role-linked prosecutions** (not just a long career history).",
+      "resolved_intent": "unknown",
+      "response_time_ms": 27961,
+      "pass": true,
+      "evaluation_notes": "Matched 10/33 expected terms."
+    },
+    {
+      "id": "corr-025",
+      "category": "exhaustive_comparison",
+      "question": "Give me a complete breakdown of every convicted governor: their state, party, amount stolen, sentence, and whether they've been pardoned",
+      "intent": "corruption",
+      "difficulty": "very_hard",
+      "why_it_breaks": "Requires: status=convicted + position containing 'governor' (no position filter exists) + financial_details + case_outcome for EACH one. Agent has only 10 steps. If there are 15+ convicted governors, agent cannot search each individually.",
+      "expected_behavior": "Should search with status=convicted, high topK, then attempt to retrieve details for as many as possible within step limit.",
+      "metadata_filters_needed": [
+        "status=convicted",
+        "section=summary",
+        "section=case_outcome",
+        "section=financial_details"
+      ],
+      "expected_answer": "Should provide a structured table or list of all convicted governors including at minimum: Joshua Dariye (Plateau, convicted then pardoned), Jolly Nyame (Taraba, convicted then pardoned), Orji Uzor Kalu (Abia, convicted), and James Ibori (Delta, convicted in UK). For each governor, the response must include: state, party affiliation, amount_alleged_ngn, sentence length, and pardon status. The answer should also include officials with status 'pardoned' since they were convicted first. It should acknowledge if the step limit prevented retrieving details for all convicted governors.",
+      "answer": "Below is a **governor-only** list from the EFCC case records that show a **conviction** (including one convicted abroad). Note: the EFCC “convicted” status tag in our database sometimes includes people who were later **discharged/abated**—I have **excluded** those and only kept entries where the **case outcome confirms a conviction**.\n\n## Complete breakdown — convicted governors\n\n| Governor | State | Party (as captured in case records) | Amount (alleged / proven in case records) | Sentence | Pardoned? |\n|---|---|---|---:|---|---|\n| **Joshua Dariye** (ex-Gov; later Senator) | **Plateau** | **PDP** (not consistently captured in the summary card, but conviction records identify him as Plateau ex-governor under PDP era) | **₦1.16bn** (widely cited in case records; some reports also describe “over ₦2bn”) | **14 years** (FCT High Court, 2018, concurrent terms); **reduced to 10 years on appeal; Supreme Court upheld** | **Yes** — **Presidential pardon approved April 2022**; **released Aug 2022** |\n| **Jolly Nyame** (ex-Governor) | **Taraba** | **PDP** (not cleanly parsed in the summary card; underlying reporting places him in PDP era) | **₦1.64bn** (EFCC charge; widely reported as **₦1.6bn**) | **14 years** (FCT High Court, **30 May 2018**); **reduced to 12 years**; **Supreme Court affirmed 12 years (7 Feb 2020)** | **Yes** — **Presidential pardon approved 14 Apr 2022**; **released Aug 2022** |\n| **Lucky Igbinedion** (ex-Governor) | **Edo** | **PDP** (record shows “platform” but his tenure was PDP) | **₦4.4bn** (alleged in EFCC case reporting) | **Plea bargain** outcome: **fine ₦3.5m**, **no jail time** (per case reporting) | **No presidential pardon recorded** (sentence was non-custodial fine) |\n| **James Ibori** (ex-Governor) | **Delta** | **PDP** (commonly recorded; party not returned in the case_outcome excerpt but is consistent across historical case records) | Case outcome file carries **₦399bn** as total alleged in metadata; UK also issued **£101.5m confiscation order (2023)** | **UK conviction**: **13 years** (Southwark Crown Court; sentenced **17 Apr 2012** after guilty plea **27 Feb 2012**). Served ~half; **released Dec 2016** | **No Nigerian presidential pardon recorded** (he was released after serving time in the UK) |\n\n### Excluded (mis-tagged as “convicted” in summary, but **not convicted** as governor in case outcome)\n- **Boni Haruna (Adamawa):** **discharged on no-case submission**; no conviction.\n- **Aliyu Akwe Doma (Nasarawa):** case **abated by death**; no conviction.\n- **Danjuma Goje (Gombe):** **charges withdrawn/discharged (5 July 2019)**; no conviction.\n\n## Quick comparison chart (amounts)\n(Uses the main alleged/proven figures in the case records; Ibori shown with the case_outcome metadata amount in NGN.)\n\n\n\nIf you want this to be *“every convicted governor ever”* (including **ICPC cases**, **state-level prosecutions**, or **non-EFCC convictions**), tell me whether to include **non-EFCC** agencies and whether to count governors **convicted outside Nigeria** beyond Ibori.",
+      "resolved_intent": "unknown",
+      "response_time_ms": 29400,
+      "pass": true,
+      "evaluation_notes": "Matched 13/38 expected terms."
+    }
+  ]
+}

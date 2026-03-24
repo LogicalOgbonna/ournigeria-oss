@@ -45,53 +45,101 @@ to ask — the graph tells them what they should be angry about.
 The feeling: **"I can see where the money went."**
 
 ## Implementation Approach
-**Full Microsoft-style GraphRAG** — LLM-based entity + relationship extraction across all
-chunks, hierarchical community detection, community summaries for global queries. Dual
-retrieval: existing vector search for local queries + graph for global/relationship queries.
+**Full Microsoft-style GraphRAG with Neo4j** — LLM-based entity + relationship extraction
+across all chunks, Neo4j for native graph storage and traversal, Neo4j GDS for community
+detection (no Python sidecar needed). Existing vector embeddings (pgvector) kept as fallback.
+Dual retrieval: vector search for document-level queries + Neo4j for relationship/global queries.
+
+### Architecture Decision: Neo4j (not PostgreSQL CTEs)
+- **Native graph traversal**: Cypher queries are 5x less code and linearly performant at any depth
+- **Built-in graph algorithms**: Neo4j GDS has Leiden, PageRank, centrality — eliminates Python sidecar
+- **Purpose-built**: adjacency list storage means no JOIN explosion at 5+ hops
+- **Existing embeddings preserved**: pgvector chunk tables remain the fallback retrieval path
+- **Trade-off**: new infrastructure (Neo4j container, separate backup, separate connection pool)
+  but the gains in query expressiveness and algorithm availability justify it for launch
+
+### Infrastructure
+
+**Neo4j container** added to docker-compose:
+```yaml
+neo4j:
+  image: neo4j:5-community
+  environment:
+    NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+    NEO4J_PLUGINS: '["graph-data-science"]'   # Leiden, PageRank, etc.
+    NEO4J_server_memory_heap_max__size: 2G
+    NEO4J_server_memory_pagecache_size: 1G
+  ports:
+    - "7687:7687"   # Bolt protocol (app connects here)
+    - "7474:7474"   # Browser UI (dev only, not exposed in prod)
+  volumes:
+    - neo4j_data:/data
+    - neo4j_logs:/logs
+  healthcheck:
+    test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  deploy:
+    resources:
+      limits:
+        memory: 4G
+  restart: unless-stopped
+```
+
+**New env vars:** `NEO4J_URI` (bolt://neo4j:7687), `NEO4J_USER`, `NEO4J_PASSWORD`
+**NestJS integration:** `neo4j-driver` package (official Neo4j JavaScript driver)
+**Connection pool:** Separate from PostgreSQL — Neo4j driver manages its own pool (default: 100 connections)
+**Backup:** `neo4j-admin database dump neo4j` → S3 (alongside existing pg_dump)
 
 ### Phased Delivery
 
 **Phase 0: Design & Validation** (before any code)
-0. Finalize graph schema, create Prisma migration via `pnpm prisma:migrate:create add-graphrag-schema`
-   Note: `graph_nodes`, `graph_edges`, `graph_communities`, `entity_aliases` are Prisma-managed
-   tables (NOT Mastra-managed chunk tables) — they go through the normal migration workflow.
+0. Add Neo4j to docker-compose (dev + prod). Create Cypher schema constraints and indexes.
+   Create Prisma migration for `graph_extraction_jobs` table only (job tracking stays in PostgreSQL).
 
 **Phase 1: Graph Foundation** (must ship first — all other features depend on this)
-1. Graph schema + storage (PostgreSQL recursive CTEs — no new extensions needed)
+1. Neo4j schema: node labels, relationship types, constraints, indexes (Cypher DDL)
 2. Entity + relationship extraction pipeline (LLM-based, hooks into existing PipelineBase)
-3. Backfill script: iterates all existing 708K chunks in batches, calls LLM extraction,
-   respects cost ceiling. Tracked via dedicated `graph_extraction_jobs` table (not IngestionRecord).
+3. Backfill: iterates all existing 708K chunks in batches, calls LLM extraction,
+   writes to Neo4j. Job tracking via `graph_extraction_jobs` table in PostgreSQL.
 4. `graphSearchTool` added to `sharedTools` in `apps/api/src/mastra/tools/index.ts`
-   (all agents get access — consistent with existing pattern where all agents have all tools)
+   (all agents get access — Cypher queries via neo4j-driver)
 5. Dual retrieval router integration (extends existing 3-stage classifier in router.ts)
 6. Validation gate: test on Lagos first, then 3 states total. Pass criteria:
-   - 3-hop recursive CTE query < 2 seconds on the state subgraph
+   - Multi-hop Cypher query < 500ms on the state subgraph (Neo4j is much faster than CTEs)
    - Eval score >= existing vector search baseline on same queries
    - Manual spot-check of 10 extracted graph paths for correctness
 
 **Phase 2: Intelligence Layer** (after Phase 1 validated on 3+ states)
-7. Entity disambiguation in chat (canonical entity table + clarification UX)
+7. Entity disambiguation in chat (Neo4j alias index + clarification UX)
 8. Graph-powered follow-up suggestions (cross-domain related entities)
-
-**Phase 3: User-Facing Features** (conditional — does NOT begin until Phase 1 validated
-on 3+ states AND Phase 2 agent queries demonstrate graph retrieval quality)
-9. Automatic narrative generation from graph paths ("follow the money" stories)
-   Input: graph path array -> LLM prompt -> Output: narrative string
-   Surfaced: inline in chat response when graph path has 3+ hops and crosses 2+ domains
-10. Interactive graph visualization (/explore page with server-side aggregation)
-
-**Phase 2b: Community Detection** (after Phase 2 validated)
-9. Community detection via Python sidecar
-   - Container: `graphrag-leiden` service in docker-compose.yml
-   - Communication: HTTP endpoint at `http://leiden:8000/detect`
-   - Input: adjacency list JSON `{ nodes: string[], edges: [{from, to, weight}] }`
-   - Output: community assignments JSON `{ communities: [{id, members: string[], level}] }`
-   - Library: Python `leidenalg` + `igraph`
-   - Deployment: lightweight FastAPI container (~50MB image), health check at `/health`
-10. Community summary generation + persistence (new `graph_communities` table)
-    - For each community: LLM generates a 2-3 sentence summary describing the cluster
-    - Summaries stored in `graph_communities.summary` column
+9. `traverseGraphTool` added for agents: allows the LLM to write parameterized Cypher queries
+   to explore the graph iteratively (rather than just static 2-hop enrichment).
+   **Guardrails (from eng review):**
+   - Runs in read-only transaction (`session.executeRead`, NOT `executeWrite`)
+   - Hard `LIMIT 100` appended to all queries (prevents unbounded result sets)
+   - 5-second query timeout (prevents runaway traversals)
+   - Reject queries containing `DELETE`, `CREATE`, `SET`, `REMOVE`, `MERGE` keywords
+   - Log every generated Cypher query for audit/debugging
+10. Community detection via Neo4j GDS (no Python sidecar needed!)
+   ```cypher
+   CALL gds.leiden.write('myGraph', {
+     writeProperty: 'communityId',
+     maxLevels: 10,
+     gamma: 1.0
+   })
+   ```
+11. Community summary generation (LLM summaries per detected community)
+    - For each community: query member nodes, generate 2-3 sentence summary via LLM
+    - Store summary as property on a `:Community` node in Neo4j
     - Used by agents for global queries ("what are the themes across all corruption?")
+
+**Phase 3: User-Facing Features** (after Phase 2 validated)
+12. Automatic narrative generation from graph paths ("follow the money" stories)
+    Input: Cypher path query -> LLM prompt -> Output: narrative string
+    Surfaced: inline in chat response when graph path has 3+ hops and crosses 2+ domains
+13. Interactive graph visualization (/explore page with server-side aggregation)
 
 ### Dependency Chain
 ```
@@ -108,95 +156,81 @@ Community Detection (Leiden sidecar) --> Community Summaries
 
 ### Graph Schema (Phase 0 Design)
 
-**Node Types:**
-```
-State         { name, geopolitical_zone, governor_count }
-Official      { name, canonical_name, aliases[], position, party, state_id }
-MDA           { name, canonical_name, aliases[], type: federal|state }
-Contractor    { name, canonical_name, aliases[] }
-BudgetItem    { state, year, sector, category, amount, source_chunk_id }
-Payment       { amount, year, month, description, source_chunk_id }
-FAACAllocation{ state, year, month, amount, type, source_chunk_id }
-CorruptionCase{ official, status, amount_alleged, agency, source_chunk_id }
+**Neo4j Node Labels & Properties:**
+```cypher
+// State node
+(:State {name, geopolitical_zone, governor_count, source_domain: 'faac'})
+
+// Official node
+(:Official {name, canonical_name, position, party, state, source_chunk_id, source_domain})
+  // Aliases stored as relationship: (:Official)-[:ALSO_KNOWN_AS]->(:Alias {name, confidence})
+
+// MDA node
+(:MDA {name, canonical_name, type: 'federal'|'state', source_chunk_id, source_domain})
+
+// Contractor node
+(:Contractor {name, canonical_name, source_chunk_id, source_domain})
+
+// BudgetItem node
+(:BudgetItem {state, year, sector, category, amount, source_chunk_id, source_domain: 'budget'})
+
+// Payment node
+(:Payment {amount, year, month, description, payer_code, source_chunk_id, source_domain: 'govspend'})
+
+// FAACAllocation node
+(:FAACAllocation {state, year, month, amount, type, lga, geopolitical_zone, source_chunk_id, source_domain: 'faac'})
+
+// CorruptionCase node
+(:CorruptionCase {official, status, amount_alleged, agency, source_chunk_id, source_domain: 'corruption'})
+
+// Community node (Phase 2, populated by Neo4j GDS Leiden)
+(:Community {communityId, level, summary, member_count, created_at})
 ```
 
-**Edge Types:**
-```
-Official  --GOVERNED-->      State        (with: start_year, end_year)
-Official  --HEADED-->        MDA          (with: start_year, end_year)
-Official  --CHARGED_IN-->    CorruptionCase
-State     --ALLOCATED-->     BudgetItem
-MDA       --RECEIVED-->      Payment      (from: payer)
-Contractor--RECEIVED-->      Payment      (from: MDA)
-State     --RECEIVED_FAAC--> FAACAllocation
-Official  --CONNECTED_TO-->  Contractor   (inferred: same GovSpend payment record,
-                                          or named in same corruption case document)
+**Neo4j Relationship Types:**
+```cypher
+(:Official)-[:GOVERNED {start_year, end_year}]->(:State)
+(:Official)-[:HEADED {start_year, end_year}]->(:MDA)
+(:Official)-[:CHARGED_IN]->(:CorruptionCase)
+(:State)-[:ALLOCATED]->(:BudgetItem)
+(:MDA)-[:RECEIVED_PAYMENT {amount, year}]->(:Payment)
+(:Contractor)-[:RECEIVED_PAYMENT {amount, year}]->(:Payment)
+(:State)-[:RECEIVED_FAAC]->(:FAACAllocation)
+(:Official)-[:CONNECTED_TO {evidence, source_chunk_id}]->(:Contractor)
+  // Inferred: same GovSpend payment record, or named in same corruption case document
+(:Official)-[:ALSO_KNOWN_AS]->(:Alias)
+(:Community)-[:CONTAINS]->(:Official|:Contractor|:MDA|:State)
 ```
 
-**Storage Decision: PostgreSQL Recursive CTEs** (not Apache AGE)
-- No new extensions needed (AGE requires custom Docker image + CI/CD changes)
-- Works with existing postgres:16 image and Prisma workflow
-- Tables: `graph_nodes`, `graph_edges`, `graph_communities`, `entity_aliases`, `graph_extraction_jobs`
-- Indexes: B-tree on (node_type, name), GIN on aliases[], composite on (source_type, source_id),
-  B-tree on (from_node_id, edge_type) and (to_node_id, edge_type) for bidirectional CTE traversal
-- Multi-hop traversal via `WITH RECURSIVE` CTEs (sufficient for 3-4 hop queries)
-- Trade-off: slower than native graph DB for deep traversals, but avoids new infrastructure
-- Performance gate: if 3-hop CTE > 2s on 3-state subgraph, escalate to Apache AGE
+**Neo4j Constraints & Indexes (Cypher DDL, run at startup):**
+```cypher
+// Uniqueness constraints
+CREATE CONSTRAINT state_name IF NOT EXISTS FOR (s:State) REQUIRE s.name IS UNIQUE;
+CREATE CONSTRAINT official_canonical IF NOT EXISTS FOR (o:Official) REQUIRE o.canonical_name IS UNIQUE;
+CREATE CONSTRAINT mda_canonical IF NOT EXISTS FOR (m:MDA) REQUIRE m.canonical_name IS UNIQUE;
+CREATE CONSTRAINT contractor_canonical IF NOT EXISTS FOR (c:Contractor) REQUIRE c.canonical_name IS UNIQUE;
 
-**Table Schemas:**
+// Performance indexes
+CREATE INDEX official_state IF NOT EXISTS FOR (o:Official) ON (o.state);
+CREATE INDEX budget_state_year IF NOT EXISTS FOR (b:BudgetItem) ON (b.state, b.year);
+CREATE INDEX payment_year IF NOT EXISTS FOR (p:Payment) ON (p.year);
+CREATE INDEX faac_state_year IF NOT EXISTS FOR (f:FAACAllocation) ON (f.state, f.year);
+CREATE INDEX corruption_status IF NOT EXISTS FOR (c:CorruptionCase) ON (c.status);
+CREATE INDEX source_chunk IF NOT EXISTS FOR (n) ON (n.source_chunk_id);  // composite
+
+// Full-text index for fuzzy entity search
+CREATE FULLTEXT INDEX entity_names IF NOT EXISTS
+  FOR (n:Official|MDA|Contractor|State) ON EACH [n.name, n.canonical_name];
+```
+
+**PostgreSQL table (job tracking only — stays in Prisma):**
 ```sql
--- graph_nodes: all entities in the knowledge graph
-CREATE TABLE graph_nodes (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  node_type     VARCHAR(50) NOT NULL,  -- 'State','Official','MDA','Contractor','BudgetItem','Payment','FAACAllocation','CorruptionCase'
-  name          TEXT NOT NULL,
-  canonical_name TEXT NOT NULL,        -- deduplicated canonical form
-  properties    JSONB DEFAULT '{}',    -- type-specific properties (amount, year, sector, etc.)
-  source_chunk_id TEXT,                -- links back to the chunk that produced this node
-  source_domain VARCHAR(20),           -- 'budget','corruption','govspend','faac'
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ DEFAULT NOW()
-);
-
--- graph_edges: relationships between entities
-CREATE TABLE graph_edges (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  from_node_id  UUID NOT NULL REFERENCES graph_nodes(id),
-  to_node_id    UUID NOT NULL REFERENCES graph_nodes(id),
-  edge_type     VARCHAR(50) NOT NULL,  -- 'GOVERNED','HEADED','CHARGED_IN','ALLOCATED','RECEIVED','RECEIVED_FAAC','CONNECTED_TO'
-  properties    JSONB DEFAULT '{}',    -- edge-specific properties (start_year, end_year, amount, etc.)
-  source_chunk_id TEXT,
-  created_at    TIMESTAMPTZ DEFAULT NOW()
-);
-
--- entity_aliases: maps variant names to canonical entities
-CREATE TABLE entity_aliases (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  alias         TEXT NOT NULL,
-  canonical_name TEXT NOT NULL,
-  node_type     VARCHAR(50) NOT NULL,
-  node_id       UUID REFERENCES graph_nodes(id),
-  confidence    FLOAT DEFAULT 1.0,     -- 1.0 = exact match, <1.0 = fuzzy/LLM-resolved
-  created_at    TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(alias, node_type)
-);
-
--- graph_communities: Leiden community assignments (Phase 2+, deferred)
-CREATE TABLE graph_communities (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  community_id  INTEGER NOT NULL,
-  level         INTEGER NOT NULL DEFAULT 0,  -- hierarchy level
-  node_id       UUID REFERENCES graph_nodes(id),
-  summary       TEXT,                  -- LLM-generated community summary
-  created_at    TIMESTAMPTZ DEFAULT NOW()
-);
-
--- graph_extraction_jobs: tracks backfill progress (NOT piggybacked on IngestionRecord)
+-- graph_extraction_jobs: tracks backfill progress
 CREATE TABLE graph_extraction_jobs (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   domain        VARCHAR(20) NOT NULL,  -- 'budget','corruption','govspend','faac'
-  status        VARCHAR(20) NOT NULL DEFAULT 'pending',  -- 'pending','running','paused','completed','failed'
-  last_chunk_id TEXT,                  -- checkpoint for resume
+  status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+  last_chunk_id TEXT,
   chunks_total  INTEGER DEFAULT 0,
   chunks_processed INTEGER DEFAULT 0,
   cost_usd      FLOAT DEFAULT 0,
@@ -207,9 +241,41 @@ CREATE TABLE graph_extraction_jobs (
 );
 ```
 
+**Example Cypher Queries (replacing recursive CTEs):**
+```cypher
+// "Which governors with corruption cases had the biggest budgets?"
+MATCH (o:Official)-[:GOVERNED]->(s:State)-[:ALLOCATED]->(b:BudgetItem),
+      (o)-[:CHARGED_IN]->(c:CorruptionCase)
+RETURN o.name, s.name, sum(b.amount) AS total_budget,
+       collect(DISTINCT c.status) AS case_statuses
+ORDER BY total_budget DESC
+
+// "Follow the money: Kogi → officials → contractors → payments"
+MATCH path = (s:State {name: 'Kogi'})<-[:GOVERNED]-(o:Official)-[:CONNECTED_TO]->(c:Contractor)-[:RECEIVED_PAYMENT]->(p:Payment)
+RETURN path, reduce(total = 0, p IN nodes(path) |
+  CASE WHEN p:Payment THEN total + p.amount ELSE total END) AS total_amount
+
+// "Find all entities connected to Yahaya Bello within 3 hops"
+MATCH path = (o:Official {canonical_name: 'Yahaya Bello'})-[*1..3]-(connected)
+RETURN path
+
+// Community detection (Neo4j GDS — replaces Python sidecar)
+CALL gds.graph.project('ournigeria', ['Official','Contractor','MDA','State'],
+  {CONNECTED_TO: {}, GOVERNED: {}, HEADED: {}, RECEIVED_PAYMENT: {}})
+CALL gds.leiden.write('ournigeria', {writeProperty: 'communityId'})
+```
+
+**Fallback Strategy:**
+The existing vector search (pgvector) remains fully operational as a fallback:
+- If Neo4j is down: `graph.enabled` SystemSetting toggle → agents use vector search only
+- Circuit breaker: if Neo4j queries fail 3x in 5 minutes, auto-disable graph enrichment
+- Vector search handles all document-level queries (budget amounts, specific allocations, case details)
+- Neo4j handles relationship queries, multi-hop traversals, and community-level analysis
+- Both systems are queried in parallel for hybrid queries; results are merged in the agent context
+
 ### Entity Extraction Pipeline
 
-**Model:** Use existing LLM_MODEL (or cheaper model like GPT-4o-mini for extraction)
+**Model:** **Claude 3.5 Sonnet or GPT-4o** (Cost is not a constraint; maximum accuracy is required to prevent garbage data in the graph).
 **Prompt:** Structured extraction prompt per domain:
 - Budget chunks: extract State, Year, Sector, MDA, Amount, BudgetCategory
 - Corruption chunks: extract Official (with aliases), State, Party, Agency, Amount, Status, ConnectedEntities
@@ -219,24 +285,107 @@ CREATE TABLE graph_extraction_jobs (
 **Pipeline Integration:** New `GraphExtractionStep` added after embedding step in PipelineBase:
 1. For each chunk batch, call LLM with extraction prompt
 2. Parse structured JSON response (with retry on malformed JSON)
-3. Upsert nodes + edges into graph tables (deduplicate by canonical_name)
+3. MERGE nodes + relationships into Neo4j (deduplicate by canonical_name via constraints)
 4. On extraction failure: log error, skip chunk, continue (never block ingestion)
 
 **Canonical Entity Resolution Algorithm:**
-1. Exact match: if `canonical_name` exists in `graph_nodes` for this `node_type`, link to it
-2. Alias match: if name matches any entry in `entity_aliases` for this `node_type`, use that canonical
-3. Fuzzy match: Levenshtein distance < 3 against existing canonical names of same `node_type` + same state
-4. LLM tiebreak (async post-processing, NOT inline): if fuzzy match finds 2+ candidates,
-   flag entity with `needs_review` status. Resolve in a separate batch pass after extraction.
-   This avoids tens of thousands of synchronous LLM calls during backfill.
-5. New entity: if no match found, insert as new canonical entity, add all extracted name variants to aliases
+1. Exact match: `MATCH (n:Official {canonical_name: $name})` — Neo4j uniqueness constraint handles this
+2. Alias match: `MATCH (a:Alias {name: $name})<-[:ALSO_KNOWN_AS]-(n)` — traverse alias relationships
+3. Fuzzy match: Neo4j full-text index search `CALL db.index.fulltext.queryNodes('entity_names', $name~)`
+   with fuzzy operator `~` — returns ranked results by Lucene similarity score
+4. LLM tiebreak (**Inline**): If fuzzy match finds 2+ candidates, pause the pipeline and send both candidates + surrounding context to the LLM immediately ("Are these the same person?"). `MERGE` the result synchronously. This guarantees a perfectly clean, deduplicated graph for launch.
+5. New entity: if no match found, `CREATE` new node + alias relationships for all name variants
 First insertion sets the canonical name (longest variant or most formally written form).
 
-**Checkpoint/Resume:** Tracked via dedicated `graph_extraction_jobs` table (NOT IngestionRecord).
+**Checkpoint/Resume:** Tracked via `graph_extraction_jobs` table in PostgreSQL (NOT IngestionRecord).
 - `last_chunk_id` column stores progress per domain per run
 - On resume, skip already-extracted chunks
 - Cost ceiling: configurable via SystemSetting `graph.extraction_cost_limit_usd` (default: $300)
-- On validation failure: graph tables are truncated and job marked `failed`; existing system unaffected
+- On validation failure: `MATCH (n) DETACH DELETE n` clears Neo4j; existing vector search unaffected
+
+### Graph Maintenance (Keeping the Graph Current)
+
+The graph must stay current as new documents are ingested and existing data is corrected.
+Two strategies work together:
+
+**Strategy 1: Incremental at Ingestion (default — automatic)**
+
+Every new ingestion run automatically updates the graph because `GraphExtractionStep`
+is part of `PipelineBase`. New chunks produce new entities and edges that merge into
+the existing graph via the entity resolution algorithm.
+
+```
+New chunks ingested via PipelineBase
+     │
+     ▼
+GraphExtractionStep (already in pipeline)
+     │
+     ▼
+Extract entities + relationships from NEW chunks only
+     │
+     ▼
+Entity resolution against EXISTING graph
+     │
+     ├──▶ New entity?      → INSERT node + edges
+     ├──▶ Existing entity? → UPDATE properties, ADD new edges
+     └──▶ Status change?   → UPDATE node properties
+                              (e.g., status: "ongoing" → "convicted")
+```
+
+This handles: new budget documents, new FAAC allocations, new GovSpend payment batches,
+new corruption case files. No manual intervention needed.
+
+**Strategy 2: Targeted Re-extraction (for corrections and updates)**
+
+When existing data is corrected (e.g., a budget figure was wrong, a case status changed),
+the affected chunks are re-ingested. The graph must clean up stale data from those chunks
+before inserting the corrected version:
+
+```cypher
+// Step 1: Remove relationships sourced from the re-ingested chunks
+MATCH ()-[r]->() WHERE r.source_chunk_id IN $chunkIds
+DELETE r
+
+// Step 2: Remove orphaned nodes (nodes with no remaining relationships from ANY source)
+MATCH (n) WHERE n.source_chunk_id IN $chunkIds
+  AND NOT (n)--()  // no relationships left
+DELETE n
+
+// Step 3: Re-extract through normal pipeline (GraphExtractionStep)
+// New entities merge with existing graph via MERGE + entity resolution
+```
+
+The orphan check (Step 2) is critical: a node like "Lagos" has relationships from thousands
+of chunks. Re-ingesting one Lagos budget document should NOT delete the Lagos node — only
+nodes that have zero remaining relationships get cleaned up. Neo4j's `NOT (n)--()` pattern
+handles this naturally.
+
+**Trigger:** Targeted re-extraction runs automatically when the ingestion pipeline
+re-processes chunks that already have `source_chunk_id` entries in Neo4j.
+The `GraphExtractionStep` checks for existing graph data before extraction:
+1. If a node with `source_chunk_id = chunk.id` exists in Neo4j → run cleanup Cypher first
+2. Then extract normally
+
+**Cache invalidation:** After any graph update (incremental or targeted), flush the
+graph result cache (same 10-min TTL cache used by `graphSearchTool`). This ensures
+queries immediately reflect updated data.
+
+**Scenarios and behavior:**
+
+| Scenario | Strategy | What happens |
+|----------|----------|-------------|
+| New 2026 budget PDFs uploaded | Incremental | New nodes/edges added automatically |
+| Yahaya Bello convicted (was "ongoing") | Targeted | Corruption chunks re-ingested, status updated on existing node |
+| Budget figure corrected | Targeted | Old edges removed, chunk re-extracted, new edges created |
+| New monthly FAAC allocation | Incremental | New FAACAllocation nodes + RECEIVED_FAAC edges added |
+| New GovSpend payment batch | Incremental | New Payment nodes + RECEIVED edges, new Contractor nodes if new |
+| Official leaves office | Targeted | Re-ingest official metadata, update GOVERNED edge end_year |
+| Entirely new corruption case file | Incremental | New CorruptionCase node + CHARGED_IN edge + Official linkage |
+
+**Community summary invalidation (Phase 2b):** When graph nodes/edges change,
+affected community summaries become stale. After targeted re-extraction, mark
+communities containing modified nodes as `needs_regeneration`. Community summaries
+are re-generated in a background pass (not blocking the update).
 
 ### Dual Retrieval Router
 
@@ -279,28 +428,28 @@ Output: {
    graph-augmented system, ensure no regression on existing query types
 4. **Phase 3 E2E:** Playwright tests for /explore page
 
-### Cost Estimate
-Token math (GPT-4o-mini pricing: $0.15/M input, $0.60/M output):
+### Cost Estimate (No Budget Constraint)
+Token math (GPT-4o / Claude 3.5 Sonnet pricing: ~$2.50/M input, ~$10.00/M output):
 - Avg chunk: ~500 tokens. Extraction prompt: ~300 tokens. Output: ~150 tokens.
-- Per chunk: (800 * $0.15/M) + (150 * $0.60/M) = $0.00012 + $0.00009 = $0.00021/chunk
-- 708K chunks * $0.00021 = ~$149 total for entity extraction
-- With retries and edge cases (~20% overhead): ~$179
-- Community summaries (deferred): ~500-2000 communities x ~$0.01/summary = $5-$20
-- **Total estimated: $150-$200** (much lower than initial $500-2000 estimate)
-- Cost control: `graph.extraction_cost_limit_usd` setting (default: $300), checkpoint/resume
+- Per chunk: (800 * $2.50/M) + (150 * $10.00/M) = $0.002 + $0.0015 = $0.0035/chunk
+- 708K chunks * $0.0035 = ~$2,478 total for base entity extraction
+- Inline LLM Tiebreaks (estimated 10% of chunks need resolution): 70K * $0.003 = ~$210
+- Community summaries: ~500-2000 communities x ~$0.05/summary = $25-$100
+- **Total estimated: ~$3,000 - $4,000**
+- Cost control: `graph.extraction_cost_limit_usd` setting (default: $5000), checkpoint/resume
 
 ### /explore Page Design
 
-**Library:** react-force-graph (WebGL-based, handles 10K+ nodes)
+**Library:** `react-force-graph-3d` (WebGL-based 3D graph, handles 10K+ nodes)
 **Server-side aggregation:** API returns sub-graphs (filtered by state, entity type, or search)
-not the full graph. Endpoint: `GET /api/graph/explore?state=Lagos&depth=2`
-**Performance limit:** Max 500 nodes per render. Deeper exploration via click-to-expand.
+not the full graph. Endpoint: `GET /api/graph/explore?state=Lagos&depth=3`
+**Performance limit:** Max 2,000 nodes per render in 3D. Users can "fly" through the connections. Deeper exploration via click-to-expand.
 **Auth:** `GET /api/graph/explore` requires authentication (same AuthGuard as other endpoints).
 
 **Layout:**
-- Desktop (>=1024px): 70/30 split — graph canvas (left) + entity detail sidebar (right)
-- Tablet (768-1023px): Full-width graph, sidebar as slide-over panel
-- Mobile (<768px): Full-width graph, bottom sheet slides up on node tap
+- Desktop (>=1024px): Full-screen 3D canvas with floating glassmorphism UI overlays for filters and entity details (left/right).
+- Tablet (768-1023px): Full-width 3D graph, sidebar as slide-over panel
+- Mobile (<768px): Full-width 3D graph (with touch pan/zoom), bottom sheet slides up on node tap
 
 **Visual Design (DESIGN.md aligned):**
 - Node colors by type:
@@ -367,28 +516,33 @@ not the full graph. Endpoint: `GET /api/graph/explore?state=Lagos&depth=2`
 | 1 | Graph-Powered Follow-Up Suggestions | S | ACCEPTED | Turns every answer into gateway to deeper investigation. Low effort once graph exists. |
 | 2 | Automatic Corruption Risk Scoring | M | DEFERRED | Powerful but sensitive — needs careful methodology to avoid unfair accusations. |
 | 3 | Automatic Narrative Generation from Graph Paths | M | ACCEPTED | "Follow the money" killer feature — graph finds path, LLM tells story. |
-| 4 | Interactive Graph Visualization | L | ACCEPTED | Makes the graph tangible — visual investigation board. Adds DESIGN_SCOPE. |
+| 4 | Interactive Graph Visualization | L | ACCEPTED | Makes the graph tangible — visual investigation board. Upgraded to 3D WebGL. |
 | 5 | Graph-Powered Content Engine Integration | M | DEFERRED | Content engine works for now — upgrade after graph is proven. |
 | 6 | Entity Disambiguation in Chat | S | ACCEPTED | Resolves "which Bello?" ambiguity. Low effort, high accuracy improvement. |
-| 7 | Community Detection for Corruption Clusters | L | ACCEPTED | User chose to build now. Python sidecar with leidenalg. Added to Phase 2b. |
+| 7 | Community Detection for Corruption Clusters | M | ACCEPTED | Neo4j GDS has Leiden built-in — no Python sidecar needed. Phase 2. |
 | 8 | Community Summary Generation | M | ACCEPTED | Depends on #7. LLM summaries per community. Added to Phase 2b. |
+| 9 | Multi-Agent Graph Traversal | M | ACCEPTED | `traverseGraphTool` allows agents to iteratively explore the graph. |
 
 ## Accepted Scope (added to this plan)
 - Graph-powered follow-up suggestions (cross-domain related entities after each answer)
 - Automatic narrative generation from graph paths ("follow the money" stories)
-- Interactive graph visualization page (/explore) with force-directed graph
+- Interactive 3D graph visualization page (/explore) with force-directed graph
 - Entity disambiguation in chat ("Did you mean Yahaya Bello or Abdullahi Bello?")
-- Community detection via Python sidecar (Leiden algorithm, FastAPI container)
+- Community detection via Neo4j GDS Leiden (built-in, no Python sidecar needed)
 - Community summary generation (LLM summaries per detected cluster)
+- Multi-Agent Graph Traversal (`traverseGraphTool`)
 
-## Reviewer Concerns (from adversarial spec review, 3 iterations, final score: 7/10)
-1. **Fuzzy match at scale:** Levenshtein on thousands of canonical names per insertion needs `pg_trgm` trigram index with `similarity() > 0.7` pre-filter. Without it, backfill will be O(N) per entity.
+## Reviewer Concerns (updated for Neo4j, 2026-03-22)
+1. **Fuzzy match at scale:** RESOLVED — Neo4j full-text index with Lucene fuzzy operator `~` handles this natively. No pg_trgm needed.
 2. **Enrichment trigger scope:** Define explicitly which intents trigger graph enrichment (budget/corruption/govspend/faac) and which skip it (general/follow_up).
 3. **Narrative generation trigger:** "3+ hops crossing 2+ domains" — domain derived from `source_domain` on nodes. Needs to be stated explicitly in the implementation.
 4. **Enrichment vs follow-up suggestions:** Enrichment = context augmentation (invisible to user). Follow-up suggestions = UI chips shown below chat response. Two distinct features.
-5. **`graph_communities` DDL:** Created in Phase 0 but community detection is deferred. Consider removing from migration to avoid YAGNI schema drift.
+5. **Community detection timing:** RESOLVED — Neo4j GDS has Leiden built-in. No Python sidecar, no deferred infrastructure decision.
 6. **Extraction accuracy ground truth:** 50-chunk test set needs hand-annotated ground truth stored in `packages/evaluation/graphrag-gold.json` with separate precision/recall for nodes vs edges.
 7. **Phase 3 sub-plan:** /explore page requires its own sub-plan before implementation begins.
+8. **Neo4j backup strategy:** Must be defined before production deploy — `neo4j-admin dump` to S3 on schedule alongside existing pg_dump.
+9. **Neo4j connection resilience:** Circuit breaker + `graph.enabled` toggle must handle Neo4j downtime gracefully — fallback to vector search only.
+10. **Two-database consistency:** Entity extraction writes to Neo4j while job tracking writes to PostgreSQL. If Neo4j write succeeds but PostgreSQL job update fails (or vice versa), the checkpoint is inconsistent. Need: write Neo4j first, then update PostgreSQL job status. On resume, re-check Neo4j for already-extracted chunks.
 
 ## Deferred to TODOS.md
 - Automatic corruption risk scoring per state (methodology risk — added to TODOS.md)

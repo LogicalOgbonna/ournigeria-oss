@@ -15,6 +15,7 @@ import { AdminModule } from "./admin/admin.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { HealthModule } from "./health/health.module";
 import { DonationModule } from "./donation/donation.module";
+import { GraphModule } from "./graph/graph.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 
 @Module({
@@ -37,6 +38,7 @@ import { DevAuthModule } from "./auth/dev-auth.module";
     AdminModule,
     FeedbackModule,
     DonationModule,
+    GraphModule,
     HealthModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
