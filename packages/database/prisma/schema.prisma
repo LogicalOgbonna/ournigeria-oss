@@ -608,3 +608,37 @@ model Donation {
   @@index([provider, status], map: "idx_donations_provider_status")
   @@map("donations")
 }
+
+// ============================================================
+// Social Intelligence
+// ============================================================
+
+model SocialPost {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platform       String    @db.VarChar(20) // 'twitter'
+  postType       String    @map("post_type") @db.VarChar(30) // 'thread', 'opinion_tweet', 'reply'
+  externalId     String?   @map("external_id") @db.VarChar(100) // Twitter tweet ID after posting
+  content        String    @db.Text // Full post content (JSON for threads)
+  triggerTopic   String?   @map("trigger_topic") @db.VarChar(200) // What trend/keyword triggered this
+  dataDomain     String?   @map("data_domain") @db.VarChar(20) // 'budget', 'corruption', 'faac', 'govspend'
+  dataQuery      String?   @map("data_query") @db.Text // The query sent to data tools
+  status         String    @default("drafted") @db.VarChar(20) // drafted, published, failed, rejected
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz()
+  engagementData Json?     @map("engagement_data") @db.JsonB // {likes, retweets, replies, bookmarks}
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Reply-specific fields
+  inReplyToId   String?   @map("in_reply_to_id") @db.VarChar(100) // Twitter ID of tweet being replied to
+  inReplyToText String?   @map("in_reply_to_text") @db.Text // Text of original tweet
+  inReplyToUser String?   @map("in_reply_to_user") @db.VarChar(100) // Username of original tweeter
+  confidence    Float?    // 0-1 composite score
+  reviewStatus  String?   @map("review_status") @db.VarChar(20) // 'pending', 'approved', 'rejected', 'edited'
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid // Admin user ID who approved/rejected
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+
+  @@index([platform, status], map: "idx_social_posts_platform_status")
+  @@index([platform, createdAt(sort: Desc)], map: "idx_social_posts_platform_date")
+  @@index([reviewStatus], map: "idx_social_posts_review_status")
+  @@map("social_posts")
+}

@@ -31,6 +31,7 @@
     "@ournigeria/cache": "workspace:*",
     "@ournigeria/database": "workspace:*",
     "@ournigeria/shared-types": "workspace:*",
+    "@ournigeria/tools": "workspace:*",
     "@tavily/core": "^0.7.1",
     "ai": "^6.0.97",
     "bcryptjs": "^3.0.3",

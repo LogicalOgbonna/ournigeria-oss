@@ -1,0 +1,25 @@
+{
+  "name": "socials",
+  "projectType": "application",
+  "sourceRoot": "apps/socials/src",
+  "targets": {
+    "dev": {
+      "command": "infisical run --env dev --path /socials --watch -- nest start --watch",
+      "options": {
+        "cwd": "apps/socials"
+      }
+    },
+    "build": {
+      "command": "nest build",
+      "options": {
+        "cwd": "apps/socials"
+      }
+    },
+    "start": {
+      "command": "infisical run --env prod --path /socials -- nest start",
+      "options": {
+        "cwd": "apps/socials"
+      }
+    }
+  }
+}

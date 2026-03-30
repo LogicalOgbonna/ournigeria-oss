@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const apiUrl = process.env.API_URL || "http://localhost:3001";
     const ingestUrl = process.env.INGEST_URL || "http://localhost:3002";
+    const socialsUrl = process.env.SOCIALS_URL || "http://localhost:3005";
     return [
       {
         source: "/api/admin/:path*",
@@ -12,6 +13,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/ingest/:path*",
         destination: `${ingestUrl}/api/ingest/:path*`,
+      },
+      {
+        source: "/api/socials/:path*",
+        destination: `${socialsUrl}/:path*`,
       },
     ];
   },

@@ -3,12 +3,18 @@
   "version": "0.0.2",
   "private": true,
   "type": "module",
+  "main": "image-service.ts",
+  "exports": {
+    ".": "./image-service.ts",
+    "./templates": "./templates/index.ts"
+  },
   "scripts": {
     "generate": "infisical run --env dev -- npx tsx generate.ts",
     "query": "infisical run --env dev -- npx tsx query.ts",
     "render": "npx tsx render.ts",
     "engine": "infisical run --env dev -- npx tsx engine.ts",
     "batch": "infisical run --env dev -- npx tsx batch.ts",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },

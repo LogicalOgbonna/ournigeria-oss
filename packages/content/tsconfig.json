@@ -10,6 +10,6 @@
     "rootDir": ".",
     "declaration": true
   },
-  "include": ["*.ts", "prompts/*.ts", "recipes/*.ts", "formats/*.ts", "lib/*.ts", "__tests__/*.ts"],
+  "include": ["*.ts", "templates/*.ts", "prompts/*.ts", "recipes/*.ts", "formats/*.ts", "lib/*.ts", "__tests__/*.ts"],
   "exclude": ["node_modules", "dist", "output"]
 }

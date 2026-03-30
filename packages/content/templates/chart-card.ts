@@ -23,6 +23,10 @@
  */
 
 import { createCanvas, type SKRSContext2D } from "@napi-rs/canvas";
+import {
+  C, FONT, PALETTE, PALETTE_DIM,
+  formatNairaShort, drawFlag, roundRect, roundRectTop, wrapText,
+} from "./helpers.js";
 
 export interface ChartCardInput {
   type: "chart-card";
@@ -44,44 +48,6 @@ export interface ChartCardInput {
 const W = 1200;
 const H = 630;
 const PAD = 48;
-
-const C = {
-  bg: "#0f172a",
-  accent: "#10b981",
-  accentLight: "#6ee7b7",
-  text: "#f8fafc",
-  textMuted: "#94a3b8",
-  textDim: "#64748b",
-  border: "#334155",
-  gridLine: "rgba(148, 163, 184, 0.12)",
-  captionBg: "#1a2332",
-};
-
-const FONT =
-  "'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-
-// High-contrast palette for multi-dataset charts
-const PALETTE = [
-  "#10b981", // emerald-500
-  "#6ee7b7", // emerald-300
-  "#0ea5e9", // sky-500
-  "#a78bfa", // violet-400
-  "#f59e0b", // amber-500
-  "#f43f5e", // rose-500
-  "#22d3ee", // cyan-400
-  "#34d399", // emerald-400
-];
-
-const PALETTE_DIM = [
-  "rgba(16,185,129,0.35)",
-  "rgba(110,231,183,0.35)",
-  "rgba(14,165,233,0.35)",
-  "rgba(167,139,250,0.35)",
-  "rgba(245,158,11,0.35)",
-  "rgba(244,63,94,0.35)",
-  "rgba(34,211,238,0.35)",
-  "rgba(52,211,153,0.35)",
-];
 
 export async function renderChartCard(input: ChartCardInput): Promise<Buffer> {
   const canvas = createCanvas(W, H);
@@ -182,12 +148,10 @@ function drawBarChart(
     let legendX = chartLeft;
     ctx.font = `500 13px ${FONT}`;
     for (let d = 0; d < datasets.length; d++) {
-      // Color dot
       ctx.fillStyle = PALETTE[d % PALETTE.length];
       ctx.beginPath();
       ctx.arc(legendX + 5, top + 12, 5, 0, Math.PI * 2);
       ctx.fill();
-      // Label
       ctx.fillStyle = C.textMuted;
       ctx.fillText(datasets[d].label, legendX + 16, top + 16);
       legendX += ctx.measureText(datasets[d].label).width + 36;
@@ -317,13 +281,11 @@ function drawPieChart(
   let legendY = top + 20;
   ctx.font = `500 15px ${FONT}`;
   for (let i = 0; i < data.length; i++) {
-    // Color dot
     ctx.fillStyle = PALETTE[i % PALETTE.length];
     ctx.beginPath();
     ctx.arc(legendX + 6, legendY + 2, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Label + value
     ctx.fillStyle = C.text;
     ctx.font = `500 15px ${FONT}`;
     ctx.fillText(labels[i], legendX + 20, legendY + 7);
@@ -339,89 +301,4 @@ function drawPieChart(
 
     legendY += 44;
   }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────
-
-function formatNairaShort(value: number): string {
-  if (value >= 1_000_000_000_000) return `₦${(value / 1_000_000_000_000).toFixed(1)}T`;
-  if (value >= 1_000_000_000) return `₦${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `₦${(value / 1_000_000).toFixed(0)}M`;
-  if (value >= 1_000) return `₦${(value / 1_000).toFixed(0)}K`;
-  return `₦${value}`;
-}
-
-function drawFlag(ctx: SKRSContext2D, x: number, y: number): void {
-  const bw = 7;
-  const bh = 16;
-  ctx.fillStyle = "#008751";
-  ctx.fillRect(x, y, bw, bh);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(x + bw + 2, y, bw, bh);
-  ctx.fillStyle = "#008751";
-  ctx.fillRect(x + (bw + 2) * 2, y, bw, bh);
-}
-
-function roundRect(
-  ctx: SKRSContext2D,
-  x: number, y: number, w: number, h: number, r: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function roundRectTop(
-  ctx: SKRSContext2D,
-  x: number, y: number, w: number, h: number, r: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h);
-  ctx.lineTo(x, y + h);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function wrapText(
-  ctx: SKRSContext2D,
-  text: string,
-  maxWidth: number,
-  maxLines: number,
-): string[] {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const metrics = ctx.measureText(testLine);
-
-    if (metrics.width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-      if (lines.length >= maxLines) {
-        lines[lines.length - 1] += "...";
-        return lines;
-      }
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine) lines.push(currentLine);
-  return lines;
 }
