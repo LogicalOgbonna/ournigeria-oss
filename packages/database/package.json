@@ -12,14 +12,14 @@
     "prisma:studio": "infisical run -- prisma studio"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "7.4.1",
-    "@prisma/client": "7.4.1",
-    "@nestjs/common": "11.1.14",
-    "pg": "8.18.0"
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "@nestjs/common": "catalog:",
+    "pg": "catalog:"
   },
   "devDependencies": {
-    "prisma": "7.4.1",
-    "typescript": "5.9.3",
-    "@types/pg": "8.16.0"
+    "prisma": "catalog:",
+    "typescript": "catalog:",
+    "@types/pg": "catalog:"
   }
 }

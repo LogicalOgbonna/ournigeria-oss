@@ -339,7 +339,7 @@ Rules:
 Respond with ONLY a JSON array. No explanation, no markdown fencing. Example:
 [{"query": "education spending allocation", "year": 2021}, {"query": "education spending allocation", "year": 2024}]`,
       prompt: query,
-      maxTokens: 500,
+      maxOutputTokens: 500,
     });
 
     // Strip markdown fences if the LLM wraps its output

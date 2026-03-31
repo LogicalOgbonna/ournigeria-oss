@@ -64,6 +64,9 @@
       "sharp",
       "tesseract.js",
       "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "@swc/core"
     ]
   },
   "dependencies": {

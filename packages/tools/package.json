@@ -2,17 +2,21 @@
   "name": "@ournigeria/tools",
   "version": "0.1.0",
   "private": true,
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.31",
+    "@ai-sdk/openai": "catalog:",
     "@ournigeria/cache": "workspace:*",
-    "ai": "6.0.97",
-    "pg": "8.18.0",
-    "zod": "3.25.76",
-    "zod-to-json-schema": "3.25.1"
+    "ai": "catalog:",
+    "pg": "catalog:",
+    "zod": "catalog:",
+    "zod-to-json-schema": "catalog:"
   },
   "devDependencies": {
-    "@types/pg": "8.16.0",
-    "typescript": "5.9.3"
+    "@types/pg": "catalog:",
+    "typescript": "catalog:"
   }
 }
