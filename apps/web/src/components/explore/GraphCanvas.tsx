@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
@@ -5,14 +6,17 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { NODE_COLORS } from "./Legend";
 
-const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-    </div>
-  ),
-});
+const ForceGraph2D = dynamic(
+  () => import("react-force-graph-2d").then((mod) => mod.default) as any,
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+      </div>
+    ),
+  },
+) as any;
 
 interface GraphNode {
   id: string;
