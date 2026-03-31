@@ -11,6 +11,7 @@ interface FaacBreakdown {
   deduction: number;
   vat: number;
   emtl: number;
+  [key: string]: number;
 }
 
 @Injectable()
@@ -31,16 +32,28 @@ export class ImageGeneratorService {
   ): Promise<FaacImageResult | null> {
     try {
       // 1. Get structured FAAC data from Neo4j
-      const faacData = await this.queryFaacData(lgaName, stateName, month, year);
+      const faacData = await this.queryFaacData(
+        lgaName,
+        stateName,
+        month,
+        year,
+      );
       if (!faacData) {
-        this.logger.warn(`No FAAC data found for ${lgaName}, ${stateName} ${month} ${year}`);
+        this.logger.warn(
+          `No FAAC data found for ${lgaName}, ${stateName} ${month} ${year}`,
+        );
         return null;
       }
 
       // 2. Try to get breakdown from pgvector chunk text
       let breakdown: FaacBreakdown | undefined;
       try {
-        breakdown = await this.parseBreakdownFromChunks(lgaName, stateName, month, year);
+        breakdown = await this.parseBreakdownFromChunks(
+          lgaName,
+          stateName,
+          month,
+          year,
+        );
       } catch (error) {
         this.logger.warn(
           `Breakdown parse failed for ${lgaName}: ${error instanceof Error ? error.message : error}`,
@@ -50,7 +63,10 @@ export class ImageGeneratorService {
       // 3. Validate breakdown reconciliation (within 5% of total)
       if (breakdown) {
         const breakdownTotal =
-          breakdown.grossStatutory - breakdown.deduction + breakdown.vat + breakdown.emtl;
+          breakdown.grossStatutory -
+          breakdown.deduction +
+          breakdown.vat +
+          breakdown.emtl;
         const tolerance = faacData.totalAllocation * 0.05;
         if (Math.abs(breakdownTotal - faacData.totalAllocation) > tolerance) {
           this.logger.warn(
@@ -73,8 +89,12 @@ export class ImageGeneratorService {
 
       // 5. Generate alt text
       const altText = this.generateAltText(
-        lgaName, stateName, month, year,
-        faacData.totalAllocation, breakdown,
+        lgaName,
+        stateName,
+        month,
+        year,
+        faacData.totalAllocation,
+        breakdown,
       );
 
       return { buffer, altText };
@@ -112,9 +132,10 @@ export class ImageGeneratorService {
 
       const amount = record.get("totalAllocation");
       // Neo4j may return Integer objects
-      const totalAllocation = typeof amount === "object" && amount?.toNumber
-        ? amount.toNumber()
-        : Number(amount);
+      const totalAllocation =
+        typeof amount === "object" && amount?.toNumber
+          ? amount.toNumber()
+          : Number(amount);
 
       if (!totalAllocation || totalAllocation <= 0) {
         return null;
@@ -137,13 +158,13 @@ export class ImageGeneratorService {
   ): Promise<{ totalAllocation: number } | null> {
     try {
       const { executeToolCall } = await import("@ournigeria/tools");
-      const result = await executeToolCall("faac-search", {
+      const result = (await executeToolCall("faac-search", {
         query: `${lgaName} ${stateName} FAAC allocation ${month} ${year}`,
         state: stateName.toLowerCase(),
         month,
         year,
         lga: lgaName,
-      }) as { results?: Array<{ metadata?: { total_allocation?: number } }> };
+      })) as { results?: Array<{ metadata?: { total_allocation?: number } }> };
 
       const firstResult = result?.results?.[0];
       const total = firstResult?.metadata?.total_allocation;
@@ -167,21 +188,27 @@ export class ImageGeneratorService {
   ): Promise<FaacBreakdown | undefined> {
     try {
       const { executeToolCall } = await import("@ournigeria/tools");
-      const result = await executeToolCall("faac-search", {
+      const result = (await executeToolCall("faac-search", {
         query: `${lgaName} gross statutory deduction VAT EMTL ${month} ${year}`,
         state: stateName.toLowerCase(),
         month,
         year,
         lga: lgaName,
-      }) as { results?: Array<{ text?: string }> };
+      })) as { results?: Array<{ text?: string }> };
 
       if (!result?.results?.length) return undefined;
 
       // Try to parse breakdown from chunk texts
       for (const chunk of result.results) {
         const text = chunk.text ?? "";
-        const gross = this.parseAmount(text, /Gross\s+Statutory.*?([\d,]+(?:\.\d+)?)/i);
-        const deduction = this.parseAmount(text, /Deduction.*?([\d,]+(?:\.\d+)?)/i);
+        const gross = this.parseAmount(
+          text,
+          /Gross\s+Statutory.*?([\d,]+(?:\.\d+)?)/i,
+        );
+        const deduction = this.parseAmount(
+          text,
+          /Deduction.*?([\d,]+(?:\.\d+)?)/i,
+        );
         const vat = this.parseAmount(text, /VAT.*?([\d,]+(?:\.\d+)?)/i);
         const emtl = this.parseAmount(text, /EMTL.*?([\d,]+(?:\.\d+)?)/i);
 
@@ -229,7 +256,8 @@ export class ImageGeneratorService {
   }
 
   private formatNaira(value: number): string {
-    if (value >= 1_000_000_000) return `₦${(value / 1_000_000_000).toFixed(1)}B`;
+    if (value >= 1_000_000_000)
+      return `₦${(value / 1_000_000_000).toFixed(1)}B`;
     if (value >= 1_000_000) return `₦${(value / 1_000_000).toFixed(0)}M`;
     if (value >= 1_000) return `₦${(value / 1_000).toFixed(0)}K`;
     return `₦${value}`;

@@ -38,6 +38,14 @@ interface GraphCanvasProps {
   selectedNodeId: string | null;
 }
 
+type FGNode = GraphNode & { x?: number; y?: number };
+type FGLink = {
+  source: string | FGNode;
+  target: string | FGNode;
+  type: string;
+  amount?: number;
+};
+
 function getNodeColor(type: string): string {
   return NODE_COLORS[type]?.color ?? "#94a3b8";
 }
@@ -82,14 +90,14 @@ export function GraphCanvas({
   };
 
   const handleNodeClick = useCallback(
-    (node: any) => {
+    (node: FGNode) => {
       if (node?.id) onNodeClick(node.id);
     },
     [onNodeClick],
   );
 
   const nodeCanvasObject = useCallback(
-    (node: any, ctx: CanvasRenderingContext2D) => {
+    (node: FGNode, ctx: CanvasRenderingContext2D) => {
       const x = node.x ?? 0;
       const y = node.y ?? 0;
       const size = getNodeSize(node.connectionCount ?? 0);
@@ -136,22 +144,28 @@ export function GraphCanvas({
         width={dimensions.width}
         height={dimensions.height}
         nodeCanvasObject={nodeCanvasObject}
-        nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+        nodePointerAreaPaint={(
+          node: FGNode,
+          color: string,
+          ctx: CanvasRenderingContext2D,
+        ) => {
           const size = getNodeSize(node.connectionCount ?? 0);
           ctx.beginPath();
           ctx.arc(node.x ?? 0, node.y ?? 0, size + 2, 0, 2 * Math.PI);
           ctx.fillStyle = color;
           ctx.fill();
         }}
-        linkColor={() => (isDark ? "rgba(148,163,184,0.3)" : "rgba(100,116,139,0.2)")}
-        linkWidth={(link: any) => {
+        linkColor={() =>
+          isDark ? "rgba(148,163,184,0.3)" : "rgba(100,116,139,0.2)"
+        }
+        linkWidth={(link: FGLink) => {
           const amount = link.amount ?? 0;
           return amount > 0 ? Math.min(1 + Math.log10(amount + 1) * 0.5, 4) : 1;
         }}
         onNodeClick={handleNodeClick}
         backgroundColor={isDark ? "#020617" : "#f8fafc"}
         cooldownTicks={100}
-        nodeLabel={(node: any) =>
+        nodeLabel={(node: FGNode) =>
           `${node.name} (${node.type}) — ${node.connectionCount ?? 0} connections`
         }
       />
