@@ -94,6 +94,7 @@ export class VectorService implements OnModuleDestroy {
       this.logger.log(`Index "${indexName}" created`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      // TODO: Handle this error better by checking pg code and throwing a more specific error
       if (message.includes('already exists')) {
         this.logger.log(`Index "${indexName}" already exists, continuing`);
       } else {

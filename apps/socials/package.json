@@ -1,0 +1,44 @@
+{
+  "name": "@ournigeria/socials",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "infisical run --env dev --path /socials --watch -- nest start --watch",
+    "build": "nest build",
+    "start": "infisical run --env prod --path /socials -- node dist/main",
+    "start:prod": "infisical run --env prod --path /socials -- node dist/main",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.39.0",
+    "@nestjs/common": "catalog:",
+    "@nestjs/config": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/schedule": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@ournigeria/content": "workspace:*",
+    "@ournigeria/database": "workspace:*",
+    "@ournigeria/tools": "workspace:*",
+    "neo4j-driver": "catalog:",
+    "opossum": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "twitter-api-v2": "1.29.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "catalog:",
+    "@nestjs/schematics": "catalog:",
+    "@types/express": "catalog:",
+    "@types/node": "catalog:",
+    "@types/opossum": "catalog:",
+    "ts-loader": "catalog:",
+    "ts-node": "catalog:",
+    "tsconfig-paths": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

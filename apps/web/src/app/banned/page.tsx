@@ -13,7 +13,6 @@ export default function BannedPage() {
     }
     return null;
   });
-
   useEffect(() => {
     // Re-check ban status — if unbanned, redirect to home
     fetch(apiUrl("/api/auth/profile"), { credentials: "include" })

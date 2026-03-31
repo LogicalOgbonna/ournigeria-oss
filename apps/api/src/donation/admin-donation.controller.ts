@@ -21,23 +21,23 @@ export class AdminDonationController {
   @ApiOperation({ summary: 'List all donations (paginated)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, enum: DonationStatus })
-  @ApiQuery({ name: 'provider', required: false, enum: DonationProvider })
+  @ApiQuery({ name: 'status', required: false, enum: Object.values(DonationStatus) })
+  @ApiQuery({ name: 'provider', required: false, enum: Object.values(DonationProvider) })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   async list(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('status') status?: DonationStatus,
-    @Query('provider') provider?: DonationProvider,
+    @Query('status') status?: string,
+    @Query('provider') provider?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
     return this.donationService.getAdminDonations({
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
-      status,
-      provider,
+      status: status as DonationStatus,
+      provider: provider as DonationProvider,
       startDate,
       endDate,
     });

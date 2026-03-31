@@ -115,7 +115,7 @@ export class AdminConnectionsService {
     dimension?: number;
     createdBy: string;
   }) {
-    const encryptedKey = this.encrypt(data.apiKey);
+    const encryptedKey = this.encrypt(data.apiKey || "");
 
     const row = await this.prisma.providerConnection.create({
       data: {

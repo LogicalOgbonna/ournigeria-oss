@@ -31,6 +31,7 @@ export class BudgetSummarizerService {
 
   async extractTotals(rawText: string) {
     this.logger.log(`Extracting totals from text (${rawText.length} chars)`);
+    // TODO: Do a better job with extracting totals from the text.
 
     // Truncate text to avoid exceeding token limits (approx 100k chars ~ 25k tokens)
     const truncatedText = rawText.substring(0, 100000);

@@ -14,6 +14,9 @@ import { ThinkingDropdown } from "./ThinkingDropdown";
 import { TLDRCard } from "./TLDRCard";
 import { Markdown } from "./Markdown";
 import { SourceCitationModal } from "./SourceCitationModal";
+import { DisambiguationCard } from "./DisambiguationCard";
+import { FollowUpChips } from "./FollowUpChips";
+import type { DisambiguationCandidate, GraphSuggestion } from "@/types";
 import { ShockMeter } from "@/components/cards/ShockMeter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -29,6 +32,8 @@ import { extractChartBlocks } from "@/lib/chart-parser";
 interface AIMessageProps {
   content: AIResponseContent;
   thinking?: ThinkingStep[];
+  disambiguation?: { query: string; candidates: DisambiguationCandidate[] };
+  suggestions?: GraphSuggestion[];
   messageId?: string;
   conversationId?: string;
   onFollowUpClick: (text: string) => void;
@@ -37,6 +42,8 @@ interface AIMessageProps {
 export function AIMessage({
   content,
   thinking,
+  disambiguation,
+  suggestions,
   messageId,
   conversationId,
   onFollowUpClick,
@@ -70,6 +77,15 @@ export function AIMessage({
       {/* Thinking Dropdown */}
       {thinking && thinking.length > 0 && (
         <ThinkingDropdown steps={thinking} />
+      )}
+
+      {/* Disambiguation Card */}
+      {disambiguation && disambiguation.candidates.length > 0 && (
+        <DisambiguationCard
+          query={disambiguation.query}
+          candidates={disambiguation.candidates}
+          onSelect={onFollowUpClick}
+        />
       )}
 
       {/* TL;DR Card */}
@@ -332,6 +348,14 @@ export function AIMessage({
             </button>
           ))}
         </div>
+      )}
+
+      {/* Graph-Powered Follow-Up Chips */}
+      {suggestions && suggestions.length > 0 && (
+        <FollowUpChips
+          suggestions={suggestions}
+          onSelect={onFollowUpClick}
+        />
       )}
     </div>
   );

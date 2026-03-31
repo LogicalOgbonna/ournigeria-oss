@@ -32,6 +32,9 @@
     "dashboard:dev": "nx run dashboard:dev",
     "dashboard:build": "nx run dashboard:build",
     "dashboard:start": "nx run dashboard:start",
+    "socials:dev": "nx run socials:dev",
+    "socials:build": "nx run socials:build",
+    "socials:start": "nx run socials:start",
     "test:e2e": "nx run e2e:test",
     "test:e2e:web": "nx run e2e:test:web",
     "test:e2e:dashboard": "nx run e2e:test:dashboard",
@@ -45,9 +48,9 @@
     "content:coverage": "npx tsx packages/content/batch.ts --coverage"
   },
   "devDependencies": {
-    "@nx/js": "^21.3.2",
-    "marked": "^17.0.4",
-    "nx": "^21.3.2"
+    "@nx/js": "21.6.10",
+    "marked": "17.0.4",
+    "nx": "21.6.10"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -61,9 +64,12 @@
       "sharp",
       "tesseract.js",
       "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "@swc/core"
     ]
   },
   "dependencies": {
-    "pptxgenjs": "^4.0.1"
+    "pptxgenjs": "4.0.1"
   }
 }

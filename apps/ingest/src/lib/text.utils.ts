@@ -8,9 +8,12 @@ const MAX_CHUNK_INPUT_SIZE = 150_000;
  */
 export function sanitizeText(text: string): string {
   return text
-    .replace(/\0/g, '')
-    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F]/g, '')
-    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+    .replaceAll('\0', '')
+    .replaceAll(/[\x01-\x08\x0B\x0C\x0E-\x1F]/g, '')
+    .replaceAll('\u200B', '')
+    .replaceAll('\u200C', '')
+    .replaceAll('\u200D', '')
+    .replaceAll('\uFEFF', '');
 }
 
 /**

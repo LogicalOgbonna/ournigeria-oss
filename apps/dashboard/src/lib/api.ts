@@ -35,6 +35,21 @@ export async function adminUpload(path: string, formData: FormData) {
   return res.json();
 }
 
+export async function socialsFetch(path: string, opts?: RequestInit) {
+  const res = await fetch(`/api/socials${path}`, {
+    ...opts,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...opts?.headers,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Socials API error: ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export async function ingestFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api/ingest${path}`, {
     ...opts,

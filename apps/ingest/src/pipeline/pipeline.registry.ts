@@ -7,7 +7,7 @@ import { FaacPipeline } from "./faac.pipeline";
 
 @Injectable()
 export class PipelineRegistry {
-  private map = new Map<string, PipelineBase>();
+  private readonly map = new Map<string, PipelineBase>();
 
   constructor(
     budget: BudgetPipeline,

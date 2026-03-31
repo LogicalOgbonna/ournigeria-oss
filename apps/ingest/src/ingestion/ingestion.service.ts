@@ -3,7 +3,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { PrismaService } from "@ournigeria/database";
 import { PipelineRegistry } from "../pipeline/pipeline.registry";
-import { PipelineResult } from "../pipeline/pipeline.types";
 import { LogEmitterService } from "./log-emitter.service";
 
 @Injectable()

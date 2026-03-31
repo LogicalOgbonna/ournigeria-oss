@@ -257,6 +257,36 @@ const IMPACT_KEYWORDS = [
 // Cross-domain detection removed in Phase 2 — agents now have access
 // to all search tools and handle cross-domain queries autonomously.
 
+const GRAPH_SIGNAL_KEYWORDS = [
+  "connected to",
+  "linked to",
+  "which officials",
+  "follow the money",
+  "all states that",
+  "who",
+  "compare across",
+  "relationship between",
+  "how is .* connected",
+  "network",
+  "trace",
+  "chain of",
+  "web of",
+  "associates of",
+  "co-accused",
+  "contractors linked",
+  "officials involved",
+];
+
+function hasGraphSignal(message: string): boolean {
+  const lower = message.toLowerCase();
+  return GRAPH_SIGNAL_KEYWORDS.some((kw) => {
+    if (kw.includes(".*")) {
+      return new RegExp(kw, "i").test(lower);
+    }
+    return lower.includes(kw);
+  });
+}
+
 export function inferTool(
   message: string,
   isFirstTurn: boolean = false,
@@ -1309,6 +1339,13 @@ export async function routeToAgent({
   const entityHints = buildEntityHints(mergedEntities);
   if (entityHints) {
     augmentedMessage += entityHints + "\n";
+  }
+
+  // Graph enrichment hint for relationship-heavy queries
+  const graphDomains: RouterIntent[] = ["budget", "corruption", "govspend", "faac"];
+  if (graphDomains.includes(tool as RouterIntent) && hasGraphSignal(message)) {
+    augmentedMessage +=
+      "\n[GRAPH HINT] This query involves relationships or connections. Use the graphSearchTool to find connected entities in the knowledge graph, and traverseGraphTool for complex relationship queries. Combine graph results with vector search results for a comprehensive answer.\n\n";
   }
 
   augmentedMessage += `Current user message: ${message}`;

@@ -3,24 +3,31 @@
   "version": "0.0.2",
   "private": true,
   "type": "module",
+  "main": "image-service.ts",
+  "exports": {
+    ".": "./image-service.ts",
+    "./templates": "./templates/index.ts"
+  },
   "scripts": {
     "generate": "infisical run --env dev -- npx tsx generate.ts",
     "query": "infisical run --env dev -- npx tsx query.ts",
     "render": "npx tsx render.ts",
     "engine": "infisical run --env dev -- npx tsx engine.ts",
     "batch": "infisical run --env dev -- npx tsx batch.ts",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.65",
-    "openai": "^4.86.2",
-    "pg": "^8.16.0"
+    "@napi-rs/canvas": "0.1.80",
+    "@resvg/resvg-js": "2.6.2",
+    "openai": "4.104.0",
+    "pg": "catalog:"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.6",
-    "tsx": "^4.19.4",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.1"
+    "@types/pg": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

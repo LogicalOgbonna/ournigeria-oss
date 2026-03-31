@@ -7,6 +7,8 @@ import {
   ThinkingStep,
   ToolId,
   Language,
+  DisambiguationCandidate,
+  GraphSuggestion,
 } from "@/types";
 import { apiUrl } from "@/lib/api";
 import { redirectToLogin } from "@/lib/auth-redirect";
@@ -260,6 +262,8 @@ export function useChat(conversationId?: string) {
         let fullText = "";
         let richContent: AIResponseContent | null = null;
         let thinkingSteps: ThinkingStep[] = [];
+        let disambiguationData: { query: string; candidates: DisambiguationCandidate[] } | undefined;
+        let suggestionsData: GraphSuggestion[] | undefined;
         let currentConversationId = activeConversationId;
 
         while (true) {
@@ -309,6 +313,14 @@ export function useChat(conversationId?: string) {
                   setStatusText("");
                   break;
 
+                case "disambiguation":
+                  disambiguationData = event.disambiguation ?? { query: event.query, candidates: event.candidates };
+                  break;
+
+                case "suggestions":
+                  suggestionsData = event.suggestions;
+                  break;
+
                 case "error": {
                   // Server sent an explicit error — display it as the assistant message
                   const errorText =
@@ -342,6 +354,8 @@ export function useChat(conversationId?: string) {
           content: richContent?.text ?? fullText,
           richContent: richContent ?? undefined,
           thinking: thinkingSteps.length > 0 ? thinkingSteps : undefined,
+          disambiguation: disambiguationData,
+          suggestions: suggestionsData,
           timestamp: new Date(),
         };
 

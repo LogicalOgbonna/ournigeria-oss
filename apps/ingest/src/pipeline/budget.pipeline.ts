@@ -186,6 +186,7 @@ export class BudgetPipeline extends PipelineBase {
       year: number;
       filename: string;
     };
+    // TODO: have a more enriched metadata schema for budget chunks.
 
     const isSummary = chunkText.startsWith("Summary Chunk:");
 

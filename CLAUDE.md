@@ -71,25 +71,6 @@ docker compose up -d
 
 All dev commands use `infisical run --env dev` to inject secrets. Build commands do not.
 
-## Architecture
-
-```
-apps/
-  api/        NestJS v11 backend — auth, chat (SSE streaming), AI agents, charts, Telegram bot
-  web/        Next.js v16 frontend — chat UI, 22 chart types, shareable public conversations
-  dashboard/  Next.js admin interface — user management, analytics, ingestion tracking
-  ingest/     NestJS document ingestion — PDF/XLSX/DOCX extractors, Voyage AI embeddings, pgvector
-  awanaija/   Next.js marketing landing page
-  videos/     Remotion video generation
-
-packages/
-  database/   Prisma schema + migrations (PostgreSQL 16 + pgvector)
-  source/     Raw budget documents (37 states, 959 files)
-  scripts/    Scraping and data utilities
-  evaluation/ Eval framework with test datasets (budget, corruption, faac, govspend, routing)
-  e2e/        Playwright E2E tests (web + dashboard)
-```
-
 ## Testing
 
 **No unit test framework.** The codebase uses two testing strategies:
@@ -154,14 +135,6 @@ pnpm prisma:generate
 
 The `prisma:migrate:create` script (`packages/database/scripts/create-migration.ts`) automatically filters out operations on Mastra-managed chunk tables.
 
-## API Bootstrap (apps/api/src/main.ts)
-
-- Global prefix `/api` (excluding `/health`)
-- Global `AuthGuard` on all routes (public auth endpoints exempted)
-- Swagger UI at `/api/docs`
-- Runs RAG migrations at startup (idempotent)
-- CORS configured via `CORS_ORIGINS` env var
-
 ## Secrets Management
 
 Uses [Infisical](https://infisical.com/) CLI. Config in `.infisical.json`. Environment-specific paths: `/web`, `/dashboard`. Dev commands wrap with `infisical run --env dev --watch --`.
@@ -210,10 +183,6 @@ With `/browse`: navigate to `spending.arinze.online/login`, run the fetch above 
 
 The test user has phone number `+2340000000000` and is created automatically on first dev-login. Use this user for all automated testing, evaluation runs, and feature validation. The `/api/auth/dev-login` endpoint is conditionally registered and does not exist in production builds (`NODE_ENV=production`).
 
-## Docker
-
-Multi-stage Dockerfiles with pnpm workspace filtering (`--filter @ournigeria/api...`). Dev compose runs PostgreSQL only. Production compose runs Postgres + API + Ingest with health checks, memory limits (API 1GB, Ingest 4GB, Postgres 2GB), and 30s graceful shutdown.
-
 ## Planning
 - Save all plans to `.agent/plans/` folder
 - Naming convention: `{sequence}.{plan-name}.md` (e.g., `1.auth-setup.md`, `2.document-ingestion.md`)
@@ -225,24 +194,6 @@ Multi-stage Dockerfiles with pnpm workspace filtering (`--filter @ournigeria/api
   - ⚠️ **Medium** - May need iteration, some complexity
   - 🔴 **Complex** - Break into sub-plans before executing
 
-## gstack Skills
-
-This project uses [gstack](https://github.com/garrytan/gstack) skills installed at `.claude/skills/gstack/`.
-
-**Web browsing:** Always use the `/browse` skill for all web browsing and visual testing. Never use `mcp__claude-in-chrome__*` tools.
-
-Available skills:
-- `/plan-ceo-review` — Founder/CEO product review
-- `/plan-eng-review` — Engineering architecture review
-- `/review` — Staff engineer code review
-- `/ship` — Release engineer deployment
-- `/browse` — QA browser automation (use this for all web browsing)
-- `/retro` — Commit history & velocity analysis
-
-If gstack skills aren't working, rebuild by running:
-```bash
-cd .claude/skills/gstack && ./setup
-```
 
 ## Development Flow
 1. **Plan** - Create a detailed plan and save it to `.agent/plans/`

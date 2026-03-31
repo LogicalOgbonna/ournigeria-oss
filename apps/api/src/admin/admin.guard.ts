@@ -11,7 +11,7 @@ const ADMIN_COOKIE = "on_admin_session";
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

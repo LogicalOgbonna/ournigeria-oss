@@ -17,10 +17,10 @@ const MIN_TEXT_THRESHOLD = 100;
  */
 function meaningfulText(raw: string): string {
   return raw
-    .replace(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
-    .replace(/page\s*\d+\s*(of\s*\d+)?/gi, '')
-    .replace(/\f/g, '')
-    .replace(/\s+/g, ' ')
+    .replaceAll(/--\s*\d+\s+of\s+\d+\s*--/gi, '')
+    .replaceAll(/page\s*\d+\s*(of\s*\d+)?/gi, '')
+    .replaceAll('\f', '')
+    .replaceAll(' ', ' ')
     .trim();
 }
 
@@ -43,8 +43,8 @@ export class PdfExtractor implements ITextExtractor {
   private cachedKey = '';
 
   constructor(
-    private config: ConfigService,
-    private prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private decrypt(ciphertext: string): string {
@@ -152,6 +152,7 @@ export class PdfExtractor implements ITextExtractor {
 
     const pageTexts: string[] = [];
 
+    // TODO: Add parallel processing for better performance
     for (let page = 1; page <= totalPages; page++) {
       const screenshots = await pdf.getScreenshot({
         partial: [page],

@@ -10,7 +10,7 @@ import { PptxExtractor } from './pptx.extractor';
 
 @Injectable()
 export class ExtractorRegistry {
-  private map = new Map<string, ITextExtractor>();
+  private readonly map = new Map<string, ITextExtractor>();
 
   constructor(
     pdf: PdfExtractor,

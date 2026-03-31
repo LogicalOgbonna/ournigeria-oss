@@ -23,6 +23,7 @@ import { execSync } from "child_process";
 
 import { renderDataCard, type DataCardInput } from "./templates/data-card.js";
 import { renderChartCard, type ChartCardInput } from "./templates/chart-card.js";
+import { renderFaacAllocation, type FaacAllocationInput } from "./templates/faac-allocation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -50,7 +51,7 @@ const PREVIEW = hasFlag("preview");
 
 // ─── Read input ──────────────────────────────────────────────────
 
-type CardInput = DataCardInput | ChartCardInput;
+type CardInput = DataCardInput | ChartCardInput | FaacAllocationInput;
 
 function readInput(): CardInput {
   let raw: string;
@@ -116,8 +117,15 @@ function validateInput(input: CardInput): void {
     if (!cc.chartType) { console.error('Missing "chartType" for chart-card'); process.exit(1); }
     if (!cc.chartData) { console.error('Missing "chartData" for chart-card'); process.exit(1); }
     if (!cc.caption) { console.error('Missing "caption" for chart-card'); process.exit(1); }
+  } else if (input.type === "faac-allocation") {
+    const fa = input as FaacAllocationInput;
+    if (!fa.lgaName) { console.error('Missing "lgaName" for faac-allocation'); process.exit(1); }
+    if (!fa.stateName) { console.error('Missing "stateName" for faac-allocation'); process.exit(1); }
+    if (!fa.month) { console.error('Missing "month" for faac-allocation'); process.exit(1); }
+    if (!fa.year) { console.error('Missing "year" for faac-allocation'); process.exit(1); }
+    if (!fa.totalAllocation) { console.error('Missing "totalAllocation" for faac-allocation'); process.exit(1); }
   } else {
-    console.error(`Unknown card type: "${(input as { type: string }).type}". Must be "data-card" or "chart-card".`);
+    console.error(`Unknown card type: "${(input as { type: string }).type}". Must be "data-card", "chart-card", or "faac-allocation".`);
     process.exit(1);
   }
 }
@@ -128,12 +136,17 @@ async function main() {
   const input = readInput();
   validateInput(input);
 
-  console.log(`Rendering ${input.type}: "${input.title}"`);
+  const label = input.type === "faac-allocation"
+    ? `${(input as FaacAllocationInput).lgaName} — ${(input as FaacAllocationInput).month} ${(input as FaacAllocationInput).year}`
+    : `"${(input as DataCardInput | ChartCardInput).title}"`;
+  console.log(`Rendering ${input.type}: ${label}`);
 
   let buffer: Buffer;
   try {
     if (input.type === "data-card") {
       buffer = await renderDataCard(input as DataCardInput);
+    } else if (input.type === "faac-allocation") {
+      buffer = await renderFaacAllocation(input as FaacAllocationInput);
     } else {
       buffer = await renderChartCard(input as ChartCardInput);
     }

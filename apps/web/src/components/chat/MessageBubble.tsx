@@ -169,6 +169,8 @@ export function MessageBubble({
           <AIMessage
             content={message.richContent}
             thinking={message.thinking}
+            disambiguation={message.disambiguation}
+            suggestions={message.suggestions}
             messageId={message.id}
             conversationId={conversationId ?? undefined}
             onFollowUpClick={onFollowUpClick}
