@@ -48,9 +48,9 @@
     "content:coverage": "npx tsx packages/content/batch.ts --coverage"
   },
   "devDependencies": {
-    "@nx/js": "^21.3.2",
-    "marked": "^17.0.4",
-    "nx": "^21.3.2"
+    "@nx/js": "21.6.10",
+    "marked": "17.0.4",
+    "nx": "21.6.10"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -67,6 +67,6 @@
     ]
   },
   "dependencies": {
-    "pptxgenjs": "^4.0.1"
+    "pptxgenjs": "4.0.1"
   }
 }

@@ -11,26 +11,26 @@
   },
   "dependencies": {
     "@remotion/animated-emoji": "4.0.429",
-    "@remotion/cli": "^4.0.0",
-    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/cli": "4.0.429",
+    "@remotion/google-fonts": "4.0.429",
     "@remotion/rive": "4.0.429",
     "@remotion/shapes": "4.0.429",
-    "@remotion/tailwind-v4": "^4.0.0",
+    "@remotion/tailwind-v4": "4.0.429",
     "@remotion/three": "4.0.429",
     "@remotion/webcodecs": "4.0.429",
-    "clsx": "^2.1.1",
-    "pg": "^8.13.0",
+    "clsx": "2.1.1",
+    "pg": "8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "remotion": "^4.0.0",
-    "tailwind-merge": "^3.5.0",
+    "remotion": "4.0.429",
+    "tailwind-merge": "3.5.0",
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5.9.3"
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3"
   }
 }
