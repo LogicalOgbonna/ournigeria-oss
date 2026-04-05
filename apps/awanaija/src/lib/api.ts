@@ -204,6 +204,10 @@ export interface Position {
   constituencyCode: string | null;
   ward: string | null;
   wardCode: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  termName: string | null;
+  termNumber: number | null;
 }
 
 export interface ChainEntry {

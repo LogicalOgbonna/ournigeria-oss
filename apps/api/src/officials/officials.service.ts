@@ -55,7 +55,7 @@ export class OfficialsService {
         include: {
           positions: {
             where: { status: "active" },
-            include: { party: true, state: true, lga: true, constituency: true, ward: true },
+            include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
           },
           _count: { select: { proposals: true } },
         },
@@ -78,7 +78,7 @@ export class OfficialsService {
       include: {
         positions: {
           where: { status: "active" },
-          include: { party: true, state: true, lga: true, constituency: true, ward: true },
+          include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
         },
         proposals: {
           where: { status: { in: ["submitted", "under_review"] } },
@@ -137,7 +137,7 @@ export class OfficialsService {
           status: "active",
           constituencyCode: { startsWith: `fed_${stateCode}_` },
         },
-        include: { official: true, party: true, constituency: true },
+        include: { official: true, party: true, constituency: true, term: true },
       });
 
       if (fedPositions.length > 0) {
@@ -190,7 +190,7 @@ export class OfficialsService {
           status: "active",
           constituencyCode: { startsWith: `sen_${stateCode}_` },
         },
-        include: { official: true, party: true, constituency: true },
+        include: { official: true, party: true, constituency: true, term: true },
       });
 
       if (senPositions.length > 0) {
@@ -237,6 +237,7 @@ export class OfficialsService {
         lga: true,
         constituency: true,
         ward: true,
+        term: true,
       },
     });
 
@@ -247,7 +248,7 @@ export class OfficialsService {
     return {
       role,
       scope,
-      official: this.formatOfficial(position.official, false),
+      official: this.formatOfficial(position.official),
       position: {
         id: position.id,
         role: position.role,
@@ -257,6 +258,10 @@ export class OfficialsService {
         lga: position.lga?.name ?? null,
         constituency: position.constituency?.name ?? null,
         ward: position.ward?.name ?? null,
+        startDate: position.startDate?.toISOString().split("T")[0] ?? null,
+        endDate: position.endDate?.toISOString().split("T")[0] ?? null,
+        termName: (position as any).term?.name ?? null,
+        termNumber: (position as any).term?.termNumber ?? null,
       },
     };
   }
@@ -274,6 +279,7 @@ export class OfficialsService {
           party: true,
           state: true,
           constituency: true,
+          term: true,
         },
       });
 
@@ -311,6 +317,7 @@ export class OfficialsService {
           party: true,
           state: true,
           constituency: true,
+          term: true,
         },
       });
 
@@ -329,6 +336,7 @@ export class OfficialsService {
           state: true,
           constituency: true,
           ward: true,
+          term: true,
         },
       });
       return positions.map((p) => this.formatPositionResult(p, role, scope));
@@ -345,7 +353,7 @@ export class OfficialsService {
     return {
       role,
       scope,
-      official: this.formatOfficial(position.official, false),
+      official: this.formatOfficial(position.official),
       position: {
         id: position.id,
         role: position.role,
@@ -354,6 +362,10 @@ export class OfficialsService {
         state: position.state?.name ?? null,
         constituency: position.constituency?.name ?? null,
         ward: position.ward?.name ?? null,
+        startDate: position.startDate?.toISOString().split("T")[0] ?? null,
+        endDate: position.endDate?.toISOString().split("T")[0] ?? null,
+        termName: (position as any).term?.name ?? null,
+        termNumber: (position as any).term?.termNumber ?? null,
       },
     };
   }
@@ -387,6 +399,10 @@ export class OfficialsService {
         constituencyCode: p.constituencyCode,
         ward: p.ward?.name ?? null,
         wardCode: p.wardCode,
+        startDate: p.startDate?.toISOString().split("T")[0] ?? null,
+        endDate: p.endDate?.toISOString().split("T")[0] ?? null,
+        termName: p.term?.name ?? null,
+        termNumber: p.term?.termNumber ?? null,
       })) ?? [],
       proposalCount: official._count?.proposals ?? 0,
       proposals: official.proposals?.map((p: any) => ({

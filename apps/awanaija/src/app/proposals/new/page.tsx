@@ -308,6 +308,14 @@ function IdentifyOfficialContent() {
         constituencyCode: constituencyCode || selectedConstituency || undefined,
       });
       setNewOfficialId(result.officialId);
+      // Revalidate the new official's page cache so it shows this proposal
+      if (result.officialId) {
+        fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: `/officials/${result.officialId}` }),
+        }).catch(() => {});
+      }
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
@@ -689,6 +697,12 @@ function EditOfficialContent() {
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
       });
+      // Revalidate the official's page cache so it shows this proposal
+      fetch("/api/revalidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: `/officials/${officialId}` }),
+      }).catch(() => {});
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
@@ -930,7 +944,19 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
       const params = new URLSearchParams(
         Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
       ).toString();
-      window.location.href = `${authUrl}?${params}`;
+      try {
+        const res = await fetch(`${authUrl}?${params}`, {
+          credentials: "include",
+          redirect: "follow",
+        });
+        if (res.ok || res.redirected) {
+          onVerified();
+        } else {
+          setError("Telegram login failed. Please try again.");
+        }
+      } catch {
+        setError("Network error during Telegram login. Please try again.");
+      }
     };
 
     const script = document.createElement("script");

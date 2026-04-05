@@ -131,10 +131,12 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
 
           {/* Desktop: extra details row */}
           <div className="hidden md:flex items-center gap-4 mt-2.5 text-xs text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Since 2023</span>
-            </div>
+            {position?.startDate && (
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Since {new Date(position.startDate).getFullYear()}</span>
+              </div>
+            )}
             <CompletenessRing value={completeness} />
             {official.phoneNumber && (
               <span>{"📞"} {official.phoneNumber}</span>
