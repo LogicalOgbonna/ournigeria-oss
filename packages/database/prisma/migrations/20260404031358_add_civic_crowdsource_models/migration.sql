@@ -240,15 +240,15 @@ ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_state_code_f
 
 -- AddForeignKey
 ALTER TABLE "official_positions" DROP CONSTRAINT IF EXISTS "official_positions_constituency_code_fkey";
-ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_constituency_code_fkey" FOREIGN KEY ("constituency_code") REFERENCES "nigerian_constituencies"("code") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_constituency_code_fkey" FOREIGN KEY ("constituency_code") REFERENCES "nigerian_constituencies"("code") ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 -- AddForeignKey
 ALTER TABLE "official_positions" DROP CONSTRAINT IF EXISTS "official_positions_lga_code_fkey";
-ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_lga_code_fkey" FOREIGN KEY ("lga_code") REFERENCES "nigerian_lgas"("code") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_lga_code_fkey" FOREIGN KEY ("lga_code") REFERENCES "nigerian_lgas"("code") ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 -- AddForeignKey
 ALTER TABLE "official_positions" DROP CONSTRAINT IF EXISTS "official_positions_ward_code_fkey";
-ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_ward_code_fkey" FOREIGN KEY ("ward_code") REFERENCES "nigerian_wards"("code") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "official_positions" ADD CONSTRAINT "official_positions_ward_code_fkey" FOREIGN KEY ("ward_code") REFERENCES "nigerian_wards"("code") ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 -- AddForeignKey
 ALTER TABLE "political_terms" DROP CONSTRAINT IF EXISTS "political_terms_state_code_fkey";
