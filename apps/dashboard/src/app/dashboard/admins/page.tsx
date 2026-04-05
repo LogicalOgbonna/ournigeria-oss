@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, ShieldCheck, UserPlus } from "lucide-react";
+import { Trash2, ShieldCheck, UserPlus } from "lucide-react";
 import { adminFetch } from "@/lib/api";
 
 interface AdminItem {
