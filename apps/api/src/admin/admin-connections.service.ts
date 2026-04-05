@@ -1,9 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, embed } from "ai";
 import * as crypto from "node:crypto";
 import { setSetting, notifySettingsChanged } from "../config/settings-store";
+import { validateProviderBaseUrl } from "../lib/url-validation";
 
 export type ConnectionType = "llm" | "embedding" | "ocr";
 
@@ -115,6 +116,11 @@ export class AdminConnectionsService {
     dimension?: number;
     createdBy: string;
   }) {
+    // Validate baseUrl against known provider domains to prevent SSRF
+    const urlResult = validateProviderBaseUrl(data.baseUrl);
+    if (!urlResult.valid) throw new BadRequestException(`baseUrl: ${urlResult.reason}`);
+    data.baseUrl = urlResult.url;
+
     const encryptedKey = this.encrypt(data.apiKey || "");
 
     const row = await this.prisma.providerConnection.create({
@@ -150,6 +156,13 @@ export class AdminConnectionsService {
       dimension?: number;
     },
   ) {
+    // Validate baseUrl if being updated
+    if (data.baseUrl !== undefined) {
+      const urlResult = validateProviderBaseUrl(data.baseUrl);
+      if (!urlResult.valid) throw new BadRequestException(`baseUrl: ${urlResult.reason}`);
+      data.baseUrl = urlResult.url;
+    }
+
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.provider !== undefined) updateData.provider = data.provider;
@@ -335,6 +348,13 @@ export class AdminConnectionsService {
     if (!data.baseUrl || !data.modelId) {
       return { success: false, error: "Base URL and model are required" };
     }
+
+    // Validate baseUrl before making any outbound request
+    const urlResult = validateProviderBaseUrl(data.baseUrl);
+    if (!urlResult.valid) {
+      return { success: false, error: `baseUrl: ${urlResult.reason}` };
+    }
+    data.baseUrl = urlResult.url;
 
     try {
       if (data.type === "llm" || data.type === "ocr") {

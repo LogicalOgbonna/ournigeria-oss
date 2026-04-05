@@ -3,6 +3,7 @@ initOtel();
 
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
@@ -14,7 +15,13 @@ import { setNeo4jServiceForTools } from "./mastra/tools/graph-search";
 import { setNeo4jServiceForTraversal } from "./mastra/tools/traverse-graph";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
+
+  // Allow larger request bodies for base64-encoded image uploads (proposals)
+  app.useBodyParser("json", { limit: "2mb" });
+  app.useBodyParser("urlencoded", { limit: "2mb", extended: true });
 
   app.use(cookieParser());
   app.setGlobalPrefix("api", { exclude: ["health"] });

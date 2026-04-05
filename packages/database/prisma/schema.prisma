@@ -109,13 +109,13 @@ enum DonationStatus {
 // ============================================================
 
 model AdminUser {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  name         String   @db.VarChar(100)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  name         String    @db.VarChar(100)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz()
-  createdById  String?  @map("created_by_id") @db.Uuid
+  createdById  String?   @map("created_by_id") @db.Uuid
 
   createdBy    AdminUser?  @relation("AdminCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers AdminUser[] @relation("AdminCreatedBy")
@@ -123,18 +123,31 @@ model AdminUser {
   @@map("admin_users")
 }
 
+model GeopoliticalZone {
+  code String @id @db.VarChar(20)
+  name String @unique @db.VarChar(30)
+
+  states NigerianState[]
+
+  @@map("geopolitical_zones")
+}
+
 model NigerianState {
-  code            String @id @db.VarChar(30)
-  name            String @unique @db.VarChar(50)
-  geopoliticalZone String @map("geopolitical_zone") @db.VarChar(20)
-  capital         String @db.VarChar(50)
+  code     String @id @db.VarChar(30)
+  name     String @unique @db.VarChar(50)
+  zoneCode String @map("zone_code") @db.VarChar(20)
+  capital  String @db.VarChar(50)
 
-  documents        Document[]
-  budgetSummaries  BudgetSummary[]
-  sourceReferences SourceReference[]
-  lgas             NigerianLga[]
-  constituencies   NigerianConstituency[]
+  zone              GeopoliticalZone       @relation(fields: [zoneCode], references: [code])
+  documents         Document[]
+  sourceReferences  SourceReference[]
+  lgas              NigerianLga[]
+  constituencies    NigerianConstituency[]
+  fiscalEntity      FiscalEntity?
+  officialPositions OfficialPosition[]
+  politicalTerms    PoliticalTerm[]
 
+  @@index([zoneCode], map: "idx_states_zone")
   @@map("nigerian_states")
 }
 
@@ -143,69 +156,246 @@ model NigerianLga {
   name      String @db.VarChar(100)
   stateCode String @map("state_code") @db.VarChar(30)
 
-  state NigerianState @relation(fields: [stateCode], references: [code])
+  state              NigerianState           @relation(fields: [stateCode], references: [code])
+  fiscalEntity       FiscalEntity?
+  wards              NigerianWard[]
+  senatorialMappings SenatorialDistrictLga[]
+  officialPositions  OfficialPosition[]
 
   @@index([stateCode], map: "idx_lgas_state")
   @@map("nigerian_lgas")
 }
 
 model NigerianConstituency {
-  code      String @id @db.VarChar(80)
-  name      String @db.VarChar(200)
-  type      String @db.VarChar(20)
-  stateCode String @map("state_code") @db.VarChar(30)
+  code      String  @id @db.VarChar(80)
+  name      String  @db.VarChar(200)
+  type      String  @db.VarChar(20)
+  stateCode String  @map("state_code") @db.VarChar(30)
+  pcode     String? @db.VarChar(20)
 
-  state NigerianState @relation(fields: [stateCode], references: [code])
+  state             NigerianState           @relation(fields: [stateCode], references: [code])
+  lgaMappings       SenatorialDistrictLga[]
+  wardMappings      ConstituencyWard[]
+  officialPositions OfficialPosition[]
 
   @@index([stateCode, type], map: "idx_constituencies_state_type")
   @@map("nigerian_constituencies")
 }
 
 model NigerianOfficial {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String   @db.VarChar(200)
-  party     String?  @db.VarChar(50)
-  imageUrl  String?  @map("image_url") @db.VarChar(500)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String    @db.VarChar(200)
+  imageUrl      String?   @map("image_url") @db.VarChar(500)
+  email         String?   @db.VarChar(255)
+  phoneNumber   String?   @map("phone_number") @db.VarChar(30)
+  officeAddress String?   @map("office_address") @db.Text
+  twitterHandle String?   @map("twitter_handle") @db.VarChar(100)
+  facebookUrl   String?   @map("facebook_url") @db.VarChar(500)
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  gender        String?   @db.VarChar(10)
+  education     String?   @db.Text
+  biography     String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
 
   positions OfficialPosition[]
+  proposals DataProposal[]
 
   @@map("nigerian_officials")
 }
 
+/// Exclusive arcs: exactly one of state_code, constituency_code, lga_code, ward_code
+/// must be non-null (enforced by CHECK constraint in migration SQL).
+/// No is_current column — "current" is derived via status + dates.
+/// CHECK constraints for role-scope, appointment_type, status, etc. in migration SQL.
+/// Views: current_positions, preferred_current_positions (see migration).
 model OfficialPosition {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   officialId       String    @map("official_id") @db.Uuid
+  termId           String?   @map("term_id") @db.Uuid
+  partyAcronym     String?   @map("party_acronym") @db.VarChar(20)
   role             String    @db.VarChar(50)
-  jurisdictionType String    @map("jurisdiction_type") @db.VarChar(20)
-  jurisdictionCode String    @map("jurisdiction_code") @db.VarChar(60)
+  appointmentType  String    @default("elected") @map("appointment_type") @db.VarChar(20)
+  status           String    @default("active") @db.VarChar(20)
+  stateCode        String?   @map("state_code") @db.VarChar(30)
+  constituencyCode String?   @map("constituency_code") @db.VarChar(80)
+  lgaCode          String?   @map("lga_code") @db.VarChar(60)
+  wardCode         String?   @map("ward_code") @db.VarChar(100)
   startDate        DateTime  @map("start_date") @db.Date
   endDate          DateTime? @map("end_date") @db.Date
-  isCurrent        Boolean   @default(true) @map("is_current")
+  endReason        String?   @map("end_reason") @db.VarChar(30)
+  sourceType       String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl        String?   @map("source_url") @db.Text
+  sourceDate       DateTime? @map("source_date") @db.Date
+  confidence       String    @default("medium") @db.VarChar(10)
+  lastVerifiedAt   DateTime? @map("last_verified_at") @db.Timestamptz()
+  reviewedBy       String?   @map("reviewed_by") @db.VarChar(100)
+  reviewStatus     String    @default("unreviewed") @map("review_status") @db.VarChar(20)
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
-  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  official     NigerianOfficial      @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  term         PoliticalTerm?        @relation(fields: [termId], references: [id])
+  party        PoliticalParty?       @relation(fields: [partyAcronym], references: [acronym])
+  state        NigerianState?        @relation(fields: [stateCode], references: [code])
+  constituency NigerianConstituency? @relation(fields: [constituencyCode], references: [code])
+  lga          NigerianLga?          @relation(fields: [lgaCode], references: [code])
+  ward         NigerianWard?         @relation(fields: [wardCode], references: [code])
+  proposals    DataProposal[]
 
-  // NOTE: Partial unique index (WHERE is_current = true) is in migration SQL only.
-  // Prisma doesn't support partial unique indexes natively.
-  @@index([jurisdictionCode, jurisdictionType, isCurrent], map: "idx_positions_jurisdiction_current")
+  @@index([termId], map: "idx_positions_term")
+  @@index([stateCode, status], map: "idx_positions_state_status")
+  @@index([constituencyCode, status], map: "idx_positions_constituency_status")
+  @@index([lgaCode, status], map: "idx_positions_lga_status")
+  @@index([wardCode, status], map: "idx_positions_ward_status")
   @@index([officialId], map: "idx_positions_official")
   @@map("official_positions")
 }
 
+model PoliticalTerm {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar(100)
+  termNumber Int?      @map("term_number")
+  level      String    @db.VarChar(10)
+  kind       String    @db.VarChar(20)
+  stateCode  String?   @map("state_code") @db.VarChar(30)
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  state     NigerianState?     @relation(fields: [stateCode], references: [code])
+  positions OfficialPosition[]
+
+  @@unique([level, kind, stateCode, termNumber], map: "uq_term_level_kind_state_number")
+  @@map("political_terms")
+}
+
+model PoliticalParty {
+  acronym  String  @id @db.VarChar(20)
+  name     String  @db.VarChar(100)
+  isActive Boolean @default(true) @map("is_active")
+
+  positions OfficialPosition[]
+
+  @@map("political_parties")
+}
+
+model NigerianWard {
+  code    String  @id @db.VarChar(100)
+  name    String  @db.VarChar(150)
+  lgaCode String  @map("lga_code") @db.VarChar(60)
+  pcode   String? @db.VarChar(20)
+
+  lga                  NigerianLga        @relation(fields: [lgaCode], references: [code])
+  constituencyMappings ConstituencyWard[]
+  officialPositions    OfficialPosition[]
+
+  @@index([lgaCode], map: "idx_wards_lga")
+  @@map("nigerian_wards")
+}
+
+model SenatorialDistrictLga {
+  senatorialDistrictCode String    @map("senatorial_district_code") @db.VarChar(80)
+  lgaCode                String    @map("lga_code") @db.VarChar(60)
+  source                 String    @db.VarChar(30)
+  sourceUrl              String?   @map("source_url") @db.Text
+  sourceDate             DateTime? @map("source_date") @db.Date
+  confidence             String    @default("high") @db.VarChar(10)
+
+  senatorialDistrict NigerianConstituency @relation(fields: [senatorialDistrictCode], references: [code])
+  lga                NigerianLga          @relation(fields: [lgaCode], references: [code])
+
+  @@id([senatorialDistrictCode, lgaCode])
+  @@index([lgaCode], map: "idx_senatorial_lga_lga")
+  @@map("senatorial_district_lgas")
+}
+
+model ConstituencyWard {
+  constituencyCode String    @map("constituency_code") @db.VarChar(80)
+  wardCode         String    @map("ward_code") @db.VarChar(100)
+  source           String    @db.VarChar(30)
+  sourceUrl        String?   @map("source_url") @db.Text
+  sourceDate       DateTime? @map("source_date") @db.Date
+  confidence       String    @default("medium") @db.VarChar(10)
+
+  constituency NigerianConstituency @relation(fields: [constituencyCode], references: [code])
+  ward         NigerianWard         @relation(fields: [wardCode], references: [code])
+
+  @@id([constituencyCode, wardCode])
+  @@index([wardCode], map: "idx_constituency_ward_ward")
+  @@map("constituency_wards")
+}
+
+// ============================================================
+// Civic Crowdsource (proposals, votes, activity)
+// ============================================================
+
+model DataProposal {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId    String    @map("official_id") @db.Uuid
+  positionId    String?   @map("position_id") @db.Uuid
+  proposerPhone String    @map("proposer_phone") @db.VarChar(60)
+  targetField   String    @map("target_field") @db.VarChar(50)
+  proposedValue Json      @map("proposed_value") @db.JsonB
+  sourceUrl     String?   @map("source_url") @db.Text
+  status        String    @default("submitted") @db.VarChar(20)
+  voteScore     Int       @default(0) @map("vote_score")
+  upvoteCount   Int       @default(0) @map("upvote_count")
+  downvoteCount Int       @default(0) @map("downvote_count")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+
+  official NigerianOfficial  @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  position OfficialPosition? @relation(fields: [positionId], references: [id])
+  votes    ProposalVote[]
+
+  @@index([officialId, status], map: "idx_proposals_official_status")
+  @@index([status, createdAt(sort: Desc)], map: "idx_proposals_status_date")
+  @@index([proposerPhone, createdAt(sort: Desc)], map: "idx_proposals_phone_date")
+  @@map("data_proposals")
+}
+
+model ProposalVote {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proposalId String   @map("proposal_id") @db.Uuid
+  voterPhone String   @map("voter_phone") @db.VarChar(60)
+  direction  Int      @db.SmallInt
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  proposal DataProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, voterPhone], map: "uq_vote_proposal_voter")
+  @@index([voterPhone, createdAt(sort: Desc)], map: "idx_votes_phone_date")
+  @@map("proposal_votes")
+}
+
+model ActivityLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(30)
+  targetType String   @map("target_type") @db.VarChar(30)
+  targetId   String   @map("target_id") @db.Uuid
+  metadata   Json     @default("{}") @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([createdAt(sort: Desc)], map: "idx_activity_date")
+  @@index([targetType, targetId], map: "idx_activity_target")
+  @@map("activity_log")
+}
+
 model User {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phoneNumber String?  @unique @map("phone_number") @db.VarChar(20)
-  telegramId  String?  @unique @map("telegram_id") @db.VarChar(20)
-  name        String?  @db.VarChar(100)
-  email       String?  @db.VarChar(255)
-  banned      Boolean  @default(false)
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber String?   @unique @map("phone_number") @db.VarChar(20)
+  telegramId  String?   @unique @map("telegram_id") @db.VarChar(20)
+  name        String?   @db.VarChar(100)
+  email       String?   @db.VarChar(255)
+  banned      Boolean   @default(false)
   bannedAt    DateTime? @map("banned_at") @db.Timestamptz()
-  banReason   String?  @map("ban_reason") @db.VarChar(500)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz()
-  preferences Json     @default("{}") @db.JsonB
+  banReason   String?   @map("ban_reason") @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz()
+  preferences Json      @default("{}") @db.JsonB
 
   conversations    Conversation[]
   queryAnalytics   QueryAnalytic[]
@@ -295,77 +485,61 @@ model Message {
 }
 
 model Document {
-  id                String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  stateCode         String      @map("state_code") @db.VarChar(30)
-  fiscalYear        Int         @map("fiscal_year") @db.SmallInt
-  fileName          String      @map("file_name") @db.VarChar(255)
-  filePath          String      @unique @map("file_path") @db.VarChar(500)
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode        String?          @map("entity_code") @db.VarChar(60)
+  stateCode         String?          @map("state_code") @db.VarChar(30)
+  fiscalYear        Int              @map("fiscal_year") @db.SmallInt
+  fileName          String           @map("file_name") @db.VarChar(255)
+  filePath          String           @unique @map("file_path") @db.VarChar(500)
   fileType          DocumentFileType @map("file_type")
-  fileSizeBytes     BigInt?     @map("file_size_bytes")
-  fileHashSha256    String?     @map("file_hash_sha256") @db.VarChar(64)
-  status            DocumentStatus @default(unprocessed)
-  errorDetails      String?     @map("error_details") @db.Text
-  parsedAt          DateTime?   @map("parsed_at") @db.Timestamptz()
-  indexedAt          DateTime?   @map("indexed_at") @db.Timestamptz()
-  metadata          Json        @default("{}") @db.JsonB
-  pageCount         Int?        @map("page_count")
-  extractedSections Json?       @map("extracted_sections") @db.JsonB
-  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  fileSizeBytes     BigInt?          @map("file_size_bytes")
+  fileHashSha256    String?          @map("file_hash_sha256") @db.VarChar(64)
+  status            DocumentStatus   @default(unprocessed)
+  errorDetails      String?          @map("error_details") @db.Text
+  parsedAt          DateTime?        @map("parsed_at") @db.Timestamptz()
+  indexedAt         DateTime?        @map("indexed_at") @db.Timestamptz()
+  metadata          Json             @default("{}") @db.JsonB
+  pageCount         Int?             @map("page_count")
+  extractedSections Json?            @map("extracted_sections") @db.JsonB
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
-  state            NigerianState     @relation(fields: [stateCode], references: [code])
-  sourceReferences SourceReference[]
-  budgetSummaries  BudgetSummary[]
+  fiscalEntity      FiscalEntity?      @relation(fields: [entityCode], references: [code])
+  state             NigerianState?     @relation(fields: [stateCode], references: [code])
+  sourceReferences  SourceReference[]
+  budgetLineItems   BudgetLineItem[]
+  budgetActuals     BudgetActual[]
+  faacDisbursements FaacDisbursement[]
 
+  @@index([entityCode, fiscalYear], map: "idx_documents_entity_year")
   @@index([stateCode, fiscalYear], map: "idx_documents_state_year")
   @@map("documents")
 }
 
 model SourceReference {
-  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId       String  @map("message_id") @db.Uuid
-  documentId      String  @map("document_id") @db.Uuid
-  pageNumber      Int?    @map("page_number")
-  lineStart       Int?    @map("line_start")
-  lineEnd         Int?    @map("line_end")
-  sheetName       String? @map("sheet_name") @db.VarChar(100)
-  sectionHeading  String? @map("section_heading") @db.VarChar(300)
-  snippet         String? @db.Text
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId       String   @map("message_id") @db.Uuid
+  documentId      String   @map("document_id") @db.Uuid
+  pageNumber      Int?     @map("page_number")
+  lineStart       Int?     @map("line_start")
+  lineEnd         Int?     @map("line_end")
+  sheetName       String?  @map("sheet_name") @db.VarChar(100)
+  sectionHeading  String?  @map("section_heading") @db.VarChar(300)
+  snippet         String?  @db.Text
   confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
-  stateCode       String? @map("state_code") @db.VarChar(30)
-  fiscalYear      Int?    @map("fiscal_year") @db.SmallInt
-  relevanceRank   Int?    @map("relevance_rank")
+  stateCode       String?  @map("state_code") @db.VarChar(30)
+  fiscalYear      Int?     @map("fiscal_year") @db.SmallInt
+  relevanceRank   Int?     @map("relevance_rank")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
-  message  Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  document Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  message  Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
   state    NigerianState? @relation(fields: [stateCode], references: [code])
 
   @@index([messageId], map: "idx_source_refs_message")
   @@index([documentId], map: "idx_source_refs_document")
   @@index([stateCode, fiscalYear], map: "idx_source_refs_state_year")
   @@map("source_references")
-}
-
-model BudgetSummary {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  stateCode         String   @map("state_code") @db.VarChar(30)
-  fiscalYear        Int      @map("fiscal_year") @db.SmallInt
-  totalBudget       BigInt   @map("total_budget")
-  allocations       Json     @default("{}") @db.JsonB
-  sourceDocumentId  String?  @map("source_document_id") @db.Uuid
-  populationEstimate BigInt? @map("population_estimate")
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
-
-  state          NigerianState @relation(fields: [stateCode], references: [code])
-  sourceDocument Document?     @relation(fields: [sourceDocumentId], references: [id])
-
-  @@unique([stateCode, fiscalYear])
-  @@index([stateCode], map: "idx_budget_summaries_state")
-  @@index([fiscalYear], map: "idx_budget_summaries_year")
-  @@index([fiscalYear, totalBudget(sort: Desc)], map: "idx_budget_summaries_year_total")
-  @@map("budget_summaries")
 }
 
 model QueryAnalytic {
@@ -510,7 +684,7 @@ model ProviderConnection {
   apiKey     String   @map("api_key") @db.Text // AES-256-GCM encrypted
   modelId    String   @map("model_id") @db.VarChar(200)
   modelSmall String?  @map("model_small") @db.VarChar(200) // LLM only: small/fast model
-  dimension  Int?     // Embedding only: vector dimension
+  dimension  Int? // Embedding only: vector dimension
   isActive   Boolean  @default(false) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
@@ -632,7 +806,7 @@ model SocialPost {
   inReplyToId   String?   @map("in_reply_to_id") @db.VarChar(100) // Twitter ID of tweet being replied to
   inReplyToText String?   @map("in_reply_to_text") @db.Text // Text of original tweet
   inReplyToUser String?   @map("in_reply_to_user") @db.VarChar(100) // Username of original tweeter
-  confidence    Float?    // 0-1 composite score
+  confidence    Float? // 0-1 composite score
   reviewStatus  String?   @map("review_status") @db.VarChar(20) // 'pending', 'approved', 'rejected', 'edited'
   reviewedBy    String?   @map("reviewed_by") @db.Uuid // Admin user ID who approved/rejected
   reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
@@ -641,4 +815,538 @@ model SocialPost {
   @@index([platform, createdAt(sort: Desc)], map: "idx_social_posts_platform_date")
   @@index([reviewStatus], map: "idx_social_posts_review_status")
   @@map("social_posts")
+}
+
+// ============================================================
+// Fiscal Data Models
+// ============================================================
+// CHECK constraints, partial unique indexes, and cross-entity
+// consistency triggers are in migration SQL (Prisma doesn't support
+// them natively). See design/fiscal-data-models-erd.md for full
+// constraint definitions.
+
+enum FiscalEntityType {
+  federal
+  state
+  lga
+
+  @@map("fiscal_entity_type")
+}
+
+enum BudgetType {
+  recurrent_revenue
+  recurrent_expenditure
+  capital_expenditure
+  capital_receipt
+
+  @@map("budget_type")
+}
+
+enum DebtType {
+  domestic
+  external
+
+  @@map("debt_type")
+}
+
+model FederalGovernment {
+  code                String   @id @db.VarChar(10) // always 'federal'
+  name                String   @db.VarChar(100)
+  capital             String   @db.VarChar(50)
+  presidentName       String?  @map("president_name") @db.VarChar(200)
+  vicePresidentName   String?  @map("vice_president_name") @db.VarChar(200)
+  senatePresidentName String?  @map("senate_president_name") @db.VarChar(200)
+  speakerName         String?  @map("speaker_name") @db.VarChar(200)
+  sgfName             String?  @map("sgf_name") @db.VarChar(200)
+  chiefJusticeName    String?  @map("chief_justice_name") @db.VarChar(200)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  fiscalEntity FiscalEntity?
+
+  @@map("federal_government")
+}
+
+/// Universal identity bridge for all fiscal tables.
+/// 812 rows: 1 federal + 37 states + 774 LGAs.
+/// CHECK constraint chk_fiscal_entity_exclusive_arc ensures exactly one FK
+/// is non-null and matches entity_type. Defined in migration SQL.
+model FiscalEntity {
+  code        String           @id @db.VarChar(60)
+  name        String           @db.VarChar(200)
+  entityType  FiscalEntityType @map("entity_type")
+  federalCode String?          @unique @map("federal_code") @db.VarChar(10)
+  stateCode   String?          @unique @map("state_code") @db.VarChar(30)
+  lgaCode     String?          @unique @map("lga_code") @db.VarChar(60)
+
+  federal FederalGovernment? @relation(fields: [federalCode], references: [code])
+  state   NigerianState?     @relation(fields: [stateCode], references: [code])
+  lga     NigerianLga?       @relation(fields: [lgaCode], references: [code])
+
+  documents            Document[]
+  budgetAdminCodes     BudgetAdminCode[]
+  budgetProgrammes     BudgetProgramme[]
+  budgetLocations      BudgetLocation[]
+  budgetLineItems      BudgetLineItem[]
+  budgetActuals        BudgetActual[]
+  budgetMetadata       BudgetMetadata[]
+  federalSpending      FederalSpending[]
+  igrRecords           IgrRecord[]
+  debtRecords          DebtRecord[]
+  faacStateAllocations FaacStateAllocation[]
+  faacLgaAllocations   FaacLgaAllocation[]
+  gdpRecords           GdpRecord[]
+  populationEstimates  PopulationEstimate[]
+
+  @@map("fiscal_entities")
+}
+
+// ============================================================
+// NCoA Dimension Tables
+// ============================================================
+
+/// Admin codes (MDAs) — vary per entity. Same code = different MDA per state.
+/// Surrogate PK for FK references; natural unique (code, entity_code) for dedupe.
+/// Cross-entity consistency: migration SQL adds a trigger ensuring
+/// BudgetLineItem.entity_code matches BudgetAdminCode.entity_code via admin_id.
+model BudgetAdminCode {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String   @db.VarChar(12)
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  name       String   @db.Text
+  level      Int      @db.SmallInt
+  parentId   String?  @map("parent_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity    FiscalEntity      @relation(fields: [entityCode], references: [code])
+  parent    BudgetAdminCode?  @relation("AdminParent", fields: [parentId], references: [id])
+  children  BudgetAdminCode[] @relation("AdminParent")
+  lineItems BudgetLineItem[]
+  actuals   BudgetActual[]
+
+  @@unique([code, entityCode], map: "uq_admin_code_entity")
+  @@index([entityCode], map: "idx_admin_codes_entity")
+  @@map("budget_admin_codes")
+}
+
+/// Economic codes — nationally standardized (NCoA). Code-only PK.
+model BudgetEconomicCode {
+  code       String   @id @db.VarChar(8)
+  name       String   @db.Text
+  level      Int      @db.SmallInt
+  parentCode String?  @map("parent_code") @db.VarChar(8)
+  type       String   @db.VarChar(15) // "revenue" | "expenditure"
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  parent    BudgetEconomicCode?  @relation("EconParent", fields: [parentCode], references: [code])
+  children  BudgetEconomicCode[] @relation("EconParent")
+  lineItems BudgetLineItem[]
+  actuals   BudgetActual[]
+
+  @@map("budget_economic_codes")
+}
+
+/// Function codes — nationally standardized (COFOG). Code-only PK.
+model BudgetFunctionCode {
+  code       String   @id @db.VarChar(5)
+  name       String   @db.Text
+  level      Int      @db.SmallInt
+  parentCode String?  @map("parent_code") @db.VarChar(5)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  parent    BudgetFunctionCode?  @relation("FuncParent", fields: [parentCode], references: [code])
+  children  BudgetFunctionCode[] @relation("FuncParent")
+  lineItems BudgetLineItem[]
+  actuals   BudgetActual[]
+
+  @@map("budget_function_codes")
+}
+
+/// Fund codes — nationally standardized. Code-only PK.
+model BudgetFundCode {
+  code      String   @id @db.VarChar(5)
+  name      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  lineItems BudgetLineItem[]
+
+  @@map("budget_fund_codes")
+}
+
+/// Programmes — vary per entity. Surrogate PK + natural unique.
+model BudgetProgramme {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String   @db.VarChar(14)
+  name       String   @db.Text
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity    FiscalEntity     @relation(fields: [entityCode], references: [code])
+  lineItems BudgetLineItem[]
+  actuals   BudgetActual[]
+
+  @@unique([code, entityCode], map: "uq_programme_code_entity")
+  @@index([entityCode], map: "idx_programmes_entity")
+  @@map("budget_programmes")
+}
+
+/// Location codes — vary per entity. Surrogate PK + natural unique.
+model BudgetLocation {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code       String   @db.VarChar(8)
+  name       String   @db.Text
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity    FiscalEntity     @relation(fields: [entityCode], references: [code])
+  lineItems BudgetLineItem[]
+
+  @@unique([code, entityCode], map: "uq_location_code_entity")
+  @@index([entityCode], map: "idx_locations_entity")
+  @@map("budget_locations")
+}
+
+// ============================================================
+// Budget Fact Tables
+// ============================================================
+
+/// Approved budget line items. ~1M rows.
+/// Cross-entity consistency constraint in migration SQL:
+///   admin_id -> budget_admin_codes.entity_code MUST equal this.entity_code
+///   programme_id -> budget_programmes.entity_code MUST equal this.entity_code
+///   location_id -> budget_locations.entity_code MUST equal this.entity_code
+model BudgetLineItem {
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String     @map("entity_code") @db.VarChar(60)
+  fiscalYear       Int        @map("fiscal_year") @db.SmallInt
+  adminId          String     @map("admin_id") @db.Uuid
+  economicCode     String     @map("economic_code") @db.VarChar(8)
+  functionCode     String?    @map("function_code") @db.VarChar(5)
+  fundCode         String?    @map("fund_code") @db.VarChar(5)
+  locationId       String?    @map("location_id") @db.Uuid
+  programmeId      String?    @map("programme_id") @db.Uuid
+  budgetType       BudgetType @map("budget_type")
+  description      String?    @db.Text
+  prevYearBudget   Decimal?   @map("prev_year_budget") @db.Decimal(20, 2)
+  prevYearActual   Decimal?   @map("prev_year_actual") @db.Decimal(20, 2)
+  approvedBudget   Decimal    @map("approved_budget") @db.Decimal(20, 2)
+  outYear1         Decimal?   @map("out_year_1") @db.Decimal(20, 2)
+  outYear2         Decimal?   @map("out_year_2") @db.Decimal(20, 2)
+  sourceDocumentId String?    @map("source_document_id") @db.Uuid
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity         FiscalEntity        @relation(fields: [entityCode], references: [code])
+  admin          BudgetAdminCode     @relation(fields: [adminId], references: [id])
+  economic       BudgetEconomicCode  @relation(fields: [economicCode], references: [code])
+  function       BudgetFunctionCode? @relation(fields: [functionCode], references: [code])
+  fund           BudgetFundCode?     @relation(fields: [fundCode], references: [code])
+  location       BudgetLocation?     @relation(fields: [locationId], references: [id])
+  programme      BudgetProgramme?    @relation(fields: [programmeId], references: [id])
+  sourceDocument Document?           @relation(fields: [sourceDocumentId], references: [id])
+
+  // Uniqueness constraint in migration SQL (uses COALESCE for nullable fund_code)
+  @@index([entityCode, fiscalYear], map: "idx_bli_entity_year")
+  @@index([adminId], map: "idx_bli_admin")
+  @@index([economicCode], map: "idx_bli_economic")
+  @@index([fiscalYear, budgetType], map: "idx_bli_year_type")
+  @@index([approvedBudget(sort: Desc)], map: "idx_bli_approved_desc")
+  @@map("budget_line_items")
+}
+
+/// Budget implementation actuals. ~2-4M rows.
+model BudgetActual {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String   @map("entity_code") @db.VarChar(60)
+  fiscalYear       Int      @map("fiscal_year") @db.SmallInt
+  quarter          Int      @db.SmallInt
+  reportSection    String   @map("report_section") @db.VarChar(30)
+  adminId          String?  @map("admin_id") @db.Uuid
+  economicCode     String?  @map("economic_code") @db.VarChar(8)
+  functionCode     String?  @map("function_code") @db.VarChar(5)
+  programmeId      String?  @map("programme_id") @db.Uuid
+  description      String?  @db.Text
+  originalBudget   Decimal  @map("original_budget") @db.Decimal(20, 2)
+  quarterlyActual  Decimal  @map("quarterly_actual") @db.Decimal(20, 2)
+  ytdActual        Decimal  @map("ytd_actual") @db.Decimal(20, 2)
+  performancePct   Decimal  @map("performance_pct") @db.Decimal(5, 2)
+  balance          Decimal  @db.Decimal(20, 2)
+  sourceDocumentId String?  @map("source_document_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity         FiscalEntity        @relation(fields: [entityCode], references: [code])
+  admin          BudgetAdminCode?    @relation(fields: [adminId], references: [id])
+  economic       BudgetEconomicCode? @relation(fields: [economicCode], references: [code])
+  function       BudgetFunctionCode? @relation(fields: [functionCode], references: [code])
+  programme      BudgetProgramme?    @relation(fields: [programmeId], references: [id])
+  sourceDocument Document?           @relation(fields: [sourceDocumentId], references: [id])
+
+  @@index([entityCode, fiscalYear, quarter], map: "idx_ba_entity_year_qtr")
+  @@index([performancePct], map: "idx_ba_performance")
+  @@index([adminId], map: "idx_ba_admin")
+  @@map("budget_actuals")
+}
+
+/// Fiscal snapshot per (entity, year). Not a personnel ledger.
+model BudgetMetadata {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode         String   @map("entity_code") @db.VarChar(60)
+  fiscalYear         Int      @map("fiscal_year") @db.SmallInt
+  headOfGovernment   String?  @map("head_of_government") @db.VarChar(200)
+  headParty          String?  @map("head_party") @db.VarChar(50)
+  headImageUrl       String?  @map("head_image_url") @db.Text
+  headProfileUrl     String?  @map("head_profile_url") @db.Text
+  financeHeadName    String?  @map("finance_head_name") @db.VarChar(200)
+  financeHeadTitle   String?  @map("finance_head_title") @db.VarChar(200)
+  legislatureHead    String?  @map("legislature_head") @db.VarChar(200)
+  appropriationChair String?  @map("appropriation_chair") @db.VarChar(200)
+  accountantGeneral  String?  @map("accountant_general") @db.VarChar(200)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@unique([entityCode, fiscalYear], map: "uq_budget_metadata")
+  @@map("budget_metadata")
+}
+
+// ============================================================
+// Domain-Specific Tables
+// ============================================================
+
+/// Federal government payments. 445K rows.
+model FederalSpending {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String   @map("entity_code") @db.VarChar(60)
+  date             DateTime @db.Date
+  paymentNo        String   @unique @map("payment_no") @db.VarChar(50)
+  payerCode        String   @map("payer_code") @db.VarChar(20)
+  organizationName String   @map("organization_name") @db.Text
+  beneficiaryName  String   @map("beneficiary_name") @db.Text
+  amount           Decimal  @db.Decimal(20, 2)
+  description      String   @db.Text
+  sourceUrl        String?  @map("source_url") @db.Text
+  scrapedAt        DateTime @map("scraped_at") @db.Timestamptz()
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@index([date], map: "idx_gp_date")
+  @@index([amount(sort: Desc)], map: "idx_gp_amount_desc")
+  @@index([payerCode], map: "idx_gp_payer")
+  // GIN trigram indexes for org_name and beneficiary_name in migration SQL
+  @@map("govspend_payments")
+}
+
+/// Internally generated revenue. ~200 rows.
+model IgrRecord {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String   @map("entity_code") @db.VarChar(60)
+  fiscalYear       Int      @map("fiscal_year") @db.SmallInt
+  period           String   @db.VarChar(10)
+  paye             Decimal? @db.Decimal(20, 2)
+  directAssessment Decimal? @map("direct_assessment") @db.Decimal(20, 2)
+  roadTaxes        Decimal? @map("road_taxes") @db.Decimal(20, 2)
+  stampDuties      Decimal? @map("stamp_duties") @db.Decimal(20, 2)
+  capitalGainTax   Decimal? @map("capital_gain_tax") @db.Decimal(20, 2)
+  withholdingTax   Decimal? @map("withholding_tax") @db.Decimal(20, 2)
+  otherTaxes       Decimal? @map("other_taxes") @db.Decimal(20, 2)
+  lgaRevenue       Decimal? @map("lga_revenue") @db.Decimal(20, 2)
+  totalTax         Decimal? @map("total_tax") @db.Decimal(20, 2)
+  mdasRevenue      Decimal? @map("mdas_revenue") @db.Decimal(20, 2)
+  total            Decimal  @db.Decimal(20, 2)
+  sourceNotes      String?  @map("source_notes") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@unique([entityCode, fiscalYear, period], map: "uq_igr")
+  @@map("igr_records")
+}
+
+/// Public debt records. ~5K rows.
+model DebtRecord {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String    @map("entity_code") @db.VarChar(60)
+  quarter          DateTime  @db.Date
+  debtType         DebtType  @map("debt_type")
+  creditorCategory String?   @map("creditor_category") @db.VarChar(30)
+  amount           Decimal   @db.Decimal(20, 2)
+  currency         String    @db.VarChar(3)
+  instrument       String?   @db.VarChar(30)
+  maturityDate     DateTime? @map("maturity_date") @db.Date
+  sourceSnapshot   Json?     @map("source_snapshot") @db.JsonB
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  // Uniqueness constraint with COALESCE in migration SQL
+  @@index([entityCode, quarter], map: "idx_debt_entity_quarter")
+  @@map("debt_records")
+}
+
+/// GDP by sector. ~3K rows.
+model GdpRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  year       Int      @db.SmallInt
+  sectorCode String   @map("sector_code") @db.VarChar(10)
+  sectorName String   @map("sector_name") @db.Text
+  amount     Decimal  @db.Decimal(20, 2)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@unique([entityCode, year, sectorCode], map: "uq_gdp")
+  @@map("gdp_records")
+}
+
+/// Population estimates. ~500 rows.
+model PopulationEstimate {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  year       Int      @db.SmallInt
+  population BigInt
+  source     String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@unique([entityCode, year], map: "uq_population")
+  @@map("population_estimates")
+}
+
+// ============================================================
+// FAAC (Source-Anchored 4-Table Model)
+// ============================================================
+// Mirrors the actual OAGF PDF structure. Every PDF column has a
+// direct database field. See design/fiscal-data-models-erd.md.
+
+/// Table I: Monthly FAAC meeting envelope + national summary.
+model FaacDisbursement {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  revenueYear           Int      @map("revenue_year") @db.SmallInt
+  revenueMonth          Int      @map("revenue_month") @db.SmallInt
+  disbursementYear      Int      @map("disbursement_year") @db.SmallInt
+  disbursementMonth     Int      @map("disbursement_month") @db.SmallInt
+  // Table I footer totals
+  totalStatutory        Decimal? @map("total_statutory") @db.Decimal(20, 2)
+  totalExchangeGain     Decimal? @map("total_exchange_gain") @db.Decimal(20, 2)
+  totalEmtl             Decimal? @map("total_emtl") @db.Decimal(20, 2)
+  totalVat              Decimal? @map("total_vat") @db.Decimal(20, 2)
+  grandTotal            Decimal  @map("grand_total") @db.Decimal(20, 2)
+  // Table I allocation rows
+  fgnTotal              Decimal? @map("fgn_total") @db.Decimal(20, 2)
+  statesTotal           Decimal? @map("states_total") @db.Decimal(20, 2)
+  lgcsTotal             Decimal? @map("lgcs_total") @db.Decimal(20, 2)
+  derivation13pctTotal  Decimal? @map("derivation_13pct_total") @db.Decimal(20, 2)
+  // Table I deduction/collection items
+  costOfCollectionNcs   Decimal? @map("cost_of_collection_ncs") @db.Decimal(20, 2)
+  costOfCollectionFirs  Decimal? @map("cost_of_collection_firs") @db.Decimal(20, 2)
+  costOfCollectionNuprc Decimal? @map("cost_of_collection_nuprc") @db.Decimal(20, 2)
+  transferToNmdpra      Decimal? @map("transfer_to_nmdpra") @db.Decimal(20, 2)
+  // Variable special items (refunds, NEDC, excess transfers, etc.)
+  specialItems          Json?    @map("special_items") @db.JsonB
+  sourceDescription     String?  @map("source_description") @db.Text
+  sourceDocumentId      String?  @map("source_document_id") @db.Uuid
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  sourceDocument   Document?             @relation(fields: [sourceDocumentId], references: [id])
+  fgnDetails       FaacFgnDetail[]
+  stateAllocations FaacStateAllocation[]
+  lgaAllocations   FaacLgaAllocation[]
+
+  @@unique([disbursementYear, disbursementMonth], map: "uq_faac_disbursement")
+  @@map("faac_disbursements")
+}
+
+/// Table II: FGN sub-allocations (~5 rows per disbursement).
+model FaacFgnDetail {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disbursementId String   @map("disbursement_id") @db.Uuid
+  beneficiary    String   @db.VarChar(100)
+  sortOrder      Int      @map("sort_order") @db.SmallInt
+  grossStatutory Decimal  @map("gross_statutory") @db.Decimal(20, 2)
+  totalDeduction Decimal? @map("total_deduction") @db.Decimal(20, 2)
+  netStatutory   Decimal  @map("net_statutory") @db.Decimal(20, 2)
+  exchangeGain   Decimal  @map("exchange_gain") @db.Decimal(20, 2)
+  emtl           Decimal? @db.Decimal(20, 2)
+  vat            Decimal? @db.Decimal(20, 2)
+  total          Decimal  @db.Decimal(20, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  disbursement FaacDisbursement @relation(fields: [disbursementId], references: [id], onDelete: Cascade)
+
+  @@unique([disbursementId, beneficiary], map: "uq_faac_fgn_detail")
+  @@map("faac_fgn_details")
+}
+
+/// Table III: State allocations (37 rows per disbursement, 20 data columns).
+/// Every column from the PDF is a field — no lossy aggregation.
+model FaacStateAllocation {
+  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disbursementId              String   @map("disbursement_id") @db.Uuid
+  entityCode                  String   @map("entity_code") @db.VarChar(60)
+  numLgcs                     Int      @map("num_lgcs") @db.SmallInt
+  grossStatutory              Decimal  @map("gross_statutory") @db.Decimal(20, 2)
+  derivation13pct             Decimal? @map("derivation_13pct") @db.Decimal(20, 2)
+  grossTotal                  Decimal  @map("gross_total") @db.Decimal(20, 2)
+  deductionExternalDebt       Decimal  @map("deduction_external_debt") @db.Decimal(20, 2)
+  deductionIspo               Decimal  @map("deduction_ispo") @db.Decimal(20, 2)
+  deductionOther              Decimal  @map("deduction_other") @db.Decimal(20, 2)
+  netStatutory                Decimal  @map("net_statutory") @db.Decimal(20, 2)
+  exchangeGain                Decimal  @map("exchange_gain") @db.Decimal(20, 2)
+  exchangeGainDerivation13pct Decimal? @map("exchange_gain_derivation_13pct") @db.Decimal(20, 2)
+  totalExchangeGain           Decimal  @map("total_exchange_gain") @db.Decimal(20, 2)
+  emtl                        Decimal  @db.Decimal(20, 2)
+  ecologyGross                Decimal  @map("ecology_gross") @db.Decimal(20, 2)
+  ecologyTransferNddcHyppadec Decimal  @map("ecology_transfer_nddc_hyppadec") @db.Decimal(20, 2)
+  ecologyNet                  Decimal  @map("ecology_net") @db.Decimal(20, 2)
+  vatGross                    Decimal  @map("vat_gross") @db.Decimal(20, 2)
+  vatDeduction                Decimal  @map("vat_deduction") @db.Decimal(20, 2)
+  vatNet                      Decimal  @map("vat_net") @db.Decimal(20, 2)
+  totalGross                  Decimal  @map("total_gross") @db.Decimal(20, 2)
+  totalNet                    Decimal  @map("total_net") @db.Decimal(20, 2)
+  sourcePage                  Int?     @map("source_page") @db.SmallInt
+  sourceTable                 String?  @map("source_table") @db.VarChar(30)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  disbursement FaacDisbursement @relation(fields: [disbursementId], references: [id], onDelete: Cascade)
+  entity       FiscalEntity     @relation(fields: [entityCode], references: [code])
+
+  @@unique([disbursementId, entityCode], map: "uq_faac_state")
+  @@index([entityCode], map: "idx_faac_state_entity")
+  @@map("faac_state_allocations")
+}
+
+/// Table IV: LGA allocations (774 rows per disbursement, 9 data columns).
+model FaacLgaAllocation {
+  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  disbursementId              String   @map("disbursement_id") @db.Uuid
+  entityCode                  String   @map("entity_code") @db.VarChar(60)
+  netStatutory                Decimal  @map("net_statutory") @db.Decimal(20, 2)
+  deduction                   Decimal  @db.Decimal(20, 2)
+  exchangeGain                Decimal  @map("exchange_gain") @db.Decimal(20, 2)
+  emtl                        Decimal  @db.Decimal(20, 2)
+  ecologyGross                Decimal  @map("ecology_gross") @db.Decimal(20, 2)
+  ecologyTransferNddcHyppadec Decimal  @map("ecology_transfer_nddc_hyppadec") @db.Decimal(20, 2)
+  ecologyNet                  Decimal  @map("ecology_net") @db.Decimal(20, 2)
+  vat                         Decimal  @db.Decimal(20, 2)
+  totalNet                    Decimal  @map("total_net") @db.Decimal(20, 2)
+  sourcePage                  Int?     @map("source_page") @db.SmallInt
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  disbursement FaacDisbursement @relation(fields: [disbursementId], references: [id], onDelete: Cascade)
+  entity       FiscalEntity     @relation(fields: [entityCode], references: [code])
+
+  @@unique([disbursementId, entityCode], map: "uq_faac_lga")
+  @@index([entityCode], map: "idx_faac_lga_entity")
+  @@map("faac_lga_allocations")
 }

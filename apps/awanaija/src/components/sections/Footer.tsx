@@ -1,6 +1,6 @@
 "use client";
 
-import { Landmark } from "lucide-react";
+import Image from "next/image";
 import { APP_URL } from "@/lib/constants";
 
 export function Footer() {
@@ -10,14 +10,13 @@ export function Footer() {
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                <Landmark className="h-4 w-4" />
-              </div>
-              <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">
-                Our Nigeria
-              </span>
-            </div>
+            <Image
+              src="/long_logo_dark.svg"
+              alt="Our Nigeria"
+              width={180}
+              height={50}
+              className="h-10 w-auto"
+            />
             <p className="mt-5 max-w-sm text-sm text-white/40 leading-relaxed">
               Making Nigeria government spending transparent and accessible to
               every citizen. Because na your money.

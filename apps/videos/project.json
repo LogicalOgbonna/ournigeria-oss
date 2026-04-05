@@ -8,7 +8,18 @@
       "options": {
         "cwd": "apps/videos"
       }
+    },
+    "build": {
+      "command": "tsc --noEmit",
+      "options": {
+        "cwd": "apps/videos"
+      }
+    },
+    "lint": {
+      "command": "eslint",
+      "options": {
+        "cwd": "apps/videos"
+      }
     }
-    
   }
 }

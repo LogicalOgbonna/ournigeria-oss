@@ -20,8 +20,8 @@ const ROLE_LABELS: Record<string, string> = {
  * Data flow:
  *   cache check → DB query (official_positions JOIN nigerian_officials) → cache set
  *
- * For the current year, queries `is_current = true`.
- * For historical years, queries by date range overlap.
+ * For current/future years: uses status + date range (derived current).
+ * For historical years: queries by date range overlap with the budget year.
  */
 export async function getOfficials(
   state: string,
@@ -40,21 +40,23 @@ export async function getOfficials(
     const currentYear = new Date().getFullYear();
     const isCurrentYear = year >= currentYear;
 
-    // For current/future years: query is_current = true
+    // For current/future years: use status-aware current positions
     // For historical years: query by date range overlap with the budget year
     const query = isCurrentYear
-      ? `SELECT o.name, o.party, o.image_url, p.role
+      ? `SELECT o.name, pp.acronym AS party, o.image_url, p.role
          FROM official_positions p
          JOIN nigerian_officials o ON o.id = p.official_id
-         WHERE p.jurisdiction_code = $1
-           AND p.jurisdiction_type = 'state'
-           AND p.is_current = true
+         LEFT JOIN political_parties pp ON pp.acronym = p.party_acronym
+         WHERE p.state_code = $1
+           AND p.status = 'active'
+           AND p.start_date <= CURRENT_DATE
+           AND (p.end_date IS NULL OR p.end_date > CURRENT_DATE)
          ORDER BY p.role`
-      : `SELECT o.name, o.party, o.image_url, p.role
+      : `SELECT o.name, pp.acronym AS party, o.image_url, p.role
          FROM official_positions p
          JOIN nigerian_officials o ON o.id = p.official_id
-         WHERE p.jurisdiction_code = $1
-           AND p.jurisdiction_type = 'state'
+         LEFT JOIN political_parties pp ON pp.acronym = p.party_acronym
+         WHERE p.state_code = $1
            AND p.start_date <= $2
            AND (p.end_date IS NULL OR p.end_date >= $3)
          ORDER BY p.role`;

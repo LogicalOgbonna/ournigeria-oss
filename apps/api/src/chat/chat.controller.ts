@@ -12,19 +12,8 @@ import { ChatService } from "./chat.service";
 import { PrismaService } from "@ournigeria/database";
 import { getLangfuse } from "../lib/langfuse";
 
-/** Errors that are worth retrying (transient LLM capacity issues). */
-export function isRetryableLLMError(err: any): boolean {
-  const status = err?.statusCode ?? err?.cause?.statusCode;
-  const msg = typeof err?.message === "string" ? err.message : "";
-  return (
-    status === 402 ||
-    status === 429 ||
-    (status >= 500 && status < 600) ||
-    msg.includes("more credits") ||
-    msg.includes("ETIMEDOUT") ||
-    msg.includes("ECONNRESET")
-  );
-}
+import { isRetryableLLMError } from "./retry-utils";
+export { isRetryableLLMError };
 
 const RETRY_DELAYS = [1000, 3000]; // ms — two retries with backoff
 const SLOW_FAILURE_THRESHOLD = 10_000; // ms — skip retry if attempt took >10s

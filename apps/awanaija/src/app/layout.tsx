@@ -6,6 +6,7 @@ import {
   IBM_Plex_Mono,
 } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { FeedbackFab } from "@/components/FeedbackFab";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -79,7 +80,10 @@ export default function RootLayout({
             <rect width="100%" height="100%" filter="url(#noise-filter)" />
           </svg>
         </div>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <FeedbackFab />
+        </ThemeProvider>
       </body>
     </html>
   );

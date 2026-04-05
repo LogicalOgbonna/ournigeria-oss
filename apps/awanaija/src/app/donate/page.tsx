@@ -5,8 +5,8 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import {
   Heart,
-  CreditCard,
-  Loader2,
+  // CreditCard,
+  // Loader2,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -179,7 +179,7 @@ export default function DonatePage() {
       <section className="relative pb-16 sm:pb-20">
         <div className="mx-auto max-w-lg px-6">
           {/* One-time / Monthly Toggle */}
-          <div className="mb-8 flex items-center justify-center">
+          {/* <div className="mb-8 flex items-center justify-center">
             <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 p-1">
               <button
                 onClick={() => setDonationType("one-time")}
@@ -202,10 +202,10 @@ export default function DonatePage() {
                 Monthly
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Amount Selector */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <label className="mb-3 block font-[family-name:var(--font-mono)] text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Select Amount
             </label>
@@ -253,10 +253,10 @@ export default function DonatePage() {
                 />
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Email Input */}
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <label className="mb-2 block font-[family-name:var(--font-mono)] text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Email Address <span className="text-emerald-600 dark:text-emerald-400">*</span>
             </label>
@@ -268,10 +268,10 @@ export default function DonatePage() {
               disabled={loading}
               className="h-12 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
             />
-          </div>
+          </div> */}
 
           {/* Name Input */}
-          <div className="mb-8">
+          {/* <div className="mb-8">
             <label className="mb-2 block font-[family-name:var(--font-mono)] text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Your Name <span className="text-slate-400 dark:text-slate-500">(optional)</span>
             </label>
@@ -283,23 +283,23 @@ export default function DonatePage() {
               disabled={loading}
               className="h-12 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
             />
-          </div>
+          </div> */}
 
           {/* Error Message */}
-          {error && (
+          {/* {error && (
             <div className="mb-6 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
               {error}
             </div>
-          )}
+          )} */}
 
           {/* Payment Methods */}
           <div className="space-y-4">
-            <label className="block font-[family-name:var(--font-mono)] text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            {/* <label className="block font-[family-name:var(--font-mono)] text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Payment Method
-            </label>
+            </label> */}
 
             {/* Paystack */}
-            <button
+            {/* <button
               onClick={() => handleDonate("paystack")}
               disabled={loading}
               className="group relative flex h-14 w-full items-center justify-center gap-3 rounded-xl border-2 border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/5 px-6 text-slate-900 dark:text-white transition-all hover:border-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-50"
@@ -315,10 +315,10 @@ export default function DonatePage() {
                   </span>
                 </>
               )}
-            </button>
+            </button> */}
 
             {/* Flutterwave */}
-            <button
+            {/* <button
               onClick={() => handleDonate("flutterwave")}
               disabled={loading}
               className="group flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 px-6 text-slate-900 dark:text-white transition-all hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
@@ -331,7 +331,7 @@ export default function DonatePage() {
                   <span className="font-medium">Pay with Flutterwave</span>
                 </>
               )}
-            </button>
+            </button> */}
 
             {/* Crypto */}
             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 p-6">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isRetryableLLMError } from "../chat.controller";
+import { isRetryableLLMError } from "../retry-utils";
 
 describe("isRetryableLLMError", () => {
   // True cases — retryable errors
