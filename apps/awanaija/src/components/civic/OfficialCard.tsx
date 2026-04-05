@@ -138,15 +138,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
               </div>
             )}
             <CompletenessRing value={completeness} />
-            {official.phoneNumber && (
-              <span>{"📞"} {official.phoneNumber}</span>
-            )}
-            {official.twitterHandle && (
-              <span className="inline-flex items-center gap-0.5">
-                @{official.twitterHandle}
-              </span>
-            )}
-            {showProposals && official.proposalCount > 0 && (
+{showProposals && official.proposalCount > 0 && (
               <span className="text-emerald-600">
                 {"▲"} {official.proposalCount} proposal{official.proposalCount !== 1 ? "s" : ""}
               </span>
