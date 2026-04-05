@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# ── Stage 1: Install dependencies ────────────
+# ── Stage 1: Install dependencies ──
 FROM node:22.14.0-slim AS deps
 
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
@@ -22,7 +22,7 @@ COPY packages/tools/package.json packages/tools/package.json
 RUN echo "node-linker=hoisted" > .npmrc \
  && pnpm install --frozen-lockfile --filter @ournigeria/api...
 
-# ── Stage 2: Build API ────────────
+# ── Stage 2: Build API ──
 FROM deps AS api-build
 
 COPY apps/api/ apps/api/
