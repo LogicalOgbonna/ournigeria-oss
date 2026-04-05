@@ -54,8 +54,14 @@ export function Navbar() {
             />
           </Link>
 
-          {/* Center nav links — hidden on mobile */}
+          {/* Nav links */}
           <div className="hidden items-center gap-6 md:flex">
+            <Link
+              href="/officials"
+              className="text-sm font-medium text-emerald-400 transition-colors hover:text-emerald-300 hover-lift"
+            >
+              Who Governs You
+            </Link>
             <Link
               href="/#features"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground hover-lift"

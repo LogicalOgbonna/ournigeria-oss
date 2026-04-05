@@ -50,6 +50,7 @@ import { logoutAction } from "@/app/login/actions";
 const generalNav = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Users", href: "/dashboard/users", icon: Users },
+  { title: "Proposals", href: "/dashboard/proposals", icon: MessageSquare },
   { title: "Feedback", href: "/dashboard/feedback", icon: MessageSquare },
   { title: "Donations", href: "/dashboard/donations", icon: Heart },
 ];

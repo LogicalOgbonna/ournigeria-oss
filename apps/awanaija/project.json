@@ -1,0 +1,26 @@
+{
+  "name": "awanaija",
+  "projectType": "application",
+  "sourceRoot": "apps/awanaija/src",
+  "targets": {
+    "dev": {
+      "command": "infisical run --env dev --path /web --watch -- next dev -p 3003",
+      "options": {
+        "cwd": "apps/awanaija"
+      }
+    },
+    "build": {
+      "command": "next build",
+      "outputs": ["{projectRoot}/.next"],
+      "options": {
+        "cwd": "apps/awanaija"
+      }
+    },
+    "start": {
+      "command": "next start",
+      "options": {
+        "cwd": "apps/awanaija"
+      }
+    }
+  }
+}

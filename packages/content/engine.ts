@@ -203,12 +203,26 @@ async function fetchDbData(
       data += `\n\n--- ${params.state2} DATA ---\n\n${secondStateData}`;
     }
 
-    // Also fetch budget summaries if available
+    // Also fetch budget metadata if available
     if (source.domain === "budget" && state) {
       try {
         const summaryQuery = params.year
-          ? `SELECT total_budget, allocations, population_estimate FROM budget_summaries WHERE state_code = $1 AND fiscal_year = $2`
-          : `SELECT fiscal_year, total_budget, allocations, population_estimate FROM budget_summaries WHERE state_code = $1 ORDER BY fiscal_year DESC LIMIT 3`;
+          ? `SELECT bm.fiscal_year, bm.head_of_government, pe.population,
+                    COALESCE(SUM(bli.approved_budget), 0) AS total_budget
+             FROM budget_metadata bm
+             JOIN fiscal_entities fe ON fe.code = bm.entity_code AND fe.state_code = $1
+             LEFT JOIN population_estimates pe ON pe.entity_code = bm.entity_code AND pe.year = bm.fiscal_year
+             LEFT JOIN budget_line_items bli ON bli.entity_code = bm.entity_code AND bli.fiscal_year = bm.fiscal_year
+             WHERE bm.fiscal_year = $2
+             GROUP BY bm.fiscal_year, bm.head_of_government, pe.population`
+          : `SELECT bm.fiscal_year, bm.head_of_government, pe.population,
+                    COALESCE(SUM(bli.approved_budget), 0) AS total_budget
+             FROM budget_metadata bm
+             JOIN fiscal_entities fe ON fe.code = bm.entity_code AND fe.state_code = $1
+             LEFT JOIN population_estimates pe ON pe.entity_code = bm.entity_code AND pe.year = bm.fiscal_year
+             LEFT JOIN budget_line_items bli ON bli.entity_code = bm.entity_code AND bli.fiscal_year = bm.fiscal_year
+             GROUP BY bm.fiscal_year, bm.head_of_government, pe.population
+             ORDER BY bm.fiscal_year DESC LIMIT 3`;
         const summaryParams = params.year ? [state, params.year] : [state];
         const summaries = await pool.query(summaryQuery, summaryParams);
 
@@ -216,19 +230,10 @@ async function fetchDbData(
           const summaryText = summaries.rows.map((row: Record<string, unknown>) => {
             const year = (row as Record<string, unknown>).fiscal_year ?? params.year;
             const total = row.total_budget;
-            const pop = row.population_estimate;
+            const pop = row.population;
             let line = `SUMMARY ${year}: Total Budget ₦${Number(total).toLocaleString()}`;
             if (pop) line += `, Population: ${Number(pop).toLocaleString()}`;
-            if (row.allocations && typeof row.allocations === "object") {
-              const allocs = row.allocations as Record<string, unknown>;
-              const topSectors = Object.entries(allocs)
-                .filter(([, v]) => typeof v === "number")
-                .sort(([, a], [, b]) => (b as number) - (a as number))
-                .slice(0, 5)
-                .map(([k, v]) => `${k}: ₦${Number(v).toLocaleString()}`)
-                .join(", ");
-              if (topSectors) line += `\n  Top sectors: ${topSectors}`;
-            }
+            if (row.head_of_government) line += `\n  Governor: ${row.head_of_government}`;
             return line;
           }).join("\n");
           data = `${summaryText}\n\n${data}`;

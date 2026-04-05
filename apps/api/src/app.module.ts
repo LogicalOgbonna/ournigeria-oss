@@ -17,6 +17,11 @@ import { HealthModule } from "./health/health.module";
 import { DonationModule } from "./donation/donation.module";
 import { GraphModule } from "./graph/graph.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
+import { OfficialsModule } from "./officials/officials.module";
+import { ProposalsModule } from "./proposals/proposals.module";
+import { GeoModule } from "./geo/geo.module";
+import { CompletenessModule } from "./completeness/completeness.module";
+import { ActivityModule } from "./activity/activity.module";
 
 @Module({
   imports: [
@@ -40,6 +45,11 @@ import { DevAuthModule } from "./auth/dev-auth.module";
     DonationModule,
     GraphModule,
     HealthModule,
+    OfficialsModule,
+    ProposalsModule,
+    GeoModule,
+    CompletenessModule,
+    ActivityModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [

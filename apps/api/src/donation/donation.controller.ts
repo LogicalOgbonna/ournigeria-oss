@@ -18,6 +18,15 @@ import { Request } from 'express';
 import { Public } from '../auth/decorators/public';
 import { DonationService } from './donation.service';
 import { InitializeDonationDto } from './dto/initialize-donation.dto';
+import { validateCallbackUrl } from '../lib/url-validation';
+
+/** Domains allowed as donation callback redirect targets. */
+const ALLOWED_CALLBACK_ORIGINS = [
+  "https://spending.arinze.online",
+  "https://app.ournigeria.ng",
+  "https://ournigeria.ng",
+  "https://ounigeria.arinze.online",
+];
 
 @ApiTags('Donations')
 @Controller('donate')
@@ -45,6 +54,11 @@ export class DonationController {
     if (!dto.callbackUrl) {
       throw new BadRequestException('Callback URL is required');
     }
+    const cbResult = validateCallbackUrl(dto.callbackUrl, ALLOWED_CALLBACK_ORIGINS);
+    if (!cbResult.valid) {
+      throw new BadRequestException(`callbackUrl: ${cbResult.reason}`);
+    }
+    dto.callbackUrl = cbResult.url;
 
     return this.donationService.initialize(dto);
   }

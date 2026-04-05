@@ -86,12 +86,24 @@ async function queryBudget(pool: pg.Pool): Promise<void> {
   console.log(`📊 BUDGET DATA: ${STATE}${YEAR ? ` (${YEAR})` : ""}`);
   console.log(hr());
 
-  // 1. Budget summaries
+  // 1. Budget metadata + aggregated totals
   const summaryQuery = YEAR
-    ? `SELECT state_code, fiscal_year, total_budget, allocations, population_estimate
-       FROM budget_summaries WHERE state_code = $1 AND fiscal_year = $2`
-    : `SELECT state_code, fiscal_year, total_budget, allocations, population_estimate
-       FROM budget_summaries WHERE state_code = $1 ORDER BY fiscal_year DESC`;
+    ? `SELECT fe.state_code, bm.fiscal_year, bm.head_of_government, pe.population,
+              COALESCE(SUM(bli.approved_budget), 0) AS total_budget
+       FROM budget_metadata bm
+       JOIN fiscal_entities fe ON fe.code = bm.entity_code AND fe.state_code = $1
+       LEFT JOIN population_estimates pe ON pe.entity_code = bm.entity_code AND pe.year = bm.fiscal_year
+       LEFT JOIN budget_line_items bli ON bli.entity_code = bm.entity_code AND bli.fiscal_year = bm.fiscal_year
+       WHERE bm.fiscal_year = $2
+       GROUP BY fe.state_code, bm.fiscal_year, bm.head_of_government, pe.population`
+    : `SELECT fe.state_code, bm.fiscal_year, bm.head_of_government, pe.population,
+              COALESCE(SUM(bli.approved_budget), 0) AS total_budget
+       FROM budget_metadata bm
+       JOIN fiscal_entities fe ON fe.code = bm.entity_code AND fe.state_code = $1
+       LEFT JOIN population_estimates pe ON pe.entity_code = bm.entity_code AND pe.year = bm.fiscal_year
+       LEFT JOIN budget_line_items bli ON bli.entity_code = bm.entity_code AND bli.fiscal_year = bm.fiscal_year
+       GROUP BY fe.state_code, bm.fiscal_year, bm.head_of_government, pe.population
+       ORDER BY bm.fiscal_year DESC`;
 
   const summaryParams = YEAR ? [STATE, YEAR] : [STATE];
   const summaries = await pool.query(summaryQuery, summaryParams);
@@ -104,13 +116,8 @@ async function queryBudget(pool: pg.Pool): Promise<void> {
     );
     if (stateMatch.rows.length > 0) {
       const code = stateMatch.rows[0].code;
-      const retryQuery = YEAR
-        ? `SELECT state_code, fiscal_year, total_budget, allocations, population_estimate
-           FROM budget_summaries WHERE state_code = $1 AND fiscal_year = $2`
-        : `SELECT state_code, fiscal_year, total_budget, allocations, population_estimate
-           FROM budget_summaries WHERE state_code = $1 ORDER BY fiscal_year DESC`;
       const retryParams = YEAR ? [code, YEAR] : [code];
-      const retry = await pool.query(retryQuery, retryParams);
+      const retry = await pool.query(summaryQuery, retryParams);
       if (retry.rows.length > 0) {
         summaries.rows = retry.rows;
       }
@@ -118,9 +125,13 @@ async function queryBudget(pool: pg.Pool): Promise<void> {
   }
 
   if (summaries.rows.length === 0) {
-    console.log(`\n⚠ No budget summaries found for "${STATE}".`);
+    console.log(`\n⚠ No budget metadata found for "${STATE}".`);
     const available = await pool.query(
-      `SELECT DISTINCT state_code, fiscal_year FROM budget_summaries ORDER BY state_code, fiscal_year`,
+      `SELECT DISTINCT fe.state_code, bm.fiscal_year
+       FROM budget_metadata bm
+       JOIN fiscal_entities fe ON fe.code = bm.entity_code
+       WHERE fe.state_code IS NOT NULL
+       ORDER BY fe.state_code, bm.fiscal_year`,
     );
     const states = [...new Set(available.rows.map((r: { state_code: string }) => r.state_code))];
     console.log(`Available states: ${states.join(", ")}`);
@@ -128,24 +139,13 @@ async function queryBudget(pool: pg.Pool): Promise<void> {
     for (const row of summaries.rows) {
       console.log(`\n## ${row.state_code} — ${row.fiscal_year}`);
       console.log(`Total Budget: ${formatNaira(row.total_budget)}`);
-      if (row.population_estimate) {
-        console.log(`Population: ${Number(row.population_estimate).toLocaleString()}`);
-        const perCapita = Number(row.total_budget) / Number(row.population_estimate);
-        console.log(`Per Capita: ${formatNaira(perCapita)}`);
+      if (row.head_of_government) {
+        console.log(`Governor: ${row.head_of_government}`);
       }
-      if (row.allocations && typeof row.allocations === "object") {
-        console.log(`\nAllocations:`);
-        const allocs = row.allocations as Record<string, unknown>;
-        for (const [key, val] of Object.entries(allocs)) {
-          if (typeof val === "number" || typeof val === "string") {
-            console.log(`  ${key}: ${formatNaira(val)}`);
-          } else if (typeof val === "object" && val !== null) {
-            console.log(`  ${key}:`);
-            for (const [subKey, subVal] of Object.entries(val as Record<string, unknown>)) {
-              console.log(`    ${subKey}: ${typeof subVal === "number" ? formatNaira(subVal) : subVal}`);
-            }
-          }
-        }
+      if (row.population) {
+        console.log(`Population: ${Number(row.population).toLocaleString()}`);
+        const perCapita = Number(row.total_budget) / Number(row.population);
+        console.log(`Per Capita: ${formatNaira(perCapita)}`);
       }
     }
   }

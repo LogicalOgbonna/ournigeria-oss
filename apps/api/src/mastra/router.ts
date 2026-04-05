@@ -1417,12 +1417,15 @@ export async function routeToAgent({
         const pool = getSharedPool();
         const stateCode = resolvedStates[0].toLowerCase().replace(/ /g, "_");
         const result = await pool.query(
-          `SELECT o.name, o.party, p.role, c.name as constituency_name
+          `SELECT o.name, pp.acronym AS party, p.role, c.name as constituency_name
            FROM official_positions p
            JOIN nigerian_officials o ON o.id = p.official_id
-           LEFT JOIN nigerian_constituencies c ON c.code = p.jurisdiction_code
-           WHERE p.jurisdiction_type = 'constituency'
-             AND p.is_current = true
+           LEFT JOIN nigerian_constituencies c ON c.code = p.constituency_code
+           LEFT JOIN political_parties pp ON pp.acronym = p.party_acronym
+           WHERE p.constituency_code IS NOT NULL
+             AND p.status = 'active'
+             AND p.start_date <= CURRENT_DATE
+             AND (p.end_date IS NULL OR p.end_date > CURRENT_DATE)
              AND p.role = ANY($1)
              AND c.state_code = $2
            ORDER BY p.role, c.name`,

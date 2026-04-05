@@ -17,6 +17,16 @@ import { z } from "zod";
 import { AdminGuard } from "./admin.guard";
 import { AdminNotificationsService } from "./admin-notifications.service";
 import { Public } from "../auth/decorators/public";
+import { validateLinkUrl } from "../lib/url-validation";
+
+const linkUrlSchema = z
+  .string()
+  .max(500)
+  .optional()
+  .refine(
+    (val) => !val || validateLinkUrl(val).valid,
+    (val) => ({ message: val ? (validateLinkUrl(val) as any).reason : "Invalid URL" }),
+  );
 
 const createNotificationSchema = z.object({
   userId: z.string().uuid().optional(),
@@ -25,7 +35,7 @@ const createNotificationSchema = z.object({
   title: z.string().min(1).max(200),
   message: z.string().min(1),
   linkText: z.string().max(100).optional(),
-  linkUrl: z.string().max(500).optional(),
+  linkUrl: linkUrlSchema,
 });
 
 const createBannerSchema = z.object({
@@ -33,7 +43,7 @@ const createBannerSchema = z.object({
   title: z.string().min(1).max(200),
   message: z.string().min(1),
   linkText: z.string().max(100).optional(),
-  linkUrl: z.string().max(500).optional(),
+  linkUrl: linkUrlSchema,
   dismissible: z.boolean().optional().default(true),
   expiresAt: z.string().datetime().optional(),
 });

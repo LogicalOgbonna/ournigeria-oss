@@ -163,7 +163,7 @@ const LLM_PROVIDERS = [
     label: "Ollama (Local)",
     baseUrl: "http://localhost:11434/v1",
     models: [
-      "qwen2.5vl",
+      "qwen3.5",
       "qwen2.5:72b",
       "llama3.3:70b",
       "deepseek-r1:32b",
@@ -257,7 +257,7 @@ const OCR_PROVIDERS = [
     label: "Ollama (Local)",
     baseUrl: "http://localhost:11434/v1",
     models: [
-      "qwen2.5vl",
+      "qwen3.5",
       "llava:13b",
       "llama3.2-vision:11b",
       "minicpm-v:8b",
