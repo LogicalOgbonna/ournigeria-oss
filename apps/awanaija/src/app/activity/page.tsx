@@ -7,6 +7,7 @@ export const metadata = {
   description: "See the latest contributions to Nigeria's civic data platform.",
 };
 
+
 export default function ActivityPage() {
   return (
     <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
