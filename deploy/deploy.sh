@@ -186,17 +186,35 @@ else
 fi
 echo "Active stack: $ACTIVE → deploying to: $STANDBY"
 
-# ─── Pull ALL new images (parallel) ───────────────────────────────
+# ─── Pull new images — fall back gracefully if a service wasn't rebuilt ───────
+# CI only builds Docker images for affected services (Nx change detection).
+# When only one app changed, the other service has no sha-XXXXXXX image in
+# the registry. We detect this per-service: if the new image doesn't exist,
+# we retag the currently running image with the new SHA locally so that
+# docker compose can find IMAGE_TAG=$NEW_IMAGE_TAG for all services.
 echo "Pulling images with tag: $NEW_IMAGE_TAG"
 export IMAGE_TAG="$NEW_IMAGE_TAG"
-if ! docker compose -f "$COMPOSE_FILE" pull "api-${STANDBY}" "ingest-${STANDBY}"; then
-  echo "ERROR: Failed to pull images. Aborting deploy."
-  log_deploy "pull_failed"
-  notify "❌ *Deploy FAILED*
-Stage: Image pull
+REGISTRY="ghcr.io/logicalogbonna"
+
+for svc in api ingest; do
+  new_image="${REGISTRY}/ournigeria-${svc}:${NEW_IMAGE_TAG}"
+  if docker pull "$new_image" >/dev/null 2>&1; then
+    echo "Pulled new ${svc} image: $new_image"
+  else
+    echo "WARNING: ${svc} image not found in registry (not rebuilt this commit) — reusing active image"
+    current_image=$(docker inspect --format='{{.Config.Image}}' "ournigeria_${svc}_${ACTIVE}" 2>/dev/null || true)
+    if [ -z "$current_image" ]; then
+      echo "ERROR: Could not determine running ${svc} image for fallback"
+      log_deploy "pull_failed"
+      notify "❌ *Deploy FAILED*
+Stage: ${svc} image pull (fallback failed)
 Tag: \`$NEW_IMAGE_TAG\`"
-  exit 1
-fi
+      exit 1
+    fi
+    echo "Retagging ${current_image} → ${new_image}"
+    docker tag "$current_image" "$new_image"
+  fi
+done
 
 # ─── DEPLOY API (step 1 of 2) ─────────────────────────────────────
 echo ""

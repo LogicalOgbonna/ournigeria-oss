@@ -49,11 +49,11 @@ function getLocationLabel(position: Position | null): string {
 }
 
 export function OfficialCard({ official, position, role, scope, showProposals = true }: OfficialCardProps) {
+  const [imgError, setImgError] = useState(false);
+
   if (!official) {
     return <UnknownOfficialCard role={role} position={position} scope={scope} />;
   }
-
-  const [imgError, setImgError] = useState(false);
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
   const showImage = official.imageUrl && !imgError;
