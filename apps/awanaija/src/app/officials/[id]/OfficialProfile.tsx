@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   User,
   Phone,
   Mail,
-  MapPin,
   ExternalLink,
   Plus,
   ThumbsUp,
@@ -362,27 +362,24 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
   const [upvotes, setUpvotes] = useState(proposal.upvoteCount ?? 0);
   const [downvotes, setDownvotes] = useState(proposal.downvoteCount ?? 0);
   const [voting, setVoting] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [showOwnVoteModal, setShowOwnVoteModal] = useState(false);
 
   async function handleVote(direction: 1 | -1) {
     setVoting(true);
-    setToast(null);
     try {
       const result = await voteOnProposal(proposal.id, direction);
       setUpvotes(result.upvoteCount);
       setDownvotes(result.downvoteCount);
-      setToast({ message: "Vote recorded!", type: "success" });
+      toast.success("Vote recorded!");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Vote failed";
       if (msg.toLowerCase().includes("your own proposal")) {
         setShowOwnVoteModal(true);
       } else {
-        setToast({ message: msg, type: "error" });
+        toast.error(msg);
       }
     } finally {
       setVoting(false);
-      setTimeout(() => setToast(null), 3000);
     }
   }
 

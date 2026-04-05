@@ -5,6 +5,7 @@ import {
   Instrument_Serif,
   IBM_Plex_Mono,
 } from "next/font/google";
+import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { FeedbackFab } from "@/components/FeedbackFab";
 import "./globals.css";
@@ -82,6 +83,7 @@ export default function RootLayout({
         </div>
         <ThemeProvider>
           {children}
+          <Toaster position="bottom-left" richColors closeButton />
           <FeedbackFab />
         </ThemeProvider>
       </body>

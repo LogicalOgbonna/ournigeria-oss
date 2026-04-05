@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid"
 async function getOfficial(id: string) {
   try {
     const res = await fetch(`${API_URL}/api/officials/${id}`, {
-      next: { revalidate: 300 }, // 5 min cache
+      next: { revalidate: 120 }, // 2 min cache
     });
     if (!res.ok) return null;
     return res.json();
