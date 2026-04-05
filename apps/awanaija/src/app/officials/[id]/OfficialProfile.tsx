@@ -59,6 +59,15 @@ function str(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
+function formatDateRange(startDate: string, endDate: string | null): string {
+  const fmt = (d: string) => {
+    const date = new Date(d);
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+  if (endDate) return `${fmt(startDate)} – ${fmt(endDate)}`;
+  return `Since ${fmt(startDate)}`;
+}
+
 export function OfficialProfile({ official }: { official: Official }) {
   const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
@@ -98,24 +107,38 @@ export function OfficialProfile({ official }: { official: Official }) {
             )}
           </div>
 
-          <div className="flex-1">
-            {/* Overline */}
-            <div className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-emerald-400 mb-2">
-              {position?.role || "Official"}
-              {position?.party && ` · ${position.party}`}
+          <div className="flex-1 flex flex-col justify-between h-[120px] max-[560px]:h-auto max-[560px]:gap-3">
+            <div>
+              {/* Overline */}
+              <div className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-emerald-400 mb-1">
+                {position?.role || "Official"}
+                {position?.party && ` · ${position.party}`}
+              </div>
+
+              {/* Name */}
+              <h1 className="font-serif text-[30px] text-slate-900 dark:text-white leading-[1.1] max-[560px]:text-[24px]">
+                {official.name}
+              </h1>
+
+              {/* Constituency */}
+              {position && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">
+                  {position.constituency || position.state || "Nigeria"}
+                </p>
+              )}
+
+              {/* Term info */}
+              {position?.termName && (
+                <p className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {position.termName}
+                </p>
+              )}
+              {position?.startDate && (
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                  {formatDateRange(position.startDate, position.endDate)}
+                </p>
+              )}
             </div>
-
-            {/* Name */}
-            <h1 className="font-serif text-4xl text-slate-900 dark:text-white leading-[1.15] mb-2 max-[560px]:text-[28px]">
-              {official.name}
-            </h1>
-
-            {/* Constituency */}
-            {position && (
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-                {position.constituency || position.state || "Nigeria"}
-              </p>
-            )}
 
             {/* Progress bar */}
             <div className="flex items-center gap-3">
