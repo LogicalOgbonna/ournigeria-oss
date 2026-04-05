@@ -16,6 +16,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/cache/package.json packages/cache/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/tools/package.json packages/tools/package.json
 
 # Hoisted layout + install only api workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -28,9 +29,11 @@ COPY apps/api/ apps/api/
 COPY packages/database/ packages/database/
 COPY packages/cache/ packages/cache/
 COPY packages/shared-types/ packages/shared-types/
+COPY packages/tools/ packages/tools/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
+ && pnpm --filter @ournigeria/tools run build \
  && pnpm --filter @ournigeria/api exec nest build
 
 # ── Stage 3: Prune to production deps only ──
@@ -109,12 +112,15 @@ COPY --from=api-build /app/packages/database/package.json packages/database/pack
 COPY --from=api-build /app/packages/cache/dist/ packages/cache/dist/
 COPY --from=api-build /app/packages/cache/package.json packages/cache/package.json
 COPY --from=api-build /app/packages/shared-types/ packages/shared-types/
+COPY --from=api-build /app/packages/tools/dist/ packages/tools/dist/
+COPY --from=api-build /app/packages/tools/package.json packages/tools/package.json
 
 # Link workspace packages so Node can resolve @ournigeria/*
 RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database && \
     ln -s /app/packages/cache node_modules/@ournigeria/cache && \
-    ln -s /app/packages/shared-types node_modules/@ournigeria/shared-types
+    ln -s /app/packages/shared-types node_modules/@ournigeria/shared-types && \
+    ln -s /app/packages/tools node_modules/@ournigeria/tools
 
 # Copy Infisical config
 COPY apps/api/.infisical.json .infisical.json
