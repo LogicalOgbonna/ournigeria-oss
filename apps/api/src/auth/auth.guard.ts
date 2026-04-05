@@ -43,6 +43,13 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Not authenticated');
     }
 
+    // Reject non-UUID values (e.g. legacy hex session IDs) before hitting the DB
+    const UUID_REGEX =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_REGEX.test(userId)) {
+      throw new UnauthorizedException('Not authenticated');
+    }
+
     // Check cache first
     const cached = await authCache.get<CachedUserAuth>(userId);
     if (cached) {
