@@ -220,6 +220,8 @@ export interface Proposal {
   sourceUrl: string | null;
   status: string;
   voteScore: number;
+  upvoteCount: number;
+  downvoteCount: number;
   voteCount: number;
   createdAt: string;
   officialId?: string;

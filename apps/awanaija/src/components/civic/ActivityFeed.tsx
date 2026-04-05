@@ -20,8 +20,10 @@ function formatTimeAgo(dateStr: string): string {
 
 function formatEvent(entry: ActivityEntry): string {
   const meta = entry.metadata as Record<string, unknown>;
-  const field = meta?.targetField || "data";
-  const name = meta?.officialName || "an official";
+  const field =
+    typeof meta?.targetField === "string" ? meta.targetField : "data";
+  const name =
+    typeof meta?.officialName === "string" ? meta.officialName : "an official";
 
   switch (entry.eventType) {
     case "proposal_submitted":

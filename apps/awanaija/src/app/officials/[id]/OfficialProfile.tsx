@@ -55,14 +55,18 @@ const TRACKED_FIELDS = [
   "gender",
 ];
 
+function str(v: unknown): string | undefined {
+  return typeof v === "string" ? v : undefined;
+}
+
 export function OfficialProfile({ official }: { official: Official }) {
   const position = official.positions?.[0];
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
-    (f) => !(official as Record<string, unknown>)[f],
+    (f) => !(official as unknown as Record<string, unknown>)[f],
   );
   const filledFields = TRACKED_FIELDS.filter(
-    (f) => !!(official as Record<string, unknown>)[f],
+    (f) => !!(official as unknown as Record<string, unknown>)[f],
   );
 
   return (
@@ -359,26 +363,41 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
 
   const proposalValue = proposal.proposedValue as Record<string, unknown>;
   const isIdentifyProposal = proposalValue?.type === "identify";
-  const value = proposalValue?.displayValue || proposalValue?.value || JSON.stringify(proposal.proposedValue);
+  const value =
+    str(proposalValue?.displayValue) ??
+    str(proposalValue?.value) ??
+    JSON.stringify(proposal.proposedValue);
   const fieldLabel = isIdentifyProposal ? "Identity submission" : FIELD_LABELS[proposal.targetField] || proposal.targetField;
   const identifyScope =
-    proposalValue?.wardCode ||
-    proposalValue?.lgaCode ||
-    proposalValue?.constituencyCode ||
-    proposalValue?.stateCode ||
+    str(proposalValue?.wardCode) ||
+    str(proposalValue?.lgaCode) ||
+    str(proposalValue?.constituencyCode) ||
+    str(proposalValue?.stateCode) ||
     null;
+  const roleKey = str(proposalValue?.role);
+  const imageUrl = str(proposalValue?.imageUrl);
+  const identifyName = str(proposalValue?.name);
+  const partyAcronym = str(proposalValue?.partyAcronym);
+  const email = str(proposalValue?.email);
+  const phoneNumber = str(proposalValue?.phoneNumber);
+  const officeAddress = str(proposalValue?.officeAddress);
+  const twitterHandle = str(proposalValue?.twitterHandle);
+  const facebookUrl = str(proposalValue?.facebookUrl);
+  const gender = str(proposalValue?.gender);
+  const education = str(proposalValue?.education);
+  const dateOfBirth = str(proposalValue?.dateOfBirth);
   const identifyDetails = [
-    proposalValue?.role ? ROLE_LABELS[proposalValue.role] || proposalValue.role : null,
-    proposalValue?.partyAcronym ? `Party: ${proposalValue.partyAcronym}` : null,
+    roleKey ? ROLE_LABELS[roleKey] ?? roleKey : null,
+    partyAcronym ? `Party: ${partyAcronym}` : null,
     identifyScope ? `Scope: ${identifyScope}` : null,
-    proposalValue?.email ? `Email: ${proposalValue.email}` : null,
-    proposalValue?.phoneNumber ? `Phone: ${proposalValue.phoneNumber}` : null,
-    proposalValue?.officeAddress ? `Office: ${proposalValue.officeAddress}` : null,
-    proposalValue?.twitterHandle ? `Twitter: @${proposalValue.twitterHandle.replace(/^@/, "")}` : null,
-    proposalValue?.facebookUrl ? `Facebook: ${proposalValue.facebookUrl}` : null,
-    proposalValue?.gender ? `Gender: ${proposalValue.gender}` : null,
-    proposalValue?.education ? `Education: ${proposalValue.education}` : null,
-    proposalValue?.dateOfBirth ? `DOB: ${proposalValue.dateOfBirth}` : null,
+    email ? `Email: ${email}` : null,
+    phoneNumber ? `Phone: ${phoneNumber}` : null,
+    officeAddress ? `Office: ${officeAddress}` : null,
+    twitterHandle ? `Twitter: @${twitterHandle.replace(/^@/, "")}` : null,
+    facebookUrl ? `Facebook: ${facebookUrl}` : null,
+    gender ? `Gender: ${gender}` : null,
+    education ? `Education: ${education}` : null,
+    dateOfBirth ? `DOB: ${dateOfBirth}` : null,
   ].filter(Boolean);
 
   return (
@@ -409,11 +428,11 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
           <span className="inline-block font-mono text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full mb-2.5">
             {fieldLabel}
           </span>
-          {isIdentifyProposal && proposalValue?.imageUrl ? (
+          {isIdentifyProposal && imageUrl ? (
             <div className="mb-3">
               <img
-                src={proposalValue.imageUrl}
-                alt={proposalValue?.name || "Submitted official photo"}
+                src={imageUrl}
+                alt={identifyName ?? "Submitted official photo"}
                 className="w-20 h-20 rounded-xl object-cover border border-black/[0.06] dark:border-white/10"
               />
             </div>
