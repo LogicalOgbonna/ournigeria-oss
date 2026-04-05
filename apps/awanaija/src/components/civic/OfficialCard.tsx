@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { User, ExternalLink, Calendar } from "lucide-react";
 import type { Official, Position } from "@/lib/api";
@@ -52,8 +53,10 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
     return <UnknownOfficialCard role={role} position={position} scope={scope} />;
   }
 
+  const [imgError, setImgError] = useState(false);
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
+  const showImage = official.imageUrl && !imgError;
 
   return (
     <Link
@@ -64,11 +67,12 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
       <div className="flex">
         {/* Photo: square on desktop, circle on mobile */}
         <div className="hidden md:block shrink-0">
-          {official.imageUrl ? (
+          {showImage ? (
             <img
-              src={official.imageUrl}
+              src={official.imageUrl!}
               alt={official.name}
               className="w-24 h-full object-cover"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="w-24 h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -82,11 +86,12 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
           {/* Mobile-only: small circle photo inline */}
           <div className="flex items-start gap-3">
             <div className="md:hidden shrink-0">
-              {official.imageUrl ? (
+              {showImage ? (
                 <img
-                  src={official.imageUrl}
+                  src={official.imageUrl!}
                   alt={official.name}
                   className="w-11 h-11 rounded-full object-cover"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="w-11 h-11 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">

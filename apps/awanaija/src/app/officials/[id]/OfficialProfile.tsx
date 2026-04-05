@@ -60,6 +60,7 @@ function str(v: unknown): string | undefined {
 }
 
 export function OfficialProfile({ official }: { official: Official }) {
+  const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
@@ -85,11 +86,12 @@ export function OfficialProfile({ official }: { official: Official }) {
         <div className="flex gap-6 items-start mb-7 max-[560px]:flex-col max-[560px]:items-center max-[560px]:text-center">
           {/* Photo */}
           <div className="w-[120px] h-[120px] min-w-[120px] rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
-            {official.imageUrl ? (
+            {official.imageUrl && !imgError ? (
               <img
                 src={official.imageUrl}
                 alt={official.name}
                 className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
               />
             ) : (
               <User className="w-12 h-12 text-slate-400 opacity-35" />

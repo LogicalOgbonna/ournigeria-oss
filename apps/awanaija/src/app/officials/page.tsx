@@ -189,10 +189,12 @@ export default function OfficialsDirectoryPage() {
 }
 
 function OfficialDirectoryCard({ official }: { official: Official }) {
+  const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
   const location = position?.constituency || position?.lga || position?.state || "";
+  const showImage = official.imageUrl && !imgError;
 
   return (
     <Link
@@ -202,8 +204,8 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
     >
       {/* Photo */}
       <div className="shrink-0">
-        {official.imageUrl ? (
-          <img src={official.imageUrl} alt={official.name} className="w-14 h-14 rounded-lg object-cover" />
+        {showImage ? (
+          <img src={official.imageUrl!} alt={official.name} className="w-14 h-14 rounded-lg object-cover" onError={() => setImgError(true)} />
         ) : (
           <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
             <User className="w-6 h-6 text-slate-300 dark:text-slate-600" />
