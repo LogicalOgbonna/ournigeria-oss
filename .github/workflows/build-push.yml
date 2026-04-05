@@ -24,12 +24,61 @@ jobs:
           sudo apt-get update && sudo apt-get install -y shellcheck
           shellcheck deploy/*.sh
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      any_changed: ${{ steps.set-matrix.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Determine affected apps
+        id: affected
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
+            BASE="HEAD~1"
+          fi
+          AFFECTED=$(pnpm exec nx show projects --affected --base="$BASE" --head=HEAD 2>/dev/null || echo "")
+          echo "Affected projects: $AFFECTED"
+          echo "api=$(echo "$AFFECTED" | grep -q '^api$' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "ingest=$(echo "$AFFECTED" | grep -q '^ingest$' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Build matrix
+        id: set-matrix
+        run: |
+          APPS=()
+          [ "${{ steps.affected.outputs.api }}" = "true" ] && APPS+=("api")
+          [ "${{ steps.affected.outputs.ingest }}" = "true" ] && APPS+=("ingest")
+          if [ ${#APPS[@]} -eq 0 ]; then
+            echo "matrix=[]" >> "$GITHUB_OUTPUT"
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Docker apps affected — skipping build"
+          else
+            MATRIX=$(printf '%s\n' "${APPS[@]}" | jq -R . | jq -sc .)
+            echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Apps to build: $MATRIX"
+          fi
+
   build:
-    needs: validate
+    needs: [validate, detect-changes]
+    if: needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [api, ingest]
+        app: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -72,8 +121,10 @@ jobs:
           echo "size_mb=$(echo "scale=1; $SIZE/1048576" | bc)" >> $GITHUB_OUTPUT
 
   deploy:
-    needs: build
-    if: github.event_name == 'push'
+    needs: [detect-changes, build]
+    if: >-
+      github.event_name == 'push' &&
+      needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger deploy webhook
@@ -94,8 +145,10 @@ jobs:
             --retry 2
 
   pr-comment:
-    needs: build
-    if: github.event_name == 'pull_request'
+    needs: [detect-changes, build]
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Comment build info on PR
@@ -104,13 +157,16 @@ jobs:
           script: |
             const sha = context.payload.pull_request.head.sha.substring(0, 7);
             const owner = context.repo.owner;
+            const matrix = ${{ needs.detect-changes.outputs.matrix }};
+            const rows = matrix.map(app =>
+              `| \`ghcr.io/${owner}/ournigeria-${app}\` | \`sha-${sha}\` |`
+            ).join('\n');
             const body = [
               '### 🐳 Docker Build Complete',
               '',
               '| Image | Tag |',
               '|-------|-----|',
-              `| \`ghcr.io/${owner}/ournigeria-api\` | \`sha-${sha}\` |`,
-              `| \`ghcr.io/${owner}/ournigeria-ingest\` | \`sha-${sha}\` |`,
+              rows,
               '',
               `Built from commit \`${sha}\`. Images are **not pushed** for PR builds.`,
             ].join('\n');
