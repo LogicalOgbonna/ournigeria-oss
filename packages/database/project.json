@@ -16,7 +16,7 @@
       }
     },
     "prisma:migrate": {
-      "command": "infisical run -- prisma migrate dev",
+      "command": "infisical run -- prisma migrate deploy",
       "options": {
         "cwd": "packages/database"
       }
