@@ -19,7 +19,7 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 function formatEvent(entry: ActivityEntry): string {
-  const meta = entry.metadata as any;
+  const meta = entry.metadata as Record<string, unknown>;
   const field = meta?.targetField || "data";
   const name = meta?.officialName || "an official";
 

@@ -309,14 +309,15 @@ function IdentifyOfficialContent() {
       });
       setNewOfficialId(result.officialId);
       setSuccess(true);
-    } catch (err: any) {
-      if (err.status === 429) {
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>;
+      if (e.status === 429) {
         setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (err.status === 401) {
+      } else if (e.status === 401) {
         setShowOtp(true);
         setError(null);
       } else {
-        setError(err.message || "Failed to submit");
+        setError((e.message as string) || "Failed to submit");
       }
     } finally {
       setSubmitting(false);
@@ -598,7 +599,7 @@ function IdentifyOfficialContent() {
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <p className="text-xs text-slate-400 mt-1">
-              Link to a news article, official website, or social media post that confirms this person's identity.
+              Link to a news article, official website, or social media post that confirms this person&apos;s identity.
             </p>
           </div>
 
@@ -689,14 +690,15 @@ function EditOfficialContent() {
         sourceUrl: sourceUrl.trim() || undefined,
       });
       setSuccess(true);
-    } catch (err: any) {
-      if (err.status === 429) {
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>;
+      if (e.status === 429) {
         setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (err.status === 401) {
+      } else if (e.status === 401) {
         setShowOtp(true);
         setError(null);
       } else {
-        setError(err.message || "Failed to submit proposal");
+        setError((e.message as string) || "Failed to submit proposal");
       }
     } finally {
       setSubmitting(false);
@@ -723,14 +725,14 @@ function EditOfficialContent() {
             Your proposal is under review. Other citizens can upvote it to help prioritize it.
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
-            You're helping build Nigeria's civic record. Thank you.
+            You&apos;re helping build Nigeria&apos;s civic record. Thank you.
           </p>
           {official && (
             <Link
               href={`/officials/${official.id}`}
               className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
             >
-              Back to {official.name}'s profile
+              Back to {official.name}&apos;s profile
             </Link>
           )}
         </div>
@@ -748,7 +750,7 @@ function EditOfficialContent() {
             Missing Context
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mb-6">
-            Navigate to a representative's profile to propose changes, or find an unidentified position from the representatives page.
+            Navigate to a representative&apos;s profile to propose changes, or find an unidentified position from the representatives page.
           </p>
           <Link
             href="/representatives"
@@ -924,7 +926,7 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
 
     const authUrl = `${window.location.origin}${API_BASE}/auth/telegram`;
 
-    (window as any).onTelegramAuth = async function (user: Record<string, string | number>) {
+    (window as unknown as Record<string, unknown>).onTelegramAuth = async function (user: Record<string, string | number>) {
       const params = new URLSearchParams(
         Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
       ).toString();
@@ -1098,7 +1100,7 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
               <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                 <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  You'll confirm in Telegram's secure popup. We only receive your Telegram ID.
+                  You&apos;ll confirm in Telegram&apos;s secure popup. We only receive your Telegram ID.
                 </p>
               </div>
             </div>
@@ -1139,7 +1141,7 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
               <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                 <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  We'll send a 6-digit code to your WhatsApp. No password needed.
+                  We&apos;ll send a 6-digit code to your WhatsApp. No password needed.
                 </p>
               </div>
             </div>
@@ -1191,7 +1193,7 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
                 {isLoading ? "Verifying..." : "Verify & continue"}
               </button>
               <div className="text-center">
-                <span className="text-xs text-slate-400">Didn't get the code? </span>
+                <span className="text-xs text-slate-400">Didn&apos;t get the code? </span>
                 <button
                   type="button"
                   onClick={handleSendOtp}

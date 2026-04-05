@@ -14,7 +14,7 @@ import {
   ThumbsDown,
   Pencil,
 } from "lucide-react";
-import type { Official } from "@/lib/api";
+import type { Official, Proposal } from "@/lib/api";
 import { voteOnProposal } from "@/lib/api";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -59,10 +59,10 @@ export function OfficialProfile({ official }: { official: Official }) {
   const position = official.positions?.[0];
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
-    (f) => !(official as any)[f],
+    (f) => !(official as Record<string, unknown>)[f],
   );
   const filledFields = TRACKED_FIELDS.filter(
-    (f) => !!(official as any)[f],
+    (f) => !!(official as Record<string, unknown>)[f],
   );
 
   return (
@@ -329,7 +329,7 @@ function ContactPill({
   return <span className={cls}>{inner}</span>;
 }
 
-function ProposalCard({ proposal }: { proposal: any }) {
+function ProposalCard({ proposal }: { proposal: Proposal }) {
   const [upvotes, setUpvotes] = useState(proposal.upvoteCount ?? 0);
   const [downvotes, setDownvotes] = useState(proposal.downvoteCount ?? 0);
   const [voting, setVoting] = useState(false);
@@ -344,8 +344,8 @@ function ProposalCard({ proposal }: { proposal: any }) {
       setUpvotes(result.upvoteCount);
       setDownvotes(result.downvoteCount);
       setToast({ message: "Vote recorded!", type: "success" });
-    } catch (err: any) {
-      const msg = err.message || "Vote failed";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Vote failed";
       if (msg.toLowerCase().includes("your own proposal")) {
         setShowOwnVoteModal(true);
       } else {
@@ -357,7 +357,7 @@ function ProposalCard({ proposal }: { proposal: any }) {
     }
   }
 
-  const proposalValue = proposal.proposedValue as any;
+  const proposalValue = proposal.proposedValue as Record<string, unknown>;
   const isIdentifyProposal = proposalValue?.type === "identify";
   const value = proposalValue?.displayValue || proposalValue?.value || JSON.stringify(proposal.proposedValue);
   const fieldLabel = isIdentifyProposal ? "Identity submission" : FIELD_LABELS[proposal.targetField] || proposal.targetField;

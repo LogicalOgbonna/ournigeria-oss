@@ -23,7 +23,7 @@ export default function ActivityPage() {
           Recent Activity
         </h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-          See how citizens are helping build Nigeria's civic data.
+          See how citizens are helping build Nigeria&apos;s civic data.
         </p>
 
         <ActivityFeed limit={50} />

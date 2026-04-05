@@ -216,7 +216,7 @@ export interface ChainEntry {
 export interface Proposal {
   id: string;
   targetField: string;
-  proposedValue: any;
+  proposedValue: unknown;
   sourceUrl: string | null;
   status: string;
   voteScore: number;
@@ -247,6 +247,6 @@ export interface ActivityEntry {
   eventType: string;
   targetType: string;
   targetId: string;
-  metadata: any;
+  metadata: unknown;
   createdAt: string;
 }
