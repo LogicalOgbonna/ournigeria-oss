@@ -34,16 +34,17 @@ function RepresentativesContent() {
   } | null>(null);
   const [unknownsExpanded, setUnknownsExpanded] = useState(false);
 
-  // Read initial location from URL params
+  // Read initial location from URL params — only load reps if ward is specified
   useEffect(() => {
     const state = searchParams.get("state");
-    if (state) {
+    const ward = searchParams.get("ward");
+    if (state && ward) {
       handleLocationSelect({
         stateCode: state,
         stateName: searchParams.get("stateName") || "",
         lgaCode: searchParams.get("lga") || undefined,
         lgaName: searchParams.get("lgaName") || undefined,
-        wardCode: searchParams.get("ward") || undefined,
+        wardCode: ward,
         wardName: searchParams.get("wardName") || undefined,
       });
     }

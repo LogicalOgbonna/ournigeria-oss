@@ -48,14 +48,38 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
       );
       const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
       if (result.stateCode) {
-        onLocationSelect({
-          stateCode: result.stateCode,
-          stateName: result.stateName || "",
-          lgaCode: result.lgaCode || undefined,
-          lgaName: result.lgaName || undefined,
-          wardCode: result.wardCode || undefined,
-          wardName: result.wardName || undefined,
-        });
+        const state = { code: result.stateCode, name: result.stateName || "" };
+        setPickedState(state);
+
+        if (result.lgaCode && result.lgaName && result.wardCode && result.wardName) {
+          // Full location resolved — submit directly
+          onLocationSelect({
+            stateCode: state.code,
+            stateName: state.name,
+            lgaCode: result.lgaCode,
+            lgaName: result.lgaName,
+            wardCode: result.wardCode,
+            wardName: result.wardName,
+          });
+        } else if (result.lgaCode && result.lgaName) {
+          // State + LGA resolved — move to ward step
+          const lga = { code: result.lgaCode, name: result.lgaName };
+          setPickedLga(lga);
+          setStep("ward");
+          setLoadingItems(true);
+          getWards(lga.code)
+            .then(setWards)
+            .catch(console.error)
+            .finally(() => setLoadingItems(false));
+        } else {
+          // Only state resolved — move to LGA step
+          setStep("lga");
+          setLoadingItems(true);
+          getLgas(state.code)
+            .then(setLgas)
+            .catch(console.error)
+            .finally(() => setLoadingItems(false));
+        }
       }
     } catch {
       // User denied or failed, show manual picker
@@ -82,18 +106,7 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
     setSearch("");
     setLoadingItems(true);
     getWards(l.code)
-      .then((w) => {
-        setWards(w);
-        // If no wards, submit with just state + LGA
-        if (w.length === 0) {
-          onLocationSelect({
-            stateCode: pickedState!.code,
-            stateName: pickedState!.name,
-            lgaCode: l.code,
-            lgaName: l.name,
-          });
-        }
-      })
+      .then(setWards)
       .catch(console.error)
       .finally(() => setLoadingItems(false));
   }
@@ -106,15 +119,6 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
       lgaName: pickedLga!.name,
       wardCode: w.code,
       wardName: w.name,
-    });
-  }
-
-  function handleSkipWard() {
-    onLocationSelect({
-      stateCode: pickedState!.code,
-      stateName: pickedState!.name,
-      lgaCode: pickedLga!.code,
-      lgaName: pickedLga!.name,
     });
   }
 
@@ -216,15 +220,6 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
             ))}
           </div>
 
-          {/* Skip ward selection */}
-          {step === "ward" && wards.length > 0 && (
-            <button
-              onClick={handleSkipWard}
-              className="mt-3 w-full text-center text-sm text-slate-500 hover:text-emerald-600 py-2 transition-colors"
-            >
-              Skip ward selection, show LGA-level reps
-            </button>
-          )}
         </>
       )}
     </div>
