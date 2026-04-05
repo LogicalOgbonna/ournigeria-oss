@@ -1,0 +1,46 @@
+[
+  {
+    "code": "niger_rijau_jamaare",
+    "name": "Jama'are",
+    "lga_code": "niger_rijau",
+    "source": "inec",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/RA-LGA-ANALYSIS-NATIONWIDE.pdf",
+    "source_date": "2019-02",
+    "confidence": "high",
+    "pcode": null,
+    "overflow_reason": "exceeds INEC RA count"
+  },
+  {
+    "code": "niger_rijau_tungan_bunu",
+    "name": "Tungan Bunu",
+    "lga_code": "niger_rijau",
+    "source": "inec",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/RA-LGA-ANALYSIS-NATIONWIDE.pdf",
+    "source_date": "2019-02",
+    "confidence": "high",
+    "pcode": null,
+    "overflow_reason": "exceeds INEC RA count"
+  },
+  {
+    "code": "niger_rijau_tungan_magajiya",
+    "name": "Tungan Magajiya",
+    "lga_code": "niger_rijau",
+    "source": "inec",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/RA-LGA-ANALYSIS-NATIONWIDE.pdf",
+    "source_date": "2019-02",
+    "confidence": "high",
+    "pcode": null,
+    "overflow_reason": "exceeds INEC RA count"
+  },
+  {
+    "code": "niger_rijau_sabon_garin_ushe",
+    "name": "Sabon Garin Ushe",
+    "lga_code": "niger_rijau",
+    "source": "inec",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/RA-LGA-ANALYSIS-NATIONWIDE.pdf",
+    "source_date": "2019-02",
+    "confidence": "high",
+    "pcode": null,
+    "overflow_reason": "exceeds INEC RA count"
+  }
+]

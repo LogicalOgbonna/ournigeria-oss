@@ -1,0 +1,22 @@
+{
+  "source": "inec_exact_lga",
+  "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+  "source_date": "2019-02",
+  "total_wards": 8807,
+  "federal": {
+    "constituencies_mapped": 319,
+    "rows_written": 7844,
+    "wards_covered": 7844,
+    "coverage_pct": 89.07
+  },
+  "state": {
+    "constituencies_mapped": 562,
+    "rows_written": 5818,
+    "wards_covered": 5818,
+    "coverage_pct": 66.06
+  },
+  "manual_reviewed_rows": 372,
+  "excluded_ambiguous_constituencies": [],
+  "both_types_covered": 5327,
+  "both_types_coverage_pct": 60.49
+}

@@ -1,0 +1,6194 @@
+[
+  {
+    "senatorial_district_code": "sen_abia_north",
+    "lga_code": "abia_arochukwu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_north",
+    "lga_code": "abia_bende",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_north",
+    "lga_code": "abia_isuikwuato",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_north",
+    "lga_code": "abia_ohafia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_north",
+    "lga_code": "abia_umu_nneochi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_ikwuano",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_isiala_ngwa_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_isiala_ngwa_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_osisioma_ngwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_umuahia_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_central",
+    "lga_code": "abia_umuahia_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_aba_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_aba_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_obi_ngwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_ugwunagbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_ukwa_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_abia_south",
+    "lga_code": "abia_ukwa_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_north",
+    "lga_code": "adamawa_madagali",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_north",
+    "lga_code": "adamawa_maiha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_north",
+    "lga_code": "adamawa_michika",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_north",
+    "lga_code": "adamawa_mubi_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_north",
+    "lga_code": "adamawa_mubi_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_demsa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_ganye",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_guyuk",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_jada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_lamurde",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_mayo_belwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_numan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_shelleng",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_south",
+    "lga_code": "adamawa_toungo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_fufore",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_girei",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_gombi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_hong",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_song",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_yola_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_adamawa_central",
+    "lga_code": "adamawa_yola_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_etinan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_ibesikpo_asutan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_ibiono_ibom",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_itu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_nsit_atai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_nsit_ibom",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_nsit_ubium",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_uruan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_east",
+    "lga_code": "akwa_ibom_uyo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_abak",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_essien_udim",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_etim_ekpo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_ika",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_ikono",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_ikot_ekpene",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_ini",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_obot_akara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_oruk_anam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_north_west",
+    "lga_code": "akwa_ibom_ukanafun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_eastern_obolo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_eket",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_esit_eket",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_ibeno",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_ikot_abasi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_mbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_mkpat_enin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_okobo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_onna",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_oron",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_udung_uko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_akwa_ibom_south",
+    "lga_code": "akwa_ibom_urue_offong_oruko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_anambra_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_anambra_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_ayamelum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_ogbaru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_onitsha_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_onitsha_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_north",
+    "lga_code": "anambra_oyi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_anaocha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_awka_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_awka_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_dunukofia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_idemili_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_idemili_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_central",
+    "lga_code": "anambra_njikoka",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_aguata",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_ekwusigo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_ihiala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_nnewi_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_nnewi_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_orumba_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_anambra_south",
+    "lga_code": "anambra_orumba_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_alkaleri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_bauchi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_bogoro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_dass",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_kirfi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_tafawa_balewa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_south",
+    "lga_code": "bauchi_toro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_damban",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_darazo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_ganjuwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_misau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_ningi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_central",
+    "lga_code": "bauchi_warji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_gamawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_giade",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_itas_gadau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_jamaare",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_katagum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_shira",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bauchi_north",
+    "lga_code": "bauchi_zaki",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_east",
+    "lga_code": "bayelsa_brass",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_east",
+    "lga_code": "bayelsa_nembe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_east",
+    "lga_code": "bayelsa_ogbia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_central",
+    "lga_code": "bayelsa_kolokuma_opokuma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_central",
+    "lga_code": "bayelsa_southern_ijaw",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_central",
+    "lga_code": "bayelsa_yenegoa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_west",
+    "lga_code": "bayelsa_ekeremor",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_bayelsa_west",
+    "lga_code": "bayelsa_sagbama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_katsina_ala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_konshisha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_kwande",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_logo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_ukum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_ushongo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_east",
+    "lga_code": "benue_vandeikya",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_buruku",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_gboko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_guma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_gwer_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_gwer_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_makurdi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_north_west",
+    "lga_code": "benue_tarka",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_ado",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_agatu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_apa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_obi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_ogbadibo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_ohimini",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_oju",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_okpokwu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_benue_south",
+    "lga_code": "benue_otukpo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_abadam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_gubio",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_guzamala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_kukawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_magumeri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_marte",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_mobbar",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_nganzai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_monguno",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_dikwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_jere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_kala_balge",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_mafa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_maiduguri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_ngala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_konduga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_bama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_central",
+    "lga_code": "borno_kaga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_askira_uba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_bayo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_biu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_chibok",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_damboa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_gwoza",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_hawul",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_kwaya_kusar",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_south",
+    "lga_code": "borno_shani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_north",
+    "lga_code": "cross_river_bekwarra",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_north",
+    "lga_code": "cross_river_obanliku",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_north",
+    "lga_code": "cross_river_obudu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_north",
+    "lga_code": "cross_river_ogoja",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_north",
+    "lga_code": "cross_river_yala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_abi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_boki",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_etung",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_ikom",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_obubra",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_central",
+    "lga_code": "cross_river_yakurr",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_akamkpa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_akpabuyo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_bakassi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_biase",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_calabar_municipal",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_calabar_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_cross_river_south",
+    "lga_code": "cross_river_odukpani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_ethiope_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_ethiope_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_okpe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_sapele",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_udu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_ughelli_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_ughelli_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_central",
+    "lga_code": "delta_uvwie",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_aniocha_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_aniocha_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_ika_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_ika_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_ndokwa_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_ndokwa_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_oshimili_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_oshimili_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_north",
+    "lga_code": "delta_ukwuani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_bomadi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_burutu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_isoko_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_isoko_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_patani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_warri_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_warri_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_delta_south",
+    "lga_code": "delta_warri_south_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_north",
+    "lga_code": "ebonyi_abakaliki",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_north",
+    "lga_code": "ebonyi_ebonyi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_north",
+    "lga_code": "ebonyi_izzi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_north",
+    "lga_code": "ebonyi_ohaukwu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_central",
+    "lga_code": "ebonyi_ezza_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_central",
+    "lga_code": "ebonyi_ezza_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_central",
+    "lga_code": "ebonyi_ikwo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_central",
+    "lga_code": "ebonyi_ishielu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_south",
+    "lga_code": "ebonyi_afikpo_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_south",
+    "lga_code": "ebonyi_edda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_south",
+    "lga_code": "ebonyi_ivo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_south",
+    "lga_code": "ebonyi_ohaozara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ebonyi_south",
+    "lga_code": "ebonyi_onicha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_central",
+    "lga_code": "edo_esan_central",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_central",
+    "lga_code": "edo_esan_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_central",
+    "lga_code": "edo_esan_south_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_central",
+    "lga_code": "edo_esan_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_central",
+    "lga_code": "edo_igueben",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_akoko_edo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_etsako_central",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_etsako_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_etsako_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_owan_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_north",
+    "lga_code": "edo_owan_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_egor",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_ikpoba_okha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_oredo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_orhionmwon",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_ovia_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_ovia_south_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_edo_south",
+    "lga_code": "edo_uhunmwonde",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_north",
+    "lga_code": "ekiti_ido_osi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_north",
+    "lga_code": "ekiti_ikole",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_north",
+    "lga_code": "ekiti_ilejemeji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_north",
+    "lga_code": "ekiti_moba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_north",
+    "lga_code": "ekiti_oye",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_central",
+    "lga_code": "ekiti_ado_ekiti",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_central",
+    "lga_code": "ekiti_efon",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_central",
+    "lga_code": "ekiti_ekiti_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_central",
+    "lga_code": "ekiti_ijero",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_central",
+    "lga_code": "ekiti_irepodun_ifelodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_ekiti_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_ekiti_south_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_emure",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_aiyekire_(gbonyin)",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_ikere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ekiti_south",
+    "lga_code": "ekiti_ise_orun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_enugu_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_enugu_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_enugu_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_isi_uzo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_nkanu_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_east",
+    "lga_code": "enugu_nkanu_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_west",
+    "lga_code": "enugu_aninri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_west",
+    "lga_code": "enugu_awgu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_west",
+    "lga_code": "enugu_ezeagu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_west",
+    "lga_code": "enugu_oji_river",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_west",
+    "lga_code": "enugu_udi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_igbo_etiti",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_igbo_eze_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_igbo_eze_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_nsukka",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_udenu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_enugu_north",
+    "lga_code": "enugu_uzo_uwani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_abaji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_bwari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_gwagwalada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_kuje",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_kwali",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_fct_fct",
+    "lga_code": "fct_abuja_municipal",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_central",
+    "lga_code": "gombe_akko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_central",
+    "lga_code": "gombe_yamaltu_deba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_south",
+    "lga_code": "gombe_balanga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_south",
+    "lga_code": "gombe_billiri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_south",
+    "lga_code": "gombe_kaltungo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_south",
+    "lga_code": "gombe_shomgom",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_north",
+    "lga_code": "gombe_dukku",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_north",
+    "lga_code": "gombe_funakaye",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_north",
+    "lga_code": "gombe_gombe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_north",
+    "lga_code": "gombe_kwami",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_gombe_north",
+    "lga_code": "gombe_nafada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_aboh_mbaise",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_ahiazu_mbaise",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_ezinihitte",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_ikeduru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_mbaitoli",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_ngor_okpala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_owerri_municipal",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_owerri_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_east",
+    "lga_code": "imo_owerri_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_ideato_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_ideato_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_isu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_njaba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_nkwerre",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_nwangele",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_oguta",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_ohaji_egbema",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_orlu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_orsu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_oru_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_west",
+    "lga_code": "imo_oru_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_ehime_mbano",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_ihitte_uboma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_isiala_mbano",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_obowo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_okigwe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_imo_north",
+    "lga_code": "imo_unuimo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_birni_kudu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_buji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_dutse",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_gwaram",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_jahun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_kiyawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_south_west",
+    "lga_code": "jigawa_miga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_auyo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_biriniwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_guri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_hadejia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_kafin_hausa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_kaugama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_kiri_kasamma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_east",
+    "lga_code": "jigawa_malam_madori",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_babura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_gagarawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_garki",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_gumel",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_gwiwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_kazaure",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_maigatari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_ringim",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_roni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_sule_tankarkar",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_taura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_jigawa_north_west",
+    "lga_code": "jigawa_yankwashi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_ikara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_kubau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_kudan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_lere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_markafi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_sabon_gari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_soba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_north",
+    "lga_code": "kaduna_zaria",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_birnin_gwari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_chikun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_giwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_igabi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_kaduna_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_kaduna_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_central",
+    "lga_code": "kaduna_kajuru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_jaba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_jemaa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_kachia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_kagarko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_kaura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_kauru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_sanga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kaduna_south",
+    "lga_code": "kaduna_zango_kataf",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_dala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_dawakin_kudu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_fagge",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_garum_mallam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_gezawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_gwale",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_kano_municipal",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_kumbotso",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_kura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_madobi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_minjibir",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_nasarawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_tarauni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_ungogo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_central",
+    "lga_code": "kano_warawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_bagwai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_bichi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_dambatta",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_dawakin_tofa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_gabasawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_gwarzo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_kabo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_ghari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_makoda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_rimin_gado",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_shanono",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_tofa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_north",
+    "lga_code": "kano_tsanyawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_ajingi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_albasu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_bebeji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_bunkure",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_doguwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_garko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_gaya",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_karaye",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_kibiya",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_kiru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_rano",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_rogo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_sumaila",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_takai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_tudun_wada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kano_south",
+    "lga_code": "kano_wudil",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_baure",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_bindawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_daura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_dutsi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_ingawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_kankia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_kusada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_maiadua",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_mani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_mashi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_sandamu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_north",
+    "lga_code": "katsina_zango",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_bakori",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_dandume",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_danja",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_faskari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_funtua",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_kafur",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_kankara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_malumfashi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_matazu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_musawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_south",
+    "lga_code": "katsina_sabuwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_batagarawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_batsari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_charanchi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_dan_musa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_dutsin_ma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_jibia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_kaita",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_katsina",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_kurfi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_rimi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_katsina_central",
+    "lga_code": "katsina_safana",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_arewa_dandi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_argungu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_augie",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_bagudo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_dandi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_north",
+    "lga_code": "kebbi_suru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_aleiro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_birnin_kebbi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_bunza",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_gwandu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_jega",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_kalgo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_koko_besse",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_central",
+    "lga_code": "kebbi_maiyama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_wasagu_danko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_fakai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_ngaski",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_sakaba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_shanga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_yauri",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kebbi_south",
+    "lga_code": "kebbi_zuru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_central",
+    "lga_code": "kogi_adavi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_central",
+    "lga_code": "kogi_ajaokuta",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_central",
+    "lga_code": "kogi_ogori_magongo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_central",
+    "lga_code": "kogi_okehi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_central",
+    "lga_code": "kogi_okene",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_ankpa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_bassa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_dekina",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_ibaji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_idah",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_igalamela_odolu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_ofu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_olamabolo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_east",
+    "lga_code": "kogi_omala",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_ijumu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_kabba_bunu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_lokoja",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_kogi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_mopa_muro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_yagba_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kogi_west",
+    "lga_code": "kogi_yagba_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_north",
+    "lga_code": "kwara_baruten",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_north",
+    "lga_code": "kwara_edu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_north",
+    "lga_code": "kwara_kaiama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_north",
+    "lga_code": "kwara_moro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_north",
+    "lga_code": "kwara_pategi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_central",
+    "lga_code": "kwara_asa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_central",
+    "lga_code": "kwara_ilorin_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_central",
+    "lga_code": "kwara_ilorin_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_central",
+    "lga_code": "kwara_ilorin_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_ekiti",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_ifelodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_irepodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_isin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_offa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_oke_ero",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_kwara_south",
+    "lga_code": "kwara_oyun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_central",
+    "lga_code": "lagos_apapa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_central",
+    "lga_code": "lagos_eti_osa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_central",
+    "lga_code": "lagos_lagos_island",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_central",
+    "lga_code": "lagos_lagos_mainland",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_central",
+    "lga_code": "lagos_surulere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_east",
+    "lga_code": "lagos_epe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_east",
+    "lga_code": "lagos_ibeju_lekki",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_east",
+    "lga_code": "lagos_ikorodu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_east",
+    "lga_code": "lagos_kosofe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_east",
+    "lga_code": "lagos_shomolu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_agege",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_ajeromi_ifelodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_alimosho",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_amuwo_odofin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_badagry",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_ifako_ijaye",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_ikeja",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_mushin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_ojo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_lagos_west",
+    "lga_code": "lagos_oshodi_isolo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_north",
+    "lga_code": "nasarawa_akwanga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_north",
+    "lga_code": "nasarawa_nasarawa_eggon",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_north",
+    "lga_code": "nasarawa_wamba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_west",
+    "lga_code": "nasarawa_nasarawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_west",
+    "lga_code": "nasarawa_keffi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_west",
+    "lga_code": "nasarawa_kokona",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_west",
+    "lga_code": "nasarawa_karu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_west",
+    "lga_code": "nasarawa_toto",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_south",
+    "lga_code": "nasarawa_lafia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_south",
+    "lga_code": "nasarawa_awe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_south",
+    "lga_code": "nasarawa_doma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_south",
+    "lga_code": "nasarawa_keana",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_nasarawa_south",
+    "lga_code": "nasarawa_obi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_bosso",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_chanchaga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_gurara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_muya",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_paikoro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_rafi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_shiroro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_suleja",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_east",
+    "lga_code": "niger_tafa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_agwara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_borgu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_kontagora",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_magama",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_mariga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_mashegu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_rijau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_north",
+    "lga_code": "niger_wushishi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_agaie",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_bida",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_edati",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_gbako",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_katcha",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_lapai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_lavun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_niger_south",
+    "lga_code": "niger_mokwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_abeokuta_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_abeokuta_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_ewekoro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_ifo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_obafemi_owode",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_central",
+    "lga_code": "ogun_odeda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ijebu_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ijebu_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ijebu_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ijebu_ode",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ikenne",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_odogbolu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_ogun_waterside",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_remo_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_east",
+    "lga_code": "ogun_shagamu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_west",
+    "lga_code": "ogun_ado_odo_ota",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_west",
+    "lga_code": "ogun_egbado_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_west",
+    "lga_code": "ogun_egbado_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_west",
+    "lga_code": "ogun_imeko_afon",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ogun_west",
+    "lga_code": "ogun_ipokia",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_akoko_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_akoko_north_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_akoko_south_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_akoko_south_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_ose",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_north",
+    "lga_code": "ondo_owo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_akure_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_akure_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_idanre",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_ifedore",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_ondo_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_central",
+    "lga_code": "ondo_ondo_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_ese_odo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_ilaje",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_ile_oluji_okeigbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_irele",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_odigbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_ondo_south",
+    "lga_code": "ondo_okitipupa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_boluwaduro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_boripe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_ifedayo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_ifelodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_ila",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_irepodun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_odo_otin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_olorunda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_orolu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_central",
+    "lga_code": "osun_osogbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_atakumosa_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_atakumosa_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ife_central",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ife_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ife_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ife_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ilesha_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_ilesha_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_obokun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_east",
+    "lga_code": "osun_oriade",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_aiyedade",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_aiyedire",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_ede_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_ede_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_egbedore",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_ejigbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_irewole",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_isokan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_iwo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_osun_west",
+    "lga_code": "osun_ola_oluwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_afijio",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_akinyele",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_atiba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_egbeda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_lagelu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_ogo_oluwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_oluyole",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_ona_ara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_oyo_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_oyo_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_central",
+    "lga_code": "oyo_surulere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_atigbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_irepo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_iseyin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_itesiwaju",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_iwajowa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_kajola",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_ogbomosho_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_ogbomosho_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_olorunsogo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_orelope",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_ori_ire",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_saki_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_north",
+    "lga_code": "oyo_saki_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibadan_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibadan_north_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibadan_north_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibadan_south_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibadan_south_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibarapa_central",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibarapa_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ibarapa_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_oyo_south",
+    "lga_code": "oyo_ido",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_langtang_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_langtang_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_mikang",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_quaan_pan",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_shendam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_south",
+    "lga_code": "plateau_wase",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_central",
+    "lga_code": "plateau_bokkos",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_central",
+    "lga_code": "plateau_kanke",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_central",
+    "lga_code": "plateau_mangu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_central",
+    "lga_code": "plateau_pankshin",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_central",
+    "lga_code": "plateau_kanam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_barikin_ladi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_bassa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_jos_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_jos_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_jos_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_plateau_north",
+    "lga_code": "plateau_riyom",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_emohua",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_etche",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_ikwerre",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_obio_akpor",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_ogu_bolo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_okrika",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_omumma",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_east",
+    "lga_code": "rivers_port_harcourt",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_andoni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_eleme",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_gokana",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_khana",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_opobo_nkoro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_oyigbo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_south_east",
+    "lga_code": "rivers_tai",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_abua_odual",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_ahoada_east",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_ahoada_west",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_akuku_toru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_asari_toru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_bonny",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_degema",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_rivers_west",
+    "lga_code": "rivers_ogba_egbema_ndoni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_gada",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_goronyo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_gwadabawa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_illela",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_isa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_rabah",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_sabon_birni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_east",
+    "lga_code": "sokoto_wurno",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_binji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_gudu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_kware",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_silame",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_sokoto_north",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_sokoto_south",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_tangaza",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_north",
+    "lga_code": "sokoto_wamako",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_bodinga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_dange_shuni",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_kebbe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_shagari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_tambuwal",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_tureta",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_sokoto_south",
+    "lga_code": "sokoto_yabo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_south",
+    "lga_code": "taraba_donga",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_south",
+    "lga_code": "taraba_ibi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_south",
+    "lga_code": "taraba_takum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_south",
+    "lga_code": "taraba_ussa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_south",
+    "lga_code": "taraba_wukari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_central",
+    "lga_code": "taraba_bali",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_central",
+    "lga_code": "taraba_gashaka",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_central",
+    "lga_code": "taraba_gassol",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_central",
+    "lga_code": "taraba_kurmi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_central",
+    "lga_code": "taraba_sardauna",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_ardo_kola",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_jalingo",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_karim_lamido",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_lau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_yorro",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_taraba_north",
+    "lga_code": "taraba_zing",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_bursari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_geidam",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_gujba",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_gulani",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_tarmua",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_yunusari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_east",
+    "lga_code": "yobe_damaturu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_bade",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_jakusko",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_machina",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_karasuwa",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_nguru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_north",
+    "lga_code": "yobe_yusufari",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_south",
+    "lga_code": "yobe_fika",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_south",
+    "lga_code": "yobe_fune",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_south",
+    "lga_code": "yobe_nangere",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_yobe_south",
+    "lga_code": "yobe_potiskum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_north",
+    "lga_code": "zamfara_birnin_magaji",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_north",
+    "lga_code": "zamfara_kaura_namoda",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_north",
+    "lga_code": "zamfara_shinkafi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_north",
+    "lga_code": "zamfara_zurmi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_central",
+    "lga_code": "zamfara_bungudu",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_central",
+    "lga_code": "zamfara_gusau",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_central",
+    "lga_code": "zamfara_maru",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_central",
+    "lga_code": "zamfara_tsafe",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_anka",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_bakura",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_bukkuyum",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_gummi",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_maradun",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_zamfara_west",
+    "lga_code": "zamfara_talata_mafara",
+    "source": "geojson",
+    "source_url": null,
+    "source_date": null,
+    "confidence": "high"
+  }
+]

@@ -1,0 +1,370 @@
+{
+  "source_page": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
+  "seed_total": 8807,
+  "official_total": 8807,
+  "delta": 0,
+  "states": [
+    {
+      "state": "abia",
+      "seed_total": 184,
+      "official_total": 184,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "adamawa",
+      "seed_total": 226,
+      "official_total": 226,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "akwa_ibom",
+      "seed_total": 329,
+      "official_total": 329,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "anambra",
+      "seed_total": 326,
+      "official_total": 326,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "bauchi",
+      "seed_total": 212,
+      "official_total": 212,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "bayelsa",
+      "seed_total": 105,
+      "official_total": 105,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "benue",
+      "seed_total": 276,
+      "official_total": 276,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "makurdi",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "markurdi",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "borno",
+      "seed_total": 312,
+      "official_total": 312,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "cross_river",
+      "seed_total": 193,
+      "official_total": 193,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "delta",
+      "seed_total": 270,
+      "official_total": 270,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ebonyi",
+      "seed_total": 171,
+      "official_total": 171,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "edo",
+      "seed_total": 192,
+      "official_total": 192,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ekiti",
+      "seed_total": 177,
+      "official_total": 177,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "enugu",
+      "seed_total": 260,
+      "official_total": 260,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "fct",
+      "seed_total": 62,
+      "official_total": 62,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "gombe",
+      "seed_total": 112,
+      "official_total": 112,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "imo",
+      "seed_total": 305,
+      "official_total": 305,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "jigawa",
+      "seed_total": 287,
+      "official_total": 287,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kaduna",
+      "seed_total": 255,
+      "official_total": 255,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kano",
+      "seed_total": 484,
+      "official_total": 484,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "katsina",
+      "seed_total": 361,
+      "official_total": 361,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "dan musa",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "danmusa",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "kebbi",
+      "seed_total": 225,
+      "official_total": 225,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "danko wasagu",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        },
+        {
+          "lga": "wasagu danko",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "kogi",
+      "seed_total": 239,
+      "official_total": 239,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "kogi",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "kogi (k k)",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "kwara",
+      "seed_total": 193,
+      "official_total": 193,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "lagos",
+      "seed_total": 245,
+      "official_total": 245,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "nasarawa",
+      "seed_total": 147,
+      "official_total": 147,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "niger",
+      "seed_total": 274,
+      "official_total": 274,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ogun",
+      "seed_total": 236,
+      "official_total": 236,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "egbado north",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "egbado south",
+          "seed": 10,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "yewa north",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        },
+        {
+          "lga": "yewa south",
+          "seed": null,
+          "official": 10,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "ondo",
+      "seed_total": 203,
+      "official_total": 203,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "osun",
+      "seed_total": 332,
+      "official_total": 332,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "oyo",
+      "seed_total": 351,
+      "official_total": 351,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "oorelope",
+          "seed": null,
+          "official": 10,
+          "delta": null
+        },
+        {
+          "lga": "orelope",
+          "seed": 10,
+          "official": null,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "plateau",
+      "seed_total": 207,
+      "official_total": 207,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "quaanpan",
+          "seed": 11,
+          "official": null,
+          "delta": null
+        },
+        {
+          "lga": "qua\u2019anpan",
+          "seed": null,
+          "official": 11,
+          "delta": null
+        }
+      ]
+    },
+    {
+      "state": "rivers",
+      "seed_total": 319,
+      "official_total": 319,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "sokoto",
+      "seed_total": 244,
+      "official_total": 244,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "taraba",
+      "seed_total": 168,
+      "official_total": 168,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "yobe",
+      "seed_total": 178,
+      "official_total": 178,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "zamfara",
+      "seed_total": 147,
+      "official_total": 147,
+      "delta": 0,
+      "mismatched_lgas": []
+    }
+  ]
+}

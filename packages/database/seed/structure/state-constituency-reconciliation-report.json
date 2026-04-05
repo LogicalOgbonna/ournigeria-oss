@@ -1,0 +1,290 @@
+[
+  {
+    "state_code": "abia",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "adamawa",
+    "before": 29,
+    "expected": 25,
+    "alias_removed": 1,
+    "tail_removed": 3,
+    "after": 25
+  },
+  {
+    "state_code": "akwa_ibom",
+    "before": 26,
+    "expected": 26,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 26
+  },
+  {
+    "state_code": "anambra",
+    "before": 30,
+    "expected": 30,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 30
+  },
+  {
+    "state_code": "bauchi",
+    "before": 36,
+    "expected": 31,
+    "alias_removed": 1,
+    "tail_removed": 4,
+    "after": 31
+  },
+  {
+    "state_code": "bayelsa",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "benue",
+    "before": 31,
+    "expected": 30,
+    "alias_removed": 1,
+    "tail_removed": 0,
+    "after": 30
+  },
+  {
+    "state_code": "borno",
+    "before": 30,
+    "expected": 30,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 30
+  },
+  {
+    "state_code": "cross_river",
+    "before": 26,
+    "expected": 25,
+    "alias_removed": 1,
+    "tail_removed": 0,
+    "after": 25
+  },
+  {
+    "state_code": "delta",
+    "before": 29,
+    "expected": 29,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 29
+  },
+  {
+    "state_code": "ebonyi",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "edo",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "ekiti",
+    "before": 26,
+    "expected": 26,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 26
+  },
+  {
+    "state_code": "enugu",
+    "before": 25,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 1,
+    "after": 24
+  },
+  {
+    "state_code": "gombe",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "imo",
+    "before": 27,
+    "expected": 27,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 27
+  },
+  {
+    "state_code": "jigawa",
+    "before": 36,
+    "expected": 30,
+    "alias_removed": 6,
+    "tail_removed": 0,
+    "after": 30
+  },
+  {
+    "state_code": "kaduna",
+    "before": 39,
+    "expected": 31,
+    "alias_removed": 1,
+    "tail_removed": 7,
+    "after": 31
+  },
+  {
+    "state_code": "kano",
+    "before": 43,
+    "expected": 40,
+    "alias_removed": 0,
+    "tail_removed": 3,
+    "after": 40
+  },
+  {
+    "state_code": "katsina",
+    "before": 35,
+    "expected": 34,
+    "alias_removed": 0,
+    "tail_removed": 1,
+    "after": 34
+  },
+  {
+    "state_code": "kebbi",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  },
+  {
+    "state_code": "kogi",
+    "before": 26,
+    "expected": 25,
+    "alias_removed": 1,
+    "tail_removed": 0,
+    "after": 25
+  },
+  {
+    "state_code": "kwara",
+    "before": 35,
+    "expected": 24,
+    "alias_removed": 3,
+    "tail_removed": 8,
+    "after": 24
+  },
+  {
+    "state_code": "lagos",
+    "before": 42,
+    "expected": 40,
+    "alias_removed": 1,
+    "tail_removed": 1,
+    "after": 40
+  },
+  {
+    "state_code": "nasarawa",
+    "before": 28,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 4,
+    "after": 24
+  },
+  {
+    "state_code": "niger",
+    "before": 30,
+    "expected": 27,
+    "alias_removed": 2,
+    "tail_removed": 1,
+    "after": 27
+  },
+  {
+    "state_code": "ogun",
+    "before": 28,
+    "expected": 26,
+    "alias_removed": 2,
+    "tail_removed": 0,
+    "after": 26
+  },
+  {
+    "state_code": "ondo",
+    "before": 27,
+    "expected": 26,
+    "alias_removed": 0,
+    "tail_removed": 1,
+    "after": 26
+  },
+  {
+    "state_code": "osun",
+    "before": 28,
+    "expected": 26,
+    "alias_removed": 0,
+    "tail_removed": 2,
+    "after": 26
+  },
+  {
+    "state_code": "oyo",
+    "before": 34,
+    "expected": 32,
+    "alias_removed": 2,
+    "tail_removed": 0,
+    "after": 32
+  },
+  {
+    "state_code": "plateau",
+    "before": 27,
+    "expected": 24,
+    "alias_removed": 2,
+    "tail_removed": 1,
+    "after": 24
+  },
+  {
+    "state_code": "rivers",
+    "before": 34,
+    "expected": 32,
+    "alias_removed": 0,
+    "tail_removed": 2,
+    "after": 32
+  },
+  {
+    "state_code": "sokoto",
+    "before": 30,
+    "expected": 30,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 30
+  },
+  {
+    "state_code": "taraba",
+    "before": 30,
+    "expected": 24,
+    "alias_removed": 2,
+    "tail_removed": 4,
+    "after": 24
+  },
+  {
+    "state_code": "yobe",
+    "before": 29,
+    "expected": 24,
+    "alias_removed": 2,
+    "tail_removed": 3,
+    "after": 24
+  },
+  {
+    "state_code": "zamfara",
+    "before": 24,
+    "expected": 24,
+    "alias_removed": 0,
+    "tail_removed": 0,
+    "after": 24
+  }
+]

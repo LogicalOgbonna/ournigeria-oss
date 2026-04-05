@@ -1,0 +1,335 @@
+[
+  {
+    "code": "abia",
+    "name": "Abia",
+    "zone_code": "south_east",
+    "capital": "Umuahia",
+    "latitude": 5.4318197,
+    "longitude": 7.48834209,
+    "pcode": "NG001"
+  },
+  {
+    "code": "adamawa",
+    "name": "Adamawa",
+    "zone_code": "north_east",
+    "capital": "Yola",
+    "latitude": 9.16264721,
+    "longitude": 12.29156214,
+    "pcode": "NG002"
+  },
+  {
+    "code": "akwa_ibom",
+    "name": "Akwa Ibom",
+    "zone_code": "south_south",
+    "capital": "Uyo",
+    "latitude": 4.99046998,
+    "longitude": 7.79556856,
+    "pcode": "NG003"
+  },
+  {
+    "code": "anambra",
+    "name": "Anambra",
+    "zone_code": "south_east",
+    "capital": "Awka",
+    "latitude": 6.24852922,
+    "longitude": 6.93787344,
+    "pcode": "NG004"
+  },
+  {
+    "code": "bauchi",
+    "name": "Bauchi",
+    "zone_code": "north_east",
+    "capital": "Bauchi",
+    "latitude": 10.99789406,
+    "longitude": 9.32581684,
+    "pcode": "NG005"
+  },
+  {
+    "code": "bayelsa",
+    "name": "Bayelsa",
+    "zone_code": "south_south",
+    "capital": "Yenagoa",
+    "latitude": 4.82682444,
+    "longitude": 5.95113698,
+    "pcode": "NG006"
+  },
+  {
+    "code": "benue",
+    "name": "Benue",
+    "zone_code": "north_central",
+    "capital": "Makurdi",
+    "latitude": 7.30093776,
+    "longitude": 8.81239488,
+    "pcode": "NG007"
+  },
+  {
+    "code": "borno",
+    "name": "Borno",
+    "zone_code": "north_east",
+    "capital": "Maiduguri",
+    "latitude": 11.87007266,
+    "longitude": 13.42762271,
+    "pcode": "NG008"
+  },
+  {
+    "code": "cross_river",
+    "name": "Cross River",
+    "zone_code": "south_south",
+    "capital": "Calabar",
+    "latitude": 5.79132581,
+    "longitude": 8.40344688,
+    "pcode": "NG009"
+  },
+  {
+    "code": "delta",
+    "name": "Delta",
+    "zone_code": "south_south",
+    "capital": "Asaba",
+    "latitude": 5.75655603,
+    "longitude": 5.4996657,
+    "pcode": "NG010"
+  },
+  {
+    "code": "ebonyi",
+    "name": "Ebonyi",
+    "zone_code": "south_east",
+    "capital": "Abakaliki",
+    "latitude": 6.23982574,
+    "longitude": 8.06674107,
+    "pcode": "NG011"
+  },
+  {
+    "code": "edo",
+    "name": "Edo",
+    "zone_code": "south_south",
+    "capital": "Benin City",
+    "latitude": 6.66544973,
+    "longitude": 5.87367869,
+    "pcode": "NG012"
+  },
+  {
+    "code": "ekiti",
+    "name": "Ekiti",
+    "zone_code": "south_west",
+    "capital": "Ado-Ekiti",
+    "latitude": 7.69515763,
+    "longitude": 5.29793374,
+    "pcode": "NG013"
+  },
+  {
+    "code": "enugu",
+    "name": "Enugu",
+    "zone_code": "south_east",
+    "capital": "Enugu",
+    "latitude": 6.51980617,
+    "longitude": 7.3927576,
+    "pcode": "NG014"
+  },
+  {
+    "code": "fct",
+    "name": "FCT",
+    "zone_code": "north_central",
+    "capital": "Abuja",
+    "latitude": 9.01307211,
+    "longitude": 7.19102386,
+    "pcode": "NG015"
+  },
+  {
+    "code": "gombe",
+    "name": "Gombe",
+    "zone_code": "north_east",
+    "capital": "Gombe",
+    "latitude": 10.43059432,
+    "longitude": 11.22469465,
+    "pcode": "NG016"
+  },
+  {
+    "code": "imo",
+    "name": "Imo",
+    "zone_code": "south_east",
+    "capital": "Owerri",
+    "latitude": 5.5657289,
+    "longitude": 7.03320539,
+    "pcode": "NG017"
+  },
+  {
+    "code": "jigawa",
+    "name": "Jigawa",
+    "zone_code": "north_west",
+    "capital": "Dutse",
+    "latitude": 11.98106476,
+    "longitude": 9.62485264,
+    "pcode": "NG018"
+  },
+  {
+    "code": "kaduna",
+    "name": "Kaduna",
+    "zone_code": "north_west",
+    "capital": "Kaduna",
+    "latitude": 10.25720513,
+    "longitude": 7.85940338,
+    "pcode": "NG019"
+  },
+  {
+    "code": "kano",
+    "name": "Kano",
+    "zone_code": "north_west",
+    "capital": "Kano",
+    "latitude": 11.57313499,
+    "longitude": 8.54338831,
+    "pcode": "NG020"
+  },
+  {
+    "code": "katsina",
+    "name": "Katsina",
+    "zone_code": "north_west",
+    "capital": "Katsina",
+    "latitude": 12.23621058,
+    "longitude": 7.50026125,
+    "pcode": "NG021"
+  },
+  {
+    "code": "kebbi",
+    "name": "Kebbi",
+    "zone_code": "north_west",
+    "capital": "Birnin Kebbi",
+    "latitude": 11.6907569,
+    "longitude": 3.96605118,
+    "pcode": "NG022"
+  },
+  {
+    "code": "kogi",
+    "name": "Kogi",
+    "zone_code": "north_central",
+    "capital": "Lokoja",
+    "latitude": 7.63635849,
+    "longitude": 6.84924514,
+    "pcode": "NG023"
+  },
+  {
+    "code": "kwara",
+    "name": "Kwara",
+    "zone_code": "north_central",
+    "capital": "Ilorin",
+    "latitude": 9.09345717,
+    "longitude": 4.56687366,
+    "pcode": "NG024"
+  },
+  {
+    "code": "lagos",
+    "name": "Lagos",
+    "zone_code": "south_west",
+    "capital": "Ikeja",
+    "latitude": 6.53464338,
+    "longitude": 3.71156913,
+    "pcode": "NG025"
+  },
+  {
+    "code": "nasarawa",
+    "name": "Nasarawa",
+    "zone_code": "north_central",
+    "capital": "Lafia",
+    "latitude": 8.58919758,
+    "longitude": 8.21097491,
+    "pcode": "NG026"
+  },
+  {
+    "code": "niger",
+    "name": "Niger",
+    "zone_code": "north_central",
+    "capital": "Minna",
+    "latitude": 9.77359772,
+    "longitude": 5.71138755,
+    "pcode": "NG027"
+  },
+  {
+    "code": "ogun",
+    "name": "Ogun",
+    "zone_code": "south_west",
+    "capital": "Abeokuta",
+    "latitude": 7.12735964,
+    "longitude": 3.26276474,
+    "pcode": "NG028"
+  },
+  {
+    "code": "ondo",
+    "name": "Ondo",
+    "zone_code": "south_west",
+    "capital": "Akure",
+    "latitude": 6.82406438,
+    "longitude": 4.86944096,
+    "pcode": "NG029"
+  },
+  {
+    "code": "osun",
+    "name": "Osun",
+    "zone_code": "south_west",
+    "capital": "Osogbo",
+    "latitude": 7.53809077,
+    "longitude": 4.52109776,
+    "pcode": "NG030"
+  },
+  {
+    "code": "oyo",
+    "name": "Oyo",
+    "zone_code": "south_west",
+    "capital": "Ibadan",
+    "latitude": 8.13543471,
+    "longitude": 3.61297643,
+    "pcode": "NG031"
+  },
+  {
+    "code": "plateau",
+    "name": "Plateau",
+    "zone_code": "north_central",
+    "capital": "Jos",
+    "latitude": 9.38019584,
+    "longitude": 9.62821921,
+    "pcode": "NG032"
+  },
+  {
+    "code": "rivers",
+    "name": "Rivers",
+    "zone_code": "south_south",
+    "capital": "Port Harcourt",
+    "latitude": 5.02334308,
+    "longitude": 6.83575221,
+    "pcode": "NG033"
+  },
+  {
+    "code": "sokoto",
+    "name": "Sokoto",
+    "zone_code": "north_west",
+    "capital": "Sokoto",
+    "latitude": 12.73947746,
+    "longitude": 5.23696953,
+    "pcode": "NG034"
+  },
+  {
+    "code": "taraba",
+    "name": "Taraba",
+    "zone_code": "north_east",
+    "capital": "Jalingo",
+    "latitude": 8.05858468,
+    "longitude": 10.38634028,
+    "pcode": "NG035"
+  },
+  {
+    "code": "yobe",
+    "name": "Yobe",
+    "zone_code": "north_east",
+    "capital": "Damaturu",
+    "latitude": 11.97362526,
+    "longitude": 11.52417778,
+    "pcode": "NG036"
+  },
+  {
+    "code": "zamfara",
+    "name": "Zamfara",
+    "zone_code": "north_west",
+    "capital": "Gusau",
+    "latitude": 12.01302112,
+    "longitude": 6.05100285,
+    "pcode": "NG037"
+  }
+]

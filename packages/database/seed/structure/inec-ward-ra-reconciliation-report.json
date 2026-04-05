@@ -1,0 +1,327 @@
+{
+  "source": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
+  "seed_total": 8811,
+  "reconciled_total": 8807,
+  "removed": 4,
+  "states": [
+    {
+      "state": "abia",
+      "official_total": 184,
+      "kept_total": 184,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "adamawa",
+      "official_total": 226,
+      "kept_total": 226,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "akwa_ibom",
+      "official_total": 329,
+      "kept_total": 329,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "anambra",
+      "official_total": 326,
+      "kept_total": 326,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "bauchi",
+      "official_total": 212,
+      "kept_total": 212,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "bayelsa",
+      "official_total": 105,
+      "kept_total": 105,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "benue",
+      "official_total": 276,
+      "kept_total": 276,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "borno",
+      "official_total": 312,
+      "kept_total": 312,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "cross_river",
+      "official_total": 193,
+      "kept_total": 193,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "delta",
+      "official_total": 270,
+      "kept_total": 270,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ebonyi",
+      "official_total": 171,
+      "kept_total": 171,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "edo",
+      "official_total": 192,
+      "kept_total": 192,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ekiti",
+      "official_total": 177,
+      "kept_total": 177,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "enugu",
+      "official_total": 260,
+      "kept_total": 260,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "fct",
+      "official_total": 62,
+      "kept_total": 62,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "gombe",
+      "official_total": 112,
+      "kept_total": 112,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "imo",
+      "official_total": 305,
+      "kept_total": 305,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "jigawa",
+      "official_total": 287,
+      "kept_total": 287,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kaduna",
+      "official_total": 255,
+      "kept_total": 255,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kano",
+      "official_total": 484,
+      "kept_total": 484,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "katsina",
+      "official_total": 361,
+      "kept_total": 361,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kebbi",
+      "official_total": 225,
+      "kept_total": 225,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kogi",
+      "official_total": 239,
+      "kept_total": 239,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "kwara",
+      "official_total": 193,
+      "kept_total": 193,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "lagos",
+      "official_total": 245,
+      "kept_total": 245,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "nasarawa",
+      "official_total": 147,
+      "kept_total": 147,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "niger",
+      "official_total": 274,
+      "kept_total": 274,
+      "removed_total": 4,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "ogun",
+      "official_total": 236,
+      "kept_total": 236,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "yewa north",
+          "official": 11,
+          "kept": 0,
+          "removed": 0,
+          "delta": -11
+        },
+        {
+          "lga": "yewa south",
+          "official": 10,
+          "kept": 0,
+          "removed": 0,
+          "delta": -10
+        }
+      ]
+    },
+    {
+      "state": "ondo",
+      "official_total": 203,
+      "kept_total": 203,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "osun",
+      "official_total": 332,
+      "kept_total": 332,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "oyo",
+      "official_total": 351,
+      "kept_total": 351,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "plateau",
+      "official_total": 207,
+      "kept_total": 207,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": [
+        {
+          "lga": "qua\u2019anpan",
+          "official": 11,
+          "kept": 0,
+          "removed": 0,
+          "delta": -11
+        }
+      ]
+    },
+    {
+      "state": "rivers",
+      "official_total": 319,
+      "kept_total": 319,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "sokoto",
+      "official_total": 244,
+      "kept_total": 244,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "taraba",
+      "official_total": 168,
+      "kept_total": 168,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "yobe",
+      "official_total": 178,
+      "kept_total": 178,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    },
+    {
+      "state": "zamfara",
+      "official_total": 147,
+      "kept_total": 147,
+      "removed_total": 0,
+      "delta": 0,
+      "mismatched_lgas": []
+    }
+  ]
+}

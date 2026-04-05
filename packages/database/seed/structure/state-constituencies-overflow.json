@@ -1,0 +1,594 @@
+[
+  {
+    "code": "state_adamawa_hong_ii",
+    "name": "Hong II",
+    "type": "state",
+    "state_code": "adamawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_adamawa_nassarawa_binyeri",
+    "name": "Nassarawa/Binyeri",
+    "type": "state",
+    "state_code": "adamawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_adamawa_uba_gaya",
+    "name": "Uba/Gaya",
+    "type": "state",
+    "state_code": "adamawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_adamawa_verre",
+    "name": "Verre",
+    "type": "state",
+    "state_code": "adamawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_bauchi_azare",
+    "name": "Azare",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_bauchi_disina",
+    "name": "Disina",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_bauchi_madara_chinade",
+    "name": "Madara/Chinade",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_bauchi_sakwa",
+    "name": "Sakwa",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_bauchi_udubo",
+    "name": "Udubo",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_benue_agbatu",
+    "name": "Agbatu",
+    "type": "state",
+    "state_code": "benue",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_cross_river_obanleku",
+    "name": "Obanleku",
+    "type": "state",
+    "state_code": "cross_river",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_enugu_aniniri",
+    "name": "Aniniri",
+    "type": "state",
+    "state_code": "enugu",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_jigawa_birniwa",
+    "name": "Birniwa",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_jigawa_k_hausa",
+    "name": "K/Hausa",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_jigawa_k_kasamma",
+    "name": "K/Kasamma",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_jigawa_m_madori",
+    "name": "M/Madori",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_jigawa_ringin",
+    "name": "Ringin",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_jigawa_s_tankara",
+    "name": "S/Tankara",
+    "type": "state",
+    "state_code": "jigawa",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kaduna_kewaye",
+    "name": "Kewaye",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_magajin_gari",
+    "name": "Magajin Gari",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_maigana",
+    "name": "Maigana",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_makera",
+    "name": "Makera",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kaduna_saminaka",
+    "name": "Saminaka",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_tudun_wada",
+    "name": "Tudun Wada",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_unguwar_sanusi",
+    "name": "Unguwar Sanusi",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kaduna_zonkwa",
+    "name": "Zonkwa",
+    "type": "state",
+    "state_code": "kaduna",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kano_ungogo",
+    "name": "Ungogo",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kano_warawa",
+    "name": "Warawa",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kano_wudil",
+    "name": "Wudil",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_katsina_bakori_ii_tsiga",
+    "name": "Bakori II (tsiga)",
+    "type": "state",
+    "state_code": "katsina",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kogi_okura",
+    "name": "Okura",
+    "type": "state",
+    "state_code": "kogi",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kwara_balogun_ojumu",
+    "name": "Balogun/Ojumu",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_gwanabe_adena_banni",
+    "name": "Gwanabe/Adena/Banni",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kwara_lafiagi",
+    "name": "Lafiagi",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_lanwa_ejidongari",
+    "name": "Lanwa/Ejidongari",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kwara_odo_ogun",
+    "name": "Odo-Ogun",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_oke_ogun",
+    "name": "Oke-Ogun",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_oloru_malete_ipaiye",
+    "name": "Oloru/Malete/Ipaiye",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_kwara_omupo",
+    "name": "Omupo",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_patigi",
+    "name": "Patigi",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_share_oke_ode",
+    "name": "Share/Oke-Ode",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_kwara_shawo_essa",
+    "name": "Shawo/Essa",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_lagos_shomolu_i",
+    "name": "Shomolu I",
+    "type": "state",
+    "state_code": "lagos",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_lagos_shomolu_ii",
+    "name": "Shomolu II",
+    "type": "state",
+    "state_code": "lagos",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_nasarawa_karshi_uke",
+    "name": "Karshi/Uke",
+    "type": "state",
+    "state_code": "nasarawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_nasarawa_loki_udege",
+    "name": "Loki/Udege",
+    "type": "state",
+    "state_code": "nasarawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_nasarawa_nassarawa",
+    "name": "Nassarawa",
+    "type": "state",
+    "state_code": "nasarawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_nasarawa_umaisha",
+    "name": "Umaisha",
+    "type": "state",
+    "state_code": "nasarawa",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_niger_chanchanga",
+    "name": "Chanchanga",
+    "type": "state",
+    "state_code": "niger",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_niger_edatti",
+    "name": "Edatti",
+    "type": "state",
+    "state_code": "niger",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_niger_kotangora_ii",
+    "name": "Kotangora II",
+    "type": "state",
+    "state_code": "niger",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_ogun_ado_odo_ota_ii",
+    "name": "Ado-Odo/Ota II",
+    "type": "state",
+    "state_code": "ogun",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_ogun_yewa_north_ii",
+    "name": "Yewa North II",
+    "type": "state",
+    "state_code": "ogun",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_ondo_ese",
+    "name": "Ese",
+    "type": "state",
+    "state_code": "ondo",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_osun_atakunmosa_east_and_west",
+    "name": "Atakunmosa East And West",
+    "type": "state",
+    "state_code": "osun",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_osun_ayedade",
+    "name": "Ayedade",
+    "type": "state",
+    "state_code": "osun",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_oyo_ibadan_south_west_ii",
+    "name": "Ibadan South West II",
+    "type": "state",
+    "state_code": "oyo",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_oyo_ogbomoso_south",
+    "name": "Ogbomoso South",
+    "type": "state",
+    "state_code": "oyo",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_plateau_kantana",
+    "name": "Kantana",
+    "type": "state",
+    "state_code": "plateau",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_plateau_langtang_central",
+    "name": "Langtang North II",
+    "type": "state",
+    "state_code": "plateau",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_plateau_rukuba_irigwe",
+    "name": "Rukuba/Irigwe",
+    "type": "state",
+    "state_code": "plateau",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_rivers_ikwere_i",
+    "name": "Ikwere I",
+    "type": "state",
+    "state_code": "rivers",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_rivers_onelga_ii",
+    "name": "Onelga II",
+    "type": "state",
+    "state_code": "rivers",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_taraba_baissa",
+    "name": "Baissa",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_taraba_donda",
+    "name": "Donda",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_taraba_gembu",
+    "name": "Gembu",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_taraba_kashimbila",
+    "name": "Kashimbila",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_taraba_mbamnga",
+    "name": "Mbamnga",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_taraba_nguroje",
+    "name": "Nguroje",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_yobe_jajere",
+    "name": "Jajere",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_yobe_mamudo",
+    "name": "Mamudo",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_yobe_potiskum_ii",
+    "name": "Potiskum II",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  },
+  {
+    "code": "state_yobe_yunufari",
+    "name": "Yunufari",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null,
+    "overflow_reason": "tail_trim_to_authoritative_state_seat_count"
+  },
+  {
+    "code": "state_yobe_yusufari",
+    "name": "Yusufari",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null,
+    "overflow_reason": "duplicate_mha_name_in_overcount_state"
+  }
+]

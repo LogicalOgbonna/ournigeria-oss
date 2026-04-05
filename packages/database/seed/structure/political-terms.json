@@ -1,0 +1,732 @@
+[
+  {
+    "code": "federal_10th_assembly",
+    "name": "10th National Assembly",
+    "term_number": 10,
+    "level": "federal",
+    "state_code": null,
+    "start_date": "2023-06-13",
+    "end_date": "2027-06-12",
+    "kind": "national_assembly"
+  },
+  {
+    "code": "abia_gov_2023",
+    "name": "Abia 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "abia",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "abia_assembly_10th",
+    "name": "Abia 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "abia",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "adamawa_gov_2023",
+    "name": "Adamawa 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "adamawa",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "adamawa_assembly_10th",
+    "name": "Adamawa 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "adamawa",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "akwa_ibom_gov_2023",
+    "name": "Akwa Ibom 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "akwa_ibom",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "akwa_ibom_assembly_10th",
+    "name": "Akwa Ibom 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "akwa_ibom",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "anambra_gov_2022",
+    "name": "Anambra 2022-2026 Gubernatorial Term",
+    "term_number": 6,
+    "level": "state",
+    "state_code": "anambra",
+    "start_date": "2022-03-17",
+    "end_date": "2026-03-16",
+    "kind": "governorship"
+  },
+  {
+    "code": "anambra_assembly_10th",
+    "name": "Anambra 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "anambra",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "bauchi_gov_2023",
+    "name": "Bauchi 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "bauchi",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "bauchi_assembly_10th",
+    "name": "Bauchi 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "bauchi",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "bayelsa_gov_2024",
+    "name": "Bayelsa 2024-2028 Gubernatorial Term",
+    "term_number": 5,
+    "level": "state",
+    "state_code": "bayelsa",
+    "start_date": "2024-02-14",
+    "end_date": "2028-02-13",
+    "kind": "governorship"
+  },
+  {
+    "code": "bayelsa_assembly_10th",
+    "name": "Bayelsa 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "bayelsa",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "benue_gov_2023",
+    "name": "Benue 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "benue",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "benue_assembly_10th",
+    "name": "Benue 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "benue",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "borno_gov_2023",
+    "name": "Borno 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "borno",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "borno_assembly_10th",
+    "name": "Borno 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "borno",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "cross_river_gov_2023",
+    "name": "Cross River 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "cross_river",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "cross_river_assembly_10th",
+    "name": "Cross River 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "cross_river",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "delta_gov_2023",
+    "name": "Delta 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "delta",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "delta_assembly_10th",
+    "name": "Delta 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "delta",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "ebonyi_gov_2023",
+    "name": "Ebonyi 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "ebonyi",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "ebonyi_assembly_10th",
+    "name": "Ebonyi 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "ebonyi",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "edo_gov_2024",
+    "name": "Edo 2024-2028 Gubernatorial Term",
+    "term_number": 4,
+    "level": "state",
+    "state_code": "edo",
+    "start_date": "2024-11-12",
+    "end_date": "2028-11-11",
+    "kind": "governorship"
+  },
+  {
+    "code": "edo_assembly_10th",
+    "name": "Edo 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "edo",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "ekiti_gov_2022",
+    "name": "Ekiti 2022-2026 Gubernatorial Term",
+    "term_number": 7,
+    "level": "state",
+    "state_code": "ekiti",
+    "start_date": "2022-10-16",
+    "end_date": "2026-10-15",
+    "kind": "governorship"
+  },
+  {
+    "code": "ekiti_assembly_10th",
+    "name": "Ekiti 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "ekiti",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "enugu_gov_2023",
+    "name": "Enugu 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "enugu",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "enugu_assembly_10th",
+    "name": "Enugu 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "enugu",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "gombe_gov_2023",
+    "name": "Gombe 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "gombe",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "gombe_assembly_10th",
+    "name": "Gombe 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "gombe",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "imo_gov_2023",
+    "name": "Imo 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "imo",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "imo_assembly_10th",
+    "name": "Imo 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "imo",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "jigawa_gov_2023",
+    "name": "Jigawa 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "jigawa",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "jigawa_assembly_10th",
+    "name": "Jigawa 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "jigawa",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "kaduna_gov_2023",
+    "name": "Kaduna 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "kaduna",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "kaduna_assembly_10th",
+    "name": "Kaduna 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "kaduna",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "kano_gov_2023",
+    "name": "Kano 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "kano",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "kano_assembly_10th",
+    "name": "Kano 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "kano",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "katsina_gov_2023",
+    "name": "Katsina 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "katsina",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "katsina_assembly_10th",
+    "name": "Katsina 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "katsina",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "kebbi_gov_2023",
+    "name": "Kebbi 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "kebbi",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "kebbi_assembly_10th",
+    "name": "Kebbi 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "kebbi",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "kogi_gov_2024",
+    "name": "Kogi 2024-2028 Gubernatorial Term",
+    "term_number": 5,
+    "level": "state",
+    "state_code": "kogi",
+    "start_date": "2024-01-27",
+    "end_date": "2028-01-26",
+    "kind": "governorship"
+  },
+  {
+    "code": "kogi_assembly_10th",
+    "name": "Kogi 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "kogi",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "kwara_gov_2023",
+    "name": "Kwara 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "kwara",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "kwara_assembly_10th",
+    "name": "Kwara 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "kwara",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "lagos_gov_2023",
+    "name": "Lagos 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "lagos",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "lagos_assembly_10th",
+    "name": "Lagos 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "lagos",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "nasarawa_gov_2023",
+    "name": "Nasarawa 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "nasarawa",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "nasarawa_assembly_10th",
+    "name": "Nasarawa 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "nasarawa",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "niger_gov_2023",
+    "name": "Niger 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "niger",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "niger_assembly_10th",
+    "name": "Niger 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "niger",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "ogun_gov_2023",
+    "name": "Ogun 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "ogun",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "ogun_assembly_10th",
+    "name": "Ogun 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "ogun",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "ondo_gov_2025",
+    "name": "Ondo 2025-2029 Gubernatorial Term",
+    "term_number": 4,
+    "level": "state",
+    "state_code": "ondo",
+    "start_date": "2025-02-24",
+    "end_date": "2029-02-23",
+    "kind": "governorship"
+  },
+  {
+    "code": "ondo_assembly_10th",
+    "name": "Ondo 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "ondo",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "osun_gov_2022",
+    "name": "Osun 2022-2026 Gubernatorial Term",
+    "term_number": 7,
+    "level": "state",
+    "state_code": "osun",
+    "start_date": "2022-11-27",
+    "end_date": "2026-11-26",
+    "kind": "governorship"
+  },
+  {
+    "code": "osun_assembly_10th",
+    "name": "Osun 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "osun",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "oyo_gov_2023",
+    "name": "Oyo 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "oyo",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "oyo_assembly_10th",
+    "name": "Oyo 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "oyo",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "plateau_gov_2023",
+    "name": "Plateau 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "plateau",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "plateau_assembly_10th",
+    "name": "Plateau 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "plateau",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "rivers_gov_2023",
+    "name": "Rivers 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "rivers",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "rivers_assembly_10th",
+    "name": "Rivers 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "rivers",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "sokoto_gov_2023",
+    "name": "Sokoto 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "sokoto",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "sokoto_assembly_10th",
+    "name": "Sokoto 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "sokoto",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "taraba_gov_2023",
+    "name": "Taraba 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "taraba",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "taraba_assembly_10th",
+    "name": "Taraba 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "taraba",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "yobe_gov_2023",
+    "name": "Yobe 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "yobe",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "yobe_assembly_10th",
+    "name": "Yobe 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "yobe",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  },
+  {
+    "code": "zamfara_gov_2023",
+    "name": "Zamfara 2023-2027 Gubernatorial Term",
+    "term_number": null,
+    "level": "state",
+    "state_code": "zamfara",
+    "start_date": "2023-05-29",
+    "end_date": "2027-05-28",
+    "kind": "governorship"
+  },
+  {
+    "code": "zamfara_assembly_10th",
+    "name": "Zamfara 10th State House of Assembly",
+    "term_number": 10,
+    "level": "state",
+    "state_code": "zamfara",
+    "start_date": "2023-06-12",
+    "end_date": "2027-06-11",
+    "kind": "state_assembly"
+  }
+]

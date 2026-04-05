@@ -1,0 +1,38 @@
+[
+  {
+    "code": "north_central",
+    "name": "North Central",
+    "latitude": 8.683831,
+    "longitude": 7.281446
+  },
+  {
+    "code": "north_east",
+    "name": "North East",
+    "latitude": 10.415570,
+    "longitude": 11.363369
+  },
+  {
+    "code": "north_west",
+    "name": "North West",
+    "latitude": 11.784410,
+    "longitude": 6.968847
+  },
+  {
+    "code": "south_east",
+    "name": "South East",
+    "latitude": 6.001142,
+    "longitude": 7.383784
+  },
+  {
+    "code": "south_south",
+    "name": "South South",
+    "latitude": 5.508995,
+    "longitude": 6.726542
+  },
+  {
+    "code": "south_west",
+    "name": "South West",
+    "latitude": 7.309125,
+    "longitude": 4.212630
+  }
+]

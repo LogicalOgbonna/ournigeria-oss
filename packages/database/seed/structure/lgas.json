@@ -1,0 +1,6968 @@
+[
+  {
+    "code": "abia_aba_north",
+    "name": "Aba North",
+    "state_code": "abia",
+    "pcode": "NG001001",
+    "area_sqkm": 18.68539623,
+    "latitude": 5.10828476,
+    "longitude": 7.34210126
+  },
+  {
+    "code": "abia_aba_south",
+    "name": "Aba South",
+    "state_code": "abia",
+    "pcode": "NG001002",
+    "area_sqkm": 43.29821492,
+    "latitude": 5.08425145,
+    "longitude": 7.34909169
+  },
+  {
+    "code": "abia_arochukwu",
+    "name": "Arochukwu",
+    "state_code": "abia",
+    "pcode": "NG001003",
+    "area_sqkm": 521.34940847,
+    "latitude": 5.51851531,
+    "longitude": 7.86940454
+  },
+  {
+    "code": "abia_bende",
+    "name": "Bende",
+    "state_code": "abia",
+    "pcode": "NG001004",
+    "area_sqkm": 618.80693405,
+    "latitude": 5.6371593,
+    "longitude": 7.56901872
+  },
+  {
+    "code": "abia_ikwuano",
+    "name": "Ikwuano",
+    "state_code": "abia",
+    "pcode": "NG001005",
+    "area_sqkm": 278.37955115,
+    "latitude": 5.40927745,
+    "longitude": 7.57299173
+  },
+  {
+    "code": "abia_isiala_ngwa_north",
+    "name": "Isiala Ngwa North",
+    "state_code": "abia",
+    "pcode": "NG001006",
+    "area_sqkm": 283.55740903,
+    "latitude": 5.2797878,
+    "longitude": 7.39209545
+  },
+  {
+    "code": "abia_isiala_ngwa_south",
+    "name": "Isiala Ngwa South",
+    "state_code": "abia",
+    "pcode": "NG001007",
+    "area_sqkm": 277.03423522,
+    "latitude": 5.37976311,
+    "longitude": 7.41540082
+  },
+  {
+    "code": "abia_isuikwuato",
+    "name": "Isuikwuato",
+    "state_code": "abia",
+    "pcode": "NG001008",
+    "area_sqkm": 382.56196212,
+    "latitude": 5.80033781,
+    "longitude": 7.47095882
+  },
+  {
+    "code": "abia_obi_ngwa",
+    "name": "Obi Ngwa",
+    "state_code": "abia",
+    "pcode": "NG001009",
+    "area_sqkm": 403.91842851,
+    "latitude": 5.15227151,
+    "longitude": 7.44781411
+  },
+  {
+    "code": "abia_ohafia",
+    "name": "Ohafia",
+    "state_code": "abia",
+    "pcode": "NG001010",
+    "area_sqkm": 440.11308886,
+    "latitude": 5.66291478,
+    "longitude": 7.83248872
+  },
+  {
+    "code": "abia_osisioma_ngwa",
+    "name": "Osisioma",
+    "state_code": "abia",
+    "pcode": "NG001011",
+    "area_sqkm": 174.75327594,
+    "latitude": 5.17307253,
+    "longitude": 7.32438131
+  },
+  {
+    "code": "abia_ugwunagbo",
+    "name": "Ugwunagbo",
+    "state_code": "abia",
+    "pcode": "NG001012",
+    "area_sqkm": 125.99555834,
+    "latitude": 5.02539995,
+    "longitude": 7.3548102
+  },
+  {
+    "code": "abia_ukwa_east",
+    "name": "Ukwa East",
+    "state_code": "abia",
+    "pcode": "NG001013",
+    "area_sqkm": 282.86532818,
+    "latitude": 4.9369271,
+    "longitude": 7.40280227
+  },
+  {
+    "code": "abia_ukwa_west",
+    "name": "Ukwa West",
+    "state_code": "abia",
+    "pcode": "NG001014",
+    "area_sqkm": 277.35053143,
+    "latitude": 4.97924576,
+    "longitude": 7.25148092
+  },
+  {
+    "code": "abia_umu_nneochi",
+    "name": "Umu-Nneochi",
+    "state_code": "abia",
+    "pcode": "NG001017",
+    "area_sqkm": 368.0793656,
+    "latitude": 5.97200304,
+    "longitude": 7.40509387
+  },
+  {
+    "code": "abia_umuahia_north",
+    "name": "Umuahia North",
+    "state_code": "abia",
+    "pcode": "NG001015",
+    "area_sqkm": 227.49225863,
+    "latitude": 5.60510584,
+    "longitude": 7.47718135
+  },
+  {
+    "code": "abia_umuahia_south",
+    "name": "Umuahia South",
+    "state_code": "abia",
+    "pcode": "NG001016",
+    "area_sqkm": 135.26219111,
+    "latitude": 5.49880737,
+    "longitude": 7.43624498
+  },
+  {
+    "code": "adamawa_demsa",
+    "name": "Demsa",
+    "state_code": "adamawa",
+    "pcode": "NG002001",
+    "area_sqkm": 1567.94031018,
+    "latitude": 9.42100058,
+    "longitude": 12.06157633
+  },
+  {
+    "code": "adamawa_fufore",
+    "name": "Fufore",
+    "state_code": "adamawa",
+    "pcode": "NG002002",
+    "area_sqkm": 4730.05574397,
+    "latitude": 9.24745304,
+    "longitude": 12.75535627
+  },
+  {
+    "code": "adamawa_ganye",
+    "name": "Ganye",
+    "state_code": "adamawa",
+    "pcode": "NG002003",
+    "area_sqkm": 2094.7955223,
+    "latitude": 8.4377437,
+    "longitude": 11.95467575
+  },
+  {
+    "code": "adamawa_girei",
+    "name": "Girei",
+    "state_code": "adamawa",
+    "pcode": "NG002005",
+    "area_sqkm": 1193.35105585,
+    "latitude": 9.420436,
+    "longitude": 12.4602011
+  },
+  {
+    "code": "adamawa_gombi",
+    "name": "Gombi",
+    "state_code": "adamawa",
+    "pcode": "NG002004",
+    "area_sqkm": 2163.60652361,
+    "latitude": 10.21915318,
+    "longitude": 12.51448619
+  },
+  {
+    "code": "adamawa_guyuk",
+    "name": "Guyuk",
+    "state_code": "adamawa",
+    "pcode": "NG002006",
+    "area_sqkm": 688.35355238,
+    "latitude": 9.84910211,
+    "longitude": 11.91949713
+  },
+  {
+    "code": "adamawa_hong",
+    "name": "Hong",
+    "state_code": "adamawa",
+    "pcode": "NG002007",
+    "area_sqkm": 2660.48996798,
+    "latitude": 10.2707596,
+    "longitude": 13.00010662
+  },
+  {
+    "code": "adamawa_jada",
+    "name": "Jada",
+    "state_code": "adamawa",
+    "pcode": "NG002008",
+    "area_sqkm": 2603.03560697,
+    "latitude": 8.70004456,
+    "longitude": 12.3273812
+  },
+  {
+    "code": "adamawa_lamurde",
+    "name": "Lamurde",
+    "state_code": "adamawa",
+    "pcode": "NG002009",
+    "area_sqkm": 1105.84684892,
+    "latitude": 9.55365323,
+    "longitude": 11.70146581
+  },
+  {
+    "code": "adamawa_madagali",
+    "name": "Madagali",
+    "state_code": "adamawa",
+    "pcode": "NG002010",
+    "area_sqkm": 830.71985738,
+    "latitude": 10.79923587,
+    "longitude": 13.48153142
+  },
+  {
+    "code": "adamawa_maiha",
+    "name": "Maiha",
+    "state_code": "adamawa",
+    "pcode": "NG002011",
+    "area_sqkm": 1356.49528639,
+    "latitude": 9.87445135,
+    "longitude": 13.14138238
+  },
+  {
+    "code": "adamawa_mayo_belwa",
+    "name": "Mayo-Belwa",
+    "state_code": "adamawa",
+    "pcode": "NG002012",
+    "area_sqkm": 2108.98572093,
+    "latitude": 8.90750157,
+    "longitude": 12.04408717
+  },
+  {
+    "code": "adamawa_michika",
+    "name": "Michika",
+    "state_code": "adamawa",
+    "pcode": "NG002013",
+    "area_sqkm": 810.6550601,
+    "latitude": 10.57853096,
+    "longitude": 13.38418884
+  },
+  {
+    "code": "adamawa_mubi_north",
+    "name": "Mubi North",
+    "state_code": "adamawa",
+    "pcode": "NG002014",
+    "area_sqkm": 753.43803364,
+    "latitude": 10.35920323,
+    "longitude": 13.36565401
+  },
+  {
+    "code": "adamawa_mubi_south",
+    "name": "Mubi South",
+    "state_code": "adamawa",
+    "pcode": "NG002015",
+    "area_sqkm": 502.72169789,
+    "latitude": 10.17145175,
+    "longitude": 13.31206443
+  },
+  {
+    "code": "adamawa_numan",
+    "name": "Numan",
+    "state_code": "adamawa",
+    "pcode": "NG002016",
+    "area_sqkm": 834.53038746,
+    "latitude": 9.4514926,
+    "longitude": 11.84109083
+  },
+  {
+    "code": "adamawa_shelleng",
+    "name": "Shelleng",
+    "state_code": "adamawa",
+    "pcode": "NG002017",
+    "area_sqkm": 1205.74751535,
+    "latitude": 9.90315409,
+    "longitude": 12.10576373
+  },
+  {
+    "code": "adamawa_song",
+    "name": "Song",
+    "state_code": "adamawa",
+    "pcode": "NG002018",
+    "area_sqkm": 4038.6730727,
+    "latitude": 9.84108887,
+    "longitude": 12.62071102
+  },
+  {
+    "code": "adamawa_toungo",
+    "name": "Toungo",
+    "state_code": "adamawa",
+    "pcode": "NG002019",
+    "area_sqkm": 5577.64967242,
+    "latitude": 7.90223263,
+    "longitude": 11.87424111
+  },
+  {
+    "code": "adamawa_yola_north",
+    "name": "Yola North",
+    "state_code": "adamawa",
+    "pcode": "NG002020",
+    "area_sqkm": 63.53436193,
+    "latitude": 9.25845592,
+    "longitude": 12.44019945
+  },
+  {
+    "code": "adamawa_yola_south",
+    "name": "Yola South",
+    "state_code": "adamawa",
+    "pcode": "NG002021",
+    "area_sqkm": 931.04804287,
+    "latitude": 9.27204822,
+    "longitude": 12.26059176
+  },
+  {
+    "code": "akwa_ibom_abak",
+    "name": "Abak",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003001",
+    "area_sqkm": 178.16627267,
+    "latitude": 5.00440454,
+    "longitude": 7.79893988
+  },
+  {
+    "code": "akwa_ibom_eastern_obolo",
+    "name": "Eastern Obolo",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003002",
+    "area_sqkm": 122.93438546,
+    "latitude": 4.51471019,
+    "longitude": 7.69642569
+  },
+  {
+    "code": "akwa_ibom_eket",
+    "name": "Eket",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003003",
+    "area_sqkm": 166.20595768,
+    "latitude": 4.63581374,
+    "longitude": 7.95717976
+  },
+  {
+    "code": "akwa_ibom_esit_eket",
+    "name": "Esit - Eket",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003004",
+    "area_sqkm": 169.41020281,
+    "latitude": 4.64161155,
+    "longitude": 8.07476696
+  },
+  {
+    "code": "akwa_ibom_essien_udim",
+    "name": "Essien Udim",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003005",
+    "area_sqkm": 289.18849534,
+    "latitude": 5.10069108,
+    "longitude": 7.65665324
+  },
+  {
+    "code": "akwa_ibom_etim_ekpo",
+    "name": "Etim Ekpo",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003006",
+    "area_sqkm": 220.36900124,
+    "latitude": 4.95308065,
+    "longitude": 7.57060639
+  },
+  {
+    "code": "akwa_ibom_etinan",
+    "name": "Etinan",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003007",
+    "area_sqkm": 172.86412377,
+    "latitude": 4.84574149,
+    "longitude": 7.84314997
+  },
+  {
+    "code": "akwa_ibom_ibeno",
+    "name": "Ibeno",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003008",
+    "area_sqkm": 243.38210447,
+    "latitude": 4.56345927,
+    "longitude": 8.08897007
+  },
+  {
+    "code": "akwa_ibom_ibesikpo_asutan",
+    "name": "Ibesikpo Asutan",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003009",
+    "area_sqkm": 175.1215714,
+    "latitude": 4.8963601,
+    "longitude": 7.96617999
+  },
+  {
+    "code": "akwa_ibom_ibiono_ibom",
+    "name": "Ibiono Ibom",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003010",
+    "area_sqkm": 336.16748952,
+    "latitude": 5.20024113,
+    "longitude": 7.89535445
+  },
+  {
+    "code": "akwa_ibom_ika",
+    "name": "Ika",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003011",
+    "area_sqkm": 114.66776512,
+    "latitude": 5.01641372,
+    "longitude": 7.54292693
+  },
+  {
+    "code": "akwa_ibom_ikono",
+    "name": "Ikono",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003012",
+    "area_sqkm": 262.60389898,
+    "latitude": 5.17806602,
+    "longitude": 7.79329416
+  },
+  {
+    "code": "akwa_ibom_ikot_abasi",
+    "name": "Ikot Abasi",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003013",
+    "area_sqkm": 335.67490226,
+    "latitude": 4.60887766,
+    "longitude": 7.62169427
+  },
+  {
+    "code": "akwa_ibom_ikot_ekpene",
+    "name": "Ikot Ekpene",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003014",
+    "area_sqkm": 115.8922647,
+    "latitude": 5.20043896,
+    "longitude": 7.70544431
+  },
+  {
+    "code": "akwa_ibom_ini",
+    "name": "Ini",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003015",
+    "area_sqkm": 382.90265403,
+    "latitude": 5.40397166,
+    "longitude": 7.75151867
+  },
+  {
+    "code": "akwa_ibom_itu",
+    "name": "Itu",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003016",
+    "area_sqkm": 180.25914776,
+    "latitude": 5.13848542,
+    "longitude": 7.99963452
+  },
+  {
+    "code": "akwa_ibom_mbo",
+    "name": "Mbo",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003017",
+    "area_sqkm": 241.46673667,
+    "latitude": 4.62621855,
+    "longitude": 8.23590783
+  },
+  {
+    "code": "akwa_ibom_mkpat_enin",
+    "name": "Mkpat Enin",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003018",
+    "area_sqkm": 350.25362348,
+    "latitude": 4.70473458,
+    "longitude": 7.76100953
+  },
+  {
+    "code": "akwa_ibom_nsit_atai",
+    "name": "Nsit Atai",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003019",
+    "area_sqkm": 130.72990895,
+    "latitude": 4.8185556,
+    "longitude": 8.01398294
+  },
+  {
+    "code": "akwa_ibom_nsit_ibom",
+    "name": "Nsit Ibom",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003020",
+    "area_sqkm": 130.6549785,
+    "latitude": 4.90363453,
+    "longitude": 7.89284685
+  },
+  {
+    "code": "akwa_ibom_nsit_ubium",
+    "name": "Nsit Ubium",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003021",
+    "area_sqkm": 200.93860869,
+    "latitude": 4.75973129,
+    "longitude": 7.9487235
+  },
+  {
+    "code": "akwa_ibom_obot_akara",
+    "name": "Obot Akara",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003022",
+    "area_sqkm": 234.8487319,
+    "latitude": 5.24345489,
+    "longitude": 7.60069561
+  },
+  {
+    "code": "akwa_ibom_okobo",
+    "name": "Okobo",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003023",
+    "area_sqkm": 301.05634793,
+    "latitude": 4.8134203,
+    "longitude": 8.12658607
+  },
+  {
+    "code": "akwa_ibom_onna",
+    "name": "Onna",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003024",
+    "area_sqkm": 163.91675874,
+    "latitude": 4.63873365,
+    "longitude": 7.87340125
+  },
+  {
+    "code": "akwa_ibom_oron",
+    "name": "Oron",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003025",
+    "area_sqkm": 52.13891398,
+    "latitude": 4.81572949,
+    "longitude": 8.22600527
+  },
+  {
+    "code": "akwa_ibom_oruk_anam",
+    "name": "Oruk Anam",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003026",
+    "area_sqkm": 544.44788884,
+    "latitude": 4.82782216,
+    "longitude": 7.69682216
+  },
+  {
+    "code": "akwa_ibom_udung_uko",
+    "name": "Udung Uko",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003027",
+    "area_sqkm": 58.68352794,
+    "latitude": 4.74925758,
+    "longitude": 8.26545933
+  },
+  {
+    "code": "akwa_ibom_ukanafun",
+    "name": "Ukanafun",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003028",
+    "area_sqkm": 218.29263666,
+    "latitude": 4.87633505,
+    "longitude": 7.58543694
+  },
+  {
+    "code": "akwa_ibom_uruan",
+    "name": "Uruan",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003029",
+    "area_sqkm": 346.6903896,
+    "latitude": 5.00347544,
+    "longitude": 8.0748869
+  },
+  {
+    "code": "akwa_ibom_urue_offong_oruko",
+    "name": "Urue-Offong/Oruko",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003030",
+    "area_sqkm": 115.79195881,
+    "latitude": 4.72303972,
+    "longitude": 8.15492531
+  },
+  {
+    "code": "akwa_ibom_uyo",
+    "name": "Uyo",
+    "state_code": "akwa_ibom",
+    "pcode": "NG003031",
+    "area_sqkm": 183.63474398,
+    "latitude": 4.988215,
+    "longitude": 7.9981777
+  },
+  {
+    "code": "anambra_aguata",
+    "name": "Aguata",
+    "state_code": "anambra",
+    "pcode": "NG004001",
+    "area_sqkm": 173.49768821,
+    "latitude": 5.98251691,
+    "longitude": 7.09285487
+  },
+  {
+    "code": "anambra_anambra_east",
+    "name": "Anambra East",
+    "state_code": "anambra",
+    "pcode": "NG004002",
+    "area_sqkm": 258.82737297,
+    "latitude": 6.3134418,
+    "longitude": 6.90045975
+  },
+  {
+    "code": "anambra_anambra_west",
+    "name": "Anambra West",
+    "state_code": "anambra",
+    "pcode": "NG004003",
+    "area_sqkm": 953.64598908,
+    "latitude": 6.49256952,
+    "longitude": 6.77657859
+  },
+  {
+    "code": "anambra_anaocha",
+    "name": "Anaocha",
+    "state_code": "anambra",
+    "pcode": "NG004004",
+    "area_sqkm": 100.75667347,
+    "latitude": 6.09114999,
+    "longitude": 7.02616485
+  },
+  {
+    "code": "anambra_awka_north",
+    "name": "Awka North",
+    "state_code": "anambra",
+    "pcode": "NG004005",
+    "area_sqkm": 345.40147309,
+    "latitude": 6.33975053,
+    "longitude": 7.06049307
+  },
+  {
+    "code": "anambra_awka_south",
+    "name": "Awka South",
+    "state_code": "anambra",
+    "pcode": "NG004006",
+    "area_sqkm": 173.42762836,
+    "latitude": 6.19303161,
+    "longitude": 7.09343808
+  },
+  {
+    "code": "anambra_ayamelum",
+    "name": "Ayamelum",
+    "state_code": "anambra",
+    "pcode": "NG004007",
+    "area_sqkm": 590.32288353,
+    "latitude": 6.53462303,
+    "longitude": 6.97479742
+  },
+  {
+    "code": "anambra_dunukofia",
+    "name": "Dunukofia",
+    "state_code": "anambra",
+    "pcode": "NG004008",
+    "area_sqkm": 53.36724152,
+    "latitude": 6.27902291,
+    "longitude": 6.98013845
+  },
+  {
+    "code": "anambra_ekwusigo",
+    "name": "Ekwusigo",
+    "state_code": "anambra",
+    "pcode": "NG004009",
+    "area_sqkm": 121.91754251,
+    "latitude": 5.99359416,
+    "longitude": 6.83870369
+  },
+  {
+    "code": "anambra_idemili_north",
+    "name": "Idemili North",
+    "state_code": "anambra",
+    "pcode": "NG004010",
+    "area_sqkm": 132.40535525,
+    "latitude": 6.1367104,
+    "longitude": 6.89332327
+  },
+  {
+    "code": "anambra_idemili_south",
+    "name": "Idemili South",
+    "state_code": "anambra",
+    "pcode": "NG004011",
+    "area_sqkm": 131.25874073,
+    "latitude": 6.06112856,
+    "longitude": 6.82857629
+  },
+  {
+    "code": "anambra_ihiala",
+    "name": "Ihiala",
+    "state_code": "anambra",
+    "pcode": "NG004012",
+    "area_sqkm": 240.83021403,
+    "latitude": 5.84458009,
+    "longitude": 6.85812531
+  },
+  {
+    "code": "anambra_njikoka",
+    "name": "Njikoka",
+    "state_code": "anambra",
+    "pcode": "NG004013",
+    "area_sqkm": 97.44535338,
+    "latitude": 6.19020736,
+    "longitude": 7.00788367
+  },
+  {
+    "code": "anambra_nnewi_north",
+    "name": "Nnewi North",
+    "state_code": "anambra",
+    "pcode": "NG004014",
+    "area_sqkm": 68.58617722,
+    "latitude": 6.01919213,
+    "longitude": 6.91490054
+  },
+  {
+    "code": "anambra_nnewi_south",
+    "name": "Nnewi South",
+    "state_code": "anambra",
+    "pcode": "NG004015",
+    "area_sqkm": 154.22756316,
+    "latitude": 5.9580643,
+    "longitude": 6.97695275
+  },
+  {
+    "code": "anambra_ogbaru",
+    "name": "Ogbaru",
+    "state_code": "anambra",
+    "pcode": "NG004016",
+    "area_sqkm": 517.7549276,
+    "latitude": 5.91183701,
+    "longitude": 6.75066624
+  },
+  {
+    "code": "anambra_onitsha_north",
+    "name": "Onitsha North",
+    "state_code": "anambra",
+    "pcode": "NG004017",
+    "area_sqkm": 37.61880592,
+    "latitude": 6.16355111,
+    "longitude": 6.79747653
+  },
+  {
+    "code": "anambra_onitsha_south",
+    "name": "Onitsha South",
+    "state_code": "anambra",
+    "pcode": "NG004018",
+    "area_sqkm": 9.91953081,
+    "latitude": 6.13972306,
+    "longitude": 6.77328528
+  },
+  {
+    "code": "anambra_orumba_north",
+    "name": "Orumba North",
+    "state_code": "anambra",
+    "pcode": "NG004019",
+    "area_sqkm": 320.99166408,
+    "latitude": 6.11450803,
+    "longitude": 7.15967907
+  },
+  {
+    "code": "anambra_orumba_south",
+    "name": "Orumba South",
+    "state_code": "anambra",
+    "pcode": "NG004020",
+    "area_sqkm": 188.24224248,
+    "latitude": 5.98988363,
+    "longitude": 7.2050609
+  },
+  {
+    "code": "anambra_oyi",
+    "name": "Oyi",
+    "state_code": "anambra",
+    "pcode": "NG004021",
+    "area_sqkm": 135.07441465,
+    "latitude": 6.22739384,
+    "longitude": 6.90028613
+  },
+  {
+    "code": "bauchi_alkaleri",
+    "name": "Alkaleri",
+    "state_code": "bauchi",
+    "pcode": "NG005001",
+    "area_sqkm": 6015.07628538,
+    "latitude": 9.89624995,
+    "longitude": 10.44514975
+  },
+  {
+    "code": "bauchi_bauchi",
+    "name": "Bauchi",
+    "state_code": "bauchi",
+    "pcode": "NG005002",
+    "area_sqkm": 3653.84984517,
+    "latitude": 10.24457946,
+    "longitude": 9.95555991
+  },
+  {
+    "code": "bauchi_bogoro",
+    "name": "Bogoro",
+    "state_code": "bauchi",
+    "pcode": "NG005003",
+    "area_sqkm": 890.4831585,
+    "latitude": 9.62523492,
+    "longitude": 9.62769522
+  },
+  {
+    "code": "bauchi_damban",
+    "name": "Damban",
+    "state_code": "bauchi",
+    "pcode": "NG005004",
+    "area_sqkm": 1098.22209136,
+    "latitude": 11.62944511,
+    "longitude": 10.76196963
+  },
+  {
+    "code": "bauchi_darazo",
+    "name": "Darazo",
+    "state_code": "bauchi",
+    "pcode": "NG005005",
+    "area_sqkm": 3052.47232235,
+    "latitude": 11.10838902,
+    "longitude": 10.50959996
+  },
+  {
+    "code": "bauchi_dass",
+    "name": "Dass",
+    "state_code": "bauchi",
+    "pcode": "NG005006",
+    "area_sqkm": 688.43463513,
+    "latitude": 10.00854863,
+    "longitude": 9.4747717
+  },
+  {
+    "code": "bauchi_gamawa",
+    "name": "Gamawa",
+    "state_code": "bauchi",
+    "pcode": "NG005007",
+    "area_sqkm": 2936.53778074,
+    "latitude": 12.02943481,
+    "longitude": 10.60841309
+  },
+  {
+    "code": "bauchi_ganjuwa",
+    "name": "Ganjuwa",
+    "state_code": "bauchi",
+    "pcode": "NG005008",
+    "area_sqkm": 4889.69236326,
+    "latitude": 10.74717585,
+    "longitude": 10.0430485
+  },
+  {
+    "code": "bauchi_giade",
+    "name": "Giade",
+    "state_code": "bauchi",
+    "pcode": "NG005009",
+    "area_sqkm": 750.07283838,
+    "latitude": 11.40751959,
+    "longitude": 10.24184832
+  },
+  {
+    "code": "bauchi_itas_gadau",
+    "name": "Itas/Gadau",
+    "state_code": "bauchi",
+    "pcode": "NG005010",
+    "area_sqkm": 1653.23602248,
+    "latitude": 11.87940797,
+    "longitude": 10.11037182
+  },
+  {
+    "code": "bauchi_jamaare",
+    "name": "Jama'are",
+    "state_code": "bauchi",
+    "pcode": "NG005011",
+    "area_sqkm": 382.45876167,
+    "latitude": 11.66738054,
+    "longitude": 9.94408962
+  },
+  {
+    "code": "bauchi_katagum",
+    "name": "Katagum",
+    "state_code": "bauchi",
+    "pcode": "NG005012",
+    "area_sqkm": 1326.8171197,
+    "latitude": 11.66018165,
+    "longitude": 10.34508862
+  },
+  {
+    "code": "bauchi_kirfi",
+    "name": "Kirfi",
+    "state_code": "bauchi",
+    "pcode": "NG005013",
+    "area_sqkm": 2268.79549139,
+    "latitude": 10.4416762,
+    "longitude": 10.52453495
+  },
+  {
+    "code": "bauchi_misau",
+    "name": "Misau",
+    "state_code": "bauchi",
+    "pcode": "NG005014",
+    "area_sqkm": 997.64501169,
+    "latitude": 11.38881846,
+    "longitude": 10.46341143
+  },
+  {
+    "code": "bauchi_ningi",
+    "name": "Ningi",
+    "state_code": "bauchi",
+    "pcode": "NG005015",
+    "area_sqkm": 4648.37831516,
+    "latitude": 11.06335348,
+    "longitude": 9.20696076
+  },
+  {
+    "code": "bauchi_shira",
+    "name": "Shira",
+    "state_code": "bauchi",
+    "pcode": "NG005016",
+    "area_sqkm": 1370.57162608,
+    "latitude": 11.46192801,
+    "longitude": 10.04301602
+  },
+  {
+    "code": "bauchi_tafawa_balewa",
+    "name": "Tafawa-Balewa",
+    "state_code": "bauchi",
+    "pcode": "NG005017",
+    "area_sqkm": 2454.91473336,
+    "latitude": 9.85774327,
+    "longitude": 9.61012968
+  },
+  {
+    "code": "bauchi_toro",
+    "name": "Toro",
+    "state_code": "bauchi",
+    "pcode": "NG005018",
+    "area_sqkm": 6877.24127803,
+    "latitude": 10.3682038,
+    "longitude": 9.25214221
+  },
+  {
+    "code": "bauchi_warji",
+    "name": "Warji",
+    "state_code": "bauchi",
+    "pcode": "NG005019",
+    "area_sqkm": 658.82260523,
+    "latitude": 11.163895,
+    "longitude": 9.74370205
+  },
+  {
+    "code": "bauchi_zaki",
+    "name": "Zaki",
+    "state_code": "bauchi",
+    "pcode": "NG005020",
+    "area_sqkm": 1902.99104659,
+    "latitude": 12.21214508,
+    "longitude": 10.24121257
+  },
+  {
+    "code": "bayelsa_brass",
+    "name": "Brass",
+    "state_code": "bayelsa",
+    "pcode": "NG006001",
+    "area_sqkm": 943.50332519,
+    "latitude": 4.41716504,
+    "longitude": 6.10600524
+  },
+  {
+    "code": "bayelsa_ekeremor",
+    "name": "Ekeremor",
+    "state_code": "bayelsa",
+    "pcode": "NG006002",
+    "area_sqkm": 1815.49232015,
+    "latitude": 4.94131089,
+    "longitude": 5.71546452
+  },
+  {
+    "code": "bayelsa_kolokuma_opokuma",
+    "name": "Kolokuma/Opokuma",
+    "state_code": "bayelsa",
+    "pcode": "NG006003",
+    "area_sqkm": 350.51739554,
+    "latitude": 5.06841226,
+    "longitude": 6.24084552
+  },
+  {
+    "code": "bayelsa_nembe",
+    "name": "Nembe",
+    "state_code": "bayelsa",
+    "pcode": "NG006004",
+    "area_sqkm": 1403.07594007,
+    "latitude": 4.5435014,
+    "longitude": 6.38134668
+  },
+  {
+    "code": "bayelsa_ogbia",
+    "name": "Ogbia",
+    "state_code": "bayelsa",
+    "pcode": "NG006005",
+    "area_sqkm": 678.13809875,
+    "latitude": 4.79574441,
+    "longitude": 6.31381923
+  },
+  {
+    "code": "bayelsa_sagbama",
+    "name": "Sagbama",
+    "state_code": "bayelsa",
+    "pcode": "NG006006",
+    "area_sqkm": 948.68029961,
+    "latitude": 5.09641931,
+    "longitude": 6.12385164
+  },
+  {
+    "code": "bayelsa_southern_ijaw",
+    "name": "Southern Ijaw",
+    "state_code": "bayelsa",
+    "pcode": "NG006007",
+    "area_sqkm": 2707.33883137,
+    "latitude": 4.71595194,
+    "longitude": 5.88057525
+  },
+  {
+    "code": "bayelsa_yenegoa",
+    "name": "Yenegoa",
+    "state_code": "bayelsa",
+    "pcode": "NG006008",
+    "area_sqkm": 682.27031815,
+    "latitude": 5.06539078,
+    "longitude": 6.37224442
+  },
+  {
+    "code": "benue_ado",
+    "name": "Ado",
+    "state_code": "benue",
+    "pcode": "NG007001",
+    "area_sqkm": 1187.06260047,
+    "latitude": 6.78012596,
+    "longitude": 8.06136278
+  },
+  {
+    "code": "benue_agatu",
+    "name": "Agatu",
+    "state_code": "benue",
+    "pcode": "NG007002",
+    "area_sqkm": 1047.66594818,
+    "latitude": 7.87597626,
+    "longitude": 7.8951085
+  },
+  {
+    "code": "benue_apa",
+    "name": "Apa",
+    "state_code": "benue",
+    "pcode": "NG007003",
+    "area_sqkm": 927.2803983,
+    "latitude": 7.63220916,
+    "longitude": 7.90533345
+  },
+  {
+    "code": "benue_buruku",
+    "name": "Buruku",
+    "state_code": "benue",
+    "pcode": "NG007004",
+    "area_sqkm": 1172.69011481,
+    "latitude": 7.38595209,
+    "longitude": 9.27203709
+  },
+  {
+    "code": "benue_gboko",
+    "name": "Gboko",
+    "state_code": "benue",
+    "pcode": "NG007005",
+    "area_sqkm": 1899.69519959,
+    "latitude": 7.40535866,
+    "longitude": 8.88067952
+  },
+  {
+    "code": "benue_guma",
+    "name": "Guma",
+    "state_code": "benue",
+    "pcode": "NG007006",
+    "area_sqkm": 2862.65824885,
+    "latitude": 7.86829135,
+    "longitude": 8.82865353
+  },
+  {
+    "code": "benue_gwer_east",
+    "name": "Gwer East",
+    "state_code": "benue",
+    "pcode": "NG007007",
+    "area_sqkm": 1994.36233319,
+    "latitude": 7.37635835,
+    "longitude": 8.38306239
+  },
+  {
+    "code": "benue_gwer_west",
+    "name": "Gwer West",
+    "state_code": "benue",
+    "pcode": "NG007008",
+    "area_sqkm": 1431.53695627,
+    "latitude": 7.61294652,
+    "longitude": 8.26523585
+  },
+  {
+    "code": "benue_katsina_ala",
+    "name": "Katsina-Ala",
+    "state_code": "benue",
+    "pcode": "NG007009",
+    "area_sqkm": 2691.14307551,
+    "latitude": 7.35891011,
+    "longitude": 9.58963181
+  },
+  {
+    "code": "benue_konshisha",
+    "name": "Konshisha",
+    "state_code": "benue",
+    "pcode": "NG007010",
+    "area_sqkm": 1684.72104052,
+    "latitude": 7.10901615,
+    "longitude": 8.62141347
+  },
+  {
+    "code": "benue_kwande",
+    "name": "Kwande",
+    "state_code": "benue",
+    "pcode": "NG007011",
+    "area_sqkm": 2351.52979613,
+    "latitude": 6.77759572,
+    "longitude": 9.41318453
+  },
+  {
+    "code": "benue_logo",
+    "name": "Logo",
+    "state_code": "benue",
+    "pcode": "NG007012",
+    "area_sqkm": 1625.60606822,
+    "latitude": 7.67105917,
+    "longitude": 9.24036545
+  },
+  {
+    "code": "benue_makurdi",
+    "name": "Makurdi",
+    "state_code": "benue",
+    "pcode": "NG007013",
+    "area_sqkm": 812.177442,
+    "latitude": 7.73548055,
+    "longitude": 8.51828258
+  },
+  {
+    "code": "benue_obi",
+    "name": "Obi",
+    "state_code": "benue",
+    "pcode": "NG007014",
+    "area_sqkm": 497.01362687,
+    "latitude": 7.02072083,
+    "longitude": 8.27243765
+  },
+  {
+    "code": "benue_ogbadibo",
+    "name": "Ogbadibo",
+    "state_code": "benue",
+    "pcode": "NG007015",
+    "area_sqkm": 602.77252427,
+    "latitude": 7.02140291,
+    "longitude": 7.63904082
+  },
+  {
+    "code": "benue_ohimini",
+    "name": "Ohimini",
+    "state_code": "benue",
+    "pcode": "NG007016",
+    "area_sqkm": 598.70944027,
+    "latitude": 7.26002428,
+    "longitude": 7.95831712
+  },
+  {
+    "code": "benue_oju",
+    "name": "Oju",
+    "state_code": "benue",
+    "pcode": "NG007017",
+    "area_sqkm": 1190.29868956,
+    "latitude": 6.87015504,
+    "longitude": 8.3636187
+  },
+  {
+    "code": "benue_okpokwu",
+    "name": "Okpokwu",
+    "state_code": "benue",
+    "pcode": "NG007018",
+    "area_sqkm": 924.52315117,
+    "latitude": 7.04413104,
+    "longitude": 7.89330157
+  },
+  {
+    "code": "benue_otukpo",
+    "name": "Otukpo",
+    "state_code": "benue",
+    "pcode": "NG007019",
+    "area_sqkm": 1363.08338133,
+    "latitude": 7.32031358,
+    "longitude": 8.08696201
+  },
+  {
+    "code": "benue_tarka",
+    "name": "Tarka",
+    "state_code": "benue",
+    "pcode": "NG007020",
+    "area_sqkm": 477.47954032,
+    "latitude": 7.60462863,
+    "longitude": 8.85851212
+  },
+  {
+    "code": "benue_ukum",
+    "name": "Ukum",
+    "state_code": "benue",
+    "pcode": "NG007021",
+    "area_sqkm": 1783.52843999,
+    "latitude": 7.64953547,
+    "longitude": 9.67692334
+  },
+  {
+    "code": "benue_ushongo",
+    "name": "Ushongo",
+    "state_code": "benue",
+    "pcode": "NG007022",
+    "area_sqkm": 1379.95202082,
+    "latitude": 7.08219341,
+    "longitude": 9.00670453
+  },
+  {
+    "code": "benue_vandeikya",
+    "name": "Vandeikya",
+    "state_code": "benue",
+    "pcode": "NG007023",
+    "area_sqkm": 977.84704263,
+    "latitude": 6.84350764,
+    "longitude": 9.0786866
+  },
+  {
+    "code": "borno_abadam",
+    "name": "Abadam",
+    "state_code": "borno",
+    "pcode": "NG008001",
+    "area_sqkm": 3916.25182832,
+    "latitude": 13.39477626,
+    "longitude": 13.27446584
+  },
+  {
+    "code": "borno_askira_uba",
+    "name": "Askira/Uba",
+    "state_code": "borno",
+    "pcode": "NG008002",
+    "area_sqkm": 2499.53612164,
+    "latitude": 10.63665327,
+    "longitude": 12.84627077
+  },
+  {
+    "code": "borno_bama",
+    "name": "Bama",
+    "state_code": "borno",
+    "pcode": "NG008003",
+    "area_sqkm": 5017.65311567,
+    "latitude": 11.54127516,
+    "longitude": 14.15376471
+  },
+  {
+    "code": "borno_bayo",
+    "name": "Bayo",
+    "state_code": "borno",
+    "pcode": "NG008004",
+    "area_sqkm": 946.85578936,
+    "latitude": 10.44724674,
+    "longitude": 11.70467597
+  },
+  {
+    "code": "borno_biu",
+    "name": "Biu",
+    "state_code": "borno",
+    "pcode": "NG008005",
+    "area_sqkm": 3282.29751951,
+    "latitude": 10.80412308,
+    "longitude": 12.12250666
+  },
+  {
+    "code": "borno_chibok",
+    "name": "Chibok",
+    "state_code": "borno",
+    "pcode": "NG008006",
+    "area_sqkm": 1519.50322987,
+    "latitude": 10.85561848,
+    "longitude": 12.82267256
+  },
+  {
+    "code": "borno_damboa",
+    "name": "Damboa",
+    "state_code": "borno",
+    "pcode": "NG008007",
+    "area_sqkm": 5823.80543317,
+    "latitude": 11.13675964,
+    "longitude": 12.73952517
+  },
+  {
+    "code": "borno_dikwa",
+    "name": "Dikwa",
+    "state_code": "borno",
+    "pcode": "NG008008",
+    "area_sqkm": 1890.87164009,
+    "latitude": 11.9347496,
+    "longitude": 14.08375686
+  },
+  {
+    "code": "borno_gubio",
+    "name": "Gubio",
+    "state_code": "borno",
+    "pcode": "NG008009",
+    "area_sqkm": 2622.98713717,
+    "latitude": 12.70878619,
+    "longitude": 12.76046365
+  },
+  {
+    "code": "borno_guzamala",
+    "name": "Guzamala",
+    "state_code": "borno",
+    "pcode": "NG008010",
+    "area_sqkm": 2515.50653685,
+    "latitude": 12.83552524,
+    "longitude": 13.31916597
+  },
+  {
+    "code": "borno_gwoza",
+    "name": "Gwoza",
+    "state_code": "borno",
+    "pcode": "NG008011",
+    "area_sqkm": 2932.51884638,
+    "latitude": 11.17720502,
+    "longitude": 13.63155455
+  },
+  {
+    "code": "borno_hawul",
+    "name": "Hawul",
+    "state_code": "borno",
+    "pcode": "NG008012",
+    "area_sqkm": 2012.94906619,
+    "latitude": 10.4574272,
+    "longitude": 12.29458291
+  },
+  {
+    "code": "borno_jere",
+    "name": "Jere",
+    "state_code": "borno",
+    "pcode": "NG008013",
+    "area_sqkm": 843.30495343,
+    "latitude": 11.9269352,
+    "longitude": 13.18697004
+  },
+  {
+    "code": "borno_kaga",
+    "name": "Kaga",
+    "state_code": "borno",
+    "pcode": "NG008014",
+    "area_sqkm": 2574.67598829,
+    "latitude": 11.58789019,
+    "longitude": 12.48620647
+  },
+  {
+    "code": "borno_kala_balge",
+    "name": "Kala/Balge",
+    "state_code": "borno",
+    "pcode": "NG008015",
+    "area_sqkm": 1877.90511553,
+    "latitude": 12.05785224,
+    "longitude": 14.48633529
+  },
+  {
+    "code": "borno_konduga",
+    "name": "Konduga",
+    "state_code": "borno",
+    "pcode": "NG008016",
+    "area_sqkm": 5958.93280391,
+    "latitude": 11.68675991,
+    "longitude": 13.18348175
+  },
+  {
+    "code": "borno_kukawa",
+    "name": "Kukawa",
+    "state_code": "borno",
+    "pcode": "NG008017",
+    "area_sqkm": 4914.65899475,
+    "latitude": 13.04582499,
+    "longitude": 13.71780366
+  },
+  {
+    "code": "borno_kwaya_kusar",
+    "name": "Kwaya Kusar",
+    "state_code": "borno",
+    "pcode": "NG008018",
+    "area_sqkm": 747.32071413,
+    "latitude": 10.43090965,
+    "longitude": 11.90649934
+  },
+  {
+    "code": "borno_mafa",
+    "name": "Mafa",
+    "state_code": "borno",
+    "pcode": "NG008019",
+    "area_sqkm": 2853.49121834,
+    "latitude": 12.04636513,
+    "longitude": 13.54125075
+  },
+  {
+    "code": "borno_magumeri",
+    "name": "Magumeri",
+    "state_code": "borno",
+    "pcode": "NG008020",
+    "area_sqkm": 4728.67184528,
+    "latitude": 12.22527489,
+    "longitude": 12.71196525
+  },
+  {
+    "code": "borno_maiduguri",
+    "name": "Maiduguri",
+    "state_code": "borno",
+    "pcode": "NG008021",
+    "area_sqkm": 139.86577147,
+    "latitude": 11.83470577,
+    "longitude": 13.13357488
+  },
+  {
+    "code": "borno_marte",
+    "name": "Marte",
+    "state_code": "borno",
+    "pcode": "NG008022",
+    "area_sqkm": 2958.21541153,
+    "latitude": 12.40644618,
+    "longitude": 13.85787997
+  },
+  {
+    "code": "borno_mobbar",
+    "name": "Mobbar",
+    "state_code": "borno",
+    "pcode": "NG008023",
+    "area_sqkm": 2704.71289905,
+    "latitude": 13.0551951,
+    "longitude": 12.62656649
+  },
+  {
+    "code": "borno_monguno",
+    "name": "Monguno",
+    "state_code": "borno",
+    "pcode": "NG008024",
+    "area_sqkm": 1892.15572864,
+    "latitude": 12.52256165,
+    "longitude": 13.53364576
+  },
+  {
+    "code": "borno_ngala",
+    "name": "Ngala",
+    "state_code": "borno",
+    "pcode": "NG008025",
+    "area_sqkm": 1443.40551744,
+    "latitude": 12.29337425,
+    "longitude": 14.19902988
+  },
+  {
+    "code": "borno_nganzai",
+    "name": "Nganzai",
+    "state_code": "borno",
+    "pcode": "NG008026",
+    "area_sqkm": 2313.45444874,
+    "latitude": 12.45905285,
+    "longitude": 13.10732304
+  },
+  {
+    "code": "borno_shani",
+    "name": "Shani",
+    "state_code": "borno",
+    "pcode": "NG008027",
+    "area_sqkm": 1225.08909485,
+    "latitude": 10.19307369,
+    "longitude": 11.95264793
+  },
+  {
+    "code": "cross_river_abi",
+    "name": "Abi",
+    "state_code": "cross_river",
+    "pcode": "NG009001",
+    "area_sqkm": 267.93306602,
+    "latitude": 5.88298543,
+    "longitude": 8.02916214
+  },
+  {
+    "code": "cross_river_akamkpa",
+    "name": "Akamkpa",
+    "state_code": "cross_river",
+    "pcode": "NG009002",
+    "area_sqkm": 5028.47402601,
+    "latitude": 5.38760969,
+    "longitude": 8.52822975
+  },
+  {
+    "code": "cross_river_akpabuyo",
+    "name": "Akpabuyo",
+    "state_code": "cross_river",
+    "pcode": "NG009003",
+    "area_sqkm": 793.44744868,
+    "latitude": 4.90119648,
+    "longitude": 8.48230229
+  },
+  {
+    "code": "cross_river_bakassi",
+    "name": "Bakassi",
+    "state_code": "cross_river",
+    "pcode": "NG009005",
+    "area_sqkm": 4.19757528,
+    "latitude": 4.80714392,
+    "longitude": 8.5623645
+  },
+  {
+    "code": "cross_river_bekwarra",
+    "name": "Bekwarra",
+    "state_code": "cross_river",
+    "pcode": "NG009006",
+    "area_sqkm": 314.7980289,
+    "latitude": 6.70509558,
+    "longitude": 8.89397306
+  },
+  {
+    "code": "cross_river_biase",
+    "name": "Biase",
+    "state_code": "cross_river",
+    "pcode": "NG009007",
+    "area_sqkm": 1292.67409171,
+    "latitude": 5.54736806,
+    "longitude": 8.05202662
+  },
+  {
+    "code": "cross_river_boki",
+    "name": "Boki",
+    "state_code": "cross_river",
+    "pcode": "NG009008",
+    "area_sqkm": 2885.63328924,
+    "latitude": 6.270648,
+    "longitude": 9.04285908
+  },
+  {
+    "code": "cross_river_calabar_south",
+    "name": "Calabar South",
+    "state_code": "cross_river",
+    "pcode": "NG009009",
+    "area_sqkm": 188.61762963,
+    "latitude": 4.87796402,
+    "longitude": 8.31193439
+  },
+  {
+    "code": "cross_river_calabar_municipal",
+    "name": "Calabar-Municipal",
+    "state_code": "cross_river",
+    "pcode": "NG009010",
+    "area_sqkm": 137.53871649,
+    "latitude": 5.01924848,
+    "longitude": 8.3468452
+  },
+  {
+    "code": "cross_river_etung",
+    "name": "Etung",
+    "state_code": "cross_river",
+    "pcode": "NG009011",
+    "area_sqkm": 812.53940412,
+    "latitude": 5.87847971,
+    "longitude": 8.80856514
+  },
+  {
+    "code": "cross_river_ikom",
+    "name": "Ikom",
+    "state_code": "cross_river",
+    "pcode": "NG009012",
+    "area_sqkm": 1967.79132186,
+    "latitude": 6.06133249,
+    "longitude": 8.66787063
+  },
+  {
+    "code": "cross_river_obanliku",
+    "name": "Obanliku",
+    "state_code": "cross_river",
+    "pcode": "NG009013",
+    "area_sqkm": 938.52789055,
+    "latitude": 6.49426574,
+    "longitude": 9.35415585
+  },
+  {
+    "code": "cross_river_obubra",
+    "name": "Obubra",
+    "state_code": "cross_river",
+    "pcode": "NG009014",
+    "area_sqkm": 1144.68183169,
+    "latitude": 6.01531095,
+    "longitude": 8.41466668
+  },
+  {
+    "code": "cross_river_obudu",
+    "name": "Obudu",
+    "state_code": "cross_river",
+    "pcode": "NG009015",
+    "area_sqkm": 467.75190303,
+    "latitude": 6.56035589,
+    "longitude": 9.08028058
+  },
+  {
+    "code": "cross_river_odukpani",
+    "name": "Odukpani",
+    "state_code": "cross_river",
+    "pcode": "NG009016",
+    "area_sqkm": 1354.6185809,
+    "latitude": 5.17935078,
+    "longitude": 8.20538651
+  },
+  {
+    "code": "cross_river_ogoja",
+    "name": "Ogoja",
+    "state_code": "cross_river",
+    "pcode": "NG009017",
+    "area_sqkm": 912.77919841,
+    "latitude": 6.52680973,
+    "longitude": 8.68895687
+  },
+  {
+    "code": "cross_river_yakurr",
+    "name": "Yakurr",
+    "state_code": "cross_river",
+    "pcode": "NG009018",
+    "area_sqkm": 659.06228402,
+    "latitude": 5.81760858,
+    "longitude": 8.17790569
+  },
+  {
+    "code": "cross_river_yala",
+    "name": "Yala",
+    "state_code": "cross_river",
+    "pcode": "NG009019",
+    "area_sqkm": 1783.85963801,
+    "latitude": 6.58742372,
+    "longitude": 8.51220243
+  },
+  {
+    "code": "delta_aniocha_north",
+    "name": "Aniocha North",
+    "state_code": "delta",
+    "pcode": "NG010001",
+    "area_sqkm": 404.46681951,
+    "latitude": 6.36799399,
+    "longitude": 6.47028053
+  },
+  {
+    "code": "delta_aniocha_south",
+    "name": "Aniocha South",
+    "state_code": "delta",
+    "pcode": "NG010002",
+    "area_sqkm": 870.4803051,
+    "latitude": 6.14492469,
+    "longitude": 6.4739027
+  },
+  {
+    "code": "delta_bomadi",
+    "name": "Bomadi",
+    "state_code": "delta",
+    "pcode": "NG010003",
+    "area_sqkm": 128.71230952,
+    "latitude": 5.22552988,
+    "longitude": 5.80972951
+  },
+  {
+    "code": "delta_burutu",
+    "name": "Burutu",
+    "state_code": "delta",
+    "pcode": "NG010004",
+    "area_sqkm": 1933.58568809,
+    "latitude": 5.23413901,
+    "longitude": 5.57100696
+  },
+  {
+    "code": "delta_ethiope_east",
+    "name": "Ethiope East",
+    "state_code": "delta",
+    "pcode": "NG010005",
+    "area_sqkm": 379.80280988,
+    "latitude": 5.66729263,
+    "longitude": 5.97212972
+  },
+  {
+    "code": "delta_ethiope_west",
+    "name": "Ethiope West",
+    "state_code": "delta",
+    "pcode": "NG010006",
+    "area_sqkm": 537.11030729,
+    "latitude": 5.91132282,
+    "longitude": 5.77585906
+  },
+  {
+    "code": "delta_ika_north_east",
+    "name": "Ika North East",
+    "state_code": "delta",
+    "pcode": "NG010007",
+    "area_sqkm": 467.70072246,
+    "latitude": 6.23676851,
+    "longitude": 6.32092515
+  },
+  {
+    "code": "delta_ika_south",
+    "name": "Ika South",
+    "state_code": "delta",
+    "pcode": "NG010008",
+    "area_sqkm": 435.59292097,
+    "latitude": 6.18730663,
+    "longitude": 6.13356177
+  },
+  {
+    "code": "delta_isoko_north",
+    "name": "Isoko North",
+    "state_code": "delta",
+    "pcode": "NG010009",
+    "area_sqkm": 482.07696896,
+    "latitude": 5.51388,
+    "longitude": 6.12626378
+  },
+  {
+    "code": "delta_isoko_south",
+    "name": "Isoko South",
+    "state_code": "delta",
+    "pcode": "NG010010",
+    "area_sqkm": 689.7363071,
+    "latitude": 5.3973511,
+    "longitude": 6.2135041
+  },
+  {
+    "code": "delta_ndokwa_east",
+    "name": "Ndokwa East",
+    "state_code": "delta",
+    "pcode": "NG010011",
+    "area_sqkm": 1609.2121581,
+    "latitude": 5.66304277,
+    "longitude": 6.50311942
+  },
+  {
+    "code": "delta_ndokwa_west",
+    "name": "Ndokwa West",
+    "state_code": "delta",
+    "pcode": "NG010012",
+    "area_sqkm": 821.93977482,
+    "latitude": 5.82609945,
+    "longitude": 6.41635513
+  },
+  {
+    "code": "delta_okpe",
+    "name": "Okpe",
+    "state_code": "delta",
+    "pcode": "NG010013",
+    "area_sqkm": 480.29848202,
+    "latitude": 5.69996784,
+    "longitude": 5.74271144
+  },
+  {
+    "code": "delta_oshimili_north",
+    "name": "Oshimili North",
+    "state_code": "delta",
+    "pcode": "NG010014",
+    "area_sqkm": 510.20730461,
+    "latitude": 6.30431944,
+    "longitude": 6.64470056
+  },
+  {
+    "code": "delta_oshimili_south",
+    "name": "Oshimili South",
+    "state_code": "delta",
+    "pcode": "NG010015",
+    "area_sqkm": 266.43109837,
+    "latitude": 6.13036205,
+    "longitude": 6.7307334
+  },
+  {
+    "code": "delta_patani",
+    "name": "Patani",
+    "state_code": "delta",
+    "pcode": "NG010016",
+    "area_sqkm": 226.05511835,
+    "latitude": 5.18961,
+    "longitude": 6.1038708
+  },
+  {
+    "code": "delta_sapele",
+    "name": "Sapele",
+    "state_code": "delta",
+    "pcode": "NG010017",
+    "area_sqkm": 429.08470614,
+    "latitude": 5.83616068,
+    "longitude": 5.65904284
+  },
+  {
+    "code": "delta_udu",
+    "name": "Udu",
+    "state_code": "delta",
+    "pcode": "NG010018",
+    "area_sqkm": 165.81848439,
+    "latitude": 5.47697599,
+    "longitude": 5.81210496
+  },
+  {
+    "code": "delta_ughelli_north",
+    "name": "Ughelli North",
+    "state_code": "delta",
+    "pcode": "NG010019",
+    "area_sqkm": 830.97265091,
+    "latitude": 5.48688366,
+    "longitude": 6.0114343
+  },
+  {
+    "code": "delta_ughelli_south",
+    "name": "Ughelli South",
+    "state_code": "delta",
+    "pcode": "NG010020",
+    "area_sqkm": 769.97494651,
+    "latitude": 5.36020949,
+    "longitude": 5.96777868
+  },
+  {
+    "code": "delta_ukwuani",
+    "name": "Ukwuani",
+    "state_code": "delta",
+    "pcode": "NG010021",
+    "area_sqkm": 408.72461039,
+    "latitude": 5.8494403,
+    "longitude": 6.25205812
+  },
+  {
+    "code": "delta_uvwie",
+    "name": "Uvwie",
+    "state_code": "delta",
+    "pcode": "NG010022",
+    "area_sqkm": 112.43735367,
+    "latitude": 5.56796808,
+    "longitude": 5.77982608
+  },
+  {
+    "code": "delta_warri_north",
+    "name": "Warri North",
+    "state_code": "delta",
+    "pcode": "NG010023",
+    "area_sqkm": 1835.72706489,
+    "latitude": 5.93063904,
+    "longitude": 5.1369468
+  },
+  {
+    "code": "delta_warri_south",
+    "name": "Warri South",
+    "state_code": "delta",
+    "pcode": "NG010024",
+    "area_sqkm": 585.72480761,
+    "latitude": 5.66735284,
+    "longitude": 5.60257282
+  },
+  {
+    "code": "delta_warri_south_west",
+    "name": "Warri South West",
+    "state_code": "delta",
+    "pcode": "NG010025",
+    "area_sqkm": 1694.96709945,
+    "latitude": 5.60559109,
+    "longitude": 5.33200665
+  },
+  {
+    "code": "ebonyi_abakaliki",
+    "name": "Abakaliki",
+    "state_code": "ebonyi",
+    "pcode": "NG011001",
+    "area_sqkm": 463.37249077,
+    "latitude": 6.25661359,
+    "longitude": 8.24423529
+  },
+  {
+    "code": "ebonyi_afikpo_north",
+    "name": "Afikpo North",
+    "state_code": "ebonyi",
+    "pcode": "NG011002",
+    "area_sqkm": 239.1334902,
+    "latitude": 5.85840155,
+    "longitude": 7.92297533
+  },
+  {
+    "code": "ebonyi_edda",
+    "name": "Edda",
+    "state_code": "ebonyi",
+    "pcode": "NG011003",
+    "area_sqkm": 377.04913815,
+    "latitude": 5.82745909,
+    "longitude": 7.78391415
+  },
+  {
+    "code": "ebonyi_ebonyi",
+    "name": "Ebonyi",
+    "state_code": "ebonyi",
+    "pcode": "NG011004",
+    "area_sqkm": 506.10857768,
+    "latitude": 6.55761667,
+    "longitude": 8.11195547
+  },
+  {
+    "code": "ebonyi_ezza_north",
+    "name": "Ezza North",
+    "state_code": "ebonyi",
+    "pcode": "NG011005",
+    "area_sqkm": 413.47215522,
+    "latitude": 6.26368207,
+    "longitude": 7.97949212
+  },
+  {
+    "code": "ebonyi_ezza_south",
+    "name": "Ezza South",
+    "state_code": "ebonyi",
+    "pcode": "NG011006",
+    "area_sqkm": 264.10618401,
+    "latitude": 6.12603979,
+    "longitude": 7.99827947
+  },
+  {
+    "code": "ebonyi_ikwo",
+    "name": "Ikwo",
+    "state_code": "ebonyi",
+    "pcode": "NG011007",
+    "area_sqkm": 655.55749583,
+    "latitude": 6.081396,
+    "longitude": 8.17851009
+  },
+  {
+    "code": "ebonyi_ishielu",
+    "name": "Ishielu",
+    "state_code": "ebonyi",
+    "pcode": "NG011008",
+    "area_sqkm": 695.14308515,
+    "latitude": 6.40960598,
+    "longitude": 7.84359249
+  },
+  {
+    "code": "ebonyi_ivo",
+    "name": "Ivo",
+    "state_code": "ebonyi",
+    "pcode": "NG011009",
+    "area_sqkm": 266.70515171,
+    "latitude": 5.91382979,
+    "longitude": 7.64065626
+  },
+  {
+    "code": "ebonyi_izzi",
+    "name": "Izzi",
+    "state_code": "ebonyi",
+    "pcode": "NG011010",
+    "area_sqkm": 1083.90804588,
+    "latitude": 6.52471859,
+    "longitude": 8.2750555
+  },
+  {
+    "code": "ebonyi_ohaozara",
+    "name": "Ohaozara",
+    "state_code": "ebonyi",
+    "pcode": "NG011011",
+    "area_sqkm": 333.35681598,
+    "latitude": 6.0020304,
+    "longitude": 7.78838376
+  },
+  {
+    "code": "ebonyi_ohaukwu",
+    "name": "Ohaukwu",
+    "state_code": "ebonyi",
+    "pcode": "NG011012",
+    "area_sqkm": 602.47076446,
+    "latitude": 6.5388936,
+    "longitude": 8.00827199
+  },
+  {
+    "code": "ebonyi_onicha",
+    "name": "Onicha",
+    "state_code": "ebonyi",
+    "pcode": "NG011013",
+    "area_sqkm": 439.23101081,
+    "latitude": 6.11853244,
+    "longitude": 7.81659689
+  },
+  {
+    "code": "edo_akoko_edo",
+    "name": "Akoko-Edo",
+    "state_code": "edo",
+    "pcode": "NG012001",
+    "area_sqkm": 1341.57313518,
+    "latitude": 7.3523936,
+    "longitude": 6.12523522
+  },
+  {
+    "code": "edo_egor",
+    "name": "Egor",
+    "state_code": "edo",
+    "pcode": "NG012002",
+    "area_sqkm": 76.11445039,
+    "latitude": 6.35716867,
+    "longitude": 5.58687476
+  },
+  {
+    "code": "edo_esan_central",
+    "name": "Esan Central",
+    "state_code": "edo",
+    "pcode": "NG012003",
+    "area_sqkm": 263.96423636,
+    "latitude": 6.70470558,
+    "longitude": 6.20792577
+  },
+  {
+    "code": "edo_esan_north_east",
+    "name": "Esan North East",
+    "state_code": "edo",
+    "pcode": "NG012004",
+    "area_sqkm": 342.03617993,
+    "latitude": 6.78044941,
+    "longitude": 6.42212401
+  },
+  {
+    "code": "edo_esan_south_east",
+    "name": "Esan South East",
+    "state_code": "edo",
+    "pcode": "NG012005",
+    "area_sqkm": 1305.48175301,
+    "latitude": 6.57680695,
+    "longitude": 6.48608383
+  },
+  {
+    "code": "edo_esan_west",
+    "name": "Esan West",
+    "state_code": "edo",
+    "pcode": "NG012006",
+    "area_sqkm": 515.29657179,
+    "latitude": 6.65464912,
+    "longitude": 6.13966253
+  },
+  {
+    "code": "edo_etsako_central",
+    "name": "Etsako Central",
+    "state_code": "edo",
+    "pcode": "NG012007",
+    "area_sqkm": 662.73468936,
+    "latitude": 6.97565627,
+    "longitude": 6.51589204
+  },
+  {
+    "code": "edo_etsako_east",
+    "name": "Etsako East",
+    "state_code": "edo",
+    "pcode": "NG012008",
+    "area_sqkm": 1131.6888707,
+    "latitude": 7.18764399,
+    "longitude": 6.51630936
+  },
+  {
+    "code": "edo_etsako_west",
+    "name": "Etsako West",
+    "state_code": "edo",
+    "pcode": "NG012009",
+    "area_sqkm": 938.74643079,
+    "latitude": 7.00146947,
+    "longitude": 6.30193277
+  },
+  {
+    "code": "edo_igueben",
+    "name": "Igueben",
+    "state_code": "edo",
+    "pcode": "NG012010",
+    "area_sqkm": 349.4988753,
+    "latitude": 6.5094352,
+    "longitude": 6.24747412
+  },
+  {
+    "code": "edo_ikpoba_okha",
+    "name": "Ikpoba-Okha",
+    "state_code": "edo",
+    "pcode": "NG012011",
+    "area_sqkm": 857.07639909,
+    "latitude": 6.19976541,
+    "longitude": 5.6622467
+  },
+  {
+    "code": "edo_oredo",
+    "name": "Oredo",
+    "state_code": "edo",
+    "pcode": "NG012012",
+    "area_sqkm": 250.4196664,
+    "latitude": 6.23301742,
+    "longitude": 5.56381149
+  },
+  {
+    "code": "edo_orhionmwon",
+    "name": "Orhionmwon",
+    "state_code": "edo",
+    "pcode": "NG012013",
+    "area_sqkm": 2410.76364155,
+    "latitude": 6.08841755,
+    "longitude": 5.94836007
+  },
+  {
+    "code": "edo_ovia_north_east",
+    "name": "Ovia North East",
+    "state_code": "edo",
+    "pcode": "NG012014",
+    "area_sqkm": 2338.00581204,
+    "latitude": 6.39677431,
+    "longitude": 5.50306579
+  },
+  {
+    "code": "edo_ovia_south_west",
+    "name": "Ovia South West",
+    "state_code": "edo",
+    "pcode": "NG012015",
+    "area_sqkm": 2771.81799058,
+    "latitude": 6.47149842,
+    "longitude": 5.29943577
+  },
+  {
+    "code": "edo_owan_east",
+    "name": "Owan East",
+    "state_code": "edo",
+    "pcode": "NG012016",
+    "area_sqkm": 1228.11993443,
+    "latitude": 7.02884545,
+    "longitude": 6.10572182
+  },
+  {
+    "code": "edo_owan_west",
+    "name": "Owan West",
+    "state_code": "edo",
+    "pcode": "NG012017",
+    "area_sqkm": 739.86191526,
+    "latitude": 6.93396573,
+    "longitude": 5.88706594
+  },
+  {
+    "code": "edo_uhunmwonde",
+    "name": "Uhunmwonde",
+    "state_code": "edo",
+    "pcode": "NG012018",
+    "area_sqkm": 1991.23656593,
+    "latitude": 6.52593607,
+    "longitude": 5.9000732
+  },
+  {
+    "code": "ekiti_ado_ekiti",
+    "name": "Ado Ekiti",
+    "state_code": "ekiti",
+    "pcode": "NG013001",
+    "area_sqkm": 361.10623616,
+    "latitude": 7.62738608,
+    "longitude": 5.2517695
+  },
+  {
+    "code": "ekiti_aiyekire_(gbonyin)",
+    "name": "Aiyekire (Gbonyin)",
+    "state_code": "ekiti",
+    "pcode": "NG013002",
+    "area_sqkm": 434.51310569,
+    "latitude": 7.60170527,
+    "longitude": 5.51244205
+  },
+  {
+    "code": "ekiti_efon",
+    "name": "Efon",
+    "state_code": "ekiti",
+    "pcode": "NG013003",
+    "area_sqkm": 230.21856142,
+    "latitude": 7.68120443,
+    "longitude": 4.9308306
+  },
+  {
+    "code": "ekiti_ekiti_east",
+    "name": "Ekiti East",
+    "state_code": "ekiti",
+    "pcode": "NG013004",
+    "area_sqkm": 314.46100676,
+    "latitude": 7.72480132,
+    "longitude": 5.66415816
+  },
+  {
+    "code": "ekiti_ekiti_south_west",
+    "name": "Ekiti South West",
+    "state_code": "ekiti",
+    "pcode": "NG013005",
+    "area_sqkm": 336.02361391,
+    "latitude": 7.52346372,
+    "longitude": 5.03335794
+  },
+  {
+    "code": "ekiti_ekiti_west",
+    "name": "Ekiti West",
+    "state_code": "ekiti",
+    "pcode": "NG013006",
+    "area_sqkm": 374.17224119,
+    "latitude": 7.71941876,
+    "longitude": 5.044572
+  },
+  {
+    "code": "ekiti_emure",
+    "name": "Emure",
+    "state_code": "ekiti",
+    "pcode": "NG013007",
+    "area_sqkm": 249.94826652,
+    "latitude": 7.4155004,
+    "longitude": 5.50871235
+  },
+  {
+    "code": "ekiti_ido_osi",
+    "name": "Ido-Osi",
+    "state_code": "ekiti",
+    "pcode": "NG013008",
+    "area_sqkm": 230.93417967,
+    "latitude": 7.86334831,
+    "longitude": 5.19694342
+  },
+  {
+    "code": "ekiti_ijero",
+    "name": "Ijero",
+    "state_code": "ekiti",
+    "pcode": "NG013009",
+    "area_sqkm": 376.8517079,
+    "latitude": 7.83173582,
+    "longitude": 5.05835534
+  },
+  {
+    "code": "ekiti_ikere",
+    "name": "Ikere",
+    "state_code": "ekiti",
+    "pcode": "NG013010",
+    "area_sqkm": 237.26661447,
+    "latitude": 7.493613,
+    "longitude": 5.20922163
+  },
+  {
+    "code": "ekiti_ikole",
+    "name": "Ikole",
+    "state_code": "ekiti",
+    "pcode": "NG013011",
+    "area_sqkm": 1070.20726031,
+    "latitude": 7.88315323,
+    "longitude": 5.51564869
+  },
+  {
+    "code": "ekiti_ilejemeji",
+    "name": "Ilejemeji",
+    "state_code": "ekiti",
+    "pcode": "NG013012",
+    "area_sqkm": 94.67162514,
+    "latitude": 7.96025445,
+    "longitude": 5.23069822
+  },
+  {
+    "code": "ekiti_irepodun_ifelodun",
+    "name": "Irepodun/Ifelodun",
+    "state_code": "ekiti",
+    "pcode": "NG013013",
+    "area_sqkm": 326.92712786,
+    "latitude": 7.70632306,
+    "longitude": 5.33900533
+  },
+  {
+    "code": "ekiti_ise_orun",
+    "name": "Ise/Orun",
+    "state_code": "ekiti",
+    "pcode": "NG013014",
+    "area_sqkm": 413.83142292,
+    "latitude": 7.41527884,
+    "longitude": 5.38669292
+  },
+  {
+    "code": "ekiti_moba",
+    "name": "Moba",
+    "state_code": "ekiti",
+    "pcode": "NG013015",
+    "area_sqkm": 197.17359814,
+    "latitude": 7.99314519,
+    "longitude": 5.13119435
+  },
+  {
+    "code": "ekiti_oye",
+    "name": "Oye",
+    "state_code": "ekiti",
+    "pcode": "NG013016",
+    "area_sqkm": 505.80857539,
+    "latitude": 7.88053589,
+    "longitude": 5.33753442
+  },
+  {
+    "code": "enugu_aninri",
+    "name": "Aninri",
+    "state_code": "enugu",
+    "pcode": "NG014001",
+    "area_sqkm": 369.55473429,
+    "latitude": 6.06792594,
+    "longitude": 7.59710863
+  },
+  {
+    "code": "enugu_awgu",
+    "name": "Awgu",
+    "state_code": "enugu",
+    "pcode": "NG014002",
+    "area_sqkm": 441.58805605,
+    "latitude": 6.17313265,
+    "longitude": 7.45124783
+  },
+  {
+    "code": "enugu_enugu_east",
+    "name": "Enugu East",
+    "state_code": "enugu",
+    "pcode": "NG014003",
+    "area_sqkm": 391.99965995,
+    "latitude": 6.55859892,
+    "longitude": 7.55743018
+  },
+  {
+    "code": "enugu_enugu_north",
+    "name": "Enugu North",
+    "state_code": "enugu",
+    "pcode": "NG014004",
+    "area_sqkm": 93.31866435,
+    "latitude": 6.44107845,
+    "longitude": 7.53832064
+  },
+  {
+    "code": "enugu_enugu_south",
+    "name": "Enugu South",
+    "state_code": "enugu",
+    "pcode": "NG014005",
+    "area_sqkm": 75.29271164,
+    "latitude": 6.39271307,
+    "longitude": 7.51624563
+  },
+  {
+    "code": "enugu_ezeagu",
+    "name": "Ezeagu",
+    "state_code": "enugu",
+    "pcode": "NG014006",
+    "area_sqkm": 638.22086274,
+    "latitude": 6.41705535,
+    "longitude": 7.23796008
+  },
+  {
+    "code": "enugu_igbo_etiti",
+    "name": "Igbo-Etiti",
+    "state_code": "enugu",
+    "pcode": "NG014007",
+    "area_sqkm": 333.98684058,
+    "latitude": 6.69040967,
+    "longitude": 7.39218014
+  },
+  {
+    "code": "enugu_igbo_eze_north",
+    "name": "Igbo-Eze North",
+    "state_code": "enugu",
+    "pcode": "NG014008",
+    "area_sqkm": 304.00237319,
+    "latitude": 7.01793805,
+    "longitude": 7.4679947
+  },
+  {
+    "code": "enugu_igbo_eze_south",
+    "name": "Igbo-Eze South",
+    "state_code": "enugu",
+    "pcode": "NG014009",
+    "area_sqkm": 170.14476465,
+    "latitude": 6.95598501,
+    "longitude": 7.36208885
+  },
+  {
+    "code": "enugu_isi_uzo",
+    "name": "Isi-Uzo",
+    "state_code": "enugu",
+    "pcode": "NG014010",
+    "area_sqkm": 845.70249203,
+    "latitude": 6.73900026,
+    "longitude": 7.70744354
+  },
+  {
+    "code": "enugu_nkanu_east",
+    "name": "Nkanu East",
+    "state_code": "enugu",
+    "pcode": "NG014011",
+    "area_sqkm": 760.16729422,
+    "latitude": 6.33502602,
+    "longitude": 7.67259253
+  },
+  {
+    "code": "enugu_nkanu_west",
+    "name": "Nkanu West",
+    "state_code": "enugu",
+    "pcode": "NG014012",
+    "area_sqkm": 254.90198082,
+    "latitude": 6.32814546,
+    "longitude": 7.53439992
+  },
+  {
+    "code": "enugu_nsukka",
+    "name": "Nsukka",
+    "state_code": "enugu",
+    "pcode": "NG014013",
+    "area_sqkm": 556.33737647,
+    "latitude": 6.84727273,
+    "longitude": 7.3715082
+  },
+  {
+    "code": "enugu_oji_river",
+    "name": "Oji-River",
+    "state_code": "enugu",
+    "pcode": "NG014014",
+    "area_sqkm": 411.37868718,
+    "latitude": 6.16549323,
+    "longitude": 7.3030229
+  },
+  {
+    "code": "enugu_udenu",
+    "name": "Udenu",
+    "state_code": "enugu",
+    "pcode": "NG014015",
+    "area_sqkm": 256.92972328,
+    "latitude": 6.89769599,
+    "longitude": 7.56103157
+  },
+  {
+    "code": "enugu_udi",
+    "name": "Udi",
+    "state_code": "enugu",
+    "pcode": "NG014016",
+    "area_sqkm": 890.8502707,
+    "latitude": 6.43614892,
+    "longitude": 7.39873639
+  },
+  {
+    "code": "enugu_uzo_uwani",
+    "name": "Uzo-Uwani",
+    "state_code": "enugu",
+    "pcode": "NG014017",
+    "area_sqkm": 841.74667596,
+    "latitude": 6.68860629,
+    "longitude": 7.1582969
+  },
+  {
+    "code": "fct_abaji",
+    "name": "Abaji",
+    "state_code": "fct",
+    "pcode": "NG015001",
+    "area_sqkm": 831.96001657,
+    "latitude": 8.83960899,
+    "longitude": 6.81854106
+  },
+  {
+    "code": "fct_abuja_municipal",
+    "name": "Abuja Municipal Area Council",
+    "state_code": "fct",
+    "pcode": "NG015002",
+    "area_sqkm": 1722.75199671,
+    "latitude": 8.88218392,
+    "longitude": 7.41810324
+  },
+  {
+    "code": "fct_bwari",
+    "name": "Bwari",
+    "state_code": "fct",
+    "pcode": "NG015003",
+    "area_sqkm": 1045.92464361,
+    "latitude": 9.23254564,
+    "longitude": 7.47000086
+  },
+  {
+    "code": "fct_gwagwalada",
+    "name": "Gwagwalada",
+    "state_code": "fct",
+    "pcode": "NG015004",
+    "area_sqkm": 1001.07366757,
+    "latitude": 9.07551184,
+    "longitude": 7.05435138
+  },
+  {
+    "code": "fct_kuje",
+    "name": "Kuje",
+    "state_code": "fct",
+    "pcode": "NG015005",
+    "area_sqkm": 1532.44120681,
+    "latitude": 8.6963208,
+    "longitude": 7.27827006
+  },
+  {
+    "code": "fct_kwali",
+    "name": "Kwali",
+    "state_code": "fct",
+    "pcode": "NG015006",
+    "area_sqkm": 1252.52707595,
+    "latitude": 8.71738863,
+    "longitude": 6.96267934
+  },
+  {
+    "code": "gombe_akko",
+    "name": "Akko",
+    "state_code": "gombe",
+    "pcode": "NG016001",
+    "area_sqkm": 2452.52869117,
+    "latitude": 10.10500047,
+    "longitude": 10.99442964
+  },
+  {
+    "code": "gombe_balanga",
+    "name": "Balanga",
+    "state_code": "gombe",
+    "pcode": "NG016002",
+    "area_sqkm": 1604.07844845,
+    "latitude": 9.81612358,
+    "longitude": 11.71643559
+  },
+  {
+    "code": "gombe_billiri",
+    "name": "Billiri",
+    "state_code": "gombe",
+    "pcode": "NG016003",
+    "area_sqkm": 761.56812765,
+    "latitude": 9.84244729,
+    "longitude": 11.12729801
+  },
+  {
+    "code": "gombe_dukku",
+    "name": "Dukku",
+    "state_code": "gombe",
+    "pcode": "NG016004",
+    "area_sqkm": 3692.63237852,
+    "latitude": 10.78727651,
+    "longitude": 10.82155631
+  },
+  {
+    "code": "gombe_funakaye",
+    "name": "Funakaye",
+    "state_code": "gombe",
+    "pcode": "NG016005",
+    "area_sqkm": 1592.47244015,
+    "latitude": 10.81425368,
+    "longitude": 11.44433123
+  },
+  {
+    "code": "gombe_gombe",
+    "name": "Gombe",
+    "state_code": "gombe",
+    "pcode": "NG016006",
+    "area_sqkm": 45.19405034,
+    "latitude": 10.29494147,
+    "longitude": 11.15808541
+  },
+  {
+    "code": "gombe_kaltungo",
+    "name": "Kaltungo",
+    "state_code": "gombe",
+    "pcode": "NG016007",
+    "area_sqkm": 1153.14285229,
+    "latitude": 9.8409123,
+    "longitude": 11.43224424
+  },
+  {
+    "code": "gombe_kwami",
+    "name": "Kwami",
+    "state_code": "gombe",
+    "pcode": "NG016008",
+    "area_sqkm": 1718.48273416,
+    "latitude": 10.49466408,
+    "longitude": 11.18437081
+  },
+  {
+    "code": "gombe_nafada",
+    "name": "Nafada",
+    "state_code": "gombe",
+    "pcode": "NG016009",
+    "area_sqkm": 1577.9577221,
+    "latitude": 11.05110805,
+    "longitude": 11.2465273
+  },
+  {
+    "code": "gombe_shomgom",
+    "name": "Shomgom",
+    "state_code": "gombe",
+    "pcode": "NG016010",
+    "area_sqkm": 867.82660138,
+    "latitude": 9.74969351,
+    "longitude": 11.24702245
+  },
+  {
+    "code": "gombe_yamaltu_deba",
+    "name": "Yamaltu/Deba",
+    "state_code": "gombe",
+    "pcode": "NG016011",
+    "area_sqkm": 1960.76233406,
+    "latitude": 10.31465133,
+    "longitude": 11.37241364
+  },
+  {
+    "code": "imo_aboh_mbaise",
+    "name": "Aboh-Mbaise",
+    "state_code": "imo",
+    "pcode": "NG017001",
+    "area_sqkm": 176.202664,
+    "latitude": 5.41889337,
+    "longitude": 7.25912039
+  },
+  {
+    "code": "imo_ahiazu_mbaise",
+    "name": "Ahiazu-Mbaise",
+    "state_code": "imo",
+    "pcode": "NG017002",
+    "area_sqkm": 113.89882677,
+    "latitude": 5.56319953,
+    "longitude": 7.26362692
+  },
+  {
+    "code": "imo_ehime_mbano",
+    "name": "Ehime-Mbano",
+    "state_code": "imo",
+    "pcode": "NG017003",
+    "area_sqkm": 174.29396159,
+    "latitude": 5.68844822,
+    "longitude": 7.29638876
+  },
+  {
+    "code": "imo_ezinihitte",
+    "name": "Ezinihitte",
+    "state_code": "imo",
+    "pcode": "NG017004",
+    "area_sqkm": 120.42330348,
+    "latitude": 5.47337275,
+    "longitude": 7.32239137
+  },
+  {
+    "code": "imo_ideato_north",
+    "name": "Ideato North",
+    "state_code": "imo",
+    "pcode": "NG017005",
+    "area_sqkm": 182.18492458,
+    "latitude": 5.86897997,
+    "longitude": 7.20631197
+  },
+  {
+    "code": "imo_ideato_south",
+    "name": "Ideato South",
+    "state_code": "imo",
+    "pcode": "NG017006",
+    "area_sqkm": 104.1558745,
+    "latitude": 5.81624328,
+    "longitude": 7.12345042
+  },
+  {
+    "code": "imo_ihitte_uboma",
+    "name": "Ihitte/Uboma",
+    "state_code": "imo",
+    "pcode": "NG017007",
+    "area_sqkm": 108.43018101,
+    "latitude": 5.64694741,
+    "longitude": 7.38185638
+  },
+  {
+    "code": "imo_ikeduru",
+    "name": "Ikeduru",
+    "state_code": "imo",
+    "pcode": "NG017008",
+    "area_sqkm": 181.14775484,
+    "latitude": 5.56304121,
+    "longitude": 7.15050121
+  },
+  {
+    "code": "imo_isiala_mbano",
+    "name": "Isiala Mbano",
+    "state_code": "imo",
+    "pcode": "NG017009",
+    "area_sqkm": 153.49028851,
+    "latitude": 5.68077224,
+    "longitude": 7.1971394
+  },
+  {
+    "code": "imo_isu",
+    "name": "Isu",
+    "state_code": "imo",
+    "pcode": "NG017010",
+    "area_sqkm": 52.59538545,
+    "latitude": 5.6880414,
+    "longitude": 7.05251124
+  },
+  {
+    "code": "imo_mbaitoli",
+    "name": "Mbaitoli",
+    "state_code": "imo",
+    "pcode": "NG017011",
+    "area_sqkm": 199.99383112,
+    "latitude": 5.59819361,
+    "longitude": 7.01605271
+  },
+  {
+    "code": "imo_ngor_okpala",
+    "name": "Ngor-Okpala",
+    "state_code": "imo",
+    "pcode": "NG017012",
+    "area_sqkm": 542.17564871,
+    "latitude": 5.32742309,
+    "longitude": 7.15750337
+  },
+  {
+    "code": "imo_njaba",
+    "name": "Njaba",
+    "state_code": "imo",
+    "pcode": "NG017013",
+    "area_sqkm": 78.45827504,
+    "latitude": 5.70099564,
+    "longitude": 7.00107358
+  },
+  {
+    "code": "imo_nkwerre",
+    "name": "Nkwerre",
+    "state_code": "imo",
+    "pcode": "NG017014",
+    "area_sqkm": 35.04408287,
+    "latitude": 5.74996936,
+    "longitude": 7.10038113
+  },
+  {
+    "code": "imo_nwangele",
+    "name": "Nwangele",
+    "state_code": "imo",
+    "pcode": "NG017015",
+    "area_sqkm": 69.64521801,
+    "latitude": 5.70937339,
+    "longitude": 7.11990421
+  },
+  {
+    "code": "imo_obowo",
+    "name": "Obowo",
+    "state_code": "imo",
+    "pcode": "NG017016",
+    "area_sqkm": 86.4244058,
+    "latitude": 5.56037328,
+    "longitude": 7.36112934
+  },
+  {
+    "code": "imo_oguta",
+    "name": "Oguta",
+    "state_code": "imo",
+    "pcode": "NG017017",
+    "area_sqkm": 422.25672522,
+    "latitude": 5.6551247,
+    "longitude": 6.78051588
+  },
+  {
+    "code": "imo_ohaji_egbema",
+    "name": "Ohaji/Egbema",
+    "state_code": "imo",
+    "pcode": "NG017018",
+    "area_sqkm": 895.84869249,
+    "latitude": 5.42551101,
+    "longitude": 6.84843849
+  },
+  {
+    "code": "imo_okigwe",
+    "name": "Okigwe",
+    "state_code": "imo",
+    "pcode": "NG017019",
+    "area_sqkm": 306.88429855,
+    "latitude": 5.82118984,
+    "longitude": 7.32072106
+  },
+  {
+    "code": "imo_orlu",
+    "name": "Orlu",
+    "state_code": "imo",
+    "pcode": "NG017020",
+    "area_sqkm": 122.71313296,
+    "latitude": 5.8186979,
+    "longitude": 7.03354982
+  },
+  {
+    "code": "imo_orsu",
+    "name": "Orsu",
+    "state_code": "imo",
+    "pcode": "NG017021",
+    "area_sqkm": 75.05410525,
+    "latitude": 5.84593964,
+    "longitude": 6.96696935
+  },
+  {
+    "code": "imo_oru_east",
+    "name": "Oru East",
+    "state_code": "imo",
+    "pcode": "NG017022",
+    "area_sqkm": 131.41131701,
+    "latitude": 5.72935753,
+    "longitude": 6.94704099
+  },
+  {
+    "code": "imo_oru_west",
+    "name": "Oru West",
+    "state_code": "imo",
+    "pcode": "NG017023",
+    "area_sqkm": 96.7378619,
+    "latitude": 5.7586544,
+    "longitude": 6.90631938
+  },
+  {
+    "code": "imo_owerri_north",
+    "name": "Owerri North",
+    "state_code": "imo",
+    "pcode": "NG017024",
+    "area_sqkm": 193.94643899,
+    "latitude": 5.43175901,
+    "longitude": 7.10772833
+  },
+  {
+    "code": "imo_owerri_west",
+    "name": "Owerri West",
+    "state_code": "imo",
+    "pcode": "NG017025",
+    "area_sqkm": 286.30460525,
+    "latitude": 5.40682746,
+    "longitude": 6.9851183
+  },
+  {
+    "code": "imo_owerri_municipal",
+    "name": "Owerri-Municipal",
+    "state_code": "imo",
+    "pcode": "NG017026",
+    "area_sqkm": 56.29551493,
+    "latitude": 5.47990065,
+    "longitude": 7.02198268
+  },
+  {
+    "code": "imo_unuimo",
+    "name": "Unuimo",
+    "state_code": "imo",
+    "pcode": "NG017027",
+    "area_sqkm": 107.65928058,
+    "latitude": 5.7968149,
+    "longitude": 7.22481177
+  },
+  {
+    "code": "jigawa_auyo",
+    "name": "Auyo",
+    "state_code": "jigawa",
+    "pcode": "NG018001",
+    "area_sqkm": 424.06241667,
+    "latitude": 12.33805241,
+    "longitude": 9.91935706
+  },
+  {
+    "code": "jigawa_babura",
+    "name": "Babura",
+    "state_code": "jigawa",
+    "pcode": "NG018002",
+    "area_sqkm": 1001.97422091,
+    "latitude": 12.6128072,
+    "longitude": 8.8383107
+  },
+  {
+    "code": "jigawa_biriniwa",
+    "name": "Biriniwa",
+    "state_code": "jigawa",
+    "pcode": "NG018003",
+    "area_sqkm": 1592.799118,
+    "latitude": 12.82497496,
+    "longitude": 10.09204274
+  },
+  {
+    "code": "jigawa_birni_kudu",
+    "name": "Birni Kudu",
+    "state_code": "jigawa",
+    "pcode": "NG018004",
+    "area_sqkm": 1403.58124053,
+    "latitude": 11.49040509,
+    "longitude": 9.46174257
+  },
+  {
+    "code": "jigawa_buji",
+    "name": "Buji",
+    "state_code": "jigawa",
+    "pcode": "NG018005",
+    "area_sqkm": 568.76829096,
+    "latitude": 11.54765184,
+    "longitude": 9.71537264
+  },
+  {
+    "code": "jigawa_dutse",
+    "name": "Dutse",
+    "state_code": "jigawa",
+    "pcode": "NG018006",
+    "area_sqkm": 1029.20955208,
+    "latitude": 11.80509344,
+    "longitude": 9.25824063
+  },
+  {
+    "code": "jigawa_gagarawa",
+    "name": "Gagarawa",
+    "state_code": "jigawa",
+    "pcode": "NG018007",
+    "area_sqkm": 582.81907168,
+    "latitude": 12.49287775,
+    "longitude": 9.52701799
+  },
+  {
+    "code": "jigawa_garki",
+    "name": "Garki",
+    "state_code": "jigawa",
+    "pcode": "NG018008",
+    "area_sqkm": 1409.33552608,
+    "latitude": 12.40897502,
+    "longitude": 9.10810313
+  },
+  {
+    "code": "jigawa_gumel",
+    "name": "Gumel",
+    "state_code": "jigawa",
+    "pcode": "NG018009",
+    "area_sqkm": 227.41942042,
+    "latitude": 12.63173671,
+    "longitude": 9.39935875
+  },
+  {
+    "code": "jigawa_guri",
+    "name": "Guri",
+    "state_code": "jigawa",
+    "pcode": "NG018010",
+    "area_sqkm": 1064.13935785,
+    "latitude": 12.64528669,
+    "longitude": 10.48146527
+  },
+  {
+    "code": "jigawa_gwaram",
+    "name": "Gwaram",
+    "state_code": "jigawa",
+    "pcode": "NG018011",
+    "area_sqkm": 1858.61748807,
+    "latitude": 11.2088772,
+    "longitude": 10.07110586
+  },
+  {
+    "code": "jigawa_gwiwa",
+    "name": "Gwiwa",
+    "state_code": "jigawa",
+    "pcode": "NG018012",
+    "area_sqkm": 451.54205796,
+    "latitude": 12.74441529,
+    "longitude": 8.28234564
+  },
+  {
+    "code": "jigawa_hadejia",
+    "name": "Hadejia",
+    "state_code": "jigawa",
+    "pcode": "NG018013",
+    "area_sqkm": 32.23341845,
+    "latitude": 12.47444896,
+    "longitude": 10.04787893
+  },
+  {
+    "code": "jigawa_jahun",
+    "name": "Jahun",
+    "state_code": "jigawa",
+    "pcode": "NG018014",
+    "area_sqkm": 1245.95943471,
+    "latitude": 12.06542938,
+    "longitude": 9.56099492
+  },
+  {
+    "code": "jigawa_kafin_hausa",
+    "name": "Kafin Hausa",
+    "state_code": "jigawa",
+    "pcode": "NG018015",
+    "area_sqkm": 1371.15486089,
+    "latitude": 12.16895168,
+    "longitude": 9.97775237
+  },
+  {
+    "code": "jigawa_kaugama",
+    "name": "Kaugama",
+    "state_code": "jigawa",
+    "pcode": "NG018016",
+    "area_sqkm": 817.31756417,
+    "latitude": 12.5593585,
+    "longitude": 9.7673542
+  },
+  {
+    "code": "jigawa_kazaure",
+    "name": "Kazaure",
+    "state_code": "jigawa",
+    "pcode": "NG018017",
+    "area_sqkm": 382.13903733,
+    "latitude": 12.66061345,
+    "longitude": 8.45063631
+  },
+  {
+    "code": "jigawa_kiri_kasamma",
+    "name": "Kiri Kasamma",
+    "state_code": "jigawa",
+    "pcode": "NG018018",
+    "area_sqkm": 829.83639968,
+    "latitude": 12.59975915,
+    "longitude": 10.25751656
+  },
+  {
+    "code": "jigawa_kiyawa",
+    "name": "Kiyawa",
+    "state_code": "jigawa",
+    "pcode": "NG018019",
+    "area_sqkm": 1031.47837393,
+    "latitude": 11.81169495,
+    "longitude": 9.52472043
+  },
+  {
+    "code": "jigawa_maigatari",
+    "name": "Maigatari",
+    "state_code": "jigawa",
+    "pcode": "NG018020",
+    "area_sqkm": 964.55417287,
+    "latitude": 12.68645084,
+    "longitude": 9.61718226
+  },
+  {
+    "code": "jigawa_malam_madori",
+    "name": "Malam Madori",
+    "state_code": "jigawa",
+    "pcode": "NG018021",
+    "area_sqkm": 806.61235321,
+    "latitude": 12.53320247,
+    "longitude": 9.95324462
+  },
+  {
+    "code": "jigawa_miga",
+    "name": "Miga",
+    "state_code": "jigawa",
+    "pcode": "NG018022",
+    "area_sqkm": 569.07816172,
+    "latitude": 12.22487846,
+    "longitude": 9.67756767
+  },
+  {
+    "code": "jigawa_ringim",
+    "name": "Ringim",
+    "state_code": "jigawa",
+    "pcode": "NG018023",
+    "area_sqkm": 1020.94675648,
+    "latitude": 12.16989517,
+    "longitude": 9.14846238
+  },
+  {
+    "code": "jigawa_roni",
+    "name": "Roni",
+    "state_code": "jigawa",
+    "pcode": "NG018024",
+    "area_sqkm": 304.18843601,
+    "latitude": 12.57227022,
+    "longitude": 8.3820069
+  },
+  {
+    "code": "jigawa_sule_tankarkar",
+    "name": "Sule-Tankarkar",
+    "state_code": "jigawa",
+    "pcode": "NG018025",
+    "area_sqkm": 1232.60622823,
+    "latitude": 12.63420844,
+    "longitude": 9.17484993
+  },
+  {
+    "code": "jigawa_taura",
+    "name": "Taura",
+    "state_code": "jigawa",
+    "pcode": "NG018026",
+    "area_sqkm": 655.74490163,
+    "latitude": 12.27916246,
+    "longitude": 9.35272305
+  },
+  {
+    "code": "jigawa_yankwashi",
+    "name": "Yankwashi",
+    "state_code": "jigawa",
+    "pcode": "NG018027",
+    "area_sqkm": 338.06910197,
+    "latitude": 12.74267465,
+    "longitude": 8.50295475
+  },
+  {
+    "code": "kaduna_birnin_gwari",
+    "name": "Birnin-Gwari",
+    "state_code": "kaduna",
+    "pcode": "NG019001",
+    "area_sqkm": 6529.22970351,
+    "latitude": 10.88233441,
+    "longitude": 6.65432123
+  },
+  {
+    "code": "kaduna_chikun",
+    "name": "Chikun",
+    "state_code": "kaduna",
+    "pcode": "NG019002",
+    "area_sqkm": 4482.17508055,
+    "latitude": 10.4112452,
+    "longitude": 7.30374467
+  },
+  {
+    "code": "kaduna_giwa",
+    "name": "Giwa",
+    "state_code": "kaduna",
+    "pcode": "NG019003",
+    "area_sqkm": 1985.55171416,
+    "latitude": 11.1193011,
+    "longitude": 7.40977252
+  },
+  {
+    "code": "kaduna_igabi",
+    "name": "Igabi",
+    "state_code": "kaduna",
+    "pcode": "NG019004",
+    "area_sqkm": 3391.92368959,
+    "latitude": 10.74260477,
+    "longitude": 7.48357192
+  },
+  {
+    "code": "kaduna_ikara",
+    "name": "Ikara",
+    "state_code": "kaduna",
+    "pcode": "NG019005",
+    "area_sqkm": 940.76501384,
+    "latitude": 11.31367503,
+    "longitude": 8.14743501
+  },
+  {
+    "code": "kaduna_jaba",
+    "name": "Jaba",
+    "state_code": "kaduna",
+    "pcode": "NG019006",
+    "area_sqkm": 454.54245725,
+    "latitude": 9.47616768,
+    "longitude": 8.02435976
+  },
+  {
+    "code": "kaduna_jemaa",
+    "name": "Jema'a",
+    "state_code": "kaduna",
+    "pcode": "NG019007",
+    "area_sqkm": 1416.2512242,
+    "latitude": 9.39903146,
+    "longitude": 8.26209883
+  },
+  {
+    "code": "kaduna_kachia",
+    "name": "Kachia",
+    "state_code": "kaduna",
+    "pcode": "NG019008",
+    "area_sqkm": 4590.58385396,
+    "latitude": 9.85955988,
+    "longitude": 7.67595665
+  },
+  {
+    "code": "kaduna_kaduna_north",
+    "name": "Kaduna North",
+    "state_code": "kaduna",
+    "pcode": "NG019009",
+    "area_sqkm": 59.36817258,
+    "latitude": 10.54451639,
+    "longitude": 7.45015319
+  },
+  {
+    "code": "kaduna_kaduna_south",
+    "name": "Kaduna South",
+    "state_code": "kaduna",
+    "pcode": "NG019010",
+    "area_sqkm": 52.69910306,
+    "latitude": 10.51088461,
+    "longitude": 7.39983594
+  },
+  {
+    "code": "kaduna_kagarko",
+    "name": "Kagarko",
+    "state_code": "kaduna",
+    "pcode": "NG019011",
+    "area_sqkm": 1910.93086819,
+    "latitude": 9.49357542,
+    "longitude": 7.58513036
+  },
+  {
+    "code": "kaduna_kajuru",
+    "name": "Kajuru",
+    "state_code": "kaduna",
+    "pcode": "NG019012",
+    "area_sqkm": 3009.02520958,
+    "latitude": 10.2201434,
+    "longitude": 8.31847666
+  },
+  {
+    "code": "kaduna_kaura",
+    "name": "Kaura",
+    "state_code": "kaduna",
+    "pcode": "NG019013",
+    "area_sqkm": 518.95588008,
+    "latitude": 9.6202334,
+    "longitude": 8.44358199
+  },
+  {
+    "code": "kaduna_kauru",
+    "name": "Kauru",
+    "state_code": "kaduna",
+    "pcode": "NG019014",
+    "area_sqkm": 2512.22053724,
+    "latitude": 10.26253047,
+    "longitude": 7.86185078
+  },
+  {
+    "code": "kaduna_kubau",
+    "name": "Kubau",
+    "state_code": "kaduna",
+    "pcode": "NG019015",
+    "area_sqkm": 2362.00359575,
+    "latitude": 10.85699371,
+    "longitude": 8.37393809
+  },
+  {
+    "code": "kaduna_kudan",
+    "name": "Kudan",
+    "state_code": "kaduna",
+    "pcode": "NG019016",
+    "area_sqkm": 334.13549829,
+    "latitude": 11.26792888,
+    "longitude": 7.71922309
+  },
+  {
+    "code": "kaduna_lere",
+    "name": "Lere",
+    "state_code": "kaduna",
+    "pcode": "NG019017",
+    "area_sqkm": 2301.14884047,
+    "latitude": 10.33701689,
+    "longitude": 8.58054696
+  },
+  {
+    "code": "kaduna_markafi",
+    "name": "Markafi",
+    "state_code": "kaduna",
+    "pcode": "NG019018",
+    "area_sqkm": 572.25888412,
+    "latitude": 11.32740103,
+    "longitude": 7.95579185
+  },
+  {
+    "code": "kaduna_sabon_gari",
+    "name": "Sabon-Gari",
+    "state_code": "kaduna",
+    "pcode": "NG019019",
+    "area_sqkm": 262.59727965,
+    "latitude": 11.17879319,
+    "longitude": 7.6759905
+  },
+  {
+    "code": "kaduna_sanga",
+    "name": "Sanga",
+    "state_code": "kaduna",
+    "pcode": "NG019020",
+    "area_sqkm": 1494.02812358,
+    "latitude": 9.25128807,
+    "longitude": 8.43736848
+  },
+  {
+    "code": "kaduna_soba",
+    "name": "Soba",
+    "state_code": "kaduna",
+    "pcode": "NG019021",
+    "area_sqkm": 2247.94875996,
+    "latitude": 10.95355757,
+    "longitude": 8.05348766
+  },
+  {
+    "code": "kaduna_zango_kataf",
+    "name": "Zango-Kataf",
+    "state_code": "kaduna",
+    "pcode": "NG019022",
+    "area_sqkm": 2333.07789207,
+    "latitude": 9.83906829,
+    "longitude": 8.27780196
+  },
+  {
+    "code": "kaduna_zaria",
+    "name": "Zaria",
+    "state_code": "kaduna",
+    "pcode": "NG019023",
+    "area_sqkm": 393.89004479,
+    "latitude": 11.01878777,
+    "longitude": 7.64597686
+  },
+  {
+    "code": "kano_ajingi",
+    "name": "Ajingi",
+    "state_code": "kano",
+    "pcode": "NG020001",
+    "area_sqkm": 714.36733338,
+    "latitude": 11.99154505,
+    "longitude": 9.07502572
+  },
+  {
+    "code": "kano_albasu",
+    "name": "Albasu",
+    "state_code": "kano",
+    "pcode": "NG020002",
+    "area_sqkm": 444.12486853,
+    "latitude": 11.62668995,
+    "longitude": 9.02940029
+  },
+  {
+    "code": "kano_bagwai",
+    "name": "Bagwai",
+    "state_code": "kano",
+    "pcode": "NG020003",
+    "area_sqkm": 422.71216881,
+    "latitude": 12.09819036,
+    "longitude": 8.12494443
+  },
+  {
+    "code": "kano_bebeji",
+    "name": "Bebeji",
+    "state_code": "kano",
+    "pcode": "NG020004",
+    "area_sqkm": 724.64000994,
+    "latitude": 11.5255099,
+    "longitude": 8.32778333
+  },
+  {
+    "code": "kano_bichi",
+    "name": "Bichi",
+    "state_code": "kano",
+    "pcode": "NG020005",
+    "area_sqkm": 687.79023381,
+    "latitude": 12.28820362,
+    "longitude": 8.30100099
+  },
+  {
+    "code": "kano_bunkure",
+    "name": "Bunkure",
+    "state_code": "kano",
+    "pcode": "NG020006",
+    "area_sqkm": 441.52868698,
+    "latitude": 11.67249003,
+    "longitude": 8.55344839
+  },
+  {
+    "code": "kano_dala",
+    "name": "Dala",
+    "state_code": "kano",
+    "pcode": "NG020007",
+    "area_sqkm": 13.4096035,
+    "latitude": 12.02695033,
+    "longitude": 8.49352231
+  },
+  {
+    "code": "kano_dambatta",
+    "name": "Dambatta",
+    "state_code": "kano",
+    "pcode": "NG020008",
+    "area_sqkm": 789.99892011,
+    "latitude": 12.42522017,
+    "longitude": 8.64198254
+  },
+  {
+    "code": "kano_dawakin_kudu",
+    "name": "Dawakin Kudu",
+    "state_code": "kano",
+    "pcode": "NG020009",
+    "area_sqkm": 384.47068265,
+    "latitude": 11.79472975,
+    "longitude": 8.70835413
+  },
+  {
+    "code": "kano_dawakin_tofa",
+    "name": "Dawakin Tofa",
+    "state_code": "kano",
+    "pcode": "NG020010",
+    "area_sqkm": 437.37030112,
+    "latitude": 12.14687639,
+    "longitude": 8.38219181
+  },
+  {
+    "code": "kano_doguwa",
+    "name": "Doguwa",
+    "state_code": "kano",
+    "pcode": "NG020011",
+    "area_sqkm": 1489.2835828,
+    "latitude": 10.88955974,
+    "longitude": 8.66953147
+  },
+  {
+    "code": "kano_fagge",
+    "name": "Fagge",
+    "state_code": "kano",
+    "pcode": "NG020012",
+    "area_sqkm": 38.55313963,
+    "latitude": 12.02686399,
+    "longitude": 8.52357893
+  },
+  {
+    "code": "kano_gabasawa",
+    "name": "Gabasawa",
+    "state_code": "kano",
+    "pcode": "NG020013",
+    "area_sqkm": 610.94959642,
+    "latitude": 12.13699487,
+    "longitude": 8.86642646
+  },
+  {
+    "code": "kano_garko",
+    "name": "Garko",
+    "state_code": "kano",
+    "pcode": "NG020014",
+    "area_sqkm": 441.93762296,
+    "latitude": 11.55077003,
+    "longitude": 8.84247513
+  },
+  {
+    "code": "kano_garum_mallam",
+    "name": "Garum Mallam",
+    "state_code": "kano",
+    "pcode": "NG020015",
+    "area_sqkm": 227.82910727,
+    "latitude": 11.66026028,
+    "longitude": 8.39299765
+  },
+  {
+    "code": "kano_gaya",
+    "name": "Gaya",
+    "state_code": "kano",
+    "pcode": "NG020016",
+    "area_sqkm": 567.82767935,
+    "latitude": 11.79272514,
+    "longitude": 9.01790972
+  },
+  {
+    "code": "kano_gezawa",
+    "name": "Gezawa",
+    "state_code": "kano",
+    "pcode": "NG020017",
+    "area_sqkm": 338.93583181,
+    "latitude": 12.05692064,
+    "longitude": 8.74132519
+  },
+  {
+    "code": "kano_gwale",
+    "name": "Gwale",
+    "state_code": "kano",
+    "pcode": "NG020018",
+    "area_sqkm": 23.63682838,
+    "latitude": 11.97782724,
+    "longitude": 8.48361182
+  },
+  {
+    "code": "kano_gwarzo",
+    "name": "Gwarzo",
+    "state_code": "kano",
+    "pcode": "NG020019",
+    "area_sqkm": 436.3068318,
+    "latitude": 11.90338284,
+    "longitude": 7.98440765
+  },
+  {
+    "code": "kano_kabo",
+    "name": "Kabo",
+    "state_code": "kano",
+    "pcode": "NG020020",
+    "area_sqkm": 372.22152427,
+    "latitude": 11.89781998,
+    "longitude": 8.19665464
+  },
+  {
+    "code": "kano_kano_municipal",
+    "name": "Kano Municipal",
+    "state_code": "kano",
+    "pcode": "NG020021",
+    "area_sqkm": 17.18012541,
+    "latitude": 11.97961138,
+    "longitude": 8.51569516
+  },
+  {
+    "code": "kano_karaye",
+    "name": "Karaye",
+    "state_code": "kano",
+    "pcode": "NG020022",
+    "area_sqkm": 449.86902265,
+    "latitude": 11.7495648,
+    "longitude": 7.98611595
+  },
+  {
+    "code": "kano_kibiya",
+    "name": "Kibiya",
+    "state_code": "kano",
+    "pcode": "NG020023",
+    "area_sqkm": 436.53751012,
+    "latitude": 11.4925604,
+    "longitude": 8.68283276
+  },
+  {
+    "code": "kano_kiru",
+    "name": "Kiru",
+    "state_code": "kano",
+    "pcode": "NG020024",
+    "area_sqkm": 904.45429497,
+    "latitude": 11.5526599,
+    "longitude": 8.11424829
+  },
+  {
+    "code": "kano_kumbotso",
+    "name": "Kumbotso",
+    "state_code": "kano",
+    "pcode": "NG020025",
+    "area_sqkm": 191.64580243,
+    "latitude": 11.92089994,
+    "longitude": 8.51958793
+  },
+  {
+    "code": "kano_ghari",
+    "name": "Ghari",
+    "state_code": "kano",
+    "pcode": "NG020026",
+    "area_sqkm": 520.82513529,
+    "latitude": 12.46780008,
+    "longitude": 8.26729586
+  },
+  {
+    "code": "kano_kura",
+    "name": "Kura",
+    "state_code": "kano",
+    "pcode": "NG020027",
+    "area_sqkm": 196.01576777,
+    "latitude": 11.77501489,
+    "longitude": 8.47804499
+  },
+  {
+    "code": "kano_madobi",
+    "name": "Madobi",
+    "state_code": "kano",
+    "pcode": "NG020028",
+    "area_sqkm": 257.91954102,
+    "latitude": 11.81335976,
+    "longitude": 8.37013114
+  },
+  {
+    "code": "kano_makoda",
+    "name": "Makoda",
+    "state_code": "kano",
+    "pcode": "NG020029",
+    "area_sqkm": 401.85282362,
+    "latitude": 12.4217695,
+    "longitude": 8.4417771
+  },
+  {
+    "code": "kano_minjibir",
+    "name": "Minjibir",
+    "state_code": "kano",
+    "pcode": "NG020030",
+    "area_sqkm": 431.45991131,
+    "latitude": 12.19260094,
+    "longitude": 8.62126821
+  },
+  {
+    "code": "kano_nasarawa",
+    "name": "Nasarawa",
+    "state_code": "kano",
+    "pcode": "NG020031",
+    "area_sqkm": 41.6839369,
+    "latitude": 12.00443159,
+    "longitude": 8.58502794
+  },
+  {
+    "code": "kano_rano",
+    "name": "Rano",
+    "state_code": "kano",
+    "pcode": "NG020032",
+    "area_sqkm": 517.38656515,
+    "latitude": 11.48402509,
+    "longitude": 8.51004846
+  },
+  {
+    "code": "kano_rimin_gado",
+    "name": "Rimin Gado",
+    "state_code": "kano",
+    "pcode": "NG020033",
+    "area_sqkm": 266.82289164,
+    "latitude": 11.92690966,
+    "longitude": 8.32350376
+  },
+  {
+    "code": "kano_rogo",
+    "name": "Rogo",
+    "state_code": "kano",
+    "pcode": "NG020034",
+    "area_sqkm": 798.50191206,
+    "latitude": 11.50881992,
+    "longitude": 7.86330923
+  },
+  {
+    "code": "kano_shanono",
+    "name": "Shanono",
+    "state_code": "kano",
+    "pcode": "NG020035",
+    "area_sqkm": 508.09256709,
+    "latitude": 12.08693843,
+    "longitude": 7.92906664
+  },
+  {
+    "code": "kano_sumaila",
+    "name": "Sumaila",
+    "state_code": "kano",
+    "pcode": "NG020036",
+    "area_sqkm": 1249.56560744,
+    "latitude": 11.32509029,
+    "longitude": 8.96054083
+  },
+  {
+    "code": "kano_takai",
+    "name": "Takai",
+    "state_code": "kano",
+    "pcode": "NG020037",
+    "area_sqkm": 598.19496835,
+    "latitude": 11.48744529,
+    "longitude": 9.13942172
+  },
+  {
+    "code": "kano_tarauni",
+    "name": "Tarauni",
+    "state_code": "kano",
+    "pcode": "NG020038",
+    "area_sqkm": 26.69324018,
+    "latitude": 11.96443944,
+    "longitude": 8.5561058
+  },
+  {
+    "code": "kano_tofa",
+    "name": "Tofa",
+    "state_code": "kano",
+    "pcode": "NG020039",
+    "area_sqkm": 190.66784307,
+    "latitude": 12.01454373,
+    "longitude": 8.34058747
+  },
+  {
+    "code": "kano_tsanyawa",
+    "name": "Tsanyawa",
+    "state_code": "kano",
+    "pcode": "NG020040",
+    "area_sqkm": 535.76555977,
+    "latitude": 12.27793078,
+    "longitude": 8.00221063
+  },
+  {
+    "code": "kano_tudun_wada",
+    "name": "Tudun Wada",
+    "state_code": "kano",
+    "pcode": "NG020041",
+    "area_sqkm": 1226.84429754,
+    "latitude": 11.20851525,
+    "longitude": 8.5121067
+  },
+  {
+    "code": "kano_ungogo",
+    "name": "Ungogo",
+    "state_code": "kano",
+    "pcode": "NG020042",
+    "area_sqkm": 222.851839,
+    "latitude": 12.04197439,
+    "longitude": 8.6056237
+  },
+  {
+    "code": "kano_warawa",
+    "name": "Warawa",
+    "state_code": "kano",
+    "pcode": "NG020043",
+    "area_sqkm": 363.81928333,
+    "latitude": 11.89853,
+    "longitude": 8.76492024
+  },
+  {
+    "code": "kano_wudil",
+    "name": "Wudil",
+    "state_code": "kano",
+    "pcode": "NG020044",
+    "area_sqkm": 362.00891214,
+    "latitude": 11.75916482,
+    "longitude": 8.85111279
+  },
+  {
+    "code": "katsina_bakori",
+    "name": "Bakori",
+    "state_code": "katsina",
+    "pcode": "NG021001",
+    "area_sqkm": 753.81208852,
+    "latitude": 11.64566972,
+    "longitude": 7.42889986
+  },
+  {
+    "code": "katsina_batagarawa",
+    "name": "Batagarawa",
+    "state_code": "katsina",
+    "pcode": "NG021002",
+    "area_sqkm": 523.92434972,
+    "latitude": 12.87906428,
+    "longitude": 7.5305573
+  },
+  {
+    "code": "katsina_batsari",
+    "name": "Batsari",
+    "state_code": "katsina",
+    "pcode": "NG021003",
+    "area_sqkm": 1178.51137262,
+    "latitude": 12.82686234,
+    "longitude": 7.25837204
+  },
+  {
+    "code": "katsina_baure",
+    "name": "Baure",
+    "state_code": "katsina",
+    "pcode": "NG021004",
+    "area_sqkm": 789.56382531,
+    "latitude": 12.79355527,
+    "longitude": 8.78158752
+  },
+  {
+    "code": "katsina_bindawa",
+    "name": "Bindawa",
+    "state_code": "katsina",
+    "pcode": "NG021005",
+    "area_sqkm": 497.37758099,
+    "latitude": 12.70927628,
+    "longitude": 7.87762204
+  },
+  {
+    "code": "katsina_charanchi",
+    "name": "Charanchi",
+    "state_code": "katsina",
+    "pcode": "NG021006",
+    "area_sqkm": 488.75283573,
+    "latitude": 12.5545654,
+    "longitude": 7.67739509
+  },
+  {
+    "code": "katsina_dan_musa",
+    "name": "Dan Musa",
+    "state_code": "katsina",
+    "pcode": "NG021007",
+    "area_sqkm": 807.48834831,
+    "latitude": 12.21635492,
+    "longitude": 7.35165675
+  },
+  {
+    "code": "katsina_dandume",
+    "name": "Dandume",
+    "state_code": "katsina",
+    "pcode": "NG021008",
+    "area_sqkm": 479.13007287,
+    "latitude": 11.41431676,
+    "longitude": 7.2064138
+  },
+  {
+    "code": "katsina_danja",
+    "name": "Danja",
+    "state_code": "katsina",
+    "pcode": "NG021009",
+    "area_sqkm": 482.57958272,
+    "latitude": 11.41048538,
+    "longitude": 7.59617107
+  },
+  {
+    "code": "katsina_daura",
+    "name": "Daura",
+    "state_code": "katsina",
+    "pcode": "NG021010",
+    "area_sqkm": 191.54646578,
+    "latitude": 12.96031495,
+    "longitude": 8.26512929
+  },
+  {
+    "code": "katsina_dutsi",
+    "name": "Dutsi",
+    "state_code": "katsina",
+    "pcode": "NG021011",
+    "area_sqkm": 325.44541607,
+    "latitude": 12.91625348,
+    "longitude": 8.15731183
+  },
+  {
+    "code": "katsina_dutsin_ma",
+    "name": "Dutsin-Ma",
+    "state_code": "katsina",
+    "pcode": "NG021012",
+    "area_sqkm": 647.3818987,
+    "latitude": 12.41525172,
+    "longitude": 7.52492722
+  },
+  {
+    "code": "katsina_faskari",
+    "name": "Faskari",
+    "state_code": "katsina",
+    "pcode": "NG021013",
+    "area_sqkm": 1682.47577212,
+    "latitude": 11.65548511,
+    "longitude": 7.09388238
+  },
+  {
+    "code": "katsina_funtua",
+    "name": "Funtua",
+    "state_code": "katsina",
+    "pcode": "NG021014",
+    "area_sqkm": 422.34294028,
+    "latitude": 11.4335734,
+    "longitude": 7.3444566
+  },
+  {
+    "code": "katsina_ingawa",
+    "name": "Ingawa",
+    "state_code": "katsina",
+    "pcode": "NG021015",
+    "area_sqkm": 789.50501061,
+    "latitude": 12.60770755,
+    "longitude": 8.14466042
+  },
+  {
+    "code": "katsina_jibia",
+    "name": "Jibia",
+    "state_code": "katsina",
+    "pcode": "NG021016",
+    "area_sqkm": 1066.92783484,
+    "latitude": 13.00457005,
+    "longitude": 7.40711561
+  },
+  {
+    "code": "katsina_kafur",
+    "name": "Kafur",
+    "state_code": "katsina",
+    "pcode": "NG021017",
+    "area_sqkm": 1013.58810328,
+    "latitude": 11.63564521,
+    "longitude": 7.7185651
+  },
+  {
+    "code": "katsina_kaita",
+    "name": "Kaita",
+    "state_code": "katsina",
+    "pcode": "NG021018",
+    "area_sqkm": 714.28431823,
+    "latitude": 13.17897921,
+    "longitude": 7.78231191
+  },
+  {
+    "code": "katsina_kankara",
+    "name": "Kankara",
+    "state_code": "katsina",
+    "pcode": "NG021019",
+    "area_sqkm": 1395.01332237,
+    "latitude": 12.01976496,
+    "longitude": 7.34718314
+  },
+  {
+    "code": "katsina_kankia",
+    "name": "Kankia",
+    "state_code": "katsina",
+    "pcode": "NG021020",
+    "area_sqkm": 754.50016316,
+    "latitude": 12.4376405,
+    "longitude": 7.79188517
+  },
+  {
+    "code": "katsina_katsina",
+    "name": "Katsina",
+    "state_code": "katsina",
+    "pcode": "NG021021",
+    "area_sqkm": 148.00865837,
+    "latitude": 13.00891956,
+    "longitude": 7.6130591
+  },
+  {
+    "code": "katsina_kurfi",
+    "name": "Kurfi",
+    "state_code": "katsina",
+    "pcode": "NG021022",
+    "area_sqkm": 576.5804503,
+    "latitude": 12.68703519,
+    "longitude": 7.48651879
+  },
+  {
+    "code": "katsina_kusada",
+    "name": "Kusada",
+    "state_code": "katsina",
+    "pcode": "NG021023",
+    "area_sqkm": 455.75451201,
+    "latitude": 12.45745539,
+    "longitude": 7.97368288
+  },
+  {
+    "code": "katsina_maiadua",
+    "name": "Mai'adua",
+    "state_code": "katsina",
+    "pcode": "NG021024",
+    "area_sqkm": 619.44823064,
+    "latitude": 13.15320131,
+    "longitude": 8.20892688
+  },
+  {
+    "code": "katsina_malumfashi",
+    "name": "Malumfashi",
+    "state_code": "katsina",
+    "pcode": "NG021025",
+    "area_sqkm": 805.95670955,
+    "latitude": 11.84549901,
+    "longitude": 7.67902619
+  },
+  {
+    "code": "katsina_mani",
+    "name": "Mani",
+    "state_code": "katsina",
+    "pcode": "NG021026",
+    "area_sqkm": 670.63717389,
+    "latitude": 12.90916176,
+    "longitude": 7.93937331
+  },
+  {
+    "code": "katsina_mashi",
+    "name": "Mashi",
+    "state_code": "katsina",
+    "pcode": "NG021027",
+    "area_sqkm": 938.34383306,
+    "latitude": 13.11941147,
+    "longitude": 7.99683458
+  },
+  {
+    "code": "katsina_matazu",
+    "name": "Matazu",
+    "state_code": "katsina",
+    "pcode": "NG021028",
+    "area_sqkm": 539.75115346,
+    "latitude": 12.24030217,
+    "longitude": 7.65088259
+  },
+  {
+    "code": "katsina_musawa",
+    "name": "Musawa",
+    "state_code": "katsina",
+    "pcode": "NG021029",
+    "area_sqkm": 787.8135445,
+    "latitude": 12.1055678,
+    "longitude": 7.67837983
+  },
+  {
+    "code": "katsina_rimi",
+    "name": "Rimi",
+    "state_code": "katsina",
+    "pcode": "NG021030",
+    "area_sqkm": 484.94703387,
+    "latitude": 12.89776315,
+    "longitude": 7.71934985
+  },
+  {
+    "code": "katsina_sabuwa",
+    "name": "Sabuwa",
+    "state_code": "katsina",
+    "pcode": "NG021031",
+    "area_sqkm": 695.23948137,
+    "latitude": 11.33591997,
+    "longitude": 7.09657844
+  },
+  {
+    "code": "katsina_safana",
+    "name": "Safana",
+    "state_code": "katsina",
+    "pcode": "NG021032",
+    "area_sqkm": 1389.50319946,
+    "latitude": 12.50095133,
+    "longitude": 7.22803794
+  },
+  {
+    "code": "katsina_sandamu",
+    "name": "Sandamu",
+    "state_code": "katsina",
+    "pcode": "NG021033",
+    "area_sqkm": 327.05561029,
+    "latitude": 12.91967969,
+    "longitude": 8.38246324
+  },
+  {
+    "code": "katsina_zango",
+    "name": "Zango",
+    "state_code": "katsina",
+    "pcode": "NG021034",
+    "area_sqkm": 519.44547021,
+    "latitude": 12.95056562,
+    "longitude": 8.54739512
+  },
+  {
+    "code": "kebbi_aleiro",
+    "name": "Aleiro",
+    "state_code": "kebbi",
+    "pcode": "NG022001",
+    "area_sqkm": 334.93879479,
+    "latitude": 12.3198819,
+    "longitude": 4.45684613
+  },
+  {
+    "code": "kebbi_arewa_dandi",
+    "name": "Arewa-Dandi",
+    "state_code": "kebbi",
+    "pcode": "NG022002",
+    "area_sqkm": 4021.72574255,
+    "latitude": 12.68517545,
+    "longitude": 4.01616739
+  },
+  {
+    "code": "kebbi_argungu",
+    "name": "Argungu",
+    "state_code": "kebbi",
+    "pcode": "NG022003",
+    "area_sqkm": 1097.09006229,
+    "latitude": 12.70736023,
+    "longitude": 4.48360093
+  },
+  {
+    "code": "kebbi_augie",
+    "name": "Augie",
+    "state_code": "kebbi",
+    "pcode": "NG022004",
+    "area_sqkm": 1139.88402816,
+    "latitude": 12.9416964,
+    "longitude": 4.5535747
+  },
+  {
+    "code": "kebbi_bagudo",
+    "name": "Bagudo",
+    "state_code": "kebbi",
+    "pcode": "NG022005",
+    "area_sqkm": 5084.17592651,
+    "latitude": 11.31468053,
+    "longitude": 3.85336387
+  },
+  {
+    "code": "kebbi_birnin_kebbi",
+    "name": "Birnin Kebbi",
+    "state_code": "kebbi",
+    "pcode": "NG022006",
+    "area_sqkm": 1072.12046686,
+    "latitude": 12.49876902,
+    "longitude": 4.29059884
+  },
+  {
+    "code": "kebbi_bunza",
+    "name": "Bunza",
+    "state_code": "kebbi",
+    "pcode": "NG022007",
+    "area_sqkm": 1103.61190605,
+    "latitude": 12.19341369,
+    "longitude": 3.93750452
+  },
+  {
+    "code": "kebbi_dandi",
+    "name": "Dandi",
+    "state_code": "kebbi",
+    "pcode": "NG022008",
+    "area_sqkm": 1942.74876255,
+    "latitude": 11.86128335,
+    "longitude": 3.80083781
+  },
+  {
+    "code": "kebbi_fakai",
+    "name": "Fakai",
+    "state_code": "kebbi",
+    "pcode": "NG022009",
+    "area_sqkm": 2244.86904339,
+    "latitude": 11.4748544,
+    "longitude": 4.92469356
+  },
+  {
+    "code": "kebbi_gwandu",
+    "name": "Gwandu",
+    "state_code": "kebbi",
+    "pcode": "NG022010",
+    "area_sqkm": 1051.73261398,
+    "latitude": 12.50052227,
+    "longitude": 4.65972733
+  },
+  {
+    "code": "kebbi_jega",
+    "name": "Jega",
+    "state_code": "kebbi",
+    "pcode": "NG022011",
+    "area_sqkm": 965.91658265,
+    "latitude": 12.09885836,
+    "longitude": 4.47506786
+  },
+  {
+    "code": "kebbi_kalgo",
+    "name": "Kalgo",
+    "state_code": "kebbi",
+    "pcode": "NG022012",
+    "area_sqkm": 607.22006849,
+    "latitude": 12.38613198,
+    "longitude": 4.05768703
+  },
+  {
+    "code": "kebbi_koko_besse",
+    "name": "Koko/Besse",
+    "state_code": "kebbi",
+    "pcode": "NG022013",
+    "area_sqkm": 1343.31819505,
+    "latitude": 11.44467134,
+    "longitude": 4.47653783
+  },
+  {
+    "code": "kebbi_maiyama",
+    "name": "Maiyama",
+    "state_code": "kebbi",
+    "pcode": "NG022014",
+    "area_sqkm": 1334.00888828,
+    "latitude": 12.00755424,
+    "longitude": 4.29009759
+  },
+  {
+    "code": "kebbi_ngaski",
+    "name": "Ngaski",
+    "state_code": "kebbi",
+    "pcode": "NG022015",
+    "area_sqkm": 2605.90074172,
+    "latitude": 10.58502675,
+    "longitude": 4.72145372
+  },
+  {
+    "code": "kebbi_sakaba",
+    "name": "Sakaba",
+    "state_code": "kebbi",
+    "pcode": "NG022016",
+    "area_sqkm": 1452.31500059,
+    "latitude": 11.1749086,
+    "longitude": 5.59528364
+  },
+  {
+    "code": "kebbi_shanga",
+    "name": "Shanga",
+    "state_code": "kebbi",
+    "pcode": "NG022017",
+    "area_sqkm": 2711.94623178,
+    "latitude": 11.21109164,
+    "longitude": 4.5970831
+  },
+  {
+    "code": "kebbi_suru",
+    "name": "Suru",
+    "state_code": "kebbi",
+    "pcode": "NG022018",
+    "area_sqkm": 1568.10711833,
+    "latitude": 11.78400789,
+    "longitude": 4.13321595
+  },
+  {
+    "code": "kebbi_wasagu_danko",
+    "name": "Wasagu/Danko",
+    "state_code": "kebbi",
+    "pcode": "NG022019",
+    "area_sqkm": 4094.76847137,
+    "latitude": 11.4227391,
+    "longitude": 5.7307369
+  },
+  {
+    "code": "kebbi_yauri",
+    "name": "Yauri",
+    "state_code": "kebbi",
+    "pcode": "NG022020",
+    "area_sqkm": 122.79974645,
+    "latitude": 10.75475636,
+    "longitude": 4.7264751
+  },
+  {
+    "code": "kebbi_zuru",
+    "name": "Zuru",
+    "state_code": "kebbi",
+    "pcode": "NG022021",
+    "area_sqkm": 697.39289094,
+    "latitude": 11.41284731,
+    "longitude": 5.27942215
+  },
+  {
+    "code": "kogi_adavi",
+    "name": "Adavi",
+    "state_code": "kogi",
+    "pcode": "NG023001",
+    "area_sqkm": 713.36348885,
+    "latitude": 7.6844146,
+    "longitude": 6.4667002
+  },
+  {
+    "code": "kogi_ajaokuta",
+    "name": "Ajaokuta",
+    "state_code": "kogi",
+    "pcode": "NG023002",
+    "area_sqkm": 1380.92119183,
+    "latitude": 7.50297395,
+    "longitude": 6.56938771
+  },
+  {
+    "code": "kogi_ankpa",
+    "name": "Ankpa",
+    "state_code": "kogi",
+    "pcode": "NG023003",
+    "area_sqkm": 1281.44048084,
+    "latitude": 7.4964375,
+    "longitude": 7.62737565
+  },
+  {
+    "code": "kogi_bassa",
+    "name": "Bassa",
+    "state_code": "kogi",
+    "pcode": "NG023004",
+    "area_sqkm": 1935.03604254,
+    "latitude": 7.74679918,
+    "longitude": 6.96106946
+  },
+  {
+    "code": "kogi_dekina",
+    "name": "Dekina",
+    "state_code": "kogi",
+    "pcode": "NG023005",
+    "area_sqkm": 2407.07735304,
+    "latitude": 7.59631583,
+    "longitude": 7.14030454
+  },
+  {
+    "code": "kogi_ibaji",
+    "name": "Ibaji",
+    "state_code": "kogi",
+    "pcode": "NG023006",
+    "area_sqkm": 1334.99314744,
+    "latitude": 6.77872896,
+    "longitude": 6.75844765
+  },
+  {
+    "code": "kogi_idah",
+    "name": "Idah",
+    "state_code": "kogi",
+    "pcode": "NG023007",
+    "area_sqkm": 134.15157071,
+    "latitude": 7.07174439,
+    "longitude": 6.7345608
+  },
+  {
+    "code": "kogi_igalamela_odolu",
+    "name": "Igalamela-Odolu",
+    "state_code": "kogi",
+    "pcode": "NG023008",
+    "area_sqkm": 2114.04087332,
+    "latitude": 7.03791724,
+    "longitude": 7.07207741
+  },
+  {
+    "code": "kogi_ijumu",
+    "name": "Ijumu",
+    "state_code": "kogi",
+    "pcode": "NG023009",
+    "area_sqkm": 1282.45624253,
+    "latitude": 7.83755053,
+    "longitude": 5.89404243
+  },
+  {
+    "code": "kogi_kabba_bunu",
+    "name": "Kabba/Bunu",
+    "state_code": "kogi",
+    "pcode": "NG023010",
+    "area_sqkm": 2693.15033342,
+    "latitude": 8.07187708,
+    "longitude": 6.14114865
+  },
+  {
+    "code": "kogi_kogi",
+    "name": "Kogi",
+    "state_code": "kogi",
+    "pcode": "NG023011",
+    "area_sqkm": 1494.05596025,
+    "latitude": 8.12703178,
+    "longitude": 6.8556095
+  },
+  {
+    "code": "kogi_lokoja",
+    "name": "Lokoja",
+    "state_code": "kogi",
+    "pcode": "NG023012",
+    "area_sqkm": 3201.49417727,
+    "latitude": 8.23918014,
+    "longitude": 6.55406309
+  },
+  {
+    "code": "kogi_mopa_muro",
+    "name": "Mopa-Muro",
+    "state_code": "kogi",
+    "pcode": "NG023013",
+    "area_sqkm": 833.24656486,
+    "latitude": 8.14044577,
+    "longitude": 5.90252098
+  },
+  {
+    "code": "kogi_ofu",
+    "name": "Ofu",
+    "state_code": "kogi",
+    "pcode": "NG023014",
+    "area_sqkm": 1715.42197407,
+    "latitude": 7.32949329,
+    "longitude": 7.06897106
+  },
+  {
+    "code": "kogi_ogori_magongo",
+    "name": "Ogori/Magongo",
+    "state_code": "kogi",
+    "pcode": "NG023015",
+    "area_sqkm": 79.31035716,
+    "latitude": 7.47867347,
+    "longitude": 6.15587381
+  },
+  {
+    "code": "kogi_okehi",
+    "name": "Okehi",
+    "state_code": "kogi",
+    "pcode": "NG023016",
+    "area_sqkm": 661.11010209,
+    "latitude": 7.72412049,
+    "longitude": 6.33559323
+  },
+  {
+    "code": "kogi_okene",
+    "name": "Okene",
+    "state_code": "kogi",
+    "pcode": "NG023017",
+    "area_sqkm": 298.31935396,
+    "latitude": 7.45519017,
+    "longitude": 6.39297471
+  },
+  {
+    "code": "kogi_olamabolo",
+    "name": "Olamabolo",
+    "state_code": "kogi",
+    "pcode": "NG023018",
+    "area_sqkm": 990.46473238,
+    "latitude": 7.17821859,
+    "longitude": 7.48204739
+  },
+  {
+    "code": "kogi_omala",
+    "name": "Omala",
+    "state_code": "kogi",
+    "pcode": "NG023019",
+    "area_sqkm": 1591.56203606,
+    "latitude": 7.77782794,
+    "longitude": 7.56588636
+  },
+  {
+    "code": "kogi_yagba_east",
+    "name": "Yagba East",
+    "state_code": "kogi",
+    "pcode": "NG023020",
+    "area_sqkm": 1472.71809712,
+    "latitude": 8.13593536,
+    "longitude": 5.71920528
+  },
+  {
+    "code": "kogi_yagba_west",
+    "name": "Yagba West",
+    "state_code": "kogi",
+    "pcode": "NG023021",
+    "area_sqkm": 1285.13115632,
+    "latitude": 8.2767587,
+    "longitude": 5.55164664
+  },
+  {
+    "code": "kwara_asa",
+    "name": "Asa",
+    "state_code": "kwara",
+    "pcode": "NG024001",
+    "area_sqkm": 1335.82091529,
+    "latitude": 8.46913297,
+    "longitude": 4.38153025
+  },
+  {
+    "code": "kwara_baruten",
+    "name": "Baruten",
+    "state_code": "kwara",
+    "pcode": "NG024002",
+    "area_sqkm": 9677.77010858,
+    "latitude": 9.37993607,
+    "longitude": 3.48075208
+  },
+  {
+    "code": "kwara_edu",
+    "name": "Edu",
+    "state_code": "kwara",
+    "pcode": "NG024003",
+    "area_sqkm": 2534.69660355,
+    "latitude": 8.84539155,
+    "longitude": 5.21207915
+  },
+  {
+    "code": "kwara_ekiti",
+    "name": "Ekiti",
+    "state_code": "kwara",
+    "pcode": "NG024004",
+    "area_sqkm": 475.31998421,
+    "latitude": 8.1070251,
+    "longitude": 5.32431206
+  },
+  {
+    "code": "kwara_ifelodun",
+    "name": "Ifelodun",
+    "state_code": "kwara",
+    "pcode": "NG024005",
+    "area_sqkm": 3438.39394602,
+    "latitude": 8.6327047,
+    "longitude": 5.17887766
+  },
+  {
+    "code": "kwara_ilorin_east",
+    "name": "Ilorin East",
+    "state_code": "kwara",
+    "pcode": "NG024006",
+    "area_sqkm": 451.19651508,
+    "latitude": 8.62855065,
+    "longitude": 4.82260251
+  },
+  {
+    "code": "kwara_ilorin_south",
+    "name": "Ilorin South",
+    "state_code": "kwara",
+    "pcode": "NG024007",
+    "area_sqkm": 245.4563915,
+    "latitude": 8.47943956,
+    "longitude": 4.65524175
+  },
+  {
+    "code": "kwara_ilorin_west",
+    "name": "Ilorin West",
+    "state_code": "kwara",
+    "pcode": "NG024008",
+    "area_sqkm": 149.02944418,
+    "latitude": 8.48982834,
+    "longitude": 4.49802431
+  },
+  {
+    "code": "kwara_irepodun",
+    "name": "Irepodun",
+    "state_code": "kwara",
+    "pcode": "NG024009",
+    "area_sqkm": 701.04566916,
+    "latitude": 8.19354062,
+    "longitude": 4.85832373
+  },
+  {
+    "code": "kwara_isin",
+    "name": "Isin",
+    "state_code": "kwara",
+    "pcode": "NG024010",
+    "area_sqkm": 631.2037295,
+    "latitude": 8.25790644,
+    "longitude": 5.03884906
+  },
+  {
+    "code": "kwara_kaiama",
+    "name": "Kaiama",
+    "state_code": "kwara",
+    "pcode": "NG024011",
+    "area_sqkm": 6935.92752772,
+    "latitude": 9.53601793,
+    "longitude": 4.11481379
+  },
+  {
+    "code": "kwara_moro",
+    "name": "Moro",
+    "state_code": "kwara",
+    "pcode": "NG024012",
+    "area_sqkm": 3120.47257106,
+    "latitude": 8.83834362,
+    "longitude": 4.51431771
+  },
+  {
+    "code": "kwara_offa",
+    "name": "Offa",
+    "state_code": "kwara",
+    "pcode": "NG024013",
+    "area_sqkm": 94.31278415,
+    "latitude": 8.1630578,
+    "longitude": 4.69026175
+  },
+  {
+    "code": "kwara_oke_ero",
+    "name": "Oke-Ero",
+    "state_code": "kwara",
+    "pcode": "NG024014",
+    "area_sqkm": 435.66792811,
+    "latitude": 8.18031931,
+    "longitude": 5.29643598
+  },
+  {
+    "code": "kwara_oyun",
+    "name": "Oyun",
+    "state_code": "kwara",
+    "pcode": "NG024015",
+    "area_sqkm": 508.8039076,
+    "latitude": 8.19984915,
+    "longitude": 4.63163549
+  },
+  {
+    "code": "kwara_pategi",
+    "name": "Pategi",
+    "state_code": "kwara",
+    "pcode": "NG024016",
+    "area_sqkm": 2908.55248032,
+    "latitude": 8.67046014,
+    "longitude": 5.81727277
+  },
+  {
+    "code": "lagos_agege",
+    "name": "Agege",
+    "state_code": "lagos",
+    "pcode": "NG025001",
+    "area_sqkm": 11.47768808,
+    "latitude": 6.62601125,
+    "longitude": 3.31509549
+  },
+  {
+    "code": "lagos_ajeromi_ifelodun",
+    "name": "Ajeromi-Ifelodun",
+    "state_code": "lagos",
+    "pcode": "NG025002",
+    "area_sqkm": 12.75628005,
+    "latitude": 6.45589452,
+    "longitude": 3.33682909
+  },
+  {
+    "code": "lagos_alimosho",
+    "name": "Alimosho",
+    "state_code": "lagos",
+    "pcode": "NG025003",
+    "area_sqkm": 183.55972283,
+    "latitude": 6.58434303,
+    "longitude": 3.26019246
+  },
+  {
+    "code": "lagos_amuwo_odofin",
+    "name": "Amuwo-Odofin",
+    "state_code": "lagos",
+    "pcode": "NG025004",
+    "area_sqkm": 138.75667109,
+    "latitude": 6.4460624,
+    "longitude": 3.27479161
+  },
+  {
+    "code": "lagos_apapa",
+    "name": "Apapa",
+    "state_code": "lagos",
+    "pcode": "NG025005",
+    "area_sqkm": 20.06657372,
+    "latitude": 6.44839858,
+    "longitude": 3.36684353
+  },
+  {
+    "code": "lagos_badagry",
+    "name": "Badagry",
+    "state_code": "lagos",
+    "pcode": "NG025006",
+    "area_sqkm": 452.45813033,
+    "latitude": 6.44341303,
+    "longitude": 2.96956619
+  },
+  {
+    "code": "lagos_epe",
+    "name": "Epe",
+    "state_code": "lagos",
+    "pcode": "NG025007",
+    "area_sqkm": 1180.83783565,
+    "latitude": 6.52699232,
+    "longitude": 4.05813678
+  },
+  {
+    "code": "lagos_eti_osa",
+    "name": "Eti-Osa",
+    "state_code": "lagos",
+    "pcode": "NG025008",
+    "area_sqkm": 191.03028254,
+    "latitude": 6.46311306,
+    "longitude": 3.58295285
+  },
+  {
+    "code": "lagos_ibeju_lekki",
+    "name": "Ibeju/Lekki",
+    "state_code": "lagos",
+    "pcode": "NG025009",
+    "area_sqkm": 452.04133218,
+    "latitude": 6.49511975,
+    "longitude": 3.81597789
+  },
+  {
+    "code": "lagos_ifako_ijaye",
+    "name": "Ifako-Ijaye",
+    "state_code": "lagos",
+    "pcode": "NG025010",
+    "area_sqkm": 33.05235308,
+    "latitude": 6.66054742,
+    "longitude": 3.32182296
+  },
+  {
+    "code": "lagos_ikeja",
+    "name": "Ikeja",
+    "state_code": "lagos",
+    "pcode": "NG025011",
+    "area_sqkm": 46.57791885,
+    "latitude": 6.6045701,
+    "longitude": 3.34522958
+  },
+  {
+    "code": "lagos_ikorodu",
+    "name": "Ikorodu",
+    "state_code": "lagos",
+    "pcode": "NG025012",
+    "area_sqkm": 398.86907937,
+    "latitude": 6.6061117,
+    "longitude": 3.57580247
+  },
+  {
+    "code": "lagos_kosofe",
+    "name": "Kosofe",
+    "state_code": "lagos",
+    "pcode": "NG025013",
+    "area_sqkm": 81.56483229,
+    "latitude": 6.58413016,
+    "longitude": 3.41736638
+  },
+  {
+    "code": "lagos_lagos_island",
+    "name": "Lagos Island",
+    "state_code": "lagos",
+    "pcode": "NG025014",
+    "area_sqkm": 8.59765152,
+    "latitude": 6.45040242,
+    "longitude": 3.39382226
+  },
+  {
+    "code": "lagos_lagos_mainland",
+    "name": "Lagos Mainland",
+    "state_code": "lagos",
+    "pcode": "NG025015",
+    "area_sqkm": 23.50310191,
+    "latitude": 6.49500381,
+    "longitude": 3.38571719
+  },
+  {
+    "code": "lagos_mushin",
+    "name": "Mushin",
+    "state_code": "lagos",
+    "pcode": "NG025016",
+    "area_sqkm": 16.5559956,
+    "latitude": 6.52911085,
+    "longitude": 3.35258711
+  },
+  {
+    "code": "lagos_ojo",
+    "name": "Ojo",
+    "state_code": "lagos",
+    "pcode": "NG025017",
+    "area_sqkm": 161.67324285,
+    "latitude": 6.46249755,
+    "longitude": 3.16611936
+  },
+  {
+    "code": "lagos_oshodi_isolo",
+    "name": "Oshodi-Isolo",
+    "state_code": "lagos",
+    "pcode": "NG025018",
+    "area_sqkm": 44.12568968,
+    "latitude": 6.53292857,
+    "longitude": 3.31282618
+  },
+  {
+    "code": "lagos_shomolu",
+    "name": "Shomolu",
+    "state_code": "lagos",
+    "pcode": "NG025019",
+    "area_sqkm": 11.18279279,
+    "latitude": 6.54179937,
+    "longitude": 3.38393003
+  },
+  {
+    "code": "lagos_surulere",
+    "name": "Surulere",
+    "state_code": "lagos",
+    "pcode": "NG025020",
+    "area_sqkm": 19.54428105,
+    "latitude": 6.48877832,
+    "longitude": 3.34502349
+  },
+  {
+    "code": "nasarawa_akwanga",
+    "name": "Akwanga",
+    "state_code": "nasarawa",
+    "pcode": "NG026001",
+    "area_sqkm": 935.7726518,
+    "latitude": 9.0282062,
+    "longitude": 8.34413178
+  },
+  {
+    "code": "nasarawa_awe",
+    "name": "Awe",
+    "state_code": "nasarawa",
+    "pcode": "NG026002",
+    "area_sqkm": 2641.14157117,
+    "latitude": 8.21345859,
+    "longitude": 9.16527979
+  },
+  {
+    "code": "nasarawa_doma",
+    "name": "Doma",
+    "state_code": "nasarawa",
+    "pcode": "NG026003",
+    "area_sqkm": 2487.99197199,
+    "latitude": 8.15641363,
+    "longitude": 8.31503549
+  },
+  {
+    "code": "nasarawa_karu",
+    "name": "Karu",
+    "state_code": "nasarawa",
+    "pcode": "NG026004",
+    "area_sqkm": 2885.23345608,
+    "latitude": 9.03685377,
+    "longitude": 7.76143033
+  },
+  {
+    "code": "nasarawa_keana",
+    "name": "Keana",
+    "state_code": "nasarawa",
+    "pcode": "NG026005",
+    "area_sqkm": 1165.44419529,
+    "latitude": 8.204791,
+    "longitude": 8.7174229
+  },
+  {
+    "code": "nasarawa_keffi",
+    "name": "Keffi",
+    "state_code": "nasarawa",
+    "pcode": "NG026006",
+    "area_sqkm": 112.79010572,
+    "latitude": 8.85687268,
+    "longitude": 7.8680312
+  },
+  {
+    "code": "nasarawa_kokona",
+    "name": "Kokona",
+    "state_code": "nasarawa",
+    "pcode": "NG026007",
+    "area_sqkm": 2555.421496,
+    "latitude": 8.75626526,
+    "longitude": 8.0868521
+  },
+  {
+    "code": "nasarawa_lafia",
+    "name": "Lafia",
+    "state_code": "nasarawa",
+    "pcode": "NG026008",
+    "area_sqkm": 2657.52461876,
+    "latitude": 8.7164345,
+    "longitude": 8.80040707
+  },
+  {
+    "code": "nasarawa_nasarawa",
+    "name": "Nasarawa",
+    "state_code": "nasarawa",
+    "pcode": "NG026009",
+    "area_sqkm": 4854.19544427,
+    "latitude": 8.32168285,
+    "longitude": 7.74712818
+  },
+  {
+    "code": "nasarawa_nasarawa_eggon",
+    "name": "Nasarawa-Eggon",
+    "state_code": "nasarawa",
+    "pcode": "NG026010",
+    "area_sqkm": 1258.40132933,
+    "latitude": 8.74569374,
+    "longitude": 8.47419492
+  },
+  {
+    "code": "nasarawa_obi",
+    "name": "Obi",
+    "state_code": "nasarawa",
+    "pcode": "NG026011",
+    "area_sqkm": 1016.40662732,
+    "latitude": 8.36983449,
+    "longitude": 8.73596229
+  },
+  {
+    "code": "nasarawa_toto",
+    "name": "Toto",
+    "state_code": "nasarawa",
+    "pcode": "NG026012",
+    "area_sqkm": 2983.10242009,
+    "latitude": 8.26164952,
+    "longitude": 7.19715724
+  },
+  {
+    "code": "nasarawa_wamba",
+    "name": "Wamba",
+    "state_code": "nasarawa",
+    "pcode": "NG026013",
+    "area_sqkm": 1210.46801918,
+    "latitude": 9.01237001,
+    "longitude": 8.7349034
+  },
+  {
+    "code": "niger_agaie",
+    "name": "Agaie",
+    "state_code": "niger",
+    "pcode": "NG027001",
+    "area_sqkm": 1919.95910988,
+    "latitude": 8.93361622,
+    "longitude": 6.43043197
+  },
+  {
+    "code": "niger_agwara",
+    "name": "Agwara",
+    "state_code": "niger",
+    "pcode": "NG027002",
+    "area_sqkm": 1471.63704529,
+    "latitude": 10.73332971,
+    "longitude": 4.53867261
+  },
+  {
+    "code": "niger_bida",
+    "name": "Bida",
+    "state_code": "niger",
+    "pcode": "NG027003",
+    "area_sqkm": 52.10637694,
+    "latitude": 9.09942463,
+    "longitude": 6.01565672
+  },
+  {
+    "code": "niger_borgu",
+    "name": "Borgu",
+    "state_code": "niger",
+    "pcode": "NG027004",
+    "area_sqkm": 11255.5444346,
+    "latitude": 10.24135646,
+    "longitude": 4.08349306
+  },
+  {
+    "code": "niger_bosso",
+    "name": "Bosso",
+    "state_code": "niger",
+    "pcode": "NG027005",
+    "area_sqkm": 1519.70633458,
+    "latitude": 9.59785356,
+    "longitude": 6.34521685
+  },
+  {
+    "code": "niger_chanchaga",
+    "name": "Chanchaga",
+    "state_code": "niger",
+    "pcode": "NG027006",
+    "area_sqkm": 63.18088169,
+    "latitude": 9.61980436,
+    "longitude": 6.54511127
+  },
+  {
+    "code": "niger_edati",
+    "name": "Edati",
+    "state_code": "niger",
+    "pcode": "NG027007",
+    "area_sqkm": 911.3737312,
+    "latitude": 9.04689177,
+    "longitude": 5.63848734
+  },
+  {
+    "code": "niger_gbako",
+    "name": "Gbako",
+    "state_code": "niger",
+    "pcode": "NG027008",
+    "area_sqkm": 1750.318045,
+    "latitude": 9.27903651,
+    "longitude": 5.99737164
+  },
+  {
+    "code": "niger_gurara",
+    "name": "Gurara",
+    "state_code": "niger",
+    "pcode": "NG027009",
+    "area_sqkm": 1130.87909285,
+    "latitude": 9.30603276,
+    "longitude": 7.03707102
+  },
+  {
+    "code": "niger_katcha",
+    "name": "Katcha",
+    "state_code": "niger",
+    "pcode": "NG027010",
+    "area_sqkm": 1650.65887528,
+    "latitude": 9.11880635,
+    "longitude": 6.24362312
+  },
+  {
+    "code": "niger_kontagora",
+    "name": "Kontagora",
+    "state_code": "niger",
+    "pcode": "NG027011",
+    "area_sqkm": 1772.31005885,
+    "latitude": 10.43627107,
+    "longitude": 5.51427123
+  },
+  {
+    "code": "niger_lapai",
+    "name": "Lapai",
+    "state_code": "niger",
+    "pcode": "NG027012",
+    "area_sqkm": 3030.36126524,
+    "latitude": 8.78112703,
+    "longitude": 6.67443256
+  },
+  {
+    "code": "niger_lavun",
+    "name": "Lavun",
+    "state_code": "niger",
+    "pcode": "NG027013",
+    "area_sqkm": 2589.31251186,
+    "latitude": 9.42834335,
+    "longitude": 5.65168421
+  },
+  {
+    "code": "niger_magama",
+    "name": "Magama",
+    "state_code": "niger",
+    "pcode": "NG027014",
+    "area_sqkm": 4056.23000818,
+    "latitude": 10.29522048,
+    "longitude": 5.01461632
+  },
+  {
+    "code": "niger_mariga",
+    "name": "Mariga",
+    "state_code": "niger",
+    "pcode": "NG027015",
+    "area_sqkm": 5771.14679716,
+    "latitude": 10.6098215,
+    "longitude": 5.86340137
+  },
+  {
+    "code": "niger_mashegu",
+    "name": "Mashegu",
+    "state_code": "niger",
+    "pcode": "NG027016",
+    "area_sqkm": 9300.54260562,
+    "latitude": 9.8201927,
+    "longitude": 5.2491292
+  },
+  {
+    "code": "niger_mokwa",
+    "name": "Mokwa",
+    "state_code": "niger",
+    "pcode": "NG027017",
+    "area_sqkm": 5301.00603435,
+    "latitude": 9.12146651,
+    "longitude": 5.32381983
+  },
+  {
+    "code": "niger_muya",
+    "name": "Muya",
+    "state_code": "niger",
+    "pcode": "NG027018",
+    "area_sqkm": 2086.78927472,
+    "latitude": 9.79731458,
+    "longitude": 7.07878344
+  },
+  {
+    "code": "niger_paikoro",
+    "name": "Paikoro",
+    "state_code": "niger",
+    "pcode": "NG027019",
+    "area_sqkm": 2088.82636221,
+    "latitude": 9.49303913,
+    "longitude": 6.83767857
+  },
+  {
+    "code": "niger_rafi",
+    "name": "Rafi",
+    "state_code": "niger",
+    "pcode": "NG027020",
+    "area_sqkm": 3681.85673137,
+    "latitude": 10.21470087,
+    "longitude": 6.22106079
+  },
+  {
+    "code": "niger_rijau",
+    "name": "Rijau",
+    "state_code": "niger",
+    "pcode": "NG027021",
+    "area_sqkm": 3119.16063075,
+    "latitude": 11.04304175,
+    "longitude": 5.22650918
+  },
+  {
+    "code": "niger_shiroro",
+    "name": "Shiroro",
+    "state_code": "niger",
+    "pcode": "NG027022",
+    "area_sqkm": 5229.97145131,
+    "latitude": 10.08431812,
+    "longitude": 6.69841216
+  },
+  {
+    "code": "niger_suleja",
+    "name": "Suleja",
+    "state_code": "niger",
+    "pcode": "NG027023",
+    "area_sqkm": 129.15873598,
+    "latitude": 9.19667777,
+    "longitude": 7.17503469
+  },
+  {
+    "code": "niger_tafa",
+    "name": "Tafa",
+    "state_code": "niger",
+    "pcode": "NG027024",
+    "area_sqkm": 241.54369461,
+    "latitude": 9.24770157,
+    "longitude": 7.26278392
+  },
+  {
+    "code": "niger_wushishi",
+    "name": "Wushishi",
+    "state_code": "niger",
+    "pcode": "NG027025",
+    "area_sqkm": 1810.90367186,
+    "latitude": 9.71018617,
+    "longitude": 5.91202627
+  },
+  {
+    "code": "ogun_abeokuta_north",
+    "name": "Abeokuta North",
+    "state_code": "ogun",
+    "pcode": "NG028001",
+    "area_sqkm": 768.45355298,
+    "latitude": 7.24344819,
+    "longitude": 3.17280773
+  },
+  {
+    "code": "ogun_abeokuta_south",
+    "name": "Abeokuta South",
+    "state_code": "ogun",
+    "pcode": "NG028002",
+    "area_sqkm": 56.30327854,
+    "latitude": 7.15640586,
+    "longitude": 3.36711725
+  },
+  {
+    "code": "ogun_ado_odo_ota",
+    "name": "Ado-Odo/Ota",
+    "state_code": "ogun",
+    "pcode": "NG028003",
+    "area_sqkm": 854.08711711,
+    "latitude": 6.62967965,
+    "longitude": 3.0799022
+  },
+  {
+    "code": "ogun_egbado_north",
+    "name": "Egbado North",
+    "state_code": "ogun",
+    "pcode": "NG028004",
+    "area_sqkm": 1856.80938578,
+    "latitude": 7.112758,
+    "longitude": 2.9337099
+  },
+  {
+    "code": "ogun_egbado_south",
+    "name": "Egbado South",
+    "state_code": "ogun",
+    "pcode": "NG028005",
+    "area_sqkm": 728.7377844,
+    "latitude": 6.7673095,
+    "longitude": 2.95455083
+  },
+  {
+    "code": "ogun_ewekoro",
+    "name": "Ewekoro",
+    "state_code": "ogun",
+    "pcode": "NG028006",
+    "area_sqkm": 625.48276678,
+    "latitude": 6.97407234,
+    "longitude": 3.18656019
+  },
+  {
+    "code": "ogun_ifo",
+    "name": "Ifo",
+    "state_code": "ogun",
+    "pcode": "NG028007",
+    "area_sqkm": 538.49695132,
+    "latitude": 6.76026795,
+    "longitude": 3.31789549
+  },
+  {
+    "code": "ogun_ijebu_east",
+    "name": "Ijebu East",
+    "state_code": "ogun",
+    "pcode": "NG028008",
+    "area_sqkm": 2169.36823704,
+    "latitude": 6.81814658,
+    "longitude": 4.251233
+  },
+  {
+    "code": "ogun_ijebu_north",
+    "name": "Ijebu North",
+    "state_code": "ogun",
+    "pcode": "NG028009",
+    "area_sqkm": 953.74066558,
+    "latitude": 7.03213093,
+    "longitude": 3.99145715
+  },
+  {
+    "code": "ogun_ijebu_north_east",
+    "name": "Ijebu North East",
+    "state_code": "ogun",
+    "pcode": "NG028010",
+    "area_sqkm": 212.19941027,
+    "latitude": 6.87088924,
+    "longitude": 4.02626593
+  },
+  {
+    "code": "ogun_ijebu_ode",
+    "name": "Ijebu Ode",
+    "state_code": "ogun",
+    "pcode": "NG028011",
+    "area_sqkm": 142.61396466,
+    "latitude": 6.76696399,
+    "longitude": 3.95962987
+  },
+  {
+    "code": "ogun_ikenne",
+    "name": "Ikenne",
+    "state_code": "ogun",
+    "pcode": "NG028012",
+    "area_sqkm": 145.71369754,
+    "latitude": 6.90100513,
+    "longitude": 3.69774683
+  },
+  {
+    "code": "ogun_imeko_afon",
+    "name": "Imeko-Afon",
+    "state_code": "ogun",
+    "pcode": "NG028013",
+    "area_sqkm": 1807.93133331,
+    "latitude": 7.63287736,
+    "longitude": 2.85847941
+  },
+  {
+    "code": "ogun_ipokia",
+    "name": "Ipokia",
+    "state_code": "ogun",
+    "pcode": "NG028014",
+    "area_sqkm": 572.4392951,
+    "latitude": 6.65298083,
+    "longitude": 2.79333315
+  },
+  {
+    "code": "ogun_obafemi_owode",
+    "name": "Obafemi-Owode",
+    "state_code": "ogun",
+    "pcode": "NG028015",
+    "area_sqkm": 1474.55582576,
+    "latitude": 6.96067211,
+    "longitude": 3.46962904
+  },
+  {
+    "code": "ogun_odeda",
+    "name": "Odeda",
+    "state_code": "ogun",
+    "pcode": "NG028016",
+    "area_sqkm": 1435.54579487,
+    "latitude": 7.31663183,
+    "longitude": 3.52030737
+  },
+  {
+    "code": "ogun_odogbolu",
+    "name": "Odogbolu",
+    "state_code": "ogun",
+    "pcode": "NG028017",
+    "area_sqkm": 547.6155403,
+    "latitude": 6.80770022,
+    "longitude": 3.81410033
+  },
+  {
+    "code": "ogun_ogun_waterside",
+    "name": "Ogun waterside",
+    "state_code": "ogun",
+    "pcode": "NG028018",
+    "area_sqkm": 969.43430857,
+    "latitude": 6.47391581,
+    "longitude": 4.36787837
+  },
+  {
+    "code": "ogun_remo_north",
+    "name": "Remo North",
+    "state_code": "ogun",
+    "pcode": "NG028019",
+    "area_sqkm": 208.98157746,
+    "latitude": 6.9952044,
+    "longitude": 3.7177268
+  },
+  {
+    "code": "ogun_shagamu",
+    "name": "Shagamu",
+    "state_code": "ogun",
+    "pcode": "NG028020",
+    "area_sqkm": 599.40363628,
+    "latitude": 6.80770048,
+    "longitude": 3.5894791
+  },
+  {
+    "code": "ondo_akoko_north_east",
+    "name": "Akoko North East",
+    "state_code": "ondo",
+    "pcode": "NG029001",
+    "area_sqkm": 343.96615395,
+    "latitude": 7.5633144,
+    "longitude": 5.93160311
+  },
+  {
+    "code": "ondo_akoko_north_west",
+    "name": "Akoko North West",
+    "state_code": "ondo",
+    "pcode": "NG029002",
+    "area_sqkm": 569.18933388,
+    "latitude": 7.63414892,
+    "longitude": 5.80536367
+  },
+  {
+    "code": "ondo_akoko_south_east",
+    "name": "Akoko South East",
+    "state_code": "ondo",
+    "pcode": "NG029003",
+    "area_sqkm": 222.03861316,
+    "latitude": 7.42249084,
+    "longitude": 5.90506058
+  },
+  {
+    "code": "ondo_akoko_south_west",
+    "name": "Akoko South West",
+    "state_code": "ondo",
+    "pcode": "NG029004",
+    "area_sqkm": 489.8055689,
+    "latitude": 7.40265112,
+    "longitude": 5.70589753
+  },
+  {
+    "code": "ondo_akure_north",
+    "name": "Akure North",
+    "state_code": "ondo",
+    "pcode": "NG029005",
+    "area_sqkm": 675.8079972,
+    "latitude": 7.25627399,
+    "longitude": 5.32168649
+  },
+  {
+    "code": "ondo_akure_south",
+    "name": "Akure South",
+    "state_code": "ondo",
+    "pcode": "NG029006",
+    "area_sqkm": 308.06386522,
+    "latitude": 7.2116343,
+    "longitude": 5.17930833
+  },
+  {
+    "code": "ondo_ese_odo",
+    "name": "Ese-Odo",
+    "state_code": "ondo",
+    "pcode": "NG029007",
+    "area_sqkm": 1077.21348129,
+    "latitude": 6.18445919,
+    "longitude": 4.99072372
+  },
+  {
+    "code": "ondo_idanre",
+    "name": "Idanre",
+    "state_code": "ondo",
+    "pcode": "NG029008",
+    "area_sqkm": 1916.44995728,
+    "latitude": 6.97581976,
+    "longitude": 5.25564596
+  },
+  {
+    "code": "ondo_ifedore",
+    "name": "Ifedore",
+    "state_code": "ondo",
+    "pcode": "NG029009",
+    "area_sqkm": 317.40803983,
+    "latitude": 7.35491423,
+    "longitude": 5.10466391
+  },
+  {
+    "code": "ondo_ilaje",
+    "name": "Ilaje",
+    "state_code": "ondo",
+    "pcode": "NG029010",
+    "area_sqkm": 963.77320365,
+    "latitude": 6.19899963,
+    "longitude": 4.75285177
+  },
+  {
+    "code": "ondo_ile_oluji_okeigbo",
+    "name": "Ile-Oluji-Okeigbo",
+    "state_code": "ondo",
+    "pcode": "NG029011",
+    "area_sqkm": 595.210618,
+    "latitude": 7.2338334,
+    "longitude": 4.88388688
+  },
+  {
+    "code": "ondo_irele",
+    "name": "Irele",
+    "state_code": "ondo",
+    "pcode": "NG029012",
+    "area_sqkm": 891.39021967,
+    "latitude": 6.47853037,
+    "longitude": 4.98338838
+  },
+  {
+    "code": "ondo_odigbo",
+    "name": "Odigbo",
+    "state_code": "ondo",
+    "pcode": "NG029013",
+    "area_sqkm": 1878.48258463,
+    "latitude": 6.73155432,
+    "longitude": 4.88543557
+  },
+  {
+    "code": "ondo_okitipupa",
+    "name": "Okitipupa",
+    "state_code": "ondo",
+    "pcode": "NG029014",
+    "area_sqkm": 855.57913904,
+    "latitude": 6.56465359,
+    "longitude": 4.7083363
+  },
+  {
+    "code": "ondo_ondo_east",
+    "name": "Ondo East",
+    "state_code": "ondo",
+    "pcode": "NG029015",
+    "area_sqkm": 448.45269161,
+    "latitude": 7.15850238,
+    "longitude": 4.88485457
+  },
+  {
+    "code": "ondo_ondo_west",
+    "name": "Ondo West",
+    "state_code": "ondo",
+    "pcode": "NG029016",
+    "area_sqkm": 959.35436441,
+    "latitude": 6.99201095,
+    "longitude": 4.75850712
+  },
+  {
+    "code": "ondo_ose",
+    "name": "Ose",
+    "state_code": "ondo",
+    "pcode": "NG029017",
+    "area_sqkm": 1425.31578663,
+    "latitude": 7.053574,
+    "longitude": 5.75437761
+  },
+  {
+    "code": "ondo_owo",
+    "name": "Owo",
+    "state_code": "ondo",
+    "pcode": "NG029018",
+    "area_sqkm": 1138.33103321,
+    "latitude": 7.10796759,
+    "longitude": 5.59186752
+  },
+  {
+    "code": "osun_aiyedade",
+    "name": "Aiyedade",
+    "state_code": "osun",
+    "pcode": "NG030001",
+    "area_sqkm": 762.43886155,
+    "latitude": 7.32926948,
+    "longitude": 4.33974947
+  },
+  {
+    "code": "osun_aiyedire",
+    "name": "Aiyedire",
+    "state_code": "osun",
+    "pcode": "NG030002",
+    "area_sqkm": 302.89474821,
+    "latitude": 7.5706946,
+    "longitude": 4.23221708
+  },
+  {
+    "code": "osun_atakumosa_east",
+    "name": "Atakumosa East",
+    "state_code": "osun",
+    "pcode": "NG030003",
+    "area_sqkm": 463.95014576,
+    "latitude": 7.41027699,
+    "longitude": 4.75236666
+  },
+  {
+    "code": "osun_atakumosa_west",
+    "name": "Atakumosa West",
+    "state_code": "osun",
+    "pcode": "NG030004",
+    "area_sqkm": 371.55696446,
+    "latitude": 7.5709572,
+    "longitude": 4.64244742
+  },
+  {
+    "code": "osun_boluwaduro",
+    "name": "Boluwaduro",
+    "state_code": "osun",
+    "pcode": "NG030005",
+    "area_sqkm": 148.93490314,
+    "latitude": 7.94626505,
+    "longitude": 4.81057622
+  },
+  {
+    "code": "osun_boripe",
+    "name": "Boripe",
+    "state_code": "osun",
+    "pcode": "NG030006",
+    "area_sqkm": 144.25426325,
+    "latitude": 7.86220208,
+    "longitude": 4.67029729
+  },
+  {
+    "code": "osun_ede_north",
+    "name": "Ede North",
+    "state_code": "osun",
+    "pcode": "NG030007",
+    "area_sqkm": 101.79389579,
+    "latitude": 7.73170096,
+    "longitude": 4.46655452
+  },
+  {
+    "code": "osun_ede_south",
+    "name": "Ede South",
+    "state_code": "osun",
+    "pcode": "NG030008",
+    "area_sqkm": 215.04647769,
+    "latitude": 7.65920759,
+    "longitude": 4.46369174
+  },
+  {
+    "code": "osun_egbedore",
+    "name": "Egbedore",
+    "state_code": "osun",
+    "pcode": "NG030009",
+    "area_sqkm": 268.68258584,
+    "latitude": 7.78310097,
+    "longitude": 4.43573154
+  },
+  {
+    "code": "osun_ejigbo",
+    "name": "Ejigbo",
+    "state_code": "osun",
+    "pcode": "NG030010",
+    "area_sqkm": 363.36050185,
+    "latitude": 7.81092931,
+    "longitude": 4.30989238
+  },
+  {
+    "code": "osun_ife_central",
+    "name": "Ife Central",
+    "state_code": "osun",
+    "pcode": "NG030011",
+    "area_sqkm": 110.71952105,
+    "latitude": 7.54636903,
+    "longitude": 4.52802693
+  },
+  {
+    "code": "osun_ife_east",
+    "name": "Ife East",
+    "state_code": "osun",
+    "pcode": "NG030012",
+    "area_sqkm": 191.76311935,
+    "latitude": 7.4045228,
+    "longitude": 4.57030617
+  },
+  {
+    "code": "osun_ife_north",
+    "name": "Ife North",
+    "state_code": "osun",
+    "pcode": "NG030013",
+    "area_sqkm": 900.38343557,
+    "latitude": 7.29762885,
+    "longitude": 4.44975396
+  },
+  {
+    "code": "osun_ife_south",
+    "name": "Ife South",
+    "state_code": "osun",
+    "pcode": "NG030014",
+    "area_sqkm": 738.09093436,
+    "latitude": 7.23898955,
+    "longitude": 4.61355048
+  },
+  {
+    "code": "osun_ifedayo",
+    "name": "Ifedayo",
+    "state_code": "osun",
+    "pcode": "NG030015",
+    "area_sqkm": 138.29608282,
+    "latitude": 7.96188866,
+    "longitude": 4.98480672
+  },
+  {
+    "code": "osun_ifelodun",
+    "name": "Ifelodun",
+    "state_code": "osun",
+    "pcode": "NG030016",
+    "area_sqkm": 118.9752915,
+    "latitude": 7.90885343,
+    "longitude": 4.63823309
+  },
+  {
+    "code": "osun_ila",
+    "name": "Ila",
+    "state_code": "osun",
+    "pcode": "NG030017",
+    "area_sqkm": 279.24439012,
+    "latitude": 7.96998538,
+    "longitude": 4.89513151
+  },
+  {
+    "code": "osun_ilesha_east",
+    "name": "Ilesha East",
+    "state_code": "osun",
+    "pcode": "NG030018",
+    "area_sqkm": 69.55506813,
+    "latitude": 7.60831589,
+    "longitude": 4.76090218
+  },
+  {
+    "code": "osun_ilesha_west",
+    "name": "Ilesha West",
+    "state_code": "osun",
+    "pcode": "NG030019",
+    "area_sqkm": 42.56559876,
+    "latitude": 7.63822639,
+    "longitude": 4.72573763
+  },
+  {
+    "code": "osun_irepodun",
+    "name": "Irepodun",
+    "state_code": "osun",
+    "pcode": "NG030020",
+    "area_sqkm": 30.32734182,
+    "latitude": 7.84508107,
+    "longitude": 4.49674761
+  },
+  {
+    "code": "osun_irewole",
+    "name": "Irewole",
+    "state_code": "osun",
+    "pcode": "NG030021",
+    "area_sqkm": 262.18427897,
+    "latitude": 7.41618561,
+    "longitude": 4.21865585
+  },
+  {
+    "code": "osun_isokan",
+    "name": "Isokan",
+    "state_code": "osun",
+    "pcode": "NG030022",
+    "area_sqkm": 436.69902232,
+    "latitude": 7.24857696,
+    "longitude": 4.1996518
+  },
+  {
+    "code": "osun_iwo",
+    "name": "Iwo",
+    "state_code": "osun",
+    "pcode": "NG030023",
+    "area_sqkm": 272.68885758,
+    "latitude": 7.64534439,
+    "longitude": 4.14933136
+  },
+  {
+    "code": "osun_obokun",
+    "name": "Obokun",
+    "state_code": "osun",
+    "pcode": "NG030024",
+    "area_sqkm": 508.09224357,
+    "latitude": 7.77372555,
+    "longitude": 4.77081244
+  },
+  {
+    "code": "osun_odo_otin",
+    "name": "Odo-Otin",
+    "state_code": "osun",
+    "pcode": "NG030025",
+    "area_sqkm": 290.91987446,
+    "latitude": 8.00744341,
+    "longitude": 4.67904834
+  },
+  {
+    "code": "osun_ola_oluwa",
+    "name": "Ola-oluwa",
+    "state_code": "osun",
+    "pcode": "NG030026",
+    "area_sqkm": 326.10873283,
+    "latitude": 7.74574204,
+    "longitude": 4.19943215
+  },
+  {
+    "code": "osun_olorunda",
+    "name": "Olorunda",
+    "state_code": "osun",
+    "pcode": "NG030027",
+    "area_sqkm": 108.49228697,
+    "latitude": 7.8748881,
+    "longitude": 4.57233066
+  },
+  {
+    "code": "osun_oriade",
+    "name": "Oriade",
+    "state_code": "osun",
+    "pcode": "NG030028",
+    "area_sqkm": 460.56518064,
+    "latitude": 7.55307714,
+    "longitude": 4.86740817
+  },
+  {
+    "code": "osun_orolu",
+    "name": "Orolu",
+    "state_code": "osun",
+    "pcode": "NG030029",
+    "area_sqkm": 109.2372137,
+    "latitude": 7.90201537,
+    "longitude": 4.49105744
+  },
+  {
+    "code": "osun_osogbo",
+    "name": "Osogbo",
+    "state_code": "osun",
+    "pcode": "NG030030",
+    "area_sqkm": 60.98522445,
+    "latitude": 7.74865309,
+    "longitude": 4.56886194
+  },
+  {
+    "code": "oyo_afijio",
+    "name": "Afijio",
+    "state_code": "oyo",
+    "pcode": "NG031001",
+    "area_sqkm": 331.14854671,
+    "latitude": 7.74917117,
+    "longitude": 3.85701186
+  },
+  {
+    "code": "oyo_akinyele",
+    "name": "Akinyele",
+    "state_code": "oyo",
+    "pcode": "NG031002",
+    "area_sqkm": 596.67756633,
+    "latitude": 7.56853196,
+    "longitude": 3.89041824
+  },
+  {
+    "code": "oyo_atiba",
+    "name": "Atiba",
+    "state_code": "oyo",
+    "pcode": "NG031003",
+    "area_sqkm": 1810.22447767,
+    "latitude": 8.22743172,
+    "longitude": 3.86733246
+  },
+  {
+    "code": "oyo_atigbo",
+    "name": "Atigbo",
+    "state_code": "oyo",
+    "pcode": "NG031004",
+    "area_sqkm": 2884.68181663,
+    "latitude": 8.40590333,
+    "longitude": 3.24728814
+  },
+  {
+    "code": "oyo_egbeda",
+    "name": "Egbeda",
+    "state_code": "oyo",
+    "pcode": "NG031005",
+    "area_sqkm": 258.45436204,
+    "latitude": 7.41118323,
+    "longitude": 4.04376956
+  },
+  {
+    "code": "oyo_ibadan_north",
+    "name": "Ibadan North",
+    "state_code": "oyo",
+    "pcode": "NG031006",
+    "area_sqkm": 38.94356852,
+    "latitude": 7.4182404,
+    "longitude": 3.90615484
+  },
+  {
+    "code": "oyo_ibadan_north_east",
+    "name": "Ibadan North East",
+    "state_code": "oyo",
+    "pcode": "NG031007",
+    "area_sqkm": 13.22992245,
+    "latitude": 7.39688971,
+    "longitude": 3.93072647
+  },
+  {
+    "code": "oyo_ibadan_north_west",
+    "name": "Ibadan North West",
+    "state_code": "oyo",
+    "pcode": "NG031008",
+    "area_sqkm": 11.4421433,
+    "latitude": 7.40268185,
+    "longitude": 3.87263132
+  },
+  {
+    "code": "oyo_ibadan_south_east",
+    "name": "Ibadan South East",
+    "state_code": "oyo",
+    "pcode": "NG031009",
+    "area_sqkm": 14.03543403,
+    "latitude": 7.35706411,
+    "longitude": 3.90548292
+  },
+  {
+    "code": "oyo_ibadan_south_west",
+    "name": "Ibadan South West",
+    "state_code": "oyo",
+    "pcode": "NG031010",
+    "area_sqkm": 48.16491134,
+    "latitude": 7.37356198,
+    "longitude": 3.85606821
+  },
+  {
+    "code": "oyo_ibarapa_central",
+    "name": "Ibarapa Central",
+    "state_code": "oyo",
+    "pcode": "NG031011",
+    "area_sqkm": 683.60562511,
+    "latitude": 7.45490207,
+    "longitude": 3.23401203
+  },
+  {
+    "code": "oyo_ibarapa_east",
+    "name": "Ibarapa East",
+    "state_code": "oyo",
+    "pcode": "NG031012",
+    "area_sqkm": 752.5488134,
+    "latitude": 7.58798977,
+    "longitude": 3.46055158
+  },
+  {
+    "code": "oyo_ibarapa_north",
+    "name": "Ibarapa North",
+    "state_code": "oyo",
+    "pcode": "NG031013",
+    "area_sqkm": 962.74890392,
+    "latitude": 7.67452048,
+    "longitude": 3.15578851
+  },
+  {
+    "code": "oyo_ido",
+    "name": "Ido",
+    "state_code": "oyo",
+    "pcode": "NG031014",
+    "area_sqkm": 865.83824465,
+    "latitude": 7.51405304,
+    "longitude": 3.70550754
+  },
+  {
+    "code": "oyo_irepo",
+    "name": "Irepo",
+    "state_code": "oyo",
+    "pcode": "NG031015",
+    "area_sqkm": 978.72257182,
+    "latitude": 9.0246082,
+    "longitude": 3.88495153
+  },
+  {
+    "code": "oyo_iseyin",
+    "name": "Iseyin",
+    "state_code": "oyo",
+    "pcode": "NG031016",
+    "area_sqkm": 1812.98248557,
+    "latitude": 8.00415325,
+    "longitude": 3.59815763
+  },
+  {
+    "code": "oyo_itesiwaju",
+    "name": "Itesiwaju",
+    "state_code": "oyo",
+    "pcode": "NG031017",
+    "area_sqkm": 1540.18296613,
+    "latitude": 8.20840739,
+    "longitude": 3.48528895
+  },
+  {
+    "code": "oyo_iwajowa",
+    "name": "Iwajowa",
+    "state_code": "oyo",
+    "pcode": "NG031018",
+    "area_sqkm": 2387.44768702,
+    "latitude": 7.98612283,
+    "longitude": 2.98693161
+  },
+  {
+    "code": "oyo_kajola",
+    "name": "Kajola",
+    "state_code": "oyo",
+    "pcode": "NG031019",
+    "area_sqkm": 604.27382695,
+    "latitude": 8.02853251,
+    "longitude": 3.35859431
+  },
+  {
+    "code": "oyo_lagelu",
+    "name": "Lagelu",
+    "state_code": "oyo",
+    "pcode": "NG031020",
+    "area_sqkm": 272.79553236,
+    "latitude": 7.51317497,
+    "longitude": 4.07412051
+  },
+  {
+    "code": "oyo_ogbomosho_north",
+    "name": "Ogbomosho North",
+    "state_code": "oyo",
+    "pcode": "NG031021",
+    "area_sqkm": 91.12273393,
+    "latitude": 8.15030796,
+    "longitude": 4.24920177
+  },
+  {
+    "code": "oyo_ogbomosho_south",
+    "name": "Ogbomosho South",
+    "state_code": "oyo",
+    "pcode": "NG031022",
+    "area_sqkm": 28.98940671,
+    "latitude": 8.108243,
+    "longitude": 4.19991496
+  },
+  {
+    "code": "oyo_ogo_oluwa",
+    "name": "Ogo Oluwa",
+    "state_code": "oyo",
+    "pcode": "NG031023",
+    "area_sqkm": 375.03068311,
+    "latitude": 7.97521067,
+    "longitude": 4.19382543
+  },
+  {
+    "code": "oyo_olorunsogo",
+    "name": "Olorunsogo",
+    "state_code": "oyo",
+    "pcode": "NG031024",
+    "area_sqkm": 1057.64546343,
+    "latitude": 8.79578956,
+    "longitude": 4.05648503
+  },
+  {
+    "code": "oyo_oluyole",
+    "name": "Oluyole",
+    "state_code": "oyo",
+    "pcode": "NG031025",
+    "area_sqkm": 667.95285471,
+    "latitude": 7.21715789,
+    "longitude": 3.87966946
+  },
+  {
+    "code": "oyo_ona_ara",
+    "name": "Ona-Ara",
+    "state_code": "oyo",
+    "pcode": "NG031026",
+    "area_sqkm": 332.3762988,
+    "latitude": 7.25286711,
+    "longitude": 4.0538657
+  },
+  {
+    "code": "oyo_orelope",
+    "name": "Orelope",
+    "state_code": "oyo",
+    "pcode": "NG031027",
+    "area_sqkm": 911.69004186,
+    "latitude": 8.79413474,
+    "longitude": 3.80192276
+  },
+  {
+    "code": "oyo_ori_ire",
+    "name": "Ori Ire",
+    "state_code": "oyo",
+    "pcode": "NG031028",
+    "area_sqkm": 2033.69173352,
+    "latitude": 8.31221083,
+    "longitude": 4.18855172
+  },
+  {
+    "code": "oyo_oyo_east",
+    "name": "Oyo East",
+    "state_code": "oyo",
+    "pcode": "NG031029",
+    "area_sqkm": 357.3410817,
+    "latitude": 7.82793602,
+    "longitude": 4.03344187
+  },
+  {
+    "code": "oyo_oyo_west",
+    "name": "Oyo West",
+    "state_code": "oyo",
+    "pcode": "NG031030",
+    "area_sqkm": 595.66507979,
+    "latitude": 7.87760815,
+    "longitude": 3.8247789
+  },
+  {
+    "code": "oyo_saki_east",
+    "name": "Saki East",
+    "state_code": "oyo",
+    "pcode": "NG031031",
+    "area_sqkm": 1367.6659379,
+    "latitude": 8.70661368,
+    "longitude": 3.63673049
+  },
+  {
+    "code": "oyo_saki_west",
+    "name": "Saki West",
+    "state_code": "oyo",
+    "pcode": "NG031032",
+    "area_sqkm": 1879.4688213,
+    "latitude": 8.64507231,
+    "longitude": 3.21648897
+  },
+  {
+    "code": "oyo_surulere",
+    "name": "Surulere",
+    "state_code": "oyo",
+    "pcode": "NG031033",
+    "area_sqkm": 1036.63000884,
+    "latitude": 8.08843233,
+    "longitude": 4.39842143
+  },
+  {
+    "code": "plateau_barikin_ladi",
+    "name": "Barikin Ladi",
+    "state_code": "plateau",
+    "pcode": "NG032001",
+    "area_sqkm": 996.77364064,
+    "latitude": 9.57405827,
+    "longitude": 8.97100379
+  },
+  {
+    "code": "plateau_bassa",
+    "name": "Bassa",
+    "state_code": "plateau",
+    "pcode": "NG032002",
+    "area_sqkm": 1647.5713531,
+    "latitude": 10.06383525,
+    "longitude": 8.80861133
+  },
+  {
+    "code": "plateau_bokkos",
+    "name": "Bokkos",
+    "state_code": "plateau",
+    "pcode": "NG032003",
+    "area_sqkm": 1721.49071495,
+    "latitude": 9.22994134,
+    "longitude": 8.8895093
+  },
+  {
+    "code": "plateau_jos_east",
+    "name": "Jos East",
+    "state_code": "plateau",
+    "pcode": "NG032004",
+    "area_sqkm": 1027.73435105,
+    "latitude": 9.87550902,
+    "longitude": 9.12939928
+  },
+  {
+    "code": "plateau_jos_north",
+    "name": "Jos North",
+    "state_code": "plateau",
+    "pcode": "NG032005",
+    "area_sqkm": 262.19744238,
+    "latitude": 9.94376989,
+    "longitude": 8.89468678
+  },
+  {
+    "code": "plateau_jos_south",
+    "name": "Jos South",
+    "state_code": "plateau",
+    "pcode": "NG032006",
+    "area_sqkm": 566.16351621,
+    "latitude": 9.76105051,
+    "longitude": 8.84563005
+  },
+  {
+    "code": "plateau_kanam",
+    "name": "Kanam",
+    "state_code": "plateau",
+    "pcode": "NG032007",
+    "area_sqkm": 2745.85832166,
+    "latitude": 9.49113794,
+    "longitude": 10.15453027
+  },
+  {
+    "code": "plateau_kanke",
+    "name": "Kanke",
+    "state_code": "plateau",
+    "pcode": "NG032008",
+    "area_sqkm": 940.37018064,
+    "latitude": 9.36319205,
+    "longitude": 9.65548919
+  },
+  {
+    "code": "plateau_langtang_north",
+    "name": "Langtang North",
+    "state_code": "plateau",
+    "pcode": "NG032009",
+    "area_sqkm": 782.42478457,
+    "latitude": 9.04946091,
+    "longitude": 9.8269267
+  },
+  {
+    "code": "plateau_langtang_south",
+    "name": "Langtang South",
+    "state_code": "plateau",
+    "pcode": "NG032010",
+    "area_sqkm": 1198.87729128,
+    "latitude": 8.62610292,
+    "longitude": 9.82364825
+  },
+  {
+    "code": "plateau_mangu",
+    "name": "Mangu",
+    "state_code": "plateau",
+    "pcode": "NG032011",
+    "area_sqkm": 1609.6794799,
+    "latitude": 9.36203006,
+    "longitude": 9.18465775
+  },
+  {
+    "code": "plateau_mikang",
+    "name": "Mikang",
+    "state_code": "plateau",
+    "pcode": "NG032012",
+    "area_sqkm": 785.21771861,
+    "latitude": 9.01226623,
+    "longitude": 9.5763007
+  },
+  {
+    "code": "plateau_pankshin",
+    "name": "Pankshin",
+    "state_code": "plateau",
+    "pcode": "NG032013",
+    "area_sqkm": 1434.64811536,
+    "latitude": 9.3250494,
+    "longitude": 9.38806573
+  },
+  {
+    "code": "plateau_quaan_pan",
+    "name": "Qua'an Pan",
+    "state_code": "plateau",
+    "pcode": "NG032014",
+    "area_sqkm": 2539.91765817,
+    "latitude": 8.7778917,
+    "longitude": 9.12905236
+  },
+  {
+    "code": "plateau_riyom",
+    "name": "Riyom",
+    "state_code": "plateau",
+    "pcode": "NG032015",
+    "area_sqkm": 828.47285084,
+    "latitude": 9.55646359,
+    "longitude": 8.70492509
+  },
+  {
+    "code": "plateau_shendam",
+    "name": "Shendam",
+    "state_code": "plateau",
+    "pcode": "NG032016",
+    "area_sqkm": 2439.81140188,
+    "latitude": 8.74796957,
+    "longitude": 9.52301853
+  },
+  {
+    "code": "plateau_wase",
+    "name": "Wase",
+    "state_code": "plateau",
+    "pcode": "NG032017",
+    "area_sqkm": 4979.4620348,
+    "latitude": 9.00434759,
+    "longitude": 10.24355813
+  },
+  {
+    "code": "rivers_abua_odual",
+    "name": "Abua/Odual",
+    "state_code": "rivers",
+    "pcode": "NG033001",
+    "area_sqkm": 716.08233529,
+    "latitude": 4.84693957,
+    "longitude": 6.56003275
+  },
+  {
+    "code": "rivers_ahoada_east",
+    "name": "Ahoada East",
+    "state_code": "rivers",
+    "pcode": "NG033002",
+    "area_sqkm": 318.15296592,
+    "latitude": 5.05207354,
+    "longitude": 6.64173202
+  },
+  {
+    "code": "rivers_ahoada_west",
+    "name": "Ahoada West",
+    "state_code": "rivers",
+    "pcode": "NG033003",
+    "area_sqkm": 440.40993381,
+    "latitude": 5.04685692,
+    "longitude": 6.51515872
+  },
+  {
+    "code": "rivers_akuku_toru",
+    "name": "Akuku Toru",
+    "state_code": "rivers",
+    "pcode": "NG033004",
+    "area_sqkm": 1246.89062222,
+    "latitude": 4.53746798,
+    "longitude": 6.70521904
+  },
+  {
+    "code": "rivers_andoni",
+    "name": "Andoni",
+    "state_code": "rivers",
+    "pcode": "NG033005",
+    "area_sqkm": 251.19059117,
+    "latitude": 4.51008224,
+    "longitude": 7.4071609
+  },
+  {
+    "code": "rivers_asari_toru",
+    "name": "Asari-Toru",
+    "state_code": "rivers",
+    "pcode": "NG033006",
+    "area_sqkm": 115.01940087,
+    "latitude": 4.75515188,
+    "longitude": 6.82812045
+  },
+  {
+    "code": "rivers_bonny",
+    "name": "Bonny",
+    "state_code": "rivers",
+    "pcode": "NG033007",
+    "area_sqkm": 551.54524838,
+    "latitude": 4.51006675,
+    "longitude": 7.19993058
+  },
+  {
+    "code": "rivers_degema",
+    "name": "Degema",
+    "state_code": "rivers",
+    "pcode": "NG033008",
+    "area_sqkm": 986.59806295,
+    "latitude": 4.59591653,
+    "longitude": 6.94341863
+  },
+  {
+    "code": "rivers_eleme",
+    "name": "Eleme",
+    "state_code": "rivers",
+    "pcode": "NG033009",
+    "area_sqkm": 136.5952792,
+    "latitude": 4.78498511,
+    "longitude": 7.14886228
+  },
+  {
+    "code": "rivers_emohua",
+    "name": "Emohua",
+    "state_code": "rivers",
+    "pcode": "NG033010",
+    "area_sqkm": 833.00098329,
+    "latitude": 5.03159903,
+    "longitude": 6.76356862
+  },
+  {
+    "code": "rivers_etche",
+    "name": "Etche",
+    "state_code": "rivers",
+    "pcode": "NG033011",
+    "area_sqkm": 815.82754508,
+    "latitude": 5.07653212,
+    "longitude": 7.09263876
+  },
+  {
+    "code": "rivers_gokana",
+    "name": "Gokana",
+    "state_code": "rivers",
+    "pcode": "NG033012",
+    "area_sqkm": 132.74240367,
+    "latitude": 4.6596482,
+    "longitude": 7.29151885
+  },
+  {
+    "code": "rivers_ikwerre",
+    "name": "Ikwerre",
+    "state_code": "rivers",
+    "pcode": "NG033013",
+    "area_sqkm": 658.15910079,
+    "latitude": 5.07051514,
+    "longitude": 6.88200456
+  },
+  {
+    "code": "rivers_khana",
+    "name": "Khana",
+    "state_code": "rivers",
+    "pcode": "NG033014",
+    "area_sqkm": 558.89314966,
+    "latitude": 4.67248711,
+    "longitude": 7.43228934
+  },
+  {
+    "code": "rivers_obio_akpor",
+    "name": "Obio/Akpor",
+    "state_code": "rivers",
+    "pcode": "NG033015",
+    "area_sqkm": 257.64238853,
+    "latitude": 4.86169075,
+    "longitude": 7.02248307
+  },
+  {
+    "code": "rivers_ogba_egbema_ndoni",
+    "name": "Ogba/Egbema/Ndoni",
+    "state_code": "rivers",
+    "pcode": "NG033016",
+    "area_sqkm": 958.33095317,
+    "latitude": 5.44394754,
+    "longitude": 6.63688493
+  },
+  {
+    "code": "rivers_ogu_bolo",
+    "name": "Ogu/Bolo",
+    "state_code": "rivers",
+    "pcode": "NG033017",
+    "area_sqkm": 130.00634801,
+    "latitude": 4.65075373,
+    "longitude": 7.19587657
+  },
+  {
+    "code": "rivers_okrika",
+    "name": "Okrika",
+    "state_code": "rivers",
+    "pcode": "NG033018",
+    "area_sqkm": 286.41163861,
+    "latitude": 4.68063314,
+    "longitude": 7.08122575
+  },
+  {
+    "code": "rivers_omumma",
+    "name": "Omumma",
+    "state_code": "rivers",
+    "pcode": "NG033019",
+    "area_sqkm": 158.75558008,
+    "latitude": 5.09841747,
+    "longitude": 7.23774939
+  },
+  {
+    "code": "rivers_opobo_nkoro",
+    "name": "Opobo/Nkoro",
+    "state_code": "rivers",
+    "pcode": "NG033020",
+    "area_sqkm": 114.95588599,
+    "latitude": 4.51237201,
+    "longitude": 7.51926876
+  },
+  {
+    "code": "rivers_oyigbo",
+    "name": "Oyigbo",
+    "state_code": "rivers",
+    "pcode": "NG033021",
+    "area_sqkm": 247.28674846,
+    "latitude": 4.84663012,
+    "longitude": 7.30196775
+  },
+  {
+    "code": "rivers_port_harcourt",
+    "name": "Port-Harcourt",
+    "state_code": "rivers",
+    "pcode": "NG033022",
+    "area_sqkm": 108.19723343,
+    "latitude": 4.76685909,
+    "longitude": 7.03715711
+  },
+  {
+    "code": "rivers_tai",
+    "name": "Tai",
+    "state_code": "rivers",
+    "pcode": "NG033023",
+    "area_sqkm": 160.568126,
+    "latitude": 4.76984643,
+    "longitude": 7.26197492
+  },
+  {
+    "code": "sokoto_binji",
+    "name": "Binji",
+    "state_code": "sokoto",
+    "pcode": "NG034001",
+    "area_sqkm": 828.1789621,
+    "latitude": 13.18353188,
+    "longitude": 4.79468145
+  },
+  {
+    "code": "sokoto_bodinga",
+    "name": "Bodinga",
+    "state_code": "sokoto",
+    "pcode": "NG034002",
+    "area_sqkm": 637.81752326,
+    "latitude": 12.79945513,
+    "longitude": 5.17944646
+  },
+  {
+    "code": "sokoto_dange_shuni",
+    "name": "Dange-Shuni",
+    "state_code": "sokoto",
+    "pcode": "NG034003",
+    "area_sqkm": 1133.80517755,
+    "latitude": 12.83257302,
+    "longitude": 5.42437762
+  },
+  {
+    "code": "sokoto_gada",
+    "name": "Gada",
+    "state_code": "sokoto",
+    "pcode": "NG034004",
+    "area_sqkm": 1515.21451367,
+    "latitude": 13.67876165,
+    "longitude": 5.73793707
+  },
+  {
+    "code": "sokoto_goronyo",
+    "name": "Goronyo",
+    "state_code": "sokoto",
+    "pcode": "NG034006",
+    "area_sqkm": 1708.91802575,
+    "latitude": 13.34754547,
+    "longitude": 5.73657196
+  },
+  {
+    "code": "sokoto_gudu",
+    "name": "Gudu",
+    "state_code": "sokoto",
+    "pcode": "NG034007",
+    "area_sqkm": 3281.83252971,
+    "latitude": 13.45893169,
+    "longitude": 4.44627044
+  },
+  {
+    "code": "sokoto_gwadabawa",
+    "name": "Gwadabawa",
+    "state_code": "sokoto",
+    "pcode": "NG034005",
+    "area_sqkm": 1006.30494346,
+    "latitude": 13.40847282,
+    "longitude": 5.33754397
+  },
+  {
+    "code": "sokoto_illela",
+    "name": "Illela",
+    "state_code": "sokoto",
+    "pcode": "NG034008",
+    "area_sqkm": 1081.32899933,
+    "latitude": 13.68276373,
+    "longitude": 5.30549209
+  },
+  {
+    "code": "sokoto_isa",
+    "name": "Isa",
+    "state_code": "sokoto",
+    "pcode": "NG034009",
+    "area_sqkm": 2164.61640905,
+    "latitude": 13.20464219,
+    "longitude": 6.35745264
+  },
+  {
+    "code": "sokoto_kebbe",
+    "name": "Kebbe",
+    "state_code": "sokoto",
+    "pcode": "NG034010",
+    "area_sqkm": 2625.41820592,
+    "latitude": 11.91410549,
+    "longitude": 4.75350681
+  },
+  {
+    "code": "sokoto_kware",
+    "name": "Kware",
+    "state_code": "sokoto",
+    "pcode": "NG034011",
+    "area_sqkm": 595.84474864,
+    "latitude": 13.15623698,
+    "longitude": 5.28807862
+  },
+  {
+    "code": "sokoto_rabah",
+    "name": "Rabah",
+    "state_code": "sokoto",
+    "pcode": "NG034012",
+    "area_sqkm": 2393.77436445,
+    "latitude": 12.99760662,
+    "longitude": 5.76755822
+  },
+  {
+    "code": "sokoto_sabon_birni",
+    "name": "Sabon Birni",
+    "state_code": "sokoto",
+    "pcode": "NG034013",
+    "area_sqkm": 2377.44615586,
+    "latitude": 13.4940883,
+    "longitude": 6.24954703
+  },
+  {
+    "code": "sokoto_shagari",
+    "name": "Shagari",
+    "state_code": "sokoto",
+    "pcode": "NG034014",
+    "area_sqkm": 1310.00327289,
+    "latitude": 12.53341558,
+    "longitude": 5.06737579
+  },
+  {
+    "code": "sokoto_silame",
+    "name": "Silame",
+    "state_code": "sokoto",
+    "pcode": "NG034015",
+    "area_sqkm": 798.33690146,
+    "latitude": 12.98639322,
+    "longitude": 4.79887572
+  },
+  {
+    "code": "sokoto_sokoto_north",
+    "name": "Sokoto North",
+    "state_code": "sokoto",
+    "pcode": "NG034016",
+    "area_sqkm": 40.01946101,
+    "latitude": 13.07633047,
+    "longitude": 5.2286123
+  },
+  {
+    "code": "sokoto_sokoto_south",
+    "name": "Sokoto South",
+    "state_code": "sokoto",
+    "pcode": "NG034017",
+    "area_sqkm": 28.53642058,
+    "latitude": 13.03838179,
+    "longitude": 5.25818268
+  },
+  {
+    "code": "sokoto_tambuwal",
+    "name": "Tambuwal",
+    "state_code": "sokoto",
+    "pcode": "NG034018",
+    "area_sqkm": 1839.06293017,
+    "latitude": 12.43855209,
+    "longitude": 4.9208364
+  },
+  {
+    "code": "sokoto_tangaza",
+    "name": "Tangaza",
+    "state_code": "sokoto",
+    "pcode": "NG034019",
+    "area_sqkm": 2375.12330145,
+    "latitude": 13.47056475,
+    "longitude": 4.97198028
+  },
+  {
+    "code": "sokoto_tureta",
+    "name": "Tureta",
+    "state_code": "sokoto",
+    "pcode": "NG034020",
+    "area_sqkm": 2299.36038524,
+    "latitude": 12.48310616,
+    "longitude": 5.51174871
+  },
+  {
+    "code": "sokoto_wamako",
+    "name": "Wamako",
+    "state_code": "sokoto",
+    "pcode": "NG034021",
+    "area_sqkm": 663.35417255,
+    "latitude": 13.08036802,
+    "longitude": 5.07776168
+  },
+  {
+    "code": "sokoto_wurno",
+    "name": "Wurno",
+    "state_code": "sokoto",
+    "pcode": "NG034022",
+    "area_sqkm": 680.37541584,
+    "latitude": 13.23691419,
+    "longitude": 5.47058655
+  },
+  {
+    "code": "sokoto_yabo",
+    "name": "Yabo",
+    "state_code": "sokoto",
+    "pcode": "NG034023",
+    "area_sqkm": 768.37880148,
+    "latitude": 12.79643212,
+    "longitude": 4.94217461
+  },
+  {
+    "code": "taraba_ardo_kola",
+    "name": "Ardo-Kola",
+    "state_code": "taraba",
+    "pcode": "NG035001",
+    "area_sqkm": 2258.27806352,
+    "latitude": 8.84709878,
+    "longitude": 11.13251965
+  },
+  {
+    "code": "taraba_bali",
+    "name": "Bali",
+    "state_code": "taraba",
+    "pcode": "NG035002",
+    "area_sqkm": 9133.64374035,
+    "latitude": 8.09062575,
+    "longitude": 10.95226196
+  },
+  {
+    "code": "taraba_donga",
+    "name": "Donga",
+    "state_code": "taraba",
+    "pcode": "NG035003",
+    "area_sqkm": 3041.17806273,
+    "latitude": 7.66501978,
+    "longitude": 10.10074339
+  },
+  {
+    "code": "taraba_gashaka",
+    "name": "Gashaka",
+    "state_code": "taraba",
+    "pcode": "NG035004",
+    "area_sqkm": 8376.55796726,
+    "latitude": 7.50945643,
+    "longitude": 11.33835569
+  },
+  {
+    "code": "taraba_gassol",
+    "name": "Gassol",
+    "state_code": "taraba",
+    "pcode": "NG035005",
+    "area_sqkm": 5543.73463254,
+    "latitude": 8.38282337,
+    "longitude": 10.46509555
+  },
+  {
+    "code": "taraba_ibi",
+    "name": "Ibi",
+    "state_code": "taraba",
+    "pcode": "NG035006",
+    "area_sqkm": 2669.14963536,
+    "latitude": 8.39512245,
+    "longitude": 9.93280564
+  },
+  {
+    "code": "taraba_jalingo",
+    "name": "Jalingo",
+    "state_code": "taraba",
+    "pcode": "NG035007",
+    "area_sqkm": 190.41192762,
+    "latitude": 8.90558282,
+    "longitude": 11.33612574
+  },
+  {
+    "code": "taraba_karim_lamido",
+    "name": "Karim-Lamido",
+    "state_code": "taraba",
+    "pcode": "NG035008",
+    "area_sqkm": 6612.28290026,
+    "latitude": 9.14731325,
+    "longitude": 10.85802088
+  },
+  {
+    "code": "taraba_kurmi",
+    "name": "Kurmi",
+    "state_code": "taraba",
+    "pcode": "NG035009",
+    "area_sqkm": 4349.99105126,
+    "latitude": 7.26632324,
+    "longitude": 10.70152529
+  },
+  {
+    "code": "taraba_lau",
+    "name": "Lau",
+    "state_code": "taraba",
+    "pcode": "NG035010",
+    "area_sqkm": 1657.10315271,
+    "latitude": 9.19390003,
+    "longitude": 11.46301909
+  },
+  {
+    "code": "taraba_sardauna",
+    "name": "Sardauna",
+    "state_code": "taraba",
+    "pcode": "NG035011",
+    "area_sqkm": 4595.61746269,
+    "latitude": 6.92809079,
+    "longitude": 11.23064058
+  },
+  {
+    "code": "taraba_takum",
+    "name": "Takum",
+    "state_code": "taraba",
+    "pcode": "NG035012",
+    "area_sqkm": 2386.48077868,
+    "latitude": 7.05081475,
+    "longitude": 9.79638768
+  },
+  {
+    "code": "taraba_ussa",
+    "name": "Ussa",
+    "state_code": "taraba",
+    "pcode": "NG035013",
+    "area_sqkm": 1495.02340535,
+    "latitude": 7.10408167,
+    "longitude": 10.05358793
+  },
+  {
+    "code": "taraba_wukari",
+    "name": "Wukari",
+    "state_code": "taraba",
+    "pcode": "NG035014",
+    "area_sqkm": 3936.07124121,
+    "latitude": 7.98914762,
+    "longitude": 9.76843646
+  },
+  {
+    "code": "taraba_yorro",
+    "name": "Yorro",
+    "state_code": "taraba",
+    "pcode": "NG035015",
+    "area_sqkm": 1272.59947926,
+    "latitude": 8.88030466,
+    "longitude": 11.50678435
+  },
+  {
+    "code": "taraba_zing",
+    "name": "Zing",
+    "state_code": "taraba",
+    "pcode": "NG035016",
+    "area_sqkm": 1027.53371229,
+    "latitude": 8.85857995,
+    "longitude": 11.76508286
+  },
+  {
+    "code": "yobe_bade",
+    "name": "Bade",
+    "state_code": "yobe",
+    "pcode": "NG036001",
+    "area_sqkm": 833.60875373,
+    "latitude": 12.78435332,
+    "longitude": 10.67716815
+  },
+  {
+    "code": "yobe_bursari",
+    "name": "Bursari",
+    "state_code": "yobe",
+    "pcode": "NG036002",
+    "area_sqkm": 3816.70213428,
+    "latitude": 12.69552181,
+    "longitude": 11.4493189
+  },
+  {
+    "code": "yobe_damaturu",
+    "name": "Damaturu",
+    "state_code": "yobe",
+    "pcode": "NG036003",
+    "area_sqkm": 2343.70251948,
+    "latitude": 11.82132984,
+    "longitude": 12.01902809
+  },
+  {
+    "code": "yobe_fika",
+    "name": "Fika",
+    "state_code": "yobe",
+    "pcode": "NG036004",
+    "area_sqkm": 2151.52880193,
+    "latitude": 11.35100978,
+    "longitude": 11.18297729
+  },
+  {
+    "code": "yobe_fune",
+    "name": "Fune",
+    "state_code": "yobe",
+    "pcode": "NG036005",
+    "area_sqkm": 5475.00365598,
+    "latitude": 11.88115959,
+    "longitude": 11.41165814
+  },
+  {
+    "code": "yobe_geidam",
+    "name": "Geidam",
+    "state_code": "yobe",
+    "pcode": "NG036006",
+    "area_sqkm": 3840.76594591,
+    "latitude": 12.69485247,
+    "longitude": 12.14033454
+  },
+  {
+    "code": "yobe_gujba",
+    "name": "Gujba",
+    "state_code": "yobe",
+    "pcode": "NG036007",
+    "area_sqkm": 3468.99320714,
+    "latitude": 11.36383012,
+    "longitude": 11.87769078
+  },
+  {
+    "code": "yobe_gulani",
+    "name": "Gulani",
+    "state_code": "yobe",
+    "pcode": "NG036008",
+    "area_sqkm": 2129.77541982,
+    "latitude": 10.89249304,
+    "longitude": 11.61491403
+  },
+  {
+    "code": "yobe_jakusko",
+    "name": "Jakusko",
+    "state_code": "yobe",
+    "pcode": "NG036009",
+    "area_sqkm": 3529.61777858,
+    "latitude": 12.3711745,
+    "longitude": 11.00417973
+  },
+  {
+    "code": "yobe_karasuwa",
+    "name": "Karasuwa",
+    "state_code": "yobe",
+    "pcode": "NG036010",
+    "area_sqkm": 1332.05229765,
+    "latitude": 12.99797807,
+    "longitude": 10.69159384
+  },
+  {
+    "code": "yobe_machina",
+    "name": "Machina",
+    "state_code": "yobe",
+    "pcode": "NG036011",
+    "area_sqkm": 1279.90281608,
+    "latitude": 13.0400599,
+    "longitude": 10.05924403
+  },
+  {
+    "code": "yobe_nangere",
+    "name": "Nangere",
+    "state_code": "yobe",
+    "pcode": "NG036012",
+    "area_sqkm": 1043.94310588,
+    "latitude": 11.80785234,
+    "longitude": 11.0456302
+  },
+  {
+    "code": "yobe_nguru",
+    "name": "Nguru",
+    "state_code": "yobe",
+    "pcode": "NG036013",
+    "area_sqkm": 816.64905163,
+    "latitude": 12.97793488,
+    "longitude": 10.3827601
+  },
+  {
+    "code": "yobe_potiskum",
+    "name": "Potiskum",
+    "state_code": "yobe",
+    "pcode": "NG036014",
+    "area_sqkm": 575.99007689,
+    "latitude": 11.72968866,
+    "longitude": 11.16086368
+  },
+  {
+    "code": "yobe_tarmua",
+    "name": "Tarmua",
+    "state_code": "yobe",
+    "pcode": "NG036015",
+    "area_sqkm": 4525.37792635,
+    "latitude": 12.22054982,
+    "longitude": 11.8956434
+  },
+  {
+    "code": "yobe_yunusari",
+    "name": "Yunusari",
+    "state_code": "yobe",
+    "pcode": "NG036016",
+    "area_sqkm": 3815.34084545,
+    "latitude": 13.11156862,
+    "longitude": 11.72402708
+  },
+  {
+    "code": "yobe_yusufari",
+    "name": "Yusufari",
+    "state_code": "yobe",
+    "pcode": "NG036017",
+    "area_sqkm": 3864.56087097,
+    "latitude": 13.15951119,
+    "longitude": 10.54321129
+  },
+  {
+    "code": "zamfara_anka",
+    "name": "Anka",
+    "state_code": "zamfara",
+    "pcode": "NG037001",
+    "area_sqkm": 2548.70604501,
+    "latitude": 11.985259,
+    "longitude": 5.98625189
+  },
+  {
+    "code": "zamfara_bakura",
+    "name": "Bakura",
+    "state_code": "zamfara",
+    "pcode": "NG037002",
+    "area_sqkm": 1501.64652054,
+    "latitude": 12.55534979,
+    "longitude": 5.86627528
+  },
+  {
+    "code": "zamfara_birnin_magaji",
+    "name": "Birnin Magaji",
+    "state_code": "zamfara",
+    "pcode": "NG037003",
+    "area_sqkm": 1239.957662,
+    "latitude": 12.45427328,
+    "longitude": 6.86857104
+  },
+  {
+    "code": "zamfara_bukkuyum",
+    "name": "Bukkuyum",
+    "state_code": "zamfara",
+    "pcode": "NG037004",
+    "area_sqkm": 3296.08348095,
+    "latitude": 11.95119433,
+    "longitude": 5.57416138
+  },
+  {
+    "code": "zamfara_bungudu",
+    "name": "Bungudu",
+    "state_code": "zamfara",
+    "pcode": "NG037005",
+    "area_sqkm": 2031.39664262,
+    "latitude": 12.03378299,
+    "longitude": 6.4712743
+  },
+  {
+    "code": "zamfara_gummi",
+    "name": "Gummi",
+    "state_code": "zamfara",
+    "pcode": "NG037006",
+    "area_sqkm": 2605.41539404,
+    "latitude": 12.01338153,
+    "longitude": 5.15342091
+  },
+  {
+    "code": "zamfara_gusau",
+    "name": "Gusau",
+    "state_code": "zamfara",
+    "pcode": "NG037007",
+    "area_sqkm": 2709.39825096,
+    "latitude": 12.20420583,
+    "longitude": 7.01815196
+  },
+  {
+    "code": "zamfara_kaura_namoda",
+    "name": "Kaura Namoda",
+    "state_code": "zamfara",
+    "pcode": "NG037008",
+    "area_sqkm": 866.04329282,
+    "latitude": 12.48223466,
+    "longitude": 6.56733283
+  },
+  {
+    "code": "zamfara_maradun",
+    "name": "Maradun",
+    "state_code": "zamfara",
+    "pcode": "NG037009",
+    "area_sqkm": 2753.94959184,
+    "latitude": 12.71545161,
+    "longitude": 6.31724159
+  },
+  {
+    "code": "zamfara_maru",
+    "name": "Maru",
+    "state_code": "zamfara",
+    "pcode": "NG037010",
+    "area_sqkm": 7215.5101484,
+    "latitude": 11.64432722,
+    "longitude": 6.32646109
+  },
+  {
+    "code": "zamfara_shinkafi",
+    "name": "Shinkafi",
+    "state_code": "zamfara",
+    "pcode": "NG037011",
+    "area_sqkm": 782.88136379,
+    "latitude": 13.02907132,
+    "longitude": 6.45859297
+  },
+  {
+    "code": "zamfara_talata_mafara",
+    "name": "Talata Mafara",
+    "state_code": "zamfara",
+    "pcode": "NG037012",
+    "area_sqkm": 1465.80990859,
+    "latitude": 12.39614626,
+    "longitude": 6.07325788
+  },
+  {
+    "code": "zamfara_tsafe",
+    "name": "Tsafe",
+    "state_code": "zamfara",
+    "pcode": "NG037013",
+    "area_sqkm": 1810.18555528,
+    "latitude": 11.82517121,
+    "longitude": 6.89559963
+  },
+  {
+    "code": "zamfara_zurmi",
+    "name": "Zurmi",
+    "state_code": "zamfara",
+    "pcode": "NG037014",
+    "area_sqkm": 2684.60535061,
+    "latitude": 12.86327938,
+    "longitude": 6.71261887
+  }
+]

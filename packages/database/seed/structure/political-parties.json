@@ -1,0 +1,18 @@
+[
+  { "acronym": "A", "name": "Alliance", "is_active": false },
+  { "acronym": "AA", "name": "Action Alliance", "is_active": true },
+  { "acronym": "AAC", "name": "African Action Congress", "is_active": true },
+  { "acronym": "ADC", "name": "African Democratic Congress", "is_active": true },
+  { "acronym": "ADP", "name": "Action Democratic Party", "is_active": true },
+  { "acronym": "APC", "name": "All Progressives Congress", "is_active": true },
+  { "acronym": "APGA", "name": "All Progressives Grand Alliance", "is_active": true },
+  { "acronym": "APP", "name": "Action Peoples Party", "is_active": true },
+  { "acronym": "Accord", "name": "Accord Party", "is_active": true },
+  { "acronym": "LP", "name": "Labour Party", "is_active": true },
+  { "acronym": "NNPP", "name": "New Nigeria Peoples Party", "is_active": true },
+  { "acronym": "PDP", "name": "Peoples Democratic Party", "is_active": true },
+  { "acronym": "PRP", "name": "Peoples Redemption Party", "is_active": true },
+  { "acronym": "SDP", "name": "Social Democratic Party", "is_active": true },
+  { "acronym": "YPP", "name": "Young Progressives Party", "is_active": true },
+  { "acronym": "ZLP", "name": "Zenith Labour Party", "is_active": true }
+]
