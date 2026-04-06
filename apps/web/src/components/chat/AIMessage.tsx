@@ -30,13 +30,13 @@ import { apiUrl } from "@/lib/api";
 import { extractChartBlocks } from "@/lib/chart-parser";
 
 interface AIMessageProps {
-  content: AIResponseContent;
-  thinking?: ThinkingStep[];
-  disambiguation?: { query: string; candidates: DisambiguationCandidate[] };
-  suggestions?: GraphSuggestion[];
-  messageId?: string;
-  conversationId?: string;
-  onFollowUpClick: (text: string) => void;
+  readonly content: AIResponseContent;
+  readonly thinking?: ThinkingStep[];
+  readonly disambiguation?: { query: string; candidates: DisambiguationCandidate[] };
+  readonly suggestions?: GraphSuggestion[];
+  readonly messageId?: string;
+  readonly conversationId?: string;
+  readonly onFollowUpClick: (text: string) => void;
 }
 
 export function AIMessage({

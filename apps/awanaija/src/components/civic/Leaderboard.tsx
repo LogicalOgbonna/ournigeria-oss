@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { getCompletenessRankings, type CompletenessEntry } from "@/lib/api";
 
 interface LeaderboardProps {
-  limit?: number;
-  highlightState?: string;
+  readonly limit?: number;
+  readonly highlightState?: string;
 }
 
 export function Leaderboard({ limit = 10, highlightState }: LeaderboardProps) {
