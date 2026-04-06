@@ -1,4 +1,4 @@
-import { Composition } from "remotion";
+import { Composition, Folder } from "remotion";
 import { BudgetOverview } from "./compositions/BudgetOverview";
 import { ProductDemo } from "./compositions/ProductDemo/ProductDemo";
 import { StateBudget } from "./compositions/StateBudget/StateBudget";
@@ -6,6 +6,11 @@ import { CorruptionCase } from "./compositions/CorruptionCase/CorruptionCase";
 import { StateComparison } from "./compositions/StateComparison/StateComparison";
 import { FAACAllocation } from "./compositions/FAACAllocation/FAACAllocation";
 import { MoneyCouldBuy } from "./compositions/MoneyCouldBuy/MoneyCouldBuy";
+import { KnowYourReps } from "./compositions/CivicIntro/KnowYourReps/KnowYourReps";
+import { CommunityPower } from "./compositions/CivicIntro/CommunityPower/CommunityPower";
+import { ProposeAndVerify } from "./compositions/CivicIntro/ProposeAndVerify/ProposeAndVerify";
+import { LeaderboardChallenge } from "./compositions/CivicIntro/LeaderboardChallenge/LeaderboardChallenge";
+import { JoinTheMovement } from "./compositions/CivicIntro/JoinTheMovement/JoinTheMovement";
 import "./styles/global.css";
 
 export const RemotionRoot = () => {
@@ -142,6 +147,50 @@ export const RemotionRoot = () => {
             "₦215.8B fit build 10,790 primary schools. Think am well.",
         }}
       />
+
+      {/* Civic community intro videos — 16:9 (1920x1080) */}
+      <Folder name="CivicIntro">
+        <Composition
+          id="KnowYourReps"
+          component={KnowYourReps}
+          durationInFrames={690}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="CommunityPower"
+          component={CommunityPower}
+          durationInFrames={900}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="ProposeAndVerify"
+          component={ProposeAndVerify}
+          durationInFrames={900}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="LeaderboardChallenge"
+          component={LeaderboardChallenge}
+          durationInFrames={900}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+        <Composition
+          id="JoinTheMovement"
+          component={JoinTheMovement}
+          durationInFrames={900}
+          fps={30}
+          width={1920}
+          height={1080}
+        />
+      </Folder>
     </>
   );
 };

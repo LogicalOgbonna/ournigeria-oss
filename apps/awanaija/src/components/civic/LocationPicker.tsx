@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MapPin, ChevronLeft, Loader2, Search } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MapPin, ChevronLeft, Loader2, Search, LocateFixed, XCircle } from "lucide-react";
 import { getStates, getLgas, getWards, reverseGeocode } from "@/lib/api";
 
 interface LocationPickerProps {
@@ -16,6 +16,7 @@ interface LocationPickerProps {
 }
 
 type Step = "state" | "lga" | "ward";
+type DetectStatus = "idle" | "detecting" | "denied" | "failed";
 
 export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
   const [step, setStep] = useState<Step>("state");
@@ -28,31 +29,49 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
   const [pickedState, setPickedState] = useState<{ code: string; name: string } | null>(null);
   const [pickedLga, setPickedLga] = useState<{ code: string; name: string } | null>(null);
 
-  const [detecting, setDetecting] = useState(false);
+  const [detectStatus, setDetectStatus] = useState<DetectStatus>("idle");
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     setLoadingItems(true);
     getStates()
-      .then(setStates)
+      .then((data) => { if (mountedRef.current) setStates(data); })
       .catch(console.error)
-      .finally(() => setLoadingItems(false));
+      .finally(() => { if (mountedRef.current) setLoadingItems(false); });
     tryGeolocate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function tryGeolocate() {
-    if (!navigator.geolocation) return;
-    setDetecting(true);
+    if (!navigator.geolocation) {
+      setDetectStatus("failed");
+      return;
+    }
+
+    setDetectStatus("detecting");
+
     try {
       const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 }),
       );
+
+      if (!mountedRef.current) return;
+
       const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-      if (result.stateCode) {
-        const state = { code: result.stateCode, name: result.stateName || "" };
+
+      if (!mountedRef.current) return;
+
+      if (result.stateCode && result.stateName) {
+        const state = { code: result.stateCode, name: result.stateName };
         setPickedState(state);
 
         if (result.lgaCode && result.lgaName && result.wardCode && result.wardName) {
-          // Full location resolved — submit directly
+          setDetectStatus("idle");
           onLocationSelect({
             stateCode: state.code,
             stateName: state.name,
@@ -61,30 +80,38 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
             wardCode: result.wardCode,
             wardName: result.wardName,
           });
-        } else if (result.lgaCode && result.lgaName) {
-          // State + LGA resolved — move to ward step
+          return;
+        }
+
+        if (result.lgaCode && result.lgaName) {
           const lga = { code: result.lgaCode, name: result.lgaName };
           setPickedLga(lga);
           setStep("ward");
+          setDetectStatus("idle");
           setLoadingItems(true);
           getWards(lga.code)
-            .then(setWards)
+            .then((data) => { if (mountedRef.current) setWards(data); })
             .catch(console.error)
-            .finally(() => setLoadingItems(false));
-        } else {
-          // Only state resolved — move to LGA step
-          setStep("lga");
-          setLoadingItems(true);
-          getLgas(state.code)
-            .then(setLgas)
-            .catch(console.error)
-            .finally(() => setLoadingItems(false));
+            .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+          return;
         }
+
+        setStep("lga");
+        setDetectStatus("idle");
+        setLoadingItems(true);
+        getLgas(state.code)
+          .then((data) => { if (mountedRef.current) setLgas(data); })
+          .catch(console.error)
+          .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+        return;
       }
-    } catch {
-      // User denied or failed, show manual picker
-    } finally {
-      setDetecting(false);
+
+      setDetectStatus("failed");
+    } catch (err) {
+      if (!mountedRef.current) return;
+      const isPermissionDenied =
+        err instanceof GeolocationPositionError && err.code === err.PERMISSION_DENIED;
+      setDetectStatus(isPermissionDenied ? "denied" : "failed");
     }
   }
 
@@ -133,18 +160,28 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
     }
   }
 
-  // Filter items by search
   const filterBySearch = (items: { code: string; name: string }[]) => {
     if (!search.trim()) return items;
     const q = search.toLowerCase();
     return items.filter((item) => item.name.toLowerCase().includes(q));
   };
 
-  if (detecting) {
+  if (detectStatus === "detecting") {
     return (
-      <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400 py-8">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="text-sm">Detecting your location...</span>
+      <div className="flex flex-col items-center justify-center gap-3 py-8">
+        <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+          <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Detecting your location...</p>
+          <p className="text-xs text-slate-400 mt-1">Please allow location access when prompted</p>
+        </div>
+        <button
+          onClick={() => setDetectStatus("idle")}
+          className="mt-1 text-xs text-slate-400 hover:text-emerald-600 transition-colors"
+        >
+          Choose manually instead
+        </button>
       </div>
     );
   }
@@ -158,6 +195,22 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
 
   return (
     <div>
+      {/* Location denied/failed banner */}
+      {(detectStatus === "denied" || detectStatus === "failed") && step === "state" && (
+        <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
+          {detectStatus === "denied" ? (
+            <XCircle className="w-4 h-4 text-amber-500 shrink-0" />
+          ) : (
+            <LocateFixed className="w-4 h-4 text-amber-500 shrink-0" />
+          )}
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            {detectStatus === "denied"
+              ? "Location access denied. Select your state below."
+              : "Couldn\u2019t detect your location. Select your state below."}
+          </p>
+        </div>
+      )}
+
       {/* Header with back button and breadcrumb */}
       <div className="flex items-center gap-2 mb-3">
         {step !== "state" && (
@@ -202,25 +255,22 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
           {search ? "No results found" : "No items available"}
         </p>
       ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto">
-            {currentItems.map((item) => (
-              <button
-                key={item.code}
-                onClick={() => {
-                  if (step === "state") handleSelectState(item);
-                  else if (step === "lga") handleSelectLga(item);
-                  else handleSelectWard(item);
-                }}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all text-left active:scale-[0.98]"
-              >
-                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span className="truncate">{item.name}</span>
-              </button>
-            ))}
-          </div>
-
-        </>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto">
+          {currentItems.map((item) => (
+            <button
+              key={item.code}
+              onClick={() => {
+                if (step === "state") handleSelectState(item);
+                else if (step === "lga") handleSelectLga(item);
+                else handleSelectWard(item);
+              }}
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition-all text-left active:scale-[0.98]"
+            >
+              <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">{item.name}</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

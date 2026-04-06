@@ -13,6 +13,7 @@
     "@remotion/animated-emoji": "4.0.429",
     "@remotion/cli": "4.0.429",
     "@remotion/google-fonts": "4.0.429",
+    "@remotion/media": "4.0.429",
     "@remotion/rive": "4.0.429",
     "@remotion/shapes": "4.0.429",
     "@remotion/tailwind-v4": "4.0.429",

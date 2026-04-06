@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { X, MapPin, Trophy, Activity, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { X, MapPin, Trophy, Activity, ArrowLeft, EyeOff } from "lucide-react";
 import { LocationPicker } from "./LocationPicker";
 import { Leaderboard } from "./Leaderboard";
 import { ActivityFeed } from "./ActivityFeed";
@@ -9,14 +10,21 @@ import { OfficialCard } from "./OfficialCard";
 import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
 
 const ROLE_ORDER = ["councilor", "lga_chairman", "mha", "rep", "representative", "senator", "governor"];
+const DISMISS_KEY = "ournigeria_civic_modal_dismissed";
+const WELCOME_KEY = "ournigeria_welcomed";
 
 type Tab = "reps" | "leaderboard" | "activity";
 
 export function CivicModal() {
+  const pathname = usePathname();
+  const isLandingPage = pathname === "/";
+
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("reps");
   const [chain, setChain] = useState<ChainEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [autoOpened, setAutoOpened] = useState(false);
+  const [dismissed, setDismissed] = useState(true);
   const [location, setLocation] = useState<{
     stateCode: string;
     stateName: string;
@@ -25,6 +33,30 @@ export function CivicModal() {
     wardCode?: string;
     wardName?: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (typeof globalThis.window === "undefined") return;
+    const isDismissed = !!localStorage.getItem(DISMISS_KEY);
+    setDismissed(isDismissed);
+
+    if (!isLandingPage || isDismissed) return;
+
+    const isFirstVisit = !localStorage.getItem(WELCOME_KEY);
+    if (isFirstVisit) return;
+
+    const timer = setTimeout(() => {
+      setOpen(true);
+      setAutoOpened(true);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [isLandingPage]);
+
+  function handleDismissForever() {
+    localStorage.setItem(DISMISS_KEY, "1");
+    setDismissed(true);
+    setOpen(false);
+  }
 
   async function handleLocationSelect(loc: {
     stateCode: string;
@@ -72,11 +104,16 @@ export function CivicModal() {
     };
   }
 
+  function handleClose() {
+    setOpen(false);
+    setAutoOpened(false);
+  }
+
   return (
     <>
       {/* Floating trigger button */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); setAutoOpened(false); }}
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
       >
         <MapPin className="w-5 h-5" />
@@ -89,7 +126,7 @@ export function CivicModal() {
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            onClick={handleClose}
           />
 
           {/* Modal panel */}
@@ -114,12 +151,24 @@ export function CivicModal() {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Don't show again — inside modal, only when auto-opened on landing */}
+                {autoOpened && isLandingPage && (
+                  <button
+                    onClick={handleDismissForever}
+                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mr-1"
+                  >
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Don&apos;t show again</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleClose}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
             </div>
 
             {/* Tabs */}
@@ -174,7 +223,7 @@ export function CivicModal() {
                             position={entry.position}
                             role={entry.role}
                             scope={buildScope(entry.scope)}
-                            onClick={() => setOpen(false)}
+                            onClick={handleClose}
                           />
                         ))}
                       </div>
