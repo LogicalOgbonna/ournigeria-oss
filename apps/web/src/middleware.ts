@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const USER_COOKIE = "nb_uid";
+const COOKIE_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || undefined;
+const EXTERNAL_LOGIN_URL =
+  process.env.NEXT_PUBLIC_LOGIN_URL || "https://ournigeria.arinze.online/login";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://spending-api.arinze.online";
 
 const PUBLIC_PATHS = ["/login", "/banned", "/api/auth/", "/chat/"];
 
@@ -57,25 +62,58 @@ async function verifyAuthToken(token: string): Promise<string | null> {
   return userId;
 }
 
+async function verifyAuthTokenViaApi(token: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/verify-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as { userId?: string };
+    return data.userId || null;
+  } catch {
+    return null;
+  }
+}
+
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-export async function proxy(request: NextRequest) {
+function getPublicRequestUrl(request: NextRequest): URL {
+  // Always use the canonical app URL as the base to prevent internal ports
+  // (e.g. :3000 from x-forwarded-host) from leaking into redirect URLs.
+  const appBase =
+    process.env.NEXT_PUBLIC_APP_URL || "https://spending.arinze.online";
+  return new URL(request.nextUrl.pathname + request.nextUrl.search, appBase);
+}
+
+function buildExternalLoginRedirect(request: NextRequest): URL {
+  const loginUrl = new URL(EXTERNAL_LOGIN_URL);
+  loginUrl.searchParams.set("returnTo", getPublicRequestUrl(request).toString());
+  return loginUrl;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Handle Telegram auth callback — verify signed token, set cookie, strip param
   const nbAuth = searchParams.get("nb_auth");
   if (nbAuth) {
-    const url = request.nextUrl.clone();
+    const url = getPublicRequestUrl(request);
     url.searchParams.delete("nb_auth");
 
-    const userId = await verifyAuthToken(nbAuth);
+    const userId =
+      (await verifyAuthToken(nbAuth)) || (await verifyAuthTokenViaApi(nbAuth));
     if (!userId) {
       // Invalid or expired token — redirect to login
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(buildExternalLoginRedirect(request));
     }
 
     const response = NextResponse.redirect(url);
@@ -85,6 +123,7 @@ export async function proxy(request: NextRequest) {
       sameSite: "lax",
       path: "/",
       maxAge: COOKIE_MAX_AGE,
+      domain: COOKIE_DOMAIN,
     });
     return response;
   }
@@ -95,9 +134,7 @@ export async function proxy(request: NextRequest) {
   // Previously this redirected to /, but if the API rejects the cookie
   // the client redirects back to /login, causing an infinite loop.
   if (hasAuth && pathname === "/login") {
-    const response = NextResponse.next();
-    response.cookies.delete(USER_COOKIE);
-    return response;
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Public paths — allow through
@@ -111,8 +148,8 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    // Page requests → redirect to /login
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Page requests → redirect to external login
+    return NextResponse.redirect(buildExternalLoginRedirect(request));
   }
 
   return NextResponse.next();

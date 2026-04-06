@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://spending.arinze.online";
+export const LOGIN_URL =
+  process.env.NEXT_PUBLIC_LOGIN_URL || "https://ournigeria.arinze.online/login";
 
 // ═══ Stats ═══
 export const STATS = [

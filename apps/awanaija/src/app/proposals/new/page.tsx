@@ -927,6 +927,22 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
   const API_BASE = "/api";
   const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
+  async function waitForSession() {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        const res = await fetch(`${API_BASE}/auth/profile`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (res.ok) return true;
+      } catch {}
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    return false;
+  }
+
   useEffect(() => {
     if (countdown <= 0) return;
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -938,36 +954,52 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
     if (!BOT_USERNAME || !telegramRef.current || telegramLoaded.current) return;
     telegramLoaded.current = true;
 
-    const authUrl = `${window.location.origin}${API_BASE}/auth/telegram`;
-
     (window as unknown as Record<string, unknown>).onTelegramAuth = async function (user: Record<string, string | number>) {
-      const params = new URLSearchParams(
-        Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
-      ).toString();
+      const stringifiedUser = Object.fromEntries(
+        Object.entries(user).map(([k, v]) => [k, String(v)]),
+      );
+
+      setIsLoading(true);
+      setError(null);
+
       try {
-        const res = await fetch(`${authUrl}?${params}`, {
+        const res = await fetch(`${API_BASE}/auth/telegram/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
-          redirect: "follow",
+          body: JSON.stringify(stringifiedUser),
         });
-        if (res.ok || res.redirected) {
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({
+            error: "Telegram login failed. Please try again.",
+          }));
+          setError(data.error || "Telegram login failed. Please try again.");
+          return;
+        }
+
+        const hasSession = await waitForSession();
+        if (hasSession) {
           onVerified();
         } else {
-          setError("Telegram login failed. Please try again.");
+          setError("Telegram login did not finish correctly. Please try again.");
         }
       } catch {
         setError("Network error during Telegram login. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
-    script.setAttribute("data-telegram-login", BOT_USERNAME);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    script.setAttribute("data-request-access", "write");
+    script.dataset.telegramLogin = BOT_USERNAME;
+    script.dataset.size = "large";
+    script.dataset.onauth = "onTelegramAuth(user)";
+    script.dataset.requestAccess = "write";
     telegramRef.current.appendChild(script);
-  }, [tab]);
+  }, [BOT_USERNAME, onVerified]);
 
   async function handleSendOtp() {
     const fullPhone = phone.startsWith("+") ? phone : `+234${phone.replace(/^0/, "")}`;

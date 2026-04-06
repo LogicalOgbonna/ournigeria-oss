@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { APP_URL } from "@/lib/constants";
+import { LOGIN_URL } from "@/lib/constants";
 
 export function Navbar() {
   const [morphed, setMorphed] = useState(false);
@@ -92,7 +92,7 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <a
-              href={APP_URL}
+              href={LOGIN_URL}
               className="btn-magnetic inline-flex items-center gap-1.5 rounded-[1.25rem] bg-emerald-600 px-5 py-2 text-sm font-medium text-white"
             >
               <span className="btn-slide bg-emerald-700" />

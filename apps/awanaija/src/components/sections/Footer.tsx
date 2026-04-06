@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { APP_URL } from "@/lib/constants";
+import { LOGIN_URL } from "@/lib/constants";
 
 export function Footer() {
   return (
@@ -80,7 +80,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href={APP_URL}
+                  href={LOGIN_URL}
                   className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
                 >
                   Enter App

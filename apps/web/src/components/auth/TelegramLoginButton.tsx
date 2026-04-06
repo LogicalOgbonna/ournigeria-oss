@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api";
 
 declare global {
-  interface Window {
-    onTelegramAuth: (user: Record<string, string | number>) => void;
-  }
+  var onTelegramAuth: (user: Record<string, string | number>) => void;
 }
 
 const TELEGRAM_WIDGET_URL = "https://telegram.org/js/telegram-widget.js?22";
@@ -25,64 +23,68 @@ export function TelegramLoginButton() {
     const baseAuthUrl = apiUrl("/api/auth/telegram");
     const authUrl = baseAuthUrl.startsWith("http")
       ? baseAuthUrl
-      : `${window.location.origin}${baseAuthUrl}`;
+      : `${globalThis.location.origin}${baseAuthUrl}`;
+    const returnTo = `${globalThis.location.origin}${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
 
     const script = document.createElement("script");
     script.src = TELEGRAM_WIDGET_URL;
     script.async = true;
-    script.setAttribute("data-telegram-login", BOT_USERNAME);
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.dataset.telegramLogin = BOT_USERNAME;
+    script.dataset.size = "large";
+    script.dataset.onauth = "onTelegramAuth(user)";
 
     // Instead of directly redirecting via GET, use a POST request for linking if authenticated
-    window.onTelegramAuth = async function (user: Record<string, string | number>) {
-      let isLoggedIn = false;
-      try {
-        // First check if user has an active session via the profile endpoint
-        const profileRes = await fetch(apiUrl("/api/auth/profile"), {
-          credentials: "include",
-        });
-        isLoggedIn = profileRes.ok;
-      } catch (e) {
-        console.error("Error checking profile", e);
-      }
-
-      if (isLoggedIn) {
+    globalThis.onTelegramAuth = function (user: Record<string, string | number>) {
+      void (async () => {
+        let isLoggedIn = false;
         try {
-          // User is already logged in, do a secure POST request to link accounts
-          // Ensure all values are strings since Telegram widget might send numbers
-          const stringifiedUser = Object.fromEntries(
-            Object.entries(user).map(([k, v]) => [k, String(v)]),
-          );
-
-          const linkRes = await fetch(apiUrl("/api/auth/telegram/link"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(stringifiedUser),
+          // First check if user has an active session via the profile endpoint
+          const profileRes = await fetch(apiUrl("/api/auth/profile"), {
             credentials: "include",
           });
-
-          if (linkRes.ok) {
-            // Success - redirect or show success state
-            window.location.href = "/";
-          } else {
-            console.error("Failed to link account:", await linkRes.text());
-            window.location.href = "/login?error=telegram_link_failed";
-          }
+          isLoggedIn = profileRes.ok;
         } catch (e) {
-          console.error("Error linking account", e);
-          window.location.href = "/login?error=telegram_link_failed";
+          console.error("Error checking profile", e);
         }
-        return; // Prevent falling through to the GET login flow
-      }
 
-      // Fallback to the standard GET login flow if not logged in
-      const params = new URLSearchParams(
-        Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
-      ).toString();
-      window.location.href = `${authUrl}?${params}`;
+        if (isLoggedIn) {
+          try {
+            // User is already logged in, do a secure POST request to link accounts
+            // Ensure all values are strings since Telegram widget might send numbers
+            const stringifiedUser = Object.fromEntries(
+              Object.entries(user).map(([k, v]) => [k, String(v)]),
+            );
+
+            const linkRes = await fetch(apiUrl("/api/auth/telegram/link"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(stringifiedUser),
+              credentials: "include",
+            });
+
+            if (linkRes.ok) {
+              // Success - redirect or show success state
+              globalThis.location.href = "/";
+            } else {
+              console.error("Failed to link account:", await linkRes.text());
+              globalThis.location.href = "/login?error=telegram_link_failed";
+            }
+          } catch (e) {
+            console.error("Error linking account", e);
+            globalThis.location.href = "/login?error=telegram_link_failed";
+          }
+          return; // Prevent falling through to the GET login flow
+        }
+
+        // Fallback to the standard GET login flow if not logged in
+        const params = new URLSearchParams(
+          Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)])),
+        );
+        params.set("returnTo", returnTo);
+        globalThis.location.href = `${authUrl}?${params}`;
+      })();
     };
-    script.setAttribute("data-request-access", "write");
+    script.dataset.requestAccess = "write";
 
     script.onload = () => {
       setLoading(false);

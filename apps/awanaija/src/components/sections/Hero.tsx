@@ -11,7 +11,7 @@ import {
   Send,
   X,
 } from "lucide-react";
-import { APP_URL } from "@/lib/constants";
+import { LOGIN_URL } from "@/lib/constants";
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -220,7 +220,7 @@ export function Hero() {
                         Ask on WhatsApp
                       </button>
                       <a
-                        href={APP_URL}
+                        href={LOGIN_URL}
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                       >
                         <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />

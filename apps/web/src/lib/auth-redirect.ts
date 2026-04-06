@@ -9,16 +9,27 @@
  */
 let redirecting = false;
 
+function getLoginUrl() {
+  const base =
+    process.env.NEXT_PUBLIC_LOGIN_URL || "https://ournigeria.arinze.online/login";
+
+  if (globalThis.window === undefined) return base;
+
+  const url = new URL(base);
+  url.searchParams.set("returnTo", globalThis.location.href);
+  return url.toString();
+}
+
 export function redirectToLogin() {
   if (redirecting) return;
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   if (
-    window.location.pathname === "/login" ||
-    window.location.pathname === "/banned"
+    globalThis.location.pathname === "/login" ||
+    globalThis.location.pathname === "/banned"
   )
     return;
   redirecting = true;
-  window.location.replace("/login");
+  globalThis.location.replace(getLoginUrl());
 }
 
 export function isRedirecting() {

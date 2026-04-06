@@ -1,25 +1,83 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Req,
-  Res,
   Body,
-  Query,
+  Controller,
+  Get,
   HttpStatus,
+  Patch,
+  Post,
+  Query,
+  Res
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiBody, ApiQuery } from "@nestjs/swagger";
-import { Request, Response } from "express";
-import * as crypto from "crypto";
+import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Response } from "express";
+import crypto from "node:crypto";
 import { z } from "zod";
-import { AuthService } from "./auth.service";
 import { TelegramApiService } from "../telegram/telegram-api.service";
-import { Public } from "./decorators/public";
+import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user";
+import { Public } from "./decorators/public";
 
 const USER_COOKIE = "nb_uid";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+function getCookieDomain(): string | undefined {
+  return process.env.AUTH_COOKIE_DOMAIN || undefined;
+}
+
+function buildUserCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    path: "/",
+    maxAge: COOKIE_MAX_AGE * 1000,
+    domain: getCookieDomain(),
+  };
+}
+
+function getAllowedRedirectOrigins(): string[] {
+  const origins = new Set<string>();
+  const appUrl = process.env.APP_URL;
+  const corsOrigins = process.env.CORS_ORIGINS;
+
+  if (appUrl) {
+    try {
+      origins.add(new URL(appUrl).origin);
+    } catch {}
+  }
+
+  if (corsOrigins) {
+    for (const rawOrigin of corsOrigins.split(",")) {
+      const origin = rawOrigin.trim();
+      if (!origin) continue;
+      try {
+        origins.add(new URL(origin).origin);
+      } catch {}
+    }
+  }
+
+  return [...origins];
+}
+
+function resolveTelegramRedirectTarget(returnTo?: string): string {
+  const fallback = process.env.APP_URL!;
+  if (!returnTo) return fallback;
+
+  try {
+    const target = new URL(returnTo);
+    if (getAllowedRedirectOrigins().includes(target.origin)) {
+      return `${target.origin}${target.pathname}${target.search}${target.hash}`;
+    }
+  } catch {}
+
+  return fallback;
+}
+
+function appendQueryParam(urlString: string, key: string, value: string): string {
+  const url = new URL(urlString);
+  url.searchParams.set(key, value);
+  return url.toString();
+}
 
 /** Sign a user ID for the nb_auth callback so the web proxy can verify it wasn't forged. */
 function signAuthToken(userId: string): string {
@@ -33,12 +91,48 @@ function signAuthToken(userId: string): string {
   return `${userId}.${ts}.${sig}`;
 }
 
+function verifyAuthToken(token: string): string | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  const [userId, ts, sig] = parts;
+  if (!userId || !ts || !sig) return null;
+
+  const timestamp = Number.parseInt(ts, 36);
+  if (Number.isNaN(timestamp)) return null;
+  if (Date.now() - timestamp > 5 * 60 * 1000) return null;
+
+  const secret = process.env.TELEGRAM_BOT_TOKEN || "";
+  if (!secret) return null;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${userId}:${ts}`)
+    .digest("hex")
+    .slice(0, 16);
+
+  try {
+    const sigBuffer = Buffer.from(sig, "utf8");
+    const expectedBuffer = Buffer.from(expected, "utf8");
+    if (
+      sigBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    ) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  return userId;
+}
+
 const phoneNumberSchema = z
   .string()
   .trim()
   .min(1, "Phone number is required")
   .transform((raw) => {
-    let cleaned = raw.replace(/[\s\-().]/g, "");
+    let cleaned = raw.replaceAll(/[\s\-().]/g, "");
     if (cleaned.startsWith("0") && cleaned.length === 11) {
       cleaned = "+234" + cleaned.slice(1);
     }
@@ -60,12 +154,16 @@ const verifyOtpSchema = z.object({
   code: z.string().regex(/^\d{6}$/, "Code must be 6 digits"),
 });
 
+const verifyAuthTokenSchema = z.object({
+  token: z.string().min(1, "Token is required"),
+});
+
 @ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
   constructor(
-    private authService: AuthService,
-    private telegramApi: TelegramApiService,
+    private readonly authService: AuthService,
+    private readonly telegramApi: TelegramApiService,
   ) {}
 
   @Public()
@@ -160,15 +258,12 @@ export class AuthController {
       }
 
       res.cookie(USER_COOKIE, user.id, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/",
-        maxAge: COOKIE_MAX_AGE * 1000, // Express uses milliseconds
+        ...buildUserCookieOptions(),
       });
 
       return res.json({
         success: true,
+        authToken: signAuthToken(user.id),
         user: { id: user.id, phoneNumber: user.phoneNumber },
       });
     } catch (err) {
@@ -177,6 +272,12 @@ export class AuthController {
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({ error: "Internal server error" });
     }
+  }
+
+  @Get("session-token")
+  @ApiOperation({ summary: "Get a signed auth handoff token for the current session" })
+  async getSessionToken(@CurrentUser() userId: string, @Res() res: Response) {
+    return res.json({ authToken: signAuthToken(userId) });
   }
 
   @Get("profile")
@@ -241,8 +342,85 @@ export class AuthController {
   @Post("logout")
   @ApiOperation({ summary: "Logout and clear session cookie" })
   async logout(@Res() res: Response) {
-    res.clearCookie(USER_COOKIE, { path: "/", secure: true, sameSite: "none" });
+    res.clearCookie(USER_COOKIE, {
+      path: "/",
+      secure: true,
+      sameSite: "none",
+      domain: getCookieDomain(),
+    });
     return res.json({ success: true });
+  }
+
+  @Public()
+  @Post("verify-token")
+  @ApiOperation({ summary: "Verify a signed auth handoff token" })
+  async verifyToken(@Body() body: unknown, @Res() res: Response) {
+    const parsed = verifyAuthTokenSchema.safeParse(body);
+    if (!parsed.success) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ error: parsed.error.errors[0].message });
+    }
+
+    const userId = verifyAuthToken(parsed.data.token);
+    if (!userId) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
+    }
+
+    const banStatus = await this.authService.checkBanStatus(userId);
+    if (banStatus.banned) {
+      return res.status(HttpStatus.FORBIDDEN).json({
+        error: "banned",
+        reason: banStatus.reason || "Your account has been suspended.",
+      });
+    }
+
+    const profile = await this.authService.getProfile(userId);
+    if (!profile) {
+      return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
+    }
+
+    return res.json({ success: true, userId });
+  }
+
+  private async completeTelegramLogin(
+    telegramAuthPayload: Record<string, string>,
+    res: Response,
+  ) {
+    const result = this.authService.verifyTelegramAuth(telegramAuthPayload);
+    if (!result.valid) {
+      return { ok: false as const, error: result.error || "Invalid Telegram auth data" };
+    }
+
+    const { telegramUser } = result;
+    const isNewUser = !(await this.authService.telegramUserExists(telegramUser.id));
+    const user = await this.authService.upsertUserByTelegram(telegramUser.id);
+
+    const banStatus = await this.authService.checkBanStatus(user.id);
+    if (banStatus.banned) {
+      return {
+        ok: false as const,
+        banned: true as const,
+        reason: banStatus.reason || "Your account has been suspended.",
+      };
+    }
+
+    res.cookie(USER_COOKIE, user.id, buildUserCookieOptions());
+
+    if (isNewUser) {
+      const chatId = Number(telegramUser.id);
+      const name = telegramUser.first_name || "there";
+      this.telegramApi
+        .sendMessage(
+          chatId,
+          `Welcome to OurNigeria, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian budgets, government spending, and EFCC corruption cases.\n\nSend /help to see available commands.`,
+        )
+        .catch((err) =>
+          console.error("Failed to send Telegram welcome:", err),
+        );
+    }
+
+    return { ok: true as const, userId: user.id };
   }
 
   @Public()
@@ -252,59 +430,59 @@ export class AuthController {
     @Query() query: Record<string, string>,
     @Res() res: Response,
   ) {
-    const baseUrl = process.env.APP_URL!;
+    const baseUrl = resolveTelegramRedirectTarget(query.returnTo);
 
     try {
-      const result = this.authService.verifyTelegramAuth(query);
-      if (!result.valid) {
-        console.error("Telegram auth failed:", result.error);
+      const loginResult = await this.completeTelegramLogin(query, res);
+      if (!loginResult.ok) {
+        if ("banned" in loginResult && loginResult.banned) {
+          return res.redirect(`${new URL(baseUrl).origin}/banned`);
+        }
+        console.error("Telegram auth failed:", loginResult.error);
         return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
       }
 
-      const { telegramUser } = result;
-      // We don't link via GET request anymore to prevent CSRF.
-      // The GET request only logs in if the Telegram account already exists,
-      // or creates a new one if it doesn't.
-
-      const isNewUser = !(await this.authService.telegramUserExists(
-        telegramUser.id,
-      ));
-
-      const user = await this.authService.upsertUserByTelegram(telegramUser.id);
-
-      const banStatus = await this.authService.checkBanStatus(user.id);
-      if (banStatus.banned) {
-        return res.redirect(`${baseUrl}/banned`);
-      }
-
-      // Set cookie on the API domain so subsequent cross-origin requests are authenticated
-      res.cookie(USER_COOKIE, user.id, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/",
-        maxAge: COOKIE_MAX_AGE * 1000,
-      });
-
-      // Send a welcome message to new Telegram users
-      if (isNewUser) {
-        const chatId = Number(telegramUser.id);
-        const name = telegramUser.first_name || "there";
-        this.telegramApi
-          .sendMessage(
-            chatId,
-            `Welcome to OurNigeria, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian budgets, government spending, and EFCC corruption cases.\n\nSend /help to see available commands.`,
-          )
-          .catch((err) =>
-            console.error("Failed to send Telegram welcome:", err),
-          );
-      }
-
       // Pass signed auth token via query param so the web app can verify + set cookie
-      return res.redirect(`${baseUrl}/?nb_auth=${signAuthToken(user.id)}`);
+      return res.redirect(
+        appendQueryParam(baseUrl, "nb_auth", signAuthToken(loginResult.userId)),
+      );
     } catch (err) {
       console.error("Telegram auth error:", err);
       return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
+    }
+  }
+
+  @Public()
+  @Post("telegram/login")
+  @ApiOperation({ summary: "Login with Telegram widget payload" })
+  async telegramLogin(
+    @Body() body: Record<string, string>,
+    @Res() res: Response,
+  ) {
+    try {
+      const loginResult = await this.completeTelegramLogin(body, res);
+      if (!loginResult.ok) {
+        if ("banned" in loginResult && loginResult.banned) {
+          return res.status(HttpStatus.FORBIDDEN).json({
+            error: "banned",
+            reason: loginResult.reason,
+          });
+        }
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: loginResult.error });
+      }
+
+      return res.json({
+        success: true,
+        userId: loginResult.userId,
+        authToken: signAuthToken(loginResult.userId),
+      });
+    } catch (err) {
+      console.error("Telegram login error:", err);
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
     }
   }
 

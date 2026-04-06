@@ -17,6 +17,9 @@ import {
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
 
+const LOGIN_URL =
+  process.env.NEXT_PUBLIC_LOGIN_URL || "https://ournigeria.arinze.online/login";
+
 interface ChatSidebarProps {
   conversations: ConversationForUI[];
   activeConversationId: string | null;
@@ -281,7 +284,7 @@ export function ChatSidebar({
               });
               await fetch("/api/logout", { method: "POST" });
               localStorage.removeItem("ournigeria-conversations");
-              router.push("/login");
+              window.location.href = LOGIN_URL;
             }}
             className="rounded-lg p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400"
             title="Log out"
