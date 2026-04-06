@@ -251,27 +251,27 @@ export function LandingLoginForm() {
   }
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center bg-[#0B1215] px-4 pb-12 pt-32 sm:px-6 lg:px-8">
+    <section className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 pb-12 pt-32 sm:px-6 lg:px-8">
       {/* Subtle background dot pattern */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(#2e364f_1px,transparent_1px)] bg-[size:24px_24px] opacity-30" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(var(--color-border)_1px,transparent_1px)] bg-[size:24px_24px] opacity-30" />
 
       <div className="relative w-full max-w-[420px]">
         {/* Header */}
         <div className="mb-2 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400/80 mb-3">
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
             CITIZEN LOGIN
           </p>
-          <h1 className="text-3xl font-heading font-semibold tracking-tight text-white">
+          <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
             Hold power to account
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Sign in to track budgets, public spending, and elected officials across Nigeria.
           </p>
         </div>
 
         {/* Card */}
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#131B24] p-6 shadow-xl sm:p-8">
-            <div className="mb-8 flex border-b border-slate-800">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-xl sm:p-8">
+            <div className="mb-8 flex border-b border-border">
               {AUTH_TABS.map((tab) => (
                 <button
                   key={tab.id}
@@ -281,8 +281,8 @@ export function LandingLoginForm() {
                   }}
                   className={`flex flex-1 items-center justify-center gap-2 pb-4 text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? "border-b-2 border-emerald-500 text-emerald-500"
-                      : "border-b-2 border-transparent text-slate-500 hover:text-slate-300"
+                      ? "border-b-2 border-primary text-primary"
+                      : "border-b-2 border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <tab.icon className="h-4 w-4" />
@@ -294,29 +294,29 @@ export function LandingLoginForm() {
             {activeTab === "telegram" && (
             <div className="flex flex-col">
               <div className="mb-6 flex justify-center">
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-400">
+                <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-600 dark:text-sky-400">
                   <Send className="h-4 w-4" />
                   Sign in via Telegram
                 </div>
               </div>
 
-              <p className="mb-8 text-center text-slate-400">
+              <p className="mb-8 text-center text-muted-foreground">
                 Click the button below to sign in with your Telegram account.
               </p>
 
               <div className="flex flex-col items-center justify-center">
                 {isCheckingSession ? (
                   <div className="flex h-[48px] items-center justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : (
                   <div ref={telegramRef} className="flex min-h-[48px] items-center justify-center" />
                 )}
               </div>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-slate-800/40 p-4">
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-                <p className="text-sm text-slate-400">
+              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
                   You&apos;ll confirm in Telegram&apos;s secure popup. We only receive your Telegram ID.
                 </p>
               </div>
@@ -326,18 +326,18 @@ export function LandingLoginForm() {
           {activeTab === "whatsapp" && step === "phone" && (
             <div className="flex flex-col">
               <div className="mb-6 flex justify-center">
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-400">
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   <MessageCircleCheck className="h-4 w-4" />
                   Sign in via WhatsApp
                 </div>
               </div>
 
               <div className="mb-4">
-                <label htmlFor="phone" className="mb-3 block text-sm font-medium text-slate-200">
+                <label htmlFor="phone" className="mb-3 block text-sm font-medium text-foreground">
                   Phone number
                 </label>
-                <div className="flex w-full items-center rounded-xl border border-slate-800 bg-[#1A222C] px-3 py-2 transition focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500">
-                  <span className="mr-3 text-slate-500">+234</span>
+                <div className="flex w-full items-center rounded-xl border border-border bg-muted px-3 py-2 transition focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+                  <span className="mr-3 text-muted-foreground">+234</span>
                   <input
                     id="phone"
                     type="tel"
@@ -345,7 +345,7 @@ export function LandingLoginForm() {
                     value={phoneNumber}
                     onChange={(event) => setPhoneNumber(event.target.value)}
                     placeholder="XXX XXX XXXX"
-                    className="w-full bg-transparent text-sm text-white placeholder-slate-600 outline-none"
+                    className="w-full bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none"
                   />
                 </div>
               </div>
@@ -354,16 +354,16 @@ export function LandingLoginForm() {
                 type="button"
                 onClick={() => void handleSendOtp()}
                 disabled={isSubmitting || phoneNumber.length < 10}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#7a3c36] px-4 py-2 text-base font-semibold text-slate-950 transition hover:bg-[#642e2e] disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-destructive/80 px-4 py-2 text-base font-semibold text-white transition hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                 Coming Soon
                 <ArrowRight className="h-5 w-5" />
               </button>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-slate-800/40 p-4">
-                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-                <p className="text-sm text-slate-400">
+              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
                   We&apos;ll send a 6-digit code to your WhatsApp. No password needed.
                 </p>
               </div>
@@ -379,12 +379,12 @@ export function LandingLoginForm() {
                     setStep("phone");
                     setOtpDigits(["", "", "", "", "", ""]);
                   }}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 transition hover:text-white"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back
                 </button>
-                <p className="font-mono text-xs text-slate-400">{phoneNumber}</p>
+                <p className="font-mono text-xs text-muted-foreground">{phoneNumber}</p>
               </div>
 
               <div className="mb-6 grid grid-cols-6 gap-2">
@@ -404,7 +404,7 @@ export function LandingLoginForm() {
                         otpRefs.current[index - 1]?.focus();
                       }
                     }}
-                    className="h-12 rounded-xl border border-slate-700 bg-slate-900/50 text-center text-lg font-semibold text-white outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    className="h-12 rounded-xl border border-border bg-muted text-center text-lg font-semibold text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                 ))}
               </div>
@@ -413,7 +413,7 @@ export function LandingLoginForm() {
                 type="button"
                 onClick={() => void handleVerifyOtp()}
                 disabled={otpCode.length !== 6 || isSubmitting}
-                className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Verify OTP
@@ -424,7 +424,7 @@ export function LandingLoginForm() {
                   type="button"
                   onClick={() => void handleSendOtp()}
                   disabled={resendCooldown > 0 || isSubmitting}
-                  className="text-sm font-medium text-emerald-500 transition hover:text-emerald-400 disabled:cursor-not-allowed disabled:text-slate-500"
+                  className="text-sm font-medium text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:text-muted-foreground"
                 >
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
                 </button>
@@ -433,7 +433,7 @@ export function LandingLoginForm() {
           )}
         </div>
 
-        <p className="mt-8 text-center text-sm text-slate-500">
+        <p className="mt-8 text-center text-sm text-muted-foreground">
           Your data is private and never shared.
         </p>
       </div>

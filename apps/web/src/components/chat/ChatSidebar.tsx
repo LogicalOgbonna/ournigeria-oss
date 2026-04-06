@@ -12,7 +12,7 @@ import {
   LogOut,
   User,
   Send,
-  Network,
+  // Network,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/api";
@@ -255,7 +255,7 @@ export function ChatSidebar({
 
         {/* Footer */}
         <div className="flex shrink-0 items-center justify-between border-t border-slate-200/80 dark:border-slate-700/80 px-3 py-2.5">
-          <button
+          {/* <button
             onClick={() => {
               onClose();
               router.push("/explore");
@@ -264,7 +264,7 @@ export function ChatSidebar({
             title="Explore knowledge graph"
           >
             <Network className="h-4 w-4" />
-          </button>
+          </button> */}
           <button
             data-tour="profile-button"
             onClick={() => {

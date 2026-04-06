@@ -7,7 +7,7 @@ export default async function LoginPage() {
   return (
     <main className="min-h-screen">
       <Navbar />
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0B1215]" />}>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background" />}>
         <LandingLoginForm />
       </Suspense>
       <Footer />
