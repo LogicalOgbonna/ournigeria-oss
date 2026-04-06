@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { LandingLoginForm } from "@/components/auth/LandingLoginForm";
@@ -6,7 +7,9 @@ export default async function LoginPage() {
   return (
     <main className="min-h-screen">
       <Navbar />
-      <LandingLoginForm />
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#0B1215]" />}>
+        <LandingLoginForm />
+      </Suspense>
       <Footer />
     </main>
   );

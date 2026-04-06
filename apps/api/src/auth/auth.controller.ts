@@ -430,10 +430,11 @@ export class AuthController {
     @Query() query: Record<string, string>,
     @Res() res: Response,
   ) {
-    const baseUrl = resolveTelegramRedirectTarget(query.returnTo);
+    const { returnTo, ...telegramPayload } = query;
+    const baseUrl = resolveTelegramRedirectTarget(returnTo);
 
     try {
-      const loginResult = await this.completeTelegramLogin(query, res);
+      const loginResult = await this.completeTelegramLogin(telegramPayload, res);
       if (!loginResult.ok) {
         if ("banned" in loginResult && loginResult.banned) {
           return res.redirect(`${new URL(baseUrl).origin}/banned`);
