@@ -8,6 +8,7 @@ import {
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { FeedbackFab } from "@/components/FeedbackFab";
+import { CivicModal } from "@/components/civic/CivicModal";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -85,6 +86,7 @@ export default function RootLayout({
           {children}
           <Toaster position="bottom-left" richColors closeButton />
           <FeedbackFab />
+          <CivicModal />
         </ThemeProvider>
       </body>
     </html>

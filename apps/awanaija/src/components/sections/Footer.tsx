@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { LOGIN_URL } from "@/lib/constants";
 
 export function Footer() {
@@ -85,6 +86,14 @@ export function Footer() {
                 >
                   Enter App
                 </a>
+              </li>
+              <li>
+                <Link
+                  href="/officials"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Who Governs You
+                </Link>
               </li>
               <li>
                 <a

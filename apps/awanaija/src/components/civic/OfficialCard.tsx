@@ -6,11 +6,12 @@ import { User, ExternalLink, Calendar } from "lucide-react";
 import type { Official, Position } from "@/lib/api";
 
 interface OfficialCardProps {
-  official: Official | null;
-  position: Position | null;
-  role: string;
-  scope?: Record<string, string>;
-  showProposals?: boolean;
+  readonly official: Official | null;
+  readonly position: Position | null;
+  readonly role: string;
+  readonly scope?: Record<string, string>;
+  readonly showProposals?: boolean;
+  readonly onClick?: () => void;
 }
 
 const PARTY_COLORS: Record<string, string> = {
@@ -48,11 +49,11 @@ function getLocationLabel(position: Position | null): string {
   return parts.join(", ");
 }
 
-export function OfficialCard({ official, position, role, scope, showProposals = true }: OfficialCardProps) {
+export function OfficialCard({ official, position, role, scope, showProposals = true, onClick }: OfficialCardProps) {
   const [imgError, setImgError] = useState(false);
 
   if (!official) {
-    return <UnknownOfficialCard role={role} position={position} scope={scope} />;
+    return <UnknownOfficialCard role={role} position={position} scope={scope} onClick={onClick} />;
   }
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
@@ -61,6 +62,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
   return (
     <Link
       href={`/officials/${official.id}`}
+      onClick={onClick}
       className="block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all cursor-pointer"
       style={{ borderLeftWidth: "4px", borderLeftColor: partyColor }}
     >
@@ -160,7 +162,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
   );
 }
 
-function UnknownOfficialCard({ role, position, scope }: { role: string; position: Position | null; scope?: Record<string, string> }) {
+function UnknownOfficialCard({ role, position, scope, onClick }: { role: string; position: Position | null; scope?: Record<string, string>; onClick?: () => void }) {
   const params = new URLSearchParams({ role });
   // Pass normalized geographic scope from chain entry.
   if (scope) {
@@ -190,6 +192,7 @@ function UnknownOfficialCard({ role, position, scope }: { role: string; position
   return (
     <Link
       href={`/proposals/new?${params.toString()}`}
+      onClick={onClick}
       className="block rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-950/20 overflow-hidden hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all cursor-pointer"
     >
       <div className="flex">

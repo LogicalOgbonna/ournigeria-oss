@@ -252,7 +252,10 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
-          <div className="flex items-center gap-2">
+          <a
+            href={process.env.NEXT_PUBLIC_LOGIN_URL?.replace(/\/login$/, "") || "https://ournigeria.ng"}
+            className="flex items-center gap-2"
+          >
             <Image
               src="/long_logo_dark.svg"
               alt="OurNigeria"
@@ -267,7 +270,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
               height={39}
               className="block brightness-0 dark:hidden"
             />
-          </div>
+          </a>
           <div className="flex items-center gap-1">
             {hasMessages && activeConversationId && (
               <Button

@@ -6,7 +6,6 @@ import { Protocol } from "@/components/sections/Protocol";
 import { Stats } from "@/components/sections/Stats";
 import { CallToAction } from "@/components/sections/CallToAction";
 import { Footer } from "@/components/sections/Footer";
-import { CivicModal } from "@/components/civic/CivicModal";
 import { WelcomeModal } from "@/components/civic/WelcomeModal";
 
 export default function Home() {
@@ -20,7 +19,6 @@ export default function Home() {
       <Stats />
       <CallToAction />
       <Footer />
-      <CivicModal />
       <WelcomeModal />
     </main>
   );

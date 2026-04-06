@@ -174,6 +174,7 @@ export function CivicModal() {
                             position={entry.position}
                             role={entry.role}
                             scope={buildScope(entry.scope)}
+                            onClick={() => setOpen(false)}
                           />
                         ))}
                       </div>
