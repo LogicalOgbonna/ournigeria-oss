@@ -29,6 +29,7 @@ const FIELD_LABELS: Record<string, string> = {
   biography: "Biography",
   gender: "Gender",
   dateOfBirth: "Date of Birth",
+  partyAcronym: "Political Party",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -53,6 +54,7 @@ const TRACKED_FIELDS = [
   "education",
   "biography",
   "gender",
+  "partyAcronym",
 ];
 
 function str(v: unknown): string | undefined {
@@ -73,10 +75,10 @@ export function OfficialProfile({ official }: { official: Official }) {
   const position = official.positions?.[0];
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
-    (f) => !(official as unknown as Record<string, unknown>)[f],
+    (f) => f === "partyAcronym" ? !position?.party : !(official as unknown as Record<string, unknown>)[f],
   );
   const filledFields = TRACKED_FIELDS.filter(
-    (f) => !!(official as unknown as Record<string, unknown>)[f],
+    (f) => f === "partyAcronym" ? !!position?.party : !!(official as unknown as Record<string, unknown>)[f],
   );
 
   return (
