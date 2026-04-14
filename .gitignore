@@ -77,3 +77,6 @@ packages/plans/
 
 # claude
 .claude/**
+
+# lighthouse
+.lighthouseci/

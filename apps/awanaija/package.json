@@ -6,7 +6,8 @@
     "dev": "next dev -p 3003",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lighthouse": "lhci autorun"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "0.13.5",
@@ -26,6 +27,7 @@
     "tailwind-merge": "catalog:"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.3",
     "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "infisical run --env dev --path /dashboard --watch -- next dev -p 3004",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lighthouse": "lhci autorun"
   },
   "dependencies": {
     "@tanstack/react-table": "8.21.3",
@@ -26,6 +27,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.3",
     "@tailwindcss/postcss": "catalog:",
     "@tailwindcss/typography": "0.5.19",
     "@types/node": "catalog:",

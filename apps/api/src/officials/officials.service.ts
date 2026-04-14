@@ -140,10 +140,12 @@ export class OfficialsService {
         // Strategy 2: Match by LGA name in constituency name
         if (!matched) {
           const lgaRecord = await this.prisma.nigerianLga.findUnique({ where: { code: lgaCode } });
-          const lgaName = lgaRecord?.name?.toLowerCase() || "";
-          matched = mhaPositions.find((p) =>
-            p.constituency?.name?.toLowerCase().includes(lgaName),
-          );
+          const lgaName = lgaRecord?.name?.toLowerCase();
+          if (lgaName) {
+            matched = mhaPositions.find((p) =>
+              p.constituency?.name?.toLowerCase().includes(lgaName),
+            );
+          }
         }
 
         // Strategy 3: Match by LGA code embedded in constituency code
@@ -193,10 +195,12 @@ export class OfficialsService {
         // Strategy 2: Match by LGA name in constituency name
         if (!matched) {
           const lgaRecord = await this.prisma.nigerianLga.findUnique({ where: { code: lgaCode } });
-          const lgaName = lgaRecord?.name?.toLowerCase() || "";
-          matched = fedPositions.find((p) =>
-            p.constituency?.name?.toLowerCase().includes(lgaName),
-          );
+          const lgaName = lgaRecord?.name?.toLowerCase();
+          if (lgaName) {
+            matched = fedPositions.find((p) =>
+              p.constituency?.name?.toLowerCase().includes(lgaName),
+            );
+          }
         }
 
         // Strategy 3: Match by LGA code embedded in constituency code
