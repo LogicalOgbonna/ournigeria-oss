@@ -307,3 +307,25 @@
 .gsap-hidden {
   visibility: hidden;
 }
+
+/* ═══ Custom Scrollbar (Theme) ═══ */
+.scrollbar-theme::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-theme::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-theme::-webkit-scrollbar-thumb {
+  background-color: var(--emerald);
+  border-radius: 10px;
+}
+.scrollbar-theme::-webkit-scrollbar-thumb:hover {
+  background-color: var(--emerald-light);
+}
+
+/* Firefox support */
+.scrollbar-theme {
+  scrollbar-width: thin;
+  scrollbar-color: var(--emerald) transparent;
+}

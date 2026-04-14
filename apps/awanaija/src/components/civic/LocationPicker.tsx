@@ -255,7 +255,7 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
           {search ? "No results found" : "No items available"}
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto scrollbar-theme">
           {currentItems.map((item) => (
             <button
               key={item.code}

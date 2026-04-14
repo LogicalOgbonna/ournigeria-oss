@@ -111,7 +111,7 @@ export class GeoService implements OnModuleInit {
             const lga = await this.prisma.nigerianLga.findFirst({
               where: {
                 stateCode,
-                name: { equals: lgaName, mode: "insensitive" },
+                name: { equals: lgaName as string, mode: "insensitive" },
               },
             });
             this.logger.log(`[reverseGeocode] DB LGA lookup result: ${JSON.stringify(lga)}`);
@@ -141,11 +141,381 @@ export class GeoService implements OnModuleInit {
     return { stateCode: null, stateName: null };
   }
 
-  async getStatesWithCodes() {
-    return this.prisma.nigerianState.findMany({
-      orderBy: { name: "asc" },
-      select: { code: true, name: true },
+  async getStateDetails(slug: string, year?: number, month?: number) {
+    const searchName = slug.replace(/-state$/i, '').replace(/-/g, ' ');
+    
+    const state = await this.prisma.nigerianState.findFirst({
+      where: {
+        name: { startsWith: searchName, mode: "insensitive" }
+      },
+      include: {
+        lgas: {
+          select: {
+            code: true,
+            name: true,
+          }
+        },
+        officialPositions: {
+          where: { role: { equals: "governor", mode: "insensitive" }, status: "active" },
+          include: {
+            official: true
+          }
+        },
+        fiscalEntity: {
+          include: {
+            budgetMetadata: {
+              orderBy: { fiscalYear: "desc" },
+              take: 1
+            },
+            populationEstimates: {
+              where: year ? { year } : undefined,
+              orderBy: { year: "desc" },
+              take: 1
+            },
+            gdpRecords: {
+              where: year ? { year } : undefined,
+              orderBy: { year: "desc" },
+              take: 1
+            },
+            debtRecords: {
+              orderBy: { quarter: "desc" },
+              take: 4 // Might need both domestic and external
+            },
+            igrRecords: {
+              where: year ? { fiscalYear: year } : undefined,
+              orderBy: { fiscalYear: "desc" },
+              take: 1
+            },
+            faacStateAllocations: {
+              where: year || month ? {
+                disbursement: {
+                  ...(year ? { revenueYear: year } : {}),
+                  ...(month ? { revenueMonth: month } : {})
+                }
+              } : undefined,
+              orderBy: { createdAt: "desc" },
+              take: year && month ? 1 : 12 // Last 12 months maybe? Or just the latest
+            }
+          }
+        }
+      }
     });
+
+    if (!state) return null;
+
+    // Formatting the response to match the frontend expectations
+    const governorPosition = state.officialPositions[0];
+    const governor = governorPosition ? {
+      id: governorPosition.official.id,
+      name: governorPosition.official.name,
+      party: governorPosition.partyAcronym || "N/A",
+      term: governorPosition.endDate ? `${governorPosition.startDate.getFullYear()} - ${governorPosition.endDate.getFullYear()}` : `${governorPosition.startDate.getFullYear()} - Present`,
+      image: governorPosition.official.imageUrl,
+    } : null;
+
+    const fiscal = state.fiscalEntity;
+    const latestBudget = fiscal?.budgetMetadata[0];
+    const population = fiscal?.populationEstimates[0];
+    const gdp = fiscal?.gdpRecords[0];
+    const domesticDebt = fiscal?.debtRecords.find(d => d.debtType === "domestic");
+    const externalDebt = fiscal?.debtRecords.find(d => d.debtType === "external");
+    const igr = fiscal?.igrRecords[0];
+    
+    // Calculate YTD FAAC
+    const faacYtd = fiscal?.faacStateAllocations.reduce((sum, record) => {
+      return sum + (Number(record.totalNet) || 0);
+    }, 0) || 0;
+
+    let budgetTotal = "N/A";
+    if (latestBudget) {
+      const budgetSum = await this.prisma.budgetLineItem.aggregate({
+        where: {
+          entityCode: state.code,
+          fiscalYear: latestBudget.fiscalYear
+        },
+        _sum: {
+          approvedBudget: true
+        }
+      });
+      const sumValue = budgetSum._sum.approvedBudget;
+      if (sumValue) {
+        budgetTotal = `₦${(Number(sumValue) / 1_000_000_000_000).toFixed(2)}T`;
+      }
+    }
+
+    // Get counts and lists for National and State Assembly
+    const senatorPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        role: { equals: "senator", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          stateCode: state.code
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const houseMemberPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        role: { equals: "rep", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          stateCode: state.code
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const stateAssemblyPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        role: { equals: "mha", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          stateCode: state.code
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const mapOfficial = (pos: any) => ({
+      id: pos.official.id,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      constituency: pos.constituency?.name || "Unknown Constituency",
+      image: pos.official.imageUrl,
+    });
+
+    const senators = senatorPositions.map(mapOfficial);
+    const houseMembers = houseMemberPositions.map(mapOfficial);
+    const stateAssemblyMembers = stateAssemblyPositions.map(mapOfficial);
+
+    return {
+      code: state.code,
+      name: state.name,
+      governor,
+      officials: {
+        senators,
+        houseMembers,
+        stateAssembly: stateAssemblyMembers,
+      },
+      stats: {
+        budget: budgetTotal,
+        faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A",
+        igr: igr ? `₦${(Number(igr.total) / 1_000_000_000).toFixed(1)}B` : "N/A",
+        senators: senators.length,
+        houseMembers: houseMembers.length,
+        stateAssembly: stateAssemblyMembers.length,
+      },
+      economy: {
+        population: population ? `${(Number(population.population) / 1_000_000).toFixed(1)}M` : "N/A",
+        gdp: gdp ? `$${(Number(gdp.amount) / 1_000_000_000).toFixed(1)}B` : "N/A",
+        domesticDebt: domesticDebt ? `₦${(Number(domesticDebt.amount) / 1_000_000_000).toFixed(1)}B` : "N/A",
+        externalDebt: externalDebt ? `$${(Number(externalDebt.amount) / 1_000_000_000).toFixed(2)}B` : "N/A",
+      },
+      lgas: state.lgas.map(lga => ({
+        code: lga.code,
+        name: lga.name,
+        // We'd need to fetch LGA FAAC separately or include it, but let's leave it as N/A or fetch it if needed
+        faac: "N/A" 
+      }))
+    };
+  }
+
+  async getStatesWithCodes() {
+    const states = await this.prisma.nigerianState.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        zone: true,
+        officialPositions: {
+          where: { role: { equals: "governor", mode: "insensitive" }, status: "active" },
+          take: 1
+        },
+        fiscalEntity: {
+          include: {
+            faacStateAllocations: {
+              orderBy: { createdAt: "desc" },
+              take: 12
+            }
+          }
+        }
+      }
+    });
+
+    return states.map(state => {
+      const governorPosition = state.officialPositions[0];
+      const party = governorPosition?.partyAcronym || "N/A";
+      
+      const faacYtd = state.fiscalEntity?.faacStateAllocations.reduce((sum, record) => {
+        return sum + (Number(record.totalNet) || 0);
+      }, 0) || 0;
+
+      return {
+        code: state.code,
+        name: state.name,
+        region: state.zone?.name || "Unknown",
+        party: party,
+        faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A"
+      };
+    });
+  }
+
+  async getLgaDetails(stateSlug: string, lgaSlug: string) {
+    const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    const lgaSearchName = lgaSlug.replace(/-/g, ' ');
+
+    const state = await this.prisma.nigerianState.findFirst({
+      where: {
+        name: { startsWith: stateSearchName, mode: "insensitive" }
+      }
+    });
+
+    if (!state) return null;
+
+    const lga = await this.prisma.nigerianLga.findFirst({
+      where: {
+        stateCode: state.code,
+        name: { startsWith: lgaSearchName, mode: "insensitive" }
+      },
+      include: {
+        wards: {
+          select: {
+            code: true,
+            name: true,
+          }
+        },
+        officialPositions: {
+          where: { role: { equals: "lga_chairman", mode: "insensitive" }, status: "active" },
+          include: {
+            official: true
+          }
+        },
+        fiscalEntity: {
+          include: {
+            faacLgaAllocations: {
+              orderBy: { createdAt: "desc" },
+              take: 12
+            }
+          }
+        }
+      }
+    });
+
+    if (!lga) return null;
+
+    // Fetch councilors for this LGA
+    const councilorPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        ward: {
+          lgaCode: lga.code
+        },
+        role: "councilor",
+        status: "active"
+      },
+      include: {
+        official: true,
+        ward: true
+      }
+    });
+
+    const councilors = councilorPositions.map(pos => ({
+      id: pos.official.id,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      ward: pos.ward?.name || "Unknown Ward",
+      leadershipRole: pos.leadershipRole,
+      image: pos.official.imageUrl,
+    }));
+
+    const chairmanPosition = lga.officialPositions[0];
+    const chairman = chairmanPosition ? {
+      id: chairmanPosition.official.id,
+      name: chairmanPosition.official.name,
+      party: chairmanPosition.partyAcronym || "N/A",
+      term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
+      image: chairmanPosition.official.imageUrl,
+    } : null;
+
+    const fiscal = lga.fiscalEntity;
+    const faacYtd = fiscal?.faacLgaAllocations.reduce((sum, record) => {
+      return sum + (Number(record.totalNet) || 0);
+    }, 0) || 0;
+
+    return {
+      code: lga.code,
+      name: lga.name,
+      stateName: state.name,
+      chairman,
+      councilors,
+      stats: {
+        faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A",
+        igr: "N/A", // Not tracked at LGA level currently
+        population: "N/A", // Not tracked at LGA level currently
+      },
+      wards: lga.wards.map(ward => ({
+        code: ward.code,
+        name: ward.name,
+      }))
+    };
+  }
+
+  async getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
+    const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    const lgaSearchName = lgaSlug.replace(/-/g, ' ');
+    const wardSearchName = wardSlug.replace(/-/g, ' ');
+
+    const state = await this.prisma.nigerianState.findFirst({
+      where: {
+        name: { startsWith: stateSearchName, mode: "insensitive" }
+      }
+    });
+
+    if (!state) return null;
+
+    const lga = await this.prisma.nigerianLga.findFirst({
+      where: {
+        stateCode: state.code,
+        name: { startsWith: lgaSearchName, mode: "insensitive" }
+      }
+    });
+
+    if (!lga) return null;
+
+    const ward = await this.prisma.nigerianWard.findFirst({
+      where: {
+        lgaCode: lga.code,
+        name: { startsWith: wardSearchName, mode: "insensitive" }
+      },
+      include: {
+        officialPositions: {
+          where: { role: { equals: "councilor", mode: "insensitive" }, status: "active" },
+          include: {
+            official: true
+          }
+        }
+      }
+    });
+
+    if (!ward) return null;
+
+    const councilorPosition = ward.officialPositions[0];
+    const councilor = councilorPosition ? {
+      id: councilorPosition.official.id,
+      name: councilorPosition.official.name,
+      party: councilorPosition.partyAcronym || "N/A",
+      phone: councilorPosition.official.phoneNumber || "N/A",
+      image: councilorPosition.official.imageUrl,
+    } : null;
+
+    return {
+      code: ward.code,
+      name: ward.name,
+      lgaName: lga.name,
+      stateName: state.name,
+      councilor,
+      // We can add projects and civic updates here when they are available in the DB
+      projects: [],
+      civicUpdates: [],
+    };
   }
 
   async getLgasByState(stateCode: string) {
@@ -169,6 +539,13 @@ export class GeoService implements OnModuleInit {
       where: { isActive: true },
       orderBy: { acronym: "asc" },
       select: { acronym: true, name: true },
+    });
+  }
+
+  async getRegions() {
+    return this.prisma.geopoliticalZone.findMany({
+      orderBy: { name: "asc" },
+      select: { code: true, name: true },
     });
   }
 

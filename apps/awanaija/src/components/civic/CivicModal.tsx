@@ -39,17 +39,30 @@ export function CivicModal() {
     const isDismissed = !!localStorage.getItem(DISMISS_KEY);
     setDismissed(isDismissed);
 
-    if (!isLandingPage || isDismissed) return;
+    const handleOpenModal = () => {
+      setOpen(true);
+      setAutoOpened(false);
+    };
+    window.addEventListener("open-civic-modal", handleOpenModal);
+
+    if (!isLandingPage || isDismissed) {
+      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
+    }
 
     const isFirstVisit = !localStorage.getItem(WELCOME_KEY);
-    if (isFirstVisit) return;
+    if (isFirstVisit) {
+      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
+    }
 
     const timer = setTimeout(() => {
       setOpen(true);
       setAutoOpened(true);
     }, 800);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("open-civic-modal", handleOpenModal);
+    };
   }, [isLandingPage]);
 
   function handleDismissForever() {
@@ -114,7 +127,7 @@ export function CivicModal() {
       {/* Floating trigger button */}
       <button
         onClick={() => { setOpen(true); setAutoOpened(false); }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
       >
         <MapPin className="w-5 h-5" />
         <span className="hidden sm:inline">Who Governs You?</span>
@@ -179,7 +192,7 @@ export function CivicModal() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 overflow-y-auto scrollbar-theme p-5">
               {tab === "reps" && (
                 <div>
                   {/* Location picker */}

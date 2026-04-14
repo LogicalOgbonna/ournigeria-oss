@@ -68,7 +68,7 @@ WITH senators (name, party, role, constituency_code) AS (VALUES
     -- EBONYI (3)
     ('Peter Nwebonyi Onyeka',         'APC',  'senator', 'sen_ebonyi_north'),
     ('Kenneth Emeka Eze',             'APC',  'senator', 'sen_ebonyi_central'),
-    ('David Nweze Umahi',             'APC',  'senator', 'sen_ebonyi_south'),
+    ('Okorie Anthony Ani',             'APC',  'senator', 'sen_ebonyi_south'),
 
     -- EDO (3)
     ('Adams Aliyu Oshiomhole',        'APC',  'senator', 'sen_edo_north'),

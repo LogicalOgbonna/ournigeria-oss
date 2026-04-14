@@ -1,8 +1,10 @@
-const API_BASE = "/api";
+const API_BASE = typeof window !== "undefined" 
+  ? "/api" 
+  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "/api");
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
+    credentials: "omit",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -58,8 +60,24 @@ export async function reverseGeocode(lat: number, lng: number) {
   return apiFetch<GeoResult>(`/geo/reverse?lat=${lat}&lng=${lng}`);
 }
 
+export async function getStateDetails(slug: string, year?: string, month?: string) {
+  const qs = new URLSearchParams();
+  if (year) qs.set("year", year);
+  if (month) qs.set("month", month);
+  const queryString = qs.toString() ? `?${qs.toString()}` : "";
+  return apiFetch<any>(`/geo/states/${slug}${queryString}`);
+}
+
+export async function getLgaDetails(stateSlug: string, lgaSlug: string) {
+  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}`);
+}
+
+export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
+  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}/wards/${wardSlug}`);
+}
+
 export async function getStates() {
-  return apiFetch<{ code: string; name: string }[]>("/geo/states");
+  return apiFetch<{ code: string; name: string; region: string; party: string; faac: string }[]>("/geo/states");
 }
 
 export async function getLgas(stateCode: string) {
@@ -76,6 +94,10 @@ export async function getWards(lgaCode: string) {
 
 export async function getParties() {
   return apiFetch<{ acronym: string; name: string }[]>("/geo/parties");
+}
+
+export async function getRegions() {
+  return apiFetch<{ code: string; name: string }[]>("/geo/regions");
 }
 
 export async function getConstituencies(stateCode: string, type?: string) {
@@ -96,6 +118,7 @@ export async function createProposal(data: {
 }) {
   return apiFetch<{ id: string; status: string }>("/proposals", {
     method: "POST",
+    credentials: "include",
     body: JSON.stringify(data),
   });
 }
@@ -122,6 +145,7 @@ export async function identifyOfficial(data: {
 }) {
   return apiFetch<{ id: string; officialId: string; status: string }>("/proposals/identify", {
     method: "POST",
+    credentials: "include",
     body: JSON.stringify(data),
   });
 }
@@ -132,6 +156,7 @@ export async function voteOnProposal(
 ) {
   return apiFetch<{ voteScore: number; upvoteCount: number; downvoteCount: number }>(`/proposals/${proposalId}/vote`, {
     method: "POST",
+    credentials: "include",
     body: JSON.stringify({ direction }),
   });
 }

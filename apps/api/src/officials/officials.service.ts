@@ -114,16 +114,53 @@ export class OfficialsService {
     }
 
     // 3. State House Member (MHA) - uses constituency arc, find via ward or state constituency
-    if (wardCode) {
-      // Find state constituency containing this ward
-      const wardMapping = await this.prisma.constituencyWard.findFirst({
-        where: { wardCode },
-        include: { constituency: true },
+    if (lgaCode) {
+      const mhaPositions = await this.prisma.officialPosition.findMany({
+        where: {
+          role: "mha",
+          status: "active",
+          constituencyCode: { startsWith: `state_${stateCode}_` },
+        },
+        include: { official: true, party: true, constituency: true, term: true },
       });
-      if (wardMapping && wardMapping.constituency.type === "state") {
-        chain.push(await this.findOfficialByPosition("mha", { constituencyCode: wardMapping.constituencyCode }));
+
+      if (mhaPositions.length > 0) {
+        let matched: (typeof mhaPositions)[0] | undefined;
+
+        // Strategy 1: Use constituency_wards table if we have a ward code
+        if (wardCode) {
+          const wardMapping = await this.prisma.constituencyWard.findFirst({
+            where: { wardCode, constituency: { type: "state" } },
+          });
+          if (wardMapping) {
+            matched = mhaPositions.find((p) => p.constituencyCode === wardMapping.constituencyCode);
+          }
+        }
+
+        // Strategy 2: Match by LGA name in constituency name
+        if (!matched) {
+          const lgaRecord = await this.prisma.nigerianLga.findUnique({ where: { code: lgaCode } });
+          const lgaName = lgaRecord?.name?.toLowerCase() || "";
+          matched = mhaPositions.find((p) =>
+            p.constituency?.name?.toLowerCase().includes(lgaName),
+          );
+        }
+
+        // Strategy 3: Match by LGA code embedded in constituency code
+        if (!matched) {
+          const lgaSuffix = lgaCode.replace(`${stateCode}-`, "");
+          matched = mhaPositions.find((p) =>
+            p.constituencyCode?.includes(lgaSuffix),
+          );
+        }
+
+        if (matched) {
+          chain.push(this.formatPositionResult(matched, "mha", { stateCode, lgaCode }));
+        } else {
+          chain.push({ role: "mha", scope: { stateCode, lgaCode }, official: null, position: null });
+        }
       } else {
-        chain.push({ role: "mha", scope: { stateCode }, official: null, position: null });
+        chain.push({ role: "mha", scope: { stateCode, lgaCode }, official: null, position: null });
       }
     } else {
       chain.push({ role: "mha", scope: { stateCode }, official: null, position: null });

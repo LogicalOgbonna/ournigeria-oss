@@ -82,7 +82,7 @@ export function OfficialProfile({ official }: { official: Official }) {
   );
 
   return (
-    <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+    <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
       <div className="max-w-[672px] mx-auto px-6 pt-8 pb-16">
         {/* Back link */}
         <Link

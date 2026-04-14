@@ -1,0 +1,423 @@
+import React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info } from "lucide-react";
+import { Suspense } from "react";
+import { Navbar } from "@/components/sections/Navbar";
+import { Footer } from "@/components/sections/Footer";
+import { StateOfficialsAccordion } from "@/components/civic/StateOfficialsAccordion";
+import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
+import { notFound } from "next/navigation";
+import { getStateDetails } from "@/lib/api";
+
+export const revalidate = 60; // Revalidate every 60 seconds
+
+export default async function StatePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ state_slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { state_slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
+  const month = typeof resolvedSearchParams.month === 'string' ? resolvedSearchParams.month : undefined;
+  
+  let state;
+  try {
+    state = await getStateDetails(state_slug, year, month);
+    if (state.error) {
+      console.error("Error fetching state details:", state.error);
+      notFound();
+    }
+  } catch (error) {
+    console.error("Exception fetching state details:", error);
+    notFound();
+  }
+
+  if (!state) {
+    notFound();
+  }
+
+  const { governor, stats, economy, lgas } = state;
+  const budgetBreakdown = state.budgetBreakdown || {
+    total: "N/A",
+    capital: { amount: "N/A", percentage: 0, color: "bg-emerald-500" },
+    recurrent: { amount: "N/A", percentage: 0, color: "bg-amber-500" },
+    explanation: "Budget breakdown data is currently unavailable."
+  };
+  const sectors = state.sectors || [
+    { name: "Infrastructure", amount: "N/A", color: "bg-[#d97706]", percentage: 0 },
+    { name: "Education", amount: "N/A", color: "bg-[#059669]", percentage: 0 },
+    { name: "Health", amount: "N/A", color: "bg-[#0891b2]", percentage: 0 },
+  ];
+
+  const news = [
+    {
+      title: `${state.name} signs ₦100B infrastructure bond for Red Line rail`,
+      type: "project",
+      date: "2 days ago",
+    },
+    {
+      title: "EFCC investigates former commissioner over ₦2.5B contract",
+      type: "corruption",
+      date: "1 week ago",
+    },
+    {
+      title: "New primary healthcare centers commissioned",
+      type: "project",
+      date: "2 weeks ago",
+    },
+  ];
+
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+
+      <main className="container max-w-6xl mx-auto px-4 pt-24 pb-20 flex-1">
+        <Link
+          href="/states"
+          className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 text-sm font-medium mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to States
+        </Link>
+
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 space-y-16">
+            {/* Hero Section */}
+            <section className="space-y-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    State Snapshot
+                  </p>
+                    <span className="font-sans text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-muted text-foreground">
+                      {governor?.party || "N/A"}
+                    </span>
+                  </div>
+                  <h1 className="font-serif text-5xl md:text-6xl text-foreground">
+                    {state.name}
+                  </h1>
+                </div>
+
+                <Suspense fallback={<div className="h-10" />}>
+                  <StateEconomyFilter />
+                </Suspense>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-card border border-border rounded-[10px] p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-500" />
+                      <p className="font-sans text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                        2024 Approved Budget
+                      </p>
+                    </div>
+                    <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {stats?.budget || "N/A"}
+                    </p>
+                  </div>
+                  <div className="bg-card border border-border rounded-[10px] p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Landmark className="w-4 h-4 text-emerald-500" />
+                      <p className="font-sans text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                        {year && month ? `FAAC Allocation (${months.find(m => m.value === month)?.label} ${year})` : year ? `FAAC Allocation (${year})` : "FAAC Allocation (12mo)"}
+                      </p>
+                    </div>
+                    <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {stats?.faac || "N/A"}
+                    </p>
+                  </div>
+                  <div className="bg-card border border-border rounded-[10px] p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-500" />
+                      <p className="font-sans text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                        {year ? `IGR (${year})` : "IGR"}
+                      </p>
+                    </div>
+                    <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {stats?.igr || "N/A"}
+                    </p>
+                  </div>
+                </div>
+            </section>
+
+            {/* Budget Breakdown & Explanation */}
+            <section className="space-y-6">
+              <h2 className="font-heading text-2xl font-semibold">
+                Budget Breakdown
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Visualization Card */}
+                <div className="bg-card border border-border rounded-[10px] p-6 space-y-6">
+                  <div className="space-y-1">
+                    <p className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Capital vs Recurrent
+                    </p>
+                    <p className="font-mono text-3xl font-bold text-foreground">
+                      {budgetBreakdown.total}
+                    </p>
+                  </div>
+
+                  {/* Stacked Bar */}
+                  <div className="h-8 w-full flex rounded-full overflow-hidden">
+                    <div className={`${budgetBreakdown.capital.color} h-full transition-all`} style={{ width: `${budgetBreakdown.capital.percentage}%` }} />
+                    <div className={`${budgetBreakdown.recurrent.color} h-full transition-all`} style={{ width: `${budgetBreakdown.recurrent.percentage}%` }} />
+                  </div>
+
+                  {/* Legend */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${budgetBreakdown.capital.color}`} />
+                        <span className="font-sans text-sm font-medium">Capital</span>
+                      </div>
+                      <p className="font-mono text-lg font-semibold">{budgetBreakdown.capital.amount}</p>
+                      <p className="font-sans text-xs text-muted-foreground">{budgetBreakdown.capital.percentage}% of total</p>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${budgetBreakdown.recurrent.color}`} />
+                        <span className="font-sans text-sm font-medium">Recurrent</span>
+                      </div>
+                      <p className="font-mono text-lg font-semibold">{budgetBreakdown.recurrent.amount}</p>
+                      <p className="font-sans text-xs text-muted-foreground">{budgetBreakdown.recurrent.percentage}% of total</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Explanation Card */}
+                <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-[10px] p-6 flex flex-col justify-center space-y-4">
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                    <Info className="w-5 h-5" />
+                    <h3 className="font-heading font-semibold">Wetin this mean?</h3>
+                  </div>
+                  <p className="font-sans text-sm text-emerald-900 dark:text-emerald-100 leading-relaxed">
+                    {budgetBreakdown.explanation}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* Financial Overview */}
+            <section className="space-y-6">
+              <h2 className="font-heading text-2xl font-semibold">
+                Sector Allocation
+              </h2>
+              <div className="bg-card border border-border rounded-[10px] p-6 space-y-6">
+                <p className="font-sans text-sm text-muted-foreground">
+                  Top 3 funded sectors in the 2024 Approved Budget
+                </p>
+                  <div className="space-y-4">
+                    {sectors.map((sector: { name: string; amount: string; color: string; percentage: number }, i: number) => (
+                      <div key={i} className="space-y-2">
+                      <div className="flex justify-between items-end">
+                        <span className="font-sans font-medium">{sector.name}</span>
+                        <span className="font-mono font-semibold">
+                          {sector.amount}
+                        </span>
+                      </div>
+                      {/* Progress bar visual */}
+                      <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${sector.color} rounded-full`}
+                          style={{
+                            width: `${sector.percentage}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Local Governments */}
+            <section className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="font-heading text-2xl font-semibold">
+                  Local Governments
+                </h2>
+                <span className="font-mono text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+                  {state.lgas.length} LGAs
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto scrollbar-theme pr-2 pb-2">
+                {state.lgas.map((lga: { name: string }, i: number) => (
+                  <Link
+                    href={`/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    key={i}
+                    className="group bg-card border border-border hover:border-emerald-500/50 transition-colors rounded-[10px] p-5 space-y-3"
+                  >
+                    <div className="flex items-start justify-between">
+                      <MapPin className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-heading text-lg font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {lga.name}
+                      </h3>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        FAAC: <span className="font-mono">N/A</span>
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            {/* Latest Information */}
+            <section className="space-y-6">
+              <h2 className="font-heading text-2xl font-semibold">
+                Latest Updates
+              </h2>
+              <div className="space-y-4">
+                {news.map((item, i) => (
+                  <div
+                    key={i}
+                    className="bg-card border border-border hover:border-border/80 transition-colors rounded-[10px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            item.type === "corruption"
+                              ? "bg-red-500"
+                              : "bg-emerald-500"
+                          }`}
+                        />
+                        <span className="font-sans text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          {item.type}
+                        </span>
+                      </div>
+                      <h3 className="font-sans text-base font-medium leading-snug">
+                        {item.title}
+                      </h3>
+                    </div>
+                    <span className="font-sans text-sm text-muted-foreground whitespace-nowrap">
+                      {item.date}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-full lg:w-80 shrink-0 space-y-12">
+            {/* Who Governs You? */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
+                  Who Governs You?
+                </h3>
+                <Link href="/officials" className="text-xs text-emerald-600 hover:underline">
+                  See all →
+                </Link>
+              </div>
+
+              <div className="space-y-4">
+                {/* Governor Card */}
+                <Link 
+                  href={`/officials/${governor?.id || 'unknown'}`}
+                  className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
+                >
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
+                    {governor?.image ? (
+                      <Image src={governor.image} alt={governor.name} fill className="object-cover" sizes="48px" />
+                    ) : (
+                      <Users className="w-6 h-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      Governor
+                    </p>
+                    <h3 className="font-heading text-base font-semibold leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {governor?.name || "Information Unavailable"}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
+                      <span className="px-1.5 py-0.5 rounded bg-muted text-foreground font-medium">
+                        {governor?.party || "N/A"}
+                      </span>
+                      <span>•</span>
+                      <span>{governor?.term || "N/A"}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
+                </Link>
+
+                <StateOfficialsAccordion 
+                  stateCode={state.code} 
+                  stats={stats} 
+                  officials={state.officials} 
+                />
+              </div>
+            </div>
+
+            {/* State Economy & Demographics */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
+                  State Economy {year && `(${year})`}
+                </h3>
+              </div>
+
+              <div className="bg-card border border-border rounded-[10px] divide-y divide-border">
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">Est. Population</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{economy?.population || "N/A"}</span>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">GDP</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{economy?.gdp || "N/A"}</span>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">Domestic Debt</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{economy?.domesticDebt || "N/A"}</span>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">External Debt</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{economy?.externalDebt || "N/A"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Transparency Score / Call to Action */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-[10px] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                <Activity className="w-5 h-5" />
+                <h3 className="font-heading font-semibold">Missing Data?</h3>
+              </div>
+              <p className="font-sans text-sm text-emerald-800/80 dark:text-emerald-200/80 leading-relaxed">
+                We rely on public records and citizen reports. If you have verified data about projects or spending in {state.name}, help us update the records.
+              </p>
+              <button className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium text-sm transition-colors mt-2">
+                Submit Information
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}

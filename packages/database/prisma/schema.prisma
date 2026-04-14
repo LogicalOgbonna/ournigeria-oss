@@ -219,6 +219,7 @@ model OfficialPosition {
   role             String    @db.VarChar(50)
   appointmentType  String    @default("elected") @map("appointment_type") @db.VarChar(20)
   status           String    @default("active") @db.VarChar(20)
+  leadershipRole   String?   @map("leadership_role") @db.VarChar(50)
   stateCode        String?   @map("state_code") @db.VarChar(30)
   constituencyCode String?   @map("constituency_code") @db.VarChar(80)
   lgaCode          String?   @map("lga_code") @db.VarChar(60)

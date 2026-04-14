@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { OfficialProfile } from "./OfficialProfile";
+import { Navbar } from "@/components/sections/Navbar";
+import { Footer } from "@/components/sections/Footer";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
 
@@ -63,12 +65,14 @@ export default async function OfficialPage({
   };
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+      <Navbar />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <OfficialProfile official={official} />
-    </>
+      <Footer />
+    </div>
   );
 }
