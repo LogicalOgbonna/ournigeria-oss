@@ -103,6 +103,7 @@ export function OfficialsClientContent({
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState(initialSearch);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const updateUrl = (newParams: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -123,12 +124,16 @@ export function OfficialsClientContent({
     const value = e.target.value;
     setSearch(value);
     
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
     // Debounce the URL update for search
     const timeoutId = setTimeout(() => {
       updateUrl({ search: value, page: "1" });
     }, 400);
     
-    return () => clearTimeout(timeoutId);
+    setSearchTimeout(timeoutId);
   };
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
