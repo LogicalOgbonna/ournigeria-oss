@@ -100,7 +100,7 @@ function buildExternalLoginRedirect(request: NextRequest): URL {
   return loginUrl;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // Handle Telegram auth callback — verify signed token, set cookie, strip param

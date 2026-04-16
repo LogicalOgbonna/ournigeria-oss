@@ -5,11 +5,10 @@ Uses ournaija.pptx as template for theme/master slides, then rebuilds all slides
 """
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.util import Pt, Emu
+from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-import copy
 
 # ─── Design System (extracted from ournaija.pptx) ───
 BG_DARK = RGBColor(0x11, 0x18, 0x27)       # slide background

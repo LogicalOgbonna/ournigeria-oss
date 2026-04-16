@@ -172,6 +172,10 @@ if [ "$DEPLOY_ENV" = "staging" ]; then
 Tag: \`$NEW_IMAGE_TAG\`
 Duration: $(( DEPLOY_END - DEPLOY_START ))s"
   echo "Staging deploy complete."
+  
+  echo "Cleaning up old Docker images..."
+  docker image prune -a -f
+
   exit 0
 fi
 
@@ -373,6 +377,10 @@ log_deploy "success" "" "$DURATION"
 
 # ─── Prune old deploy logs (>30 days) ─────────────────────────────
 find "$LOG_DIR" -name "deploy-*.log" -mtime +30 -delete 2>/dev/null || true
+
+# ─── Clean up old Docker images ───────────────────────────────────
+echo "Cleaning up old Docker images..."
+docker image prune -a -f
 
 notify "✅ *Deploy complete*
 Active: \`$STANDBY\` | Tag: \`$NEW_IMAGE_TAG\`

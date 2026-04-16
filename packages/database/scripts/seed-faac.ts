@@ -53,8 +53,10 @@ interface FederalJson {
     grand_total: number;
     total_statutory: number;
     total_exchange_gain?: number;
+    total_solid_mineral?: number;
     total_emtl?: number;
     total_vat?: number;
+    total_augmentation?: number;
   };
   fgn_details: {
     beneficiary: string;
@@ -65,9 +67,11 @@ interface FederalJson {
     gross_statutory: number;
     total_deduction: number | null;
     net_statutory: number;
-    exchange_gain: number;
+    exchange_gain: number | null;
+    solid_mineral: number | null;
     emtl: number | null;
     vat: number | null;
+    augmentation: number | null;
     total: number;
   }[];
   special_items?: {
@@ -93,10 +97,12 @@ interface StateRow {
   deduction_ispo: number;
   deduction_other: number;
   net_statutory: number;
-  exchange_gain: number;
+  exchange_gain: number | null;
   exchange_gain_derivation_13pct: number | null;
-  total_exchange_gain: number;
-  emtl: number;
+  total_exchange_gain: number | null;
+  solid_mineral: number | null;
+  emtl: number | null;
+  augmentation: number | null;
   ecology_gross: number;
   ecology_transfer_nddc_hyppadec: number;
   ecology_net: number;
@@ -123,9 +129,11 @@ interface LgaRow {
   entity_code: string;
   lga_name_pdf?: string;
   net_statutory: number;
-  deduction: number;
-  exchange_gain: number;
-  emtl: number;
+  deduction: number | null;
+  exchange_gain: number | null;
+  solid_mineral: number | null;
+  emtl: number | null;
+  augmentation: number | null;
   ecology_gross: number;
   ecology_transfer_nddc_hyppadec: number;
   ecology_net: number;
@@ -255,8 +263,10 @@ async function seedMonth(year: string, month: string): Promise<{
         disbursementMonth: federal.disbursement_month,
         totalStatutory: dec(federal.summary.total_statutory),
         totalExchangeGain: dec(federal.summary.total_exchange_gain),
+        totalSolidMineral: dec(federal.summary.total_solid_mineral),
         totalEmtl: dec(federal.summary.total_emtl),
         totalVat: dec(federal.summary.total_vat),
+        totalAugmentation: dec(federal.summary.total_augmentation),
         grandTotal: decRequired(federal.summary.grand_total),
         fgnTotal: dec(federal.summary.fgn_total),
         statesTotal: dec(federal.summary.states_total),
@@ -283,9 +293,11 @@ async function seedMonth(year: string, month: string): Promise<{
           grossStatutory: decRequired(row.gross_statutory),
           totalDeduction: dec(row.total_deduction),
           netStatutory: decRequired(row.net_statutory),
-          exchangeGain: decRequired(row.exchange_gain),
+          exchangeGain: dec(row.exchange_gain),
+          solidMineral: dec(row.solid_mineral),
           emtl: dec(row.emtl),
           vat: dec(row.vat),
+          augmentation: dec(row.augmentation),
           total: decRequired(row.total),
         },
       });
@@ -308,10 +320,12 @@ async function seedMonth(year: string, month: string): Promise<{
             deductionIspo: decRequired(row.deduction_ispo),
             deductionOther: decRequired(row.deduction_other),
             netStatutory: decRequired(row.net_statutory),
-            exchangeGain: decRequired(row.exchange_gain),
+            exchangeGain: dec(row.exchange_gain),
             exchangeGainDerivation13pct: dec(row.exchange_gain_derivation_13pct),
-            totalExchangeGain: decRequired(row.total_exchange_gain),
-            emtl: decRequired(row.emtl),
+            totalExchangeGain: dec(row.total_exchange_gain),
+            solidMineral: dec(row.solid_mineral),
+            emtl: dec(row.emtl),
+            augmentation: dec(row.augmentation),
             ecologyGross: decRequired(row.ecology_gross),
             ecologyTransferNddcHyppadec: decRequired(row.ecology_transfer_nddc_hyppadec),
             ecologyNet: decRequired(row.ecology_net),
@@ -337,9 +351,11 @@ async function seedMonth(year: string, month: string): Promise<{
             disbursementId: disbursement.id,
             entityCode: row.entity_code,
             netStatutory: decRequired(row.net_statutory),
-            deduction: decRequired(row.deduction),
-            exchangeGain: decRequired(row.exchange_gain),
-            emtl: decRequired(row.emtl),
+            deduction: dec(row.deduction),
+            exchangeGain: dec(row.exchange_gain),
+            solidMineral: dec(row.solid_mineral),
+            emtl: dec(row.emtl),
+            augmentation: dec(row.augmentation),
             ecologyGross: decRequired(row.ecology_gross),
             ecologyTransferNddcHyppadec: decRequired(row.ecology_transfer_nddc_hyppadec),
             ecologyNet: decRequired(row.ecology_net),

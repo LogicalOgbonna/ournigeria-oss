@@ -1,0 +1,91 @@
+name: 'Next.js Bundle Analysis'
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Next apps with Analyzer
+        run: |
+          ANALYZE=true pnpm web:build --skip-nx-cache --webpack
+          ANALYZE=true pnpm dashboard:build --skip-nx-cache --webpack
+          ANALYZE=true pnpm awanaija:build --skip-nx-cache --webpack
+
+      - name: Upload Analyzer HTML Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analyzer-reports
+          path: |
+            apps/web/.next/analyze/*.html
+            apps/dashboard/.next/analyze/*.html
+            apps/awanaija/.next/analyze/*.html
+
+      - name: Calculate JS Size
+        id: calc-size
+        run: |
+          calculate_size() {
+            local app=$1
+            if [ -d "apps/$app/.next/static/chunks" ]; then
+              local parsed=$(find apps/$app/.next/static/chunks -type f -name "*.js" -exec cat {} + | wc -c | awk '{print $1}')
+              local parsed_kb=$(echo "scale=2; $parsed / 1024" | bc)
+              
+              local gzip=$(find apps/$app/.next/static/chunks -type f -name "*.js" -exec gzip -c {} + | wc -c | awk '{print $1}')
+              local gzip_kb=$(echo "scale=2; $gzip / 1024" | bc)
+              
+              echo "${app}_parsed=$parsed_kb" >> $GITHUB_OUTPUT
+              echo "${app}_gzip=$gzip_kb" >> $GITHUB_OUTPUT
+            else
+              echo "${app}_parsed=0" >> $GITHUB_OUTPUT
+              echo "${app}_gzip=0" >> $GITHUB_OUTPUT
+            fi
+          }
+          
+          calculate_size "web"
+          calculate_size "dashboard"
+          calculate_size "awanaija"
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const webParsed = '${{ steps.calc-size.outputs.web_parsed }}';
+            const webGzip = '${{ steps.calc-size.outputs.web_gzip }}';
+            const dashboardParsed = '${{ steps.calc-size.outputs.dashboard_parsed }}';
+            const dashboardGzip = '${{ steps.calc-size.outputs.dashboard_gzip }}';
+            const awanaijaParsed = '${{ steps.calc-size.outputs.awanaija_parsed }}';
+            const awanaijaGzip = '${{ steps.calc-size.outputs.awanaija_gzip }}';
+            
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            const body = `## 📦 Next.js Bundle Analysis\n\n| App | Parsed (Minified) | Gzipped (Network) |\n|-----|-------------------|-------------------|\n| **Web** | \`${webParsed} KB\` | \`${webGzip} KB\` |\n| **Dashboard** | \`${dashboardParsed} KB\` | \`${dashboardGzip} KB\` |\n| **Awanaija** | \`${awanaijaParsed} KB\` | \`${awanaijaGzip} KB\` |\n\n🔍 **Detailed Reports:**\nYou can download the interactive HTML treemap reports (Client, Server, Edge) for all apps from the [Workflow Artifacts](${runUrl}).\n\n*(Note: Next.js 16 removed the CLI bundle size table, so this tracks the total chunk size).*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

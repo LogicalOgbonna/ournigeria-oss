@@ -14,7 +14,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const API_URL = typeof window !== "undefined" 
+  ? "/api" 
+  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "/api");
 
 type DonationType = "one-time" | "monthly";
 type PaymentProvider = "paystack" | "flutterwave";

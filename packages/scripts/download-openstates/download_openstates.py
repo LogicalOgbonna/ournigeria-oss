@@ -11,13 +11,11 @@ Files are hosted at:
   https://s3.eu-west-2.amazonaws.com/openstates.ng.storage/documents/dataset_...
 """
 
-import os
 import time
 import urllib.request
 import urllib.parse
 import urllib.error
 import ssl
-import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent.parent.parent / "source" / "budgets"

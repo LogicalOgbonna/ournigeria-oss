@@ -659,6 +659,11 @@ function EditOfficialContent() {
   const [loading, setLoading] = useState(true);
 
   const [targetField, setTargetField] = useState(fieldParam || "");
+  const [parties, setParties] = useState<{ acronym: string; name: string }[]>([]);
+
+  useEffect(() => {
+    getParties().then(setParties).catch(() => {});
+  }, []);
   const [proposedValue, setProposedValue] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
 
@@ -693,6 +698,7 @@ function EditOfficialContent() {
     try {
       await createProposal({
         officialId,
+        positionId: official?.positions?.[0]?.id,
         targetField,
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
@@ -828,6 +834,24 @@ function EditOfficialContent() {
           {/* Value input */}
           {targetField && targetField === "imageUrl" ? (
             <PhotoInput value={proposedValue} onChange={setProposedValue} />
+          ) : targetField === "partyAcronym" ? (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                {FIELD_LABELS[targetField] || targetField}
+              </label>
+              <select
+                value={proposedValue}
+                onChange={(e) => setProposedValue(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">Select party</option>
+                {parties.map((p) => (
+                  <option key={p.acronym} value={p.acronym}>
+                    {p.acronym} — {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           ) : targetField ? (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">

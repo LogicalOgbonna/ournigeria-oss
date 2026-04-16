@@ -5,7 +5,6 @@ Organizes into: packages/source/budgets/{State}/{Year}/implementation_report_q{N
 """
 
 import os
-import sys
 import time
 import urllib.request
 import urllib.error
@@ -161,9 +160,6 @@ def download_file(url, filepath, timeout=60):
         })
         ctx = create_ssl_context()
         response = urllib.request.urlopen(req, timeout=timeout, context=ctx)
-
-        content_type = response.headers.get("Content-Type", "")
-        content_length = response.headers.get("Content-Length", "unknown")
 
         with open(filepath, "wb") as f:
             data = response.read()

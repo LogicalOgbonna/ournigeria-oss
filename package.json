@@ -48,10 +48,12 @@
     "content:coverage": "npx tsx packages/content/batch.ts --coverage"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@nx/js": "21.6.10",
     "marked": "17.0.4",
     "nx": "21.6.10",
-    "nx-ignore": "^19.8.0"
+    "nx-ignore": "^19.8.0",
+    "puppeteer": "^24.40.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

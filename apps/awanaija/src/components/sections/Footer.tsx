@@ -6,9 +6,9 @@ import { LOGIN_URL } from "@/lib/constants";
 
 export function Footer() {
   return (
-    <footer className="relative bg-[oklch(0.10_0.008_160)] dark:bg-[oklch(0.06_0.008_160)] rounded-t-[3rem]">
+    <footer className="relative bg-[oklch(0.10_0.008_160)] dark:bg-[oklch(0.06_0.008_160)] rounded-t-[3rem] mt-20">
       <div className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-6">
           {/* Brand */}
           <div className="lg:col-span-2">
             <Image
@@ -49,44 +49,45 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Explore Data */}
           <div>
             <h3 className="font-[family-name:var(--font-mono)] text-[10px] font-medium text-white/40 uppercase tracking-[0.2em]">
-              Navigation
+              Explore Data
             </h3>
             <ul className="mt-5 space-y-3">
               <li>
-                <a
-                  href="#features"
+                <Link
+                  href="/states"
                   className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
                 >
-                  Features
-                </a>
+                  State Directory
+                </Link>
               </li>
               <li>
-                <a
-                  href="#process"
+                <Link
+                  href="/leaderboard"
                   className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
                 >
-                  Process
-                </a>
+                  Leaderboard
+                </Link>
               </li>
               <li>
-                <a
-                  href="#data"
+                <Link
+                  href="/#data"
                   className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
                 >
-                  Data
-                </a>
+                  Data Sources
+                </Link>
               </li>
-              <li>
-                <a
-                  href={LOGIN_URL}
-                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
-                >
-                  Enter App
-                </a>
-              </li>
+            </ul>
+          </div>
+
+          {/* Civic Action */}
+          <div>
+            <h3 className="font-[family-name:var(--font-mono)] text-[10px] font-medium text-white/40 uppercase tracking-[0.2em]">
+              Civic Action
+            </h3>
+            <ul className="mt-5 space-y-3">
               <li>
                 <Link
                   href="/officials"
@@ -96,12 +97,69 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a
+                <Link
+                  href="/representatives"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Find Reps
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/proposals/new"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Submit Proposal
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/activity"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Activity Feed
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* About Us */}
+          <div>
+            <h3 className="font-[family-name:var(--font-mono)] text-[10px] font-medium text-white/40 uppercase tracking-[0.2em]">
+              About Us
+            </h3>
+            <ul className="mt-5 space-y-3">
+              <li>
+                <Link
+                  href="/#features"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#process"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Our Process
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/donate"
                   className="text-sm text-emerald-400/70 transition-colors hover:text-emerald-400 hover-lift inline-block"
                 >
                   Support Us
-                </a>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contact"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Contact Us
+                </Link>
               </li>
             </ul>
           </div>
@@ -138,6 +196,11 @@ export function Footer() {
           <p className="font-[family-name:var(--font-mono)] text-[10px] text-white/20 uppercase tracking-[0.2em]">
             v0.1.0
           </p>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <a href="mailto:support@ournigeria.ng" className="text-xs text-white/30 hover:text-white/70 transition-colors">
+            support@ournigeria.ng
+          </a>
         </div>
       </div>
     </footer>

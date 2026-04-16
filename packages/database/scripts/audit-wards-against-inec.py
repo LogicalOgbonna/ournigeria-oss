@@ -24,7 +24,7 @@ ELECTORAL_PAGE = "https://www.inecnigeria.org/electoral-constituencies-of-the-fe
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
-from ward_utils import WORKBOOK_TO_STATE, normalize_name, normalize_seed_lga
+from ward_utils import normalize_name
 
 
 def fetch(url: str, dest: Path) -> None:

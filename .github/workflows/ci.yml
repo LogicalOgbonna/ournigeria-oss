@@ -32,10 +32,11 @@ jobs:
 
       - run: pnpm exec playwright install --with-deps chromium
 
-      - run: pnpm exec nx affected -t lint test build
+      - run: pnpm exec nx affected -t lint test build lighthouse
         env:
           TEST_SESSION_COOKIE: ${{ secrets.TEST_SESSION_COOKIE }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm exec nx fix-ci
         if: always()

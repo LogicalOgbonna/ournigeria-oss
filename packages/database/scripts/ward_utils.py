@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
 
 # canonical mapping from INEC workbook filenames to our state slugs
 WORKBOOK_TO_STATE = {

@@ -324,13 +324,13 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
             <div className="py-4">
               {messages.map((message, index) => {
                 // Only scan for previous user message on retryable errors (short-circuits for 99% of messages)
-                const prevUserMsg =
-                  message.isError && message.retryable
-                    ? messages
-                        .slice(0, index)
-                        .reverse()
-                        .find((m) => m.role === "user")?.content
-                    : undefined;
+                let prevUserMsg: string | undefined;
+                if (message.isError && message.retryable) {
+                  prevUserMsg = messages
+                    .slice(0, index)
+                    .reverse()
+                    .find((m) => m.role === "user")?.content;
+                }
 
                 return (
                   <MessageBubble

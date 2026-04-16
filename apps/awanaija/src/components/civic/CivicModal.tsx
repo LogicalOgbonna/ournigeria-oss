@@ -7,6 +7,7 @@ import { LocationPicker } from "./LocationPicker";
 import { Leaderboard } from "./Leaderboard";
 import { ActivityFeed } from "./ActivityFeed";
 import { OfficialCard } from "./OfficialCard";
+import { CivicTabSkeleton } from "./CivicTabSkeleton";
 import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
 
 const ROLE_ORDER = ["councilor", "lga_chairman", "mha", "rep", "representative", "senator", "governor"];
@@ -39,17 +40,30 @@ export function CivicModal() {
     const isDismissed = !!localStorage.getItem(DISMISS_KEY);
     setDismissed(isDismissed);
 
-    if (!isLandingPage || isDismissed) return;
+    const handleOpenModal = () => {
+      setOpen(true);
+      setAutoOpened(false);
+    };
+    window.addEventListener("open-civic-modal", handleOpenModal);
+
+    if (!isLandingPage || isDismissed) {
+      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
+    }
 
     const isFirstVisit = !localStorage.getItem(WELCOME_KEY);
-    if (isFirstVisit) return;
+    if (isFirstVisit) {
+      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
+    }
 
     const timer = setTimeout(() => {
       setOpen(true);
       setAutoOpened(true);
     }, 800);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("open-civic-modal", handleOpenModal);
+    };
   }, [isLandingPage]);
 
   function handleDismissForever() {
@@ -114,7 +128,7 @@ export function CivicModal() {
       {/* Floating trigger button */}
       <button
         onClick={() => { setOpen(true); setAutoOpened(false); }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
       >
         <MapPin className="w-5 h-5" />
         <span className="hidden sm:inline">Who Governs You?</span>
@@ -130,7 +144,7 @@ export function CivicModal() {
           />
 
           {/* Modal panel */}
-          <div className="relative w-full max-w-3xl max-h-[90vh] bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+          <div className="relative flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl animate-in slide-in-from-bottom duration-300 dark:bg-slate-900 sm:h-[42rem] sm:max-h-[90vh] sm:rounded-2xl">
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
@@ -179,9 +193,9 @@ export function CivicModal() {
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 overflow-y-auto scrollbar-theme p-5">
               {tab === "reps" && (
-                <div>
+                <div className="flex min-h-full flex-col">
                   {/* Location picker */}
                   {!location && (
                     <div className="mb-4">
@@ -194,11 +208,7 @@ export function CivicModal() {
 
                   {/* Loading */}
                   {loading && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
-                      ))}
-                    </div>
+                    <CivicTabSkeleton variant="reps" />
                   )}
 
                   {/* Chain */}
@@ -246,20 +256,27 @@ export function CivicModal() {
               )}
 
               {tab === "leaderboard" && (
-                <div>
+                <div className="flex min-h-full flex-col">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     Which states have the most complete official data?
                   </p>
-                  <Leaderboard limit={37} highlightState={location?.stateCode} />
+                  <Leaderboard
+                    limit={37}
+                    highlightState={location?.stateCode}
+                    loadingFallback={<CivicTabSkeleton variant="leaderboard" />}
+                  />
                 </div>
               )}
 
               {tab === "activity" && (
-                <div>
+                <div className="flex min-h-full flex-col">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     Recent contributions from citizens
                   </p>
-                  <ActivityFeed limit={20} />
+                  <ActivityFeed
+                    limit={20}
+                    loadingFallback={<CivicTabSkeleton variant="activity" />}
+                  />
                 </div>
               )}
             </div>

@@ -300,7 +300,7 @@ WHERE "id" IN (
 UPDATE "official_positions" SET "party_acronym" = 'APC', "source_type" = 'manual', "source_url" = NULL, "source_date" = NULL, "confidence" = 'medium', "last_verified_at" = NULL, "review_status" = 'unreviewed'
 WHERE "role" = 'senator' AND "constituency_code" = 'sen_ebonyi_central';
 
-UPDATE "nigerian_officials" SET "name" = 'David Nweze Umahi', "image_url" = NULL, "email" = NULL, "phone_number" = NULL, "twitter_handle" = NULL, "facebook_url" = NULL, "date_of_birth" = '1964-07-25'::date, "gender" = 'male', "education" = 'BSc Civil Engineering, Anambra State University of Technology; MSc, University of Nigeria, Nsukka', "biography" = 'Engineer and politician representing Ebonyi South. Former Governor of Ebonyi State (2015-2023). Currently also serves as Minister of Works.'
+UPDATE "nigerian_officials" SET "name" = 'Okorie Anthony Ani', "image_url" = NULL, "email" = NULL, "phone_number" = NULL, "twitter_handle" = NULL, "facebook_url" = NULL, "date_of_birth" = NULL, "gender" = 'male', "education" = 'Professor of Agricultural Extension at Federal University of Owerri', "biography" = 'Professor of Agricultural Extension and politician representing Ebonyi South. He emerged as the APC candidate and won the bye-election in February 2024 to replace David Umahi who was appointed Minister of Works.'
 WHERE "id" IN (
   SELECT "official_id" FROM "official_positions"
   WHERE "role" = 'senator' AND "constituency_code" = 'sen_ebonyi_south'
