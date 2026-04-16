@@ -4,6 +4,8 @@ import { Footer } from "@/components/sections/Footer";
 import { getStates, getParties, getRegions } from "@/lib/api";
 import { StatesClientContent } from "./StatesClientContent";
 
+export const dynamic = "force-dynamic";
+
 export default async function StatesDirectoryPage() {
   const [statesData, partiesData, regionsData] = await Promise.all([
     getStates(),
