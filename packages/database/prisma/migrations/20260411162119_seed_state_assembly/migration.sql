@@ -3188,7 +3188,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'edb4a4c1-08ba-4b66-9fd4-7c95c8defa1b', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'edb4a4c1-08ba-4b66-9fd4-7c95c8defa1b', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'edb4a4c1-08ba-4b66-9fd4-7c95c8defa1b', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='kaduna' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_kaduna_birnin_gwari', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -3685,7 +3685,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'32e3465e-d200-493f-8d50-30dc79dc2c98', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'32e3465e-d200-493f-8d50-30dc79dc2c98', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '32e3465e-d200-493f-8d50-30dc79dc2c98', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='katsina' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_katsina_batagarawa', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -4266,7 +4266,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'a70eb15a-f308-495c-bb7d-90172d7150e1', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'a70eb15a-f308-495c-bb7d-90172d7150e1', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'a70eb15a-f308-495c-bb7d-90172d7150e1', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='kwara' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_kwara_asa', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -4378,7 +4378,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'b5078999-73e6-48ca-8850-6b0dc9ee827b', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'b5078999-73e6-48ca-8850-6b0dc9ee827b', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'b5078999-73e6-48ca-8850-6b0dc9ee827b', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='kwara' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_kwara_moro_ii', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -4413,7 +4413,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'f2a87deb-f159-445c-bf0b-777797d55012', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'f2a87deb-f159-445c-bf0b-777797d55012', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'f2a87deb-f159-445c-bf0b-777797d55012', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='kwara' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_kwara_oyun', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -4763,7 +4763,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'873d697e-dfca-46f3-b32a-ea2d2d586e84', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'873d697e-dfca-46f3-b32a-ea2d2d586e84', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '873d697e-dfca-46f3-b32a-ea2d2d586e84', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='nasarawa' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_nasarawa_karu_ii', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -4826,7 +4826,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'52fb8bec-84ef-4747-abdd-ba636eb048d7', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'52fb8bec-84ef-4747-abdd-ba636eb048d7', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '52fb8bec-84ef-4747-abdd-ba636eb048d7', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='nasarawa' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_nasarawa_nasarawa_west', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -5106,7 +5106,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'7c2dc508-8680-48b7-8f43-890d1fcac6a3', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'7c2dc508-8680-48b7-8f43-890d1fcac6a3', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '7c2dc508-8680-48b7-8f43-890d1fcac6a3', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='ogun' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_ogun_egbado_south_ilaro_owode', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -5162,7 +5162,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'2251d641-2c78-4d72-a1cf-5b800af58e9c', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'2251d641-2c78-4d72-a1cf-5b800af58e9c', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '2251d641-2c78-4d72-a1cf-5b800af58e9c', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='ogun' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_ogun_ijebu_north_ii_ago_iwoye_oru_awa', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -5848,7 +5848,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'358e25a1-cf6b-4877-95e9-dc4a7359194e', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'358e25a1-cf6b-4877-95e9-dc4a7359194e', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '358e25a1-cf6b-4877-95e9-dc4a7359194e', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='plateau' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_plateau_bassa_ii', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -5897,7 +5897,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'a9ca2983-c8dd-435d-ba1b-ca0109267979', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'a9ca2983-c8dd-435d-ba1b-ca0109267979', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'a9ca2983-c8dd-435d-ba1b-ca0109267979', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='plateau' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_plateau_kanam_ii', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
@@ -6660,14 +6660,14 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'d5fabca9-b186-45f5-b001-b2a7cd242c85', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'d5fabca9-b186-45f5-b001-b2a7cd242c85', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'd5fabca9-b186-45f5-b001-b2a7cd242c85', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='yobe' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_yobe_fune_i', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'fcf36dc9-2966-4404-a7e1-ae7c1fbfcc6c', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'fcf36dc9-2966-4404-a7e1-ae7c1fbfcc6c', 'Vacant', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 'fcf36dc9-2966-4404-a7e1-ae7c1fbfcc6c', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='yobe' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_yobe_fune_ii', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
