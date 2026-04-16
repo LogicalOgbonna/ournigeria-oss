@@ -153,6 +153,20 @@ export class GeoService implements OnModuleInit {
           select: {
             code: true,
             name: true,
+            fiscalEntity: {
+              include: {
+                faacLgaAllocations: {
+                  where: year || month ? {
+                    disbursement: {
+                      ...(year ? { disbursementYear: year } : {}),
+                      ...(month ? { disbursementMonth: month } : {})
+                    }
+                  } : undefined,
+                  orderBy: { createdAt: "desc" },
+                  take: year && month ? 1 : 12
+                }
+              }
+            }
           }
         },
         officialPositions: {
@@ -189,12 +203,12 @@ export class GeoService implements OnModuleInit {
             faacStateAllocations: {
               where: year || month ? {
                 disbursement: {
-                  ...(year ? { revenueYear: year } : {}),
-                  ...(month ? { revenueMonth: month } : {})
+                  ...(year ? { disbursementYear: year } : {}),
+                  ...(month ? { disbursementMonth: month } : {})
                 }
               } : undefined,
               orderBy: { createdAt: "desc" },
-              take: year && month ? 1 : 12 // Last 12 months maybe? Or just the latest
+              take: year && month ? 1 : 12
             }
           }
         }
@@ -312,12 +326,27 @@ export class GeoService implements OnModuleInit {
         domesticDebt: domesticDebt ? `₦${(Number(domesticDebt.amount) / 1_000_000_000).toFixed(1)}B` : "N/A",
         externalDebt: externalDebt ? `$${(Number(externalDebt.amount) / 1_000_000_000).toFixed(2)}B` : "N/A",
       },
-      lgas: state.lgas.map(lga => ({
-        code: lga.code,
-        name: lga.name,
-        // We'd need to fetch LGA FAAC separately or include it, but let's leave it as N/A or fetch it if needed
-        faac: "N/A" 
-      }))
+      lgas: state.lgas.map(lga => {
+        const lgaFaac = lga.fiscalEntity?.faacLgaAllocations?.reduce((sum, record) => {
+          return sum + (Number(record.totalNet) || 0);
+        }, 0) || 0;
+        
+        let faacFormatted = "N/A";
+        if (lgaFaac > 0) {
+          if (lgaFaac >= 1_000_000_000) {
+            faacFormatted = `₦${(lgaFaac / 1_000_000_000).toFixed(1)}B`;
+          } else {
+            faacFormatted = `₦${(lgaFaac / 1_000_000).toFixed(1)}M`;
+          }
+        }
+
+        return {
+          code: lga.code,
+          name: lga.name,
+          faac: faacFormatted
+        };
+      }),
+      availablePeriods: await this.getAvailableFaacPeriods(),
     };
   }
 
@@ -333,8 +362,14 @@ export class GeoService implements OnModuleInit {
         fiscalEntity: {
           include: {
             faacStateAllocations: {
-              orderBy: { createdAt: "desc" },
-              take: 12
+              orderBy: [
+                { disbursement: { disbursementYear: "desc" } },
+                { disbursement: { disbursementMonth: "desc" } }
+              ],
+              take: 1,
+              include: {
+                disbursement: true
+              }
             }
           }
         }
@@ -345,21 +380,29 @@ export class GeoService implements OnModuleInit {
       const governorPosition = state.officialPositions[0];
       const party = governorPosition?.partyAcronym || "N/A";
       
-      const faacYtd = state.fiscalEntity?.faacStateAllocations.reduce((sum, record) => {
-        return sum + (Number(record.totalNet) || 0);
-      }, 0) || 0;
+      const latestFaac = state.fiscalEntity?.faacStateAllocations?.[0];
+      const faacAmount = latestFaac ? Number(latestFaac.totalNet) || 0 : 0;
+      
+      let faacDate = "";
+      if (faacAmount) {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthStr = latestFaac?.disbursement ? monthNames[latestFaac.disbursement.disbursementMonth - 1] : "";
+        const yearStr = latestFaac?.disbursement ? latestFaac.disbursement.disbursementYear.toString().slice(-2) : "";
+        faacDate = monthStr && yearStr ? `${monthStr} '${yearStr}` : "";
+      }
 
       return {
         code: state.code,
         name: state.name,
         region: state.zone?.name || "Unknown",
         party: party,
-        faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A"
+        faac: faacAmount ? `₦${(faacAmount / 1_000_000_000).toFixed(1)}B` : "N/A",
+        faacDate: faacDate || undefined
       };
     });
   }
 
-  async getLgaDetails(stateSlug: string, lgaSlug: string) {
+  async getLgaDetails(stateSlug: string, lgaSlug: string, year?: number, month?: number) {
     const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
     const lgaSearchName = lgaSlug.replace(/-/g, ' ');
 
@@ -392,8 +435,14 @@ export class GeoService implements OnModuleInit {
         fiscalEntity: {
           include: {
             faacLgaAllocations: {
+              where: year || month ? {
+                disbursement: {
+                  ...(year ? { disbursementYear: year } : {}),
+                  ...(month ? { disbursementMonth: month } : {})
+                }
+              } : undefined,
               orderBy: { createdAt: "desc" },
-              take: 12
+              take: year && month ? 1 : 12
             }
           }
         }
@@ -440,14 +489,24 @@ export class GeoService implements OnModuleInit {
       return sum + (Number(record.totalNet) || 0);
     }, 0) || 0;
 
+    let faacFormatted = "N/A";
+    if (faacYtd > 0) {
+      if (faacYtd >= 1_000_000_000) {
+        faacFormatted = `₦${(faacYtd / 1_000_000_000).toFixed(1)}B`;
+      } else {
+        faacFormatted = `₦${(faacYtd / 1_000_000).toFixed(1)}M`;
+      }
+    }
+
     return {
       code: lga.code,
       name: lga.name,
+      stateCode: state.code,
       stateName: state.name,
       chairman,
       councilors,
       stats: {
-        faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A",
+        faac: faacFormatted,
         igr: "N/A", // Not tracked at LGA level currently
         population: "N/A", // Not tracked at LGA level currently
       },
@@ -509,10 +568,11 @@ export class GeoService implements OnModuleInit {
     return {
       code: ward.code,
       name: ward.name,
+      stateCode: state.code,
+      lgaCode: lga.code,
       lgaName: lga.name,
       stateName: state.name,
       councilor,
-      // We can add projects and civic updates here when they are available in the DB
       projects: [],
       civicUpdates: [],
     };
@@ -579,6 +639,42 @@ export class GeoService implements OnModuleInit {
       }
     }
     return false;
+  }
+
+  async getAvailableFaacPeriods(): Promise<{
+    years: number[];
+    monthsByYear: Record<number, number[]>;
+  }> {
+    const disbursements = await this.prisma.faacDisbursement.findMany({
+      select: {
+        disbursementYear: true,
+        disbursementMonth: true,
+      },
+      orderBy: [
+        { disbursementYear: "desc" },
+        { disbursementMonth: "desc" },
+      ],
+    });
+
+    const monthsByYear: Record<number, number[]> = {};
+    for (const d of disbursements) {
+      if (!monthsByYear[d.disbursementYear]) {
+        monthsByYear[d.disbursementYear] = [];
+      }
+      if (!monthsByYear[d.disbursementYear].includes(d.disbursementMonth)) {
+        monthsByYear[d.disbursementYear].push(d.disbursementMonth);
+      }
+    }
+
+    for (const year of Object.keys(monthsByYear)) {
+      monthsByYear[Number(year)].sort((a, b) => a - b);
+    }
+
+    const years = Object.keys(monthsByYear)
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    return { years, monthsByYear };
   }
 
   private raycast(x: number, y: number, ring: number[][]): boolean {

@@ -154,12 +154,12 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a
-                  href={LOGIN_URL}
+                <Link
+                  href="/contact"
                   className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
                 >
-                  Enter App
-                </a>
+                  Contact Us
+                </Link>
               </li>
             </ul>
           </div>
@@ -196,6 +196,11 @@ export function Footer() {
           <p className="font-[family-name:var(--font-mono)] text-[10px] text-white/20 uppercase tracking-[0.2em]">
             v0.1.0
           </p>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <a href="mailto:support@ournigeria.ng" className="text-xs text-white/30 hover:text-white/70 transition-colors">
+            support@ournigeria.ng
+          </a>
         </div>
       </div>
     </footer>

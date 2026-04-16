@@ -8,6 +8,7 @@ import {
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { FeedbackFab } from "@/components/feedback/FeedbackFab";
+import { Analytics } from "@/components/Analytics";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 
@@ -60,6 +61,7 @@ export default function RootLayout({
             <NotificationProvider>
               {children}
               <FeedbackFab />
+              <Analytics />
             </NotificationProvider>
           </ThemeProvider>
         </NuqsAdapter>

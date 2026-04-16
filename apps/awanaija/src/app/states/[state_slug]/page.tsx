@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info } from "lucide-react";
+import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info, Construction } from "lucide-react";
 import { Suspense } from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -23,7 +23,7 @@ export default async function StatePage({
   const resolvedSearchParams = await searchParams;
   const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
   const month = typeof resolvedSearchParams.month === 'string' ? resolvedSearchParams.month : undefined;
-  
+
   let state;
   try {
     state = await getStateDetails(state_slug, year, month);
@@ -119,7 +119,10 @@ export default async function StatePage({
                 </div>
 
                 <Suspense fallback={<div className="h-10" />}>
-                  <StateEconomyFilter />
+                  <StateEconomyFilter
+                    availableYears={state.availablePeriods?.years || []}
+                    monthsByYear={state.availablePeriods?.monthsByYear || {}}
+                  />
                 </Suspense>
 
                 {/* Quick Stats Grid */}
@@ -128,7 +131,7 @@ export default async function StatePage({
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-emerald-500" />
                       <p className="font-sans text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                        2024 Approved Budget
+                        {year ? `${year} Approved Budget` : "Approved Budget"}
                       </p>
                     </div>
                     <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -224,7 +227,7 @@ export default async function StatePage({
               </h2>
               <div className="bg-card border border-border rounded-[10px] p-6 space-y-6">
                 <p className="font-sans text-sm text-muted-foreground">
-                  Top 3 funded sectors in the 2024 Approved Budget
+                  Top 3 funded sectors in the {year ? `${year} Approved Budget` : "Approved Budget"}
                 </p>
                   <div className="space-y-4">
                     {sectors.map((sector: { name: string; amount: string; color: string; percentage: number }, i: number) => (
@@ -261,7 +264,7 @@ export default async function StatePage({
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto scrollbar-theme pr-2 pb-2">
-                {state.lgas.map((lga: { name: string }, i: number) => (
+                {state.lgas.map((lga: { name: string; faac: string }, i: number) => (
                   <Link
                     href={`/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}`}
                     key={i}
@@ -276,7 +279,7 @@ export default async function StatePage({
                         {lga.name}
                       </h3>
                       <p className="font-sans text-xs text-muted-foreground">
-                        FAAC: <span className="font-mono">N/A</span>
+                        FAAC: <span className="font-mono">{lga.faac}</span>
                       </p>
                     </div>
                   </Link>
@@ -289,34 +292,26 @@ export default async function StatePage({
               <h2 className="font-heading text-2xl font-semibold">
                 Latest Updates
               </h2>
-              <div className="space-y-4">
-                {news.map((item, i) => (
-                  <div
-                    key={i}
-                    className="bg-card border border-border hover:border-border/80 transition-colors rounded-[10px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            item.type === "corruption"
-                              ? "bg-red-500"
-                              : "bg-emerald-500"
-                          }`}
-                        />
-                        <span className="font-sans text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          {item.type}
-                        </span>
-                      </div>
-                      <h3 className="font-sans text-base font-medium leading-snug">
-                        {item.title}
-                      </h3>
-                    </div>
-                    <span className="font-sans text-sm text-muted-foreground whitespace-nowrap">
-                      {item.date}
-                    </span>
+              
+              <div className="relative overflow-hidden rounded-[10px] border border-border bg-card">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+                </div>
+                
+                <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+                    <Construction className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                ))}
+                  
+                  <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
+                    State Updates Coming Soon
+                  </h3>
+                  
+                  <p className="text-muted-foreground max-w-md mx-auto font-sans leading-relaxed">
+                    We are currently aggregating and verifying news, project updates, and civic reports for {state.name}. Keep an eye on the site banners for updates on when this feature goes live.
+                  </p>
+                </div>
               </div>
             </section>
           </div>

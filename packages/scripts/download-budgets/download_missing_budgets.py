@@ -11,8 +11,6 @@ Downloads to: packages/source/budgets/{State}/{year}/
 """
 
 import json
-import os
-import sys
 import time
 import urllib.request
 import urllib.parse

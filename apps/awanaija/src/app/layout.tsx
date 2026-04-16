@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { FeedbackFab } from "@/components/FeedbackFab";
 import { CivicModal } from "@/components/civic/CivicModal";
 import { MobileFabMenu } from "@/components/sections/MobileFabMenu";
+import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -89,6 +90,7 @@ export default function RootLayout({
           <FeedbackFab />
           <CivicModal />
           <MobileFabMenu />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>

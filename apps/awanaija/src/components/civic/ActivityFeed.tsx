@@ -1,9 +1,14 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { getActivity, type ActivityEntry } from "@/lib/api";
-import { CheckCircle2, PlusCircle, ArrowUpCircle, ArrowDownCircle, Activity } from "lucide-react";
+import { CheckCircle2, PlusCircle, ArrowUpCircle, ArrowDownCircle, Activity, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 interface ActivityFeedProps {
   limit?: number;
+  loadingFallback?: ReactNode;
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -91,13 +96,35 @@ function getEventDetails(entry: ActivityEntry) {
   }
 }
 
-export async function ActivityFeed({ limit = 50 }: ActivityFeedProps) {
-  let items: ActivityEntry[] = [];
-  try {
-    const data = await getActivity(limit);
-    items = data.data || [];
-  } catch (error) {
-    console.error("Failed to load activity:", error);
+export function ActivityFeed({
+  limit = 50,
+  loadingFallback,
+}: ActivityFeedProps) {
+  const [items, setItems] = useState<ActivityEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getActivity(limit)
+      .then((data) => {
+        if (!cancelled) setItems(data.data || []);
+      })
+      .catch((error) => {
+        console.error("Failed to load activity:", error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [limit]);
+
+  if (loading) {
+    return loadingFallback ?? (
+      <div className="max-w-2xl mx-auto p-8 text-center">
+        <Loader2 className="w-8 h-8 text-slate-400 mx-auto animate-spin" />
+      </div>
+    );
   }
 
   if (items.length === 0) {

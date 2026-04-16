@@ -132,7 +132,7 @@ def extract_all_links(html):
     return list(set(unescape(link) for link in raw_links))
 
 
-def extract_items_from_page(html, page_url):
+def extract_items_from_page(html, _page_url):
     """
     Extract documents and subcategory links from a page.
     Returns: (documents, subcategories, max_pagination_start)

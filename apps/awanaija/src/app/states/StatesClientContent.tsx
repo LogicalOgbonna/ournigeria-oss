@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MapPin, Filter } from "lucide-react";
 
 interface StatesClientContentProps {
-  statesData: { code: string; name: string; region: string; party: string; faac: string }[];
+  statesData: { code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[];
   partiesData: { acronym: string; name: string }[];
   regionsData: { code: string; name: string }[];
 }
@@ -94,9 +94,16 @@ export function StatesClientContent({ statesData, partiesData, regionsData }: St
                 <p className="font-sans text-xs text-muted-foreground">
                   {state.region}
                 </p>
-                <p className="font-sans text-xs text-muted-foreground">
-                  FAAC: <span className="font-mono">{state.faac}</span>
-                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="font-sans text-xs text-muted-foreground">
+                    FAAC: <span className="font-mono text-foreground">{state.faac}</span>
+                  </p>
+                  {state.faacDate && (
+                    <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold">
+                      {state.faacDate}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </Link>

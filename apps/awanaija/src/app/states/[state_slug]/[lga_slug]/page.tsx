@@ -1,23 +1,36 @@
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronRight, MapPin, AlertCircle, CheckCircle2, Clock, Users, Activity } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin, AlertCircle, CheckCircle2, Clock, Users, Activity, Construction } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { LgaOfficialsAccordion } from "@/components/civic/LgaOfficialsAccordion";
+import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
 import { notFound } from "next/navigation";
-import { getLgaDetails } from "@/lib/api";
+import { getLgaDetails, getFaacPeriods } from "@/lib/api";
 
 export default async function LgaPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ state_slug: string; lga_slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
+  const month = typeof resolvedSearchParams.month === 'string' ? resolvedSearchParams.month : undefined;
+
+  let faacPeriods: { years: number[]; monthsByYear: Record<number, number[]> } = { years: [], monthsByYear: {} };
+  try {
+    faacPeriods = await getFaacPeriods();
+  } catch (err) {
+    console.error("Failed to load FAAC periods:", err);
+  }
   
   let lga;
   try {
-    lga = await getLgaDetails(resolvedParams.state_slug, resolvedParams.lga_slug);
+    lga = await getLgaDetails(resolvedParams.state_slug, resolvedParams.lga_slug, year, month);
     if (lga.error) {
       console.error("Error fetching LGA details:", lga.error);
       notFound();
@@ -31,10 +44,10 @@ export default async function LgaPage({
     notFound();
   }
 
-  const { stateName, name: lgaName, chairman, councilors, stats, wards } = lga;
+  const { stateCode, stateName, name: lgaName, chairman, councilors, stats, wards } = lga;
 
   const displayStats = [
-    { label: "2024 FAAC Allocation", value: stats?.faac || "N/A" },
+    { label: "FAAC Allocation", value: stats?.faac || "N/A" },
     { label: "Internally Generated Rev", value: stats?.igr || "N/A" },
     { label: "Est. Population", value: stats?.population || "N/A" },
   ];
@@ -118,6 +131,13 @@ export default async function LgaPage({
                 </h1>
               </div>
 
+              <Suspense fallback={<div className="h-10" />}>
+                <StateEconomyFilter
+                  availableYears={faacPeriods.years}
+                  monthsByYear={faacPeriods.monthsByYear}
+                />
+              </Suspense>
+
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {displayStats.map((stat, i) => (
@@ -142,45 +162,27 @@ export default async function LgaPage({
                 <h2 className="font-heading text-2xl font-semibold">
                   Projects & Tracking
                 </h2>
-                <Link href="#" className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
-                  View all projects
-                </Link>
               </div>
-              <div className="space-y-4">
-                {projects.map((project, i) => (
-                  <div
-                    key={i}
-                    className="bg-card border border-border rounded-[10px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
-                            project.status
-                          )}`}
-                        >
-                          {getStatusIcon(project.status)}
-                          <span className="capitalize">{project.status}</span>
-                        </span>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {project.ward} Ward
-                        </span>
-                      </div>
-                      <h3 className="font-sans text-base font-medium leading-snug">
-                        {project.title}
-                      </h3>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-mono text-lg font-bold text-foreground">
-                        {project.amount}
-                      </p>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                        Contract Amount
-                      </p>
-                    </div>
+              
+              <div className="relative overflow-hidden rounded-[10px] border border-border bg-card">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+                </div>
+                
+                <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+                    <Construction className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                ))}
+                  
+                  <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
+                    Project Tracking Coming Soon
+                  </h3>
+                  
+                  <p className="text-muted-foreground max-w-md mx-auto font-sans leading-relaxed">
+                    We are currently aggregating and verifying contract data, project locations, and implementation statuses for {lgaName}. Keep an eye on the site banners for updates on when this feature goes live.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -259,7 +261,15 @@ export default async function LgaPage({
               </Link>
 
               {/* Legislature Summary */}
-              <LgaOfficialsAccordion councilors={councilors || []} wardCount={wards.length} />
+              <LgaOfficialsAccordion 
+                councilors={councilors || []} 
+                wardCount={wards.length} 
+                wards={wards || []} 
+                lgaCode={lga.code} 
+                lgaName={lgaName}
+                stateCode={lga.stateCode || ""}
+                stateName={stateName}
+              />
             </div>
 
             {/* Transparency Score / Call to Action */}

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquare, Construction } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { getWardDetails } from "@/lib/api";
@@ -29,7 +29,7 @@ export default async function WardPage({
     notFound();
   }
 
-  const { stateName, lgaName, name: wardName, councilor } = ward;
+  const { stateName, lgaName, name: wardName, councilor, code: wardCode, stateCode, lgaCode } = ward;
   
   const projects = ward.projects || [];
   const civicUpdates = ward.civicUpdates || [];
@@ -94,13 +94,12 @@ export default async function WardPage({
         </section>
 
         {/* Who is Responsible? */}
-        {councilor && (
-          <section className="space-y-6">
-            <h2 className="font-heading text-2xl font-semibold">
-              Who is Responsible?
-            </h2>
+        <section className="space-y-6">
+          <h2 className="font-heading text-2xl font-semibold">
+            Who is Responsible?
+          </h2>
+          {councilor ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Councilor Card */}
               <Link href={`/officials/${councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                   {councilor.image ? (
@@ -132,8 +131,33 @@ export default async function WardPage({
                 </div>
               </Link>
             </div>
-          </section>
-        )}
+          ) : (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4">
+              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <User className="w-8 h-8 text-amber-500" />
+              </div>
+              <div className="space-y-3 flex-1">
+                <div className="space-y-1">
+                  <p className="font-heading text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">
+                    Ward Councilor
+                  </p>
+                  <h3 className="font-heading text-xl font-semibold text-foreground">
+                    Councilor details unavailable
+                  </h3>
+                  <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+                    We don&apos;t have information on who represents {wardName} Ward in the local council yet. If you know the councilor for this ward, help us identify them so citizens can hold their representatives accountable.
+                  </p>
+                </div>
+                <Link
+                  href={`/proposals/new?mode=identify&role=councilor&stateCode=${stateCode || ""}&lgaCode=${lgaCode || ""}&wardCode=${wardCode || ""}&wardName=${encodeURIComponent(wardName)}&lgaName=${encodeURIComponent(lgaName)}&stateName=${encodeURIComponent(stateName)}`}
+                  className="inline-block px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-medium text-sm transition-colors"
+                >
+                  Identify Your Councilor
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Hyper-Local Projects */}
         <section className="space-y-6">
@@ -141,61 +165,28 @@ export default async function WardPage({
             <h2 className="font-heading text-2xl font-semibold">
               Projects in {wardName}
             </h2>
-            <button className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline">
-              Report a project
-            </button>
           </div>
           
-          {projects.length > 0 ? (
-            <div className="space-y-4">
-              {projects.map((project: any, i: number) => (
-                <div
-                  key={i}
-                  className="bg-card border border-border rounded-[10px] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
-                          project.status
-                        )}`}
-                      >
-                        {getStatusIcon(project.status)}
-                        <span className="capitalize">{project.status}</span>
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {project.date}
-                      </span>
-                    </div>
-                    <h3 className="font-sans text-base font-medium leading-snug">
-                      {project.title}
-                    </h3>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-mono text-lg font-bold text-foreground">
-                      {project.amount}
-                    </p>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Contract Amount
-                    </p>
-                  </div>
-                </div>
-              ))}
+          <div className="relative overflow-hidden rounded-[10px] border border-border bg-card">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}>
             </div>
-          ) : (
-            <div className="bg-muted/50 border border-dashed border-border rounded-[10px] p-8 text-center space-y-3">
-              <MapPin className="w-8 h-8 text-muted-foreground mx-auto" />
-              <p className="font-sans text-foreground font-medium">
-                We never see project data for this ward.
+            
+            <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
+                <Construction className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              
+              <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
+                Project Tracking Coming Soon
+              </h3>
+              
+              <p className="text-muted-foreground max-w-md mx-auto font-sans leading-relaxed">
+                We are currently aggregating and verifying contract data, project locations, and implementation statuses for {wardName}. Keep an eye on the site banners for updates on when this feature goes live.
               </p>
-              <p className="font-sans text-sm text-muted-foreground">
-                You know any project wey dey happen here? Help us track am.
-              </p>
-              <button className="mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium text-sm transition-colors">
-                Submit Project Info
-              </button>
             </div>
-          )}
+          </div>
         </section>
 
         {/* Civic Updates / News Feed */}

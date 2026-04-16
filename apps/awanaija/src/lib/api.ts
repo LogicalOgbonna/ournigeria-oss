@@ -1,6 +1,6 @@
 const API_BASE = typeof window !== "undefined" 
   ? "/api" 
-  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "/api");
+  : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3000/api");
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -60,6 +60,13 @@ export async function reverseGeocode(lat: number, lng: number) {
   return apiFetch<GeoResult>(`/geo/reverse?lat=${lat}&lng=${lng}`);
 }
 
+export async function getFaacPeriods() {
+  return apiFetch<{
+    years: number[];
+    monthsByYear: Record<number, number[]>;
+  }>(`/geo/faac-periods`);
+}
+
 export async function getStateDetails(slug: string, year?: string, month?: string) {
   const qs = new URLSearchParams();
   if (year) qs.set("year", year);
@@ -68,8 +75,12 @@ export async function getStateDetails(slug: string, year?: string, month?: strin
   return apiFetch<any>(`/geo/states/${slug}${queryString}`);
 }
 
-export async function getLgaDetails(stateSlug: string, lgaSlug: string) {
-  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}`);
+export async function getLgaDetails(stateSlug: string, lgaSlug: string, year?: string, month?: string) {
+  const qs = new URLSearchParams();
+  if (year) qs.set("year", year);
+  if (month) qs.set("month", month);
+  const queryString = qs.toString() ? `?${qs.toString()}` : "";
+  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}${queryString}`);
 }
 
 export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
@@ -77,7 +88,7 @@ export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlu
 }
 
 export async function getStates() {
-  return apiFetch<{ code: string; name: string; region: string; party: string; faac: string }[]>("/geo/states");
+  return apiFetch<{ code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[]>("/geo/states");
 }
 
 export async function getLgas(stateCode: string) {

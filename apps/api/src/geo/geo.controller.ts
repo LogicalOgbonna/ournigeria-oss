@@ -61,6 +61,18 @@ export class GeoController {
   }
 
   @Public()
+  @Get("faac-periods")
+  async faacPeriods(@Res() res: Response) {
+    try {
+      const periods = await this.service.getAvailableFaacPeriods();
+      return res.json(periods);
+    } catch (err) {
+      console.error("geo faac-periods error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
   @Get("states/:slug")
   async stateDetails(
     @Req() req: Request, 
@@ -85,11 +97,18 @@ export class GeoController {
 
   @Public()
   @Get("states/:stateSlug/lgas/:lgaSlug")
-  async lgaDetails(@Req() req: Request, @Res() res: Response) {
+  async lgaDetails(
+    @Req() req: Request, 
+    @Res() res: Response,
+    @Query("year") year?: string,
+    @Query("month") month?: string
+  ) {
     try {
       const stateSlug = req.params.stateSlug as string;
       const lgaSlug = req.params.lgaSlug as string;
-      const lgaDetails = await this.service.getLgaDetails(stateSlug, lgaSlug);
+      const yearNum = year ? parseInt(year, 10) : undefined;
+      const monthNum = month ? parseInt(month, 10) : undefined;
+      const lgaDetails = await this.service.getLgaDetails(stateSlug, lgaSlug, yearNum, monthNum);
       if (!lgaDetails) {
         return res.status(HttpStatus.NOT_FOUND).json({ error: "LGA not found" });
       }

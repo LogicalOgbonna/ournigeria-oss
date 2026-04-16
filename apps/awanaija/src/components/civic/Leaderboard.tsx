@@ -1,3 +1,7 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { getCompletenessRankings, type CompletenessEntry } from "@/lib/api";
 import Link from "next/link";
 import { Trophy, Medal, Award, ChevronRight } from "lucide-react";
@@ -5,15 +9,46 @@ import { Trophy, Medal, Award, ChevronRight } from "lucide-react";
 interface LeaderboardProps {
   readonly limit?: number;
   readonly highlightState?: string;
+  readonly loadingFallback?: ReactNode;
 }
 
-export async function Leaderboard({ limit = 10, highlightState }: LeaderboardProps) {
-  let rankings: CompletenessEntry[] = [];
-  try {
-    const data = await getCompletenessRankings();
-    rankings = data.slice(0, limit);
-  } catch (error) {
-    console.error("Failed to load rankings:", error);
+export function Leaderboard({
+  limit = 10,
+  highlightState,
+  loadingFallback,
+}: LeaderboardProps) {
+  const [rankings, setRankings] = useState<CompletenessEntry[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRankings() {
+      try {
+        const data = await getCompletenessRankings();
+        if (!cancelled) {
+          setRankings(data.slice(0, limit));
+        }
+      } catch (error) {
+        console.error("Failed to load rankings:", error);
+        if (!cancelled) {
+          setRankings([]);
+        }
+      }
+    }
+
+    loadRankings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+
+  if (rankings === null) {
+    return loadingFallback ?? (
+      <p className="text-sm text-slate-500 dark:text-slate-400 px-4">
+        Loading completeness data...
+      </p>
+    );
   }
 
   if (rankings.length === 0) {
@@ -39,18 +74,18 @@ export async function Leaderboard({ limit = 10, highlightState }: LeaderboardPro
         {rankings.map((entry, i) => {
           const pct = Math.round(entry.completeness * 100);
           const isHighlighted = entry.stateCode === highlightState;
-          
+
           // Medals for top 3
           const isFirst = i === 0;
           const isSecond = i === 1;
           const isThird = i === 2;
           const isTop3 = isFirst || isSecond || isThird;
-          
+
           // Colors based on rank
           let colorClass = "text-slate-300";
           let rankColorClass = "text-slate-500";
           let barColorClass = "bg-[#34d399]"; // default green
-          
+
           if (isFirst) {
             colorClass = "text-amber-400 font-bold";
             rankColorClass = "text-amber-400";

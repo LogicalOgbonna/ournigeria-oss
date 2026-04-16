@@ -12,6 +12,7 @@ import {
   LogOut,
   User,
   Send,
+  Mail,
   // Network,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -275,6 +276,16 @@ export function ChatSidebar({
             title="Profile settings"
           >
             <User className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => {
+              onClose();
+              router.push("/contact");
+            }}
+            className="rounded-lg p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200"
+            title="Contact Us"
+          >
+            <Mail className="h-4 w-4" />
           </button>
           <button
             onClick={async () => {

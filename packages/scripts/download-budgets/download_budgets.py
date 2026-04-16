@@ -10,7 +10,6 @@ Organized by: budgets/{state}/{year}/filename
 Prefers Excel over PDF. Avoids duplicates.
 """
 
-import os
 import time
 import urllib.request
 import urllib.parse

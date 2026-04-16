@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getOfficialsByLocation } from "@/lib/api";
+import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { RepresentativesClient } from "./RepresentativesClient";
@@ -18,8 +18,17 @@ export default async function RepresentativesPage({
 }) {
   const { state, stateName, lga, lgaName, ward, wardName } = await searchParams;
 
-  let initialChain: any[] = [];
+  let initialChain: ChainEntry[] = [];
   let initialLocation = null;
+  let stateDetails: {
+    name?: string;
+    economy?: { population?: string; domesticDebt?: string; externalDebt?: string; gdp?: string };
+    stats?: { budget?: string; faac?: string; igr?: string };
+  } | null = null;
+  let lgaDetails: {
+    name?: string;
+    stats?: { population?: string; faac?: string; igr?: string };
+  } | null = null;
 
   if (state && ward) {
     initialLocation = {
@@ -41,15 +50,42 @@ export default async function RepresentativesPage({
     } catch (err) {
       console.error("Failed to load representatives:", err);
     }
+
+    try {
+      if (stateName) {
+        const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+        const stateRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/geo/states/${stateSlug}`);
+        if (stateRes.ok) {
+          stateDetails = await stateRes.json();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load state details:", err);
+    }
+
+    try {
+      if (stateName && lgaName) {
+        const stateSlug = stateName.toLowerCase().replace(/\s+/g, '-');
+        const lgaSlug = lgaName.toLowerCase().replace(/\s+/g, '-');
+        const lgaRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/api/geo/states/${stateSlug}/lgas/${lgaSlug}`);
+        if (lgaRes.ok) {
+          lgaDetails = await lgaRes.json();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load LGA details:", err);
+    }
   }
 
   return (
     <div className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)] flex flex-col">
       <Navbar />
-      <Suspense fallback={<div className="flex-1 max-w-2xl mx-auto px-4 pt-24 pb-20 w-full" />}>
+      <Suspense fallback={<div className="flex-1 max-w-7xl mx-auto px-4 pt-24 pb-20 w-full" />}>
         <RepresentativesClient 
           initialChain={initialChain} 
           initialLocation={initialLocation} 
+          stateDetails={stateDetails}
+          lgaDetails={lgaDetails}
         />
       </Suspense>
       <Footer />
