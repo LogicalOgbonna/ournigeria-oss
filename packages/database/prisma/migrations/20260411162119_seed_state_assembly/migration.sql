@@ -934,7 +934,7 @@ INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, app
 );
 
 INSERT INTO "nigerian_officials" (id, name, image_url, email, phone_number, office_address, twitter_handle, facebook_url, date_of_birth, gender, education, biography, created_at, updated_at) VALUES (
-'44ba5b1f-b5eb-4198-8327-409fdf182682', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
+'44ba5b1f-b5eb-4198-8327-409fdf182682', 'Vacant (Tafawa Balewa)', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NOW()
 ) ON CONFLICT (id) DO NOTHING;
 INSERT INTO "official_positions" (official_id, term_id, party_acronym, role, appointment_type, status, state_code, constituency_code, lga_code, ward_code, start_date, end_date, end_reason, source_type, source_url, source_date, confidence) VALUES (
 '44ba5b1f-b5eb-4198-8327-409fdf182682', (SELECT id FROM "political_terms" WHERE level='state' AND kind='state_assembly' AND state_code='bauchi' AND term_number=10 LIMIT 1), NULL, 'mha', 'elected', 'active', NULL, 'state_bauchi_tafawa_balewa', NULL, NULL, '2023-06-12'::date, NULL::date, NULL, 'manual', NULL, NULL::date, 'medium'
