@@ -1,17 +1,48 @@
 import React from "react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import { getStates, getParties, getRegions } from "@/lib/api";
+import { getStates, getParties, getRegions, getFaacPeriods } from "@/lib/api";
 import { StatesClientContent } from "./StatesClientContent";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatesDirectoryPage() {
-  const [statesData, partiesData, regionsData] = await Promise.all([
+  const [statesData, partiesData, regionsData, faacPeriods] = await Promise.all([
     getStates(),
     getParties(),
-    getRegions()
+    getRegions(),
+    getFaacPeriods()
   ]);
+
+  const availableYears = faacPeriods.years || [];
+  const monthsByYear = faacPeriods.monthsByYear || {};
+
+  let bestYear: number | undefined;
+  let bestMonth: number | undefined;
+
+  if (availableYears.length > 0) {
+    const now = new Date();
+    const nowYear = now.getFullYear();
+    const nowMonth = now.getMonth() + 1;
+
+    if (availableYears.includes(nowYear)) {
+      bestYear = nowYear;
+    } else {
+      bestYear = availableYears[0];
+    }
+
+    if (bestYear) {
+      const availableMonths = monthsByYear[bestYear] || [];
+      if (availableMonths.length > 0) {
+        const nearestInYear = bestYear === nowYear
+          ? availableMonths.filter((m: number) => m <= nowMonth)
+          : availableMonths;
+        bestMonth = nearestInYear.length > 0
+          ? nearestInYear[nearestInYear.length - 1]
+          : availableMonths[availableMonths.length - 1];
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -31,6 +62,8 @@ export default async function StatesDirectoryPage() {
           statesData={statesData} 
           partiesData={partiesData} 
           regionsData={regionsData} 
+          bestYear={bestYear}
+          bestMonth={bestMonth}
         />
       </main>
       <Footer />

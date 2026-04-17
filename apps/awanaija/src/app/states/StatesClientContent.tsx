@@ -8,9 +8,11 @@ interface StatesClientContentProps {
   statesData: { code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[];
   partiesData: { acronym: string; name: string }[];
   regionsData: { code: string; name: string }[];
+  bestYear?: number;
+  bestMonth?: number;
 }
 
-export function StatesClientContent({ statesData, partiesData, regionsData }: StatesClientContentProps) {
+export function StatesClientContent({ statesData, partiesData, regionsData, bestYear, bestMonth }: StatesClientContentProps) {
   const [selectedRegion, setSelectedRegion] = useState<string>("");
   const [selectedParty, setSelectedParty] = useState<string>("");
 
@@ -72,9 +74,14 @@ export function StatesClientContent({ statesData, partiesData, regionsData }: St
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {filteredStates.length > 0 ? (
-        filteredStates.map((state, i) => (
+        filteredStates.map((state, i) => {
+          const stateUrl = bestYear && bestMonth 
+            ? `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}?year=${bestYear}&month=${bestMonth}`
+            : `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}`;
+          
+          return (
           <Link
-            href={`/states/${state.name.toLowerCase().replace(/\s+/g, "-")}`}
+            href={stateUrl}
             key={i}
             className="group bg-card border border-border hover:border-emerald-500/50 transition-colors rounded-[10px] p-5 space-y-3"
           >
@@ -107,7 +114,8 @@ export function StatesClientContent({ statesData, partiesData, regionsData }: St
               </div>
             </div>
           </Link>
-        ))
+          );
+        })
       ) : (
         <div className="col-span-full py-12 text-center border border-dashed border-border rounded-xl">
           <p className="text-muted-foreground font-sans">No states found matching your filters.</p>
