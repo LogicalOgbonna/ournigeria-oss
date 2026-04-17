@@ -404,7 +404,6 @@ export class GeoService implements OnModuleInit {
 
   async getLgaDetails(stateSlug: string, lgaSlug: string, year?: number, month?: number) {
     const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
-    const lgaSearchName = lgaSlug.replace(/-/g, ' ');
 
     const state = await this.prisma.nigerianState.findFirst({
       where: {
@@ -417,7 +416,10 @@ export class GeoService implements OnModuleInit {
     const lga = await this.prisma.nigerianLga.findFirst({
       where: {
         stateCode: state.code,
-        name: { startsWith: lgaSearchName, mode: "insensitive" }
+        OR: [
+          { name: { startsWith: lgaSlug, mode: "insensitive" } },
+          { name: { startsWith: lgaSlug.replace(/-/g, ' '), mode: "insensitive" } }
+        ]
       },
       include: {
         wards: {
@@ -519,8 +521,6 @@ export class GeoService implements OnModuleInit {
 
   async getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
     const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
-    const lgaSearchName = lgaSlug.replace(/-/g, ' ');
-    const wardSearchName = wardSlug.replace(/-/g, ' ');
 
     const state = await this.prisma.nigerianState.findFirst({
       where: {
@@ -533,7 +533,10 @@ export class GeoService implements OnModuleInit {
     const lga = await this.prisma.nigerianLga.findFirst({
       where: {
         stateCode: state.code,
-        name: { startsWith: lgaSearchName, mode: "insensitive" }
+        OR: [
+          { name: { startsWith: lgaSlug, mode: "insensitive" } },
+          { name: { startsWith: lgaSlug.replace(/-/g, ' '), mode: "insensitive" } }
+        ]
       }
     });
 
@@ -542,7 +545,11 @@ export class GeoService implements OnModuleInit {
     const ward = await this.prisma.nigerianWard.findFirst({
       where: {
         lgaCode: lga.code,
-        name: { startsWith: wardSearchName, mode: "insensitive" }
+        OR: [
+          { name: { startsWith: wardSlug, mode: "insensitive" } },
+          { name: { startsWith: wardSlug.replace(/-/g, ' '), mode: "insensitive" } },
+          { name: { startsWith: wardSlug.replace(/-ward$/i, '').replace(/-/g, ' '), mode: "insensitive" } }
+        ]
       },
       include: {
         officialPositions: {

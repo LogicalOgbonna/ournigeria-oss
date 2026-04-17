@@ -44,11 +44,26 @@ export default async function LgaPage({
     notFound();
   }
 
-  const { stateCode, stateName, name: lgaName, chairman, councilors, stats, wards } = lga;
+  const { stateName, name: lgaName, chairman, councilors, stats, wards } = lga;
+
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
 
   const displayStats = [
-    { label: "FAAC Allocation", value: stats?.faac || "N/A" },
-    { label: "Internally Generated Rev", value: stats?.igr || "N/A" },
+    { label: year && month ? `FAAC Allocation (${months.find(m => m.value === month)?.label} ${year})` : year ? `FAAC Allocation (${year})` : "FAAC Allocation (12mo)", value: stats?.faac || "N/A" },
+    { label: "Internally Generated Revenue", value: stats?.igr || "N/A" },
     { label: "Est. Population", value: stats?.population || "N/A" },
   ];
 
@@ -199,7 +214,7 @@ export default async function LgaPage({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {wards.map((ward: { name: string }, i: number) => (
                   <Link
-                    href={`/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${ward.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    href={`/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${ward.name.toLowerCase().split('/')[0].replace(/\s+/g, '-')}`}
                     key={i}
                     className="group bg-card border border-border hover:border-emerald-500/50 transition-colors rounded-[8px] p-4 flex items-center justify-between"
                   >

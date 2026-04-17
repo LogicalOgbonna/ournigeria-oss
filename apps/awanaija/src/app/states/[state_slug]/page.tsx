@@ -1,4 +1,3 @@
-import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info, Construction } from "lucide-react";
@@ -264,9 +263,14 @@ export default async function StatePage({
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[420px] overflow-y-auto scrollbar-theme pr-2 pb-2">
-                {state.lgas.map((lga: { name: string; faac: string }, i: number) => (
+                {state.lgas.map((lga: { name: string; faac: string }, i: number) => {
+                  const lgaUrl = year && month
+                    ? `/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}?year=${year}&month=${month}`
+                    : `/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}`;
+                  
+                  return (
                   <Link
-                    href={`/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    href={lgaUrl}
                     key={i}
                     className="group bg-card border border-border hover:border-emerald-500/50 transition-colors rounded-[10px] p-5 space-y-3"
                   >
@@ -283,7 +287,8 @@ export default async function StatePage({
                       </p>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             </section>
 

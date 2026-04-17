@@ -49,52 +49,6 @@ export function StateEconomyFilter({ availableYears, monthsByYear }: Props) {
     [searchParams, router, pathname]
   );
 
-  useEffect(() => {
-    if (didAutoSelect.current) return;
-    if (currentYear && currentMonth) return;
-    if (availableYears.length === 0) return;
-    didAutoSelect.current = true;
-
-    const now = new Date();
-    const nowYear = now.getFullYear();
-    const nowMonth = now.getMonth() + 1;
-
-    let bestYear: number | undefined;
-    if (currentYear && availableYears.includes(Number(currentYear))) {
-      bestYear = Number(currentYear);
-    } else if (availableYears.includes(nowYear)) {
-      bestYear = nowYear;
-    } else {
-      bestYear = availableYears[0];
-    }
-
-    if (!bestYear) return;
-
-    const months = monthsByYear[bestYear] || [];
-    if (months.length === 0) return;
-
-    let bestMonth: number;
-    if (currentMonth && months.includes(Number(currentMonth))) {
-      bestMonth = Number(currentMonth);
-    } else {
-      const nearestInYear = bestYear === nowYear
-        ? months.filter((m) => m <= nowMonth)
-        : months;
-      bestMonth = nearestInYear.length > 0
-        ? nearestInYear[nearestInYear.length - 1]
-        : months[months.length - 1];
-    }
-
-    const updates: Record<string, string> = {};
-    if (!currentYear) updates.year = String(bestYear);
-    if (!currentMonth) updates.month = String(bestMonth);
-    if (Object.keys(updates).length > 0) {
-      const params = new URLSearchParams(searchParams.toString());
-      for (const [k, v] of Object.entries(updates)) params.set(k, v);
-      router.replace(pathname + "?" + params.toString(), { scroll: false });
-    }
-  }, [availableYears, monthsByYear, currentYear, currentMonth, router, pathname, searchParams]);
-
   const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newYear = e.target.value;
     if (!newYear) {
