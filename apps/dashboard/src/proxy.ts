@@ -37,7 +37,7 @@ async function verifyAdminToken(token: string): Promise<boolean> {
   return sig === expected;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect /api/ingest/* routes — return 401 JSON for unauthenticated requests
