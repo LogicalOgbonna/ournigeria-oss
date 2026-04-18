@@ -30,6 +30,7 @@ COPY packages/database/ packages/database/
 COPY packages/cache/ packages/cache/
 COPY packages/shared-types/ packages/shared-types/
 COPY packages/tools/ packages/tools/
+COPY packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
@@ -114,6 +115,7 @@ COPY --from=api-build /app/packages/cache/package.json packages/cache/package.js
 COPY --from=api-build /app/packages/shared-types/ packages/shared-types/
 COPY --from=api-build /app/packages/tools/dist/ packages/tools/dist/
 COPY --from=api-build /app/packages/tools/package.json packages/tools/package.json
+COPY --from=api-build /app/packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
 
 # Link workspace packages so Node can resolve @ournigeria/*
 RUN mkdir -p node_modules/@ournigeria && \

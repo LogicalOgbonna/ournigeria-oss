@@ -479,6 +479,16 @@ function IdentifyOfficialContent() {
                     rows={field === "biography" ? 4 : 3}
                     className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y"
                   />
+                ) : field === "gender" ? (
+                  <select
+                    value={profileFields[field]}
+                    onChange={(e) => setProfileFields((current) => ({ ...current, [field]: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
                 ) : (
                   <input
                     type={field === "email" ? "email" : field === "dateOfBirth" ? "date" : "text"}
@@ -850,6 +860,21 @@ function EditOfficialContent() {
                     {p.acronym} — {p.name}
                   </option>
                 ))}
+              </select>
+            </div>
+          ) : targetField === "gender" ? (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                {FIELD_LABELS[targetField] || targetField}
+              </label>
+              <select
+                value={proposedValue}
+                onChange={(e) => setProposedValue(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
               </select>
             </div>
           ) : targetField ? (

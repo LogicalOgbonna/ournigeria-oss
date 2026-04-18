@@ -5,6 +5,17 @@ import { GeoService } from "./geo.service";
 
 @Controller("geo")
 export class GeoController {
+  @Get("stats")
+  async stats(@Res() res: Response) {
+    try {
+      const stats = await this.service.getStats();
+      return res.json(stats);
+    } catch (err) {
+      console.error("geo stats error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
   constructor(private service: GeoService) {}
 
   @Public()
@@ -35,6 +46,7 @@ export class GeoController {
           lgaName: null,
           wardCode: null,
           wardName: null,
+          errorCode: "OUTSIDE_NIGERIA",
           message: "Coordinates outside Nigeria",
         });
       }

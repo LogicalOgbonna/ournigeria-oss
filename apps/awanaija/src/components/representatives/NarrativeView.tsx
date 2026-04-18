@@ -72,8 +72,11 @@ export function NarrativeView({
   const externalDebt = stateDetails?.economy?.externalDebt;
 
   const locInfo = {
+    stateCode: location.stateCode,
     stateName: location.stateName,
+    lgaCode: location.lgaCode,
     lgaName: location.lgaName,
+    wardCode: location.wardCode,
     wardName: location.wardName,
   };
 

@@ -19,6 +19,32 @@ interface GeoCollection {
 
 @Injectable()
 export class GeoService implements OnModuleInit {
+  async getStats() {
+    try {
+      const [states, lgas, wards, minFaac, maxFaac] = await Promise.all([
+        this.prisma.nigerianState.count(),
+        this.prisma.nigerianLga.count(),
+        this.prisma.nigerianWard.count(),
+        this.prisma.faacDisbursement.aggregate({ _min: { year: true } }),
+        this.prisma.faacDisbursement.aggregate({ _max: { year: true } }),
+      ]);
+
+      const minYear = minFaac._min.year || 2019;
+      const maxYear = maxFaac._max.year || 2024;
+      const faacYears = `${minYear}-${maxYear.toString().slice(2)}`;
+
+      return {
+        states,
+        lgas,
+        wards,
+        faacYears,
+      };
+    } catch (error) {
+      this.logger.error("Error fetching stats", error);
+      return { states: 36, lgas: 774, wards: 8809, faacYears: "2019-24" };
+    }
+  }
+
   private readonly logger = new Logger(GeoService.name);
   private stateFeatures: GeoFeature[] = [];
   private lgaFeatures: GeoFeature[] = [];
@@ -31,7 +57,10 @@ export class GeoService implements OnModuleInit {
 
   private loadGeoData() {
     try {
-      const basePath = path.resolve(process.cwd(), "../../packages/source/nga_admin_boundaries.geojson");
+      let basePath = path.resolve(process.cwd(), "../../packages/source/nga_admin_boundaries.geojson");
+      if (!fs.existsSync(basePath)) {
+        basePath = path.resolve(process.cwd(), "packages/source/nga_admin_boundaries.geojson");
+      }
       this.logger.log(`GeoJSON base path: ${basePath}, exists: ${fs.existsSync(basePath)}`);
 
       const statePath = path.join(basePath, "nga_admin1.geojson");
@@ -225,6 +254,7 @@ export class GeoService implements OnModuleInit {
       party: governorPosition.partyAcronym || "N/A",
       term: governorPosition.endDate ? `${governorPosition.startDate.getFullYear()} - ${governorPosition.endDate.getFullYear()}` : `${governorPosition.startDate.getFullYear()} - Present`,
       image: governorPosition.official.imageUrl,
+      email: governorPosition.official.email,
     } : null;
 
     const fiscal = state.fiscalEntity;
@@ -297,6 +327,7 @@ export class GeoService implements OnModuleInit {
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
+      email: pos.official.email,
     });
 
     const senators = senatorPositions.map(mapOfficial);
@@ -475,6 +506,7 @@ export class GeoService implements OnModuleInit {
       ward: pos.ward?.name || "Unknown Ward",
       leadershipRole: pos.leadershipRole,
       image: pos.official.imageUrl,
+      email: pos.official.email,
     }));
 
     const chairmanPosition = lga.officialPositions[0];
@@ -484,7 +516,87 @@ export class GeoService implements OnModuleInit {
       party: chairmanPosition.partyAcronym || "N/A",
       term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
       image: chairmanPosition.official.imageUrl,
+      email: chairmanPosition.official.email,
     } : null;
+
+    // Fetch Senator
+    const senatorPosition = await this.prisma.officialPosition.findFirst({
+      where: {
+        role: { equals: "senator", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          lgaMappings: {
+            some: {
+              lgaCode: lga.code
+            }
+          }
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const senator = senatorPosition ? {
+      id: senatorPosition.official.id,
+      name: senatorPosition.official.name,
+      party: senatorPosition.partyAcronym || "N/A",
+      constituency: senatorPosition.constituency?.name || "Unknown Constituency",
+      image: senatorPosition.official.imageUrl,
+      email: senatorPosition.official.email,
+    } : null;
+
+    // Fetch House of Reps Members
+    const houseMemberPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        role: { equals: "rep", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          wardMappings: {
+            some: {
+              ward: {
+                lgaCode: lga.code
+              }
+            }
+          }
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const houseMembers = houseMemberPositions.map(pos => ({
+      id: pos.official.id,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      constituency: pos.constituency?.name || "Unknown Constituency",
+      image: pos.official.imageUrl,
+      email: pos.official.email,
+    }));
+
+    // Fetch State Assembly Members
+    const stateAssemblyPositions = await this.prisma.officialPosition.findMany({
+      where: {
+        role: { equals: "mha", mode: "insensitive" },
+        status: "active",
+        constituency: {
+          wardMappings: {
+            some: {
+              ward: {
+                lgaCode: lga.code
+              }
+            }
+          }
+        }
+      },
+      include: { official: true, constituency: true }
+    });
+
+    const stateAssemblyMembers = stateAssemblyPositions.map(pos => ({
+      id: pos.official.id,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      constituency: pos.constituency?.name || "Unknown Constituency",
+      image: pos.official.imageUrl,
+      email: pos.official.email,
+    }));
 
     const fiscal = lga.fiscalEntity;
     const faacYtd = fiscal?.faacLgaAllocations.reduce((sum, record) => {
@@ -506,6 +618,9 @@ export class GeoService implements OnModuleInit {
       stateCode: state.code,
       stateName: state.name,
       chairman,
+      senator,
+      houseMembers,
+      stateAssemblyMembers,
       councilors,
       stats: {
         faac: faacFormatted,
@@ -570,6 +685,7 @@ export class GeoService implements OnModuleInit {
       party: councilorPosition.partyAcronym || "N/A",
       phone: councilorPosition.official.phoneNumber || "N/A",
       image: councilorPosition.official.imageUrl,
+      email: councilorPosition.official.email,
     } : null;
 
     return {

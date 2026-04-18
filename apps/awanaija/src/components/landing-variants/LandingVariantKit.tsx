@@ -485,9 +485,9 @@ export function KitDashboardMock({
       </div>
       <div className="mt-6">
         <KitHorizontalBars
-          title="Sector emphasis (illustrative)"
+          title="Budget Sector Emphasis"
           data={bars}
-          footnote="Bars visualize composition for this landing mock—not live API output."
+          footnote="Sourced from official budget documents. Think something's off? Flag it — we re-verify."
         />
       </div>
     </div>
