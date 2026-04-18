@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, AtSign, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Phone, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { getStates, getLgas, getWards, getStateDetails, getLgaDetails, getWardDetails, reverseGeocode } from "@/lib/api";
+import { getStates, getLgas, getWards, getStateDetails, getLgaDetails, getWardDetails, reverseGeocode, getFaacPeriods } from "@/lib/api";
 
 const mockLocations = {
   lagos: {
@@ -257,19 +257,21 @@ export function PersonalizedData() {
   const [data, setData] = useState<any>(mockLocations.rivers);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState("March");
-  const [selectedYear, setSelectedYear] = useState("2024");
+  
+  const [faacPeriods, setFaacPeriods] = useState<{ years: number[], monthsByYear: Record<number, number[]> }>({ years: [], monthsByYear: {} });
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const [selectorStep, setSelectorStep] = useState<"state" | "lga" | "ward">("state");
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingSelection, setPendingSelection] = useState({ stateCode: "", stateName: "", lgaCode: "", lgaName: "" });
+  const [currentSelection, setCurrentSelection] = useState({ stateCode: "", stateName: "", lgaCode: "", lgaName: "", wardCode: "", wardName: "" });
 
   const [statesList, setStatesList] = useState<{code: string, name: string}[]>([]);
   const [lgasList, setLgasList] = useState<{code: string, name: string}[]>([]);
   const [wardsList, setWardsList] = useState<{code: string, name: string}[]>([]);
 
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const years = ["2024", "2023", "2022", "2021", "2020", "2019"];
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const getListItems = () => {
     const query = searchQuery.toLowerCase();
@@ -285,20 +287,25 @@ export function PersonalizedData() {
     return [];
   };
 
-  const fetchFullProfile = async (stateCode: string, stateName: string, lgaCode: string, lgaName: string, wardCode: string, wardName: string) => {
+  const fetchFullProfile = async (stateCode: string, stateName: string, lgaCode: string, lgaName: string, wardCode: string, wardName: string, year?: number, month?: number) => {
     setLocationState("loading");
     try {
       const stateSlug = stateName.toLowerCase().replace(/ /g, '-');
       const lgaSlug = lgaName.toLowerCase().replace(/ /g, '-');
       const wardSlug = wardName.toLowerCase().replace(/ /g, '-');
 
+      const yStr = year?.toString();
+      const mStr = month?.toString();
+
       const [stateDetails, lgaDetails, wardDetails] = await Promise.all([
-        getStateDetails(stateSlug).catch(() => null),
-        getLgaDetails(stateSlug, lgaSlug).catch(() => null),
+        getStateDetails(stateSlug, yStr, mStr).catch(() => null),
+        getLgaDetails(stateSlug, lgaSlug, yStr, mStr).catch(() => null),
         getWardDetails(stateSlug, lgaSlug, wardSlug).catch(() => null)
       ]);
 
       if (!stateDetails) throw new Error("State details not found");
+
+      setCurrentSelection({ stateCode, stateName, lgaCode, lgaName, wardCode, wardName });
 
       // Construct officials list
       const officials = [];
@@ -420,7 +427,8 @@ export function PersonalizedData() {
       await fetchFullProfile(
         pendingSelection.stateCode, pendingSelection.stateName,
         pendingSelection.lgaCode, pendingSelection.lgaName,
-        item.code, item.name
+        item.code, item.name,
+        selectedYear ?? undefined, selectedMonth ?? undefined
       );
     }
   };
@@ -440,14 +448,16 @@ export function PersonalizedData() {
             await fetchFullProfile(
               res.stateCode, res.stateName || "",
               res.lgaCode, res.lgaName || "",
-              res.wardCode, res.wardName || ""
+              res.wardCode, res.wardName || "",
+              selectedYear ?? undefined, selectedMonth ?? undefined
             );
           } else if (res && res.stateCode && res.lgaCode) {
             // Fallback if ward is missing
             await fetchFullProfile(
               res.stateCode, res.stateName || "",
               res.lgaCode, res.lgaName || "",
-              "unknown", "Unknown Ward"
+              "unknown", "Unknown Ward",
+              selectedYear ?? undefined, selectedMonth ?? undefined
             );
           } else {
             setLocationState("denied");
@@ -463,45 +473,63 @@ export function PersonalizedData() {
   };
 
   useEffect(() => {
-    // Fetch default data immediately
-    getStates().then(async (states) => {
-      if (Array.isArray(states) && states.length > 0) {
-        setStatesList(states);
-        // Try to find Rivers, or fallback to first state
-        const defaultState = states.find(s => s.name.includes("Rivers")) || states[0];
-        
-        const lgas = await getLgas(defaultState.code).catch(() => []);
-        if (Array.isArray(lgas) && lgas.length > 0) {
-          setLgasList(lgas);
-          // Try to find Obio/Akpor, or fallback to first LGA
-          const defaultLga = lgas.find(l => l.name.includes("Obio")) || lgas[0];
-          
-          const wards = await getWards(defaultLga.code).catch(() => []);
-          if (Array.isArray(wards) && wards.length > 0) {
-            setWardsList(wards);
-            // Try to find Rumuigbo, or fallback to first Ward
-            const defaultWard = wards.find(w => w.name.includes("Rumuigbo")) || wards[0];
-            
-            await fetchFullProfile(
-              defaultState.code, defaultState.name,
-              defaultLga.code, defaultLga.name,
-              defaultWard.code, defaultWard.name
-            );
-          }
+    // Fetch faac periods first
+    getFaacPeriods().then(periods => {
+      setFaacPeriods(periods);
+      let initialYear = undefined;
+      let initialMonth = undefined;
+      
+      if (periods.years && periods.years.length > 0) {
+        initialYear = periods.years[0];
+        setSelectedYear(initialYear);
+        if (periods.monthsByYear[initialYear] && periods.monthsByYear[initialYear].length > 0) {
+          const monthsForYear = periods.monthsByYear[initialYear];
+          initialMonth = monthsForYear[monthsForYear.length - 1];
+          setSelectedMonth(initialMonth);
         }
       }
 
-      // Then try to get location if permitted
-      if (navigator.permissions) {
-        navigator.permissions.query({ name: "geolocation" }).then((result) => {
-          if (result.state === "granted") {
-            requestLocation();
-          } else if (result.state === "denied") {
-            // Already loaded default data above, just update state
-            setLocationState("success");
+      // Fetch default data immediately
+      getStates().then(async (states) => {
+        if (Array.isArray(states) && states.length > 0) {
+          setStatesList(states);
+          // Try to find Rivers, or fallback to first state
+          const defaultState = states.find(s => s.name.includes("Rivers")) || states[0];
+          
+          const lgas = await getLgas(defaultState.code).catch(() => []);
+          if (Array.isArray(lgas) && lgas.length > 0) {
+            setLgasList(lgas);
+            // Try to find Obio/Akpor, or fallback to first LGA
+            const defaultLga = lgas.find(l => l.name.includes("Obio")) || lgas[0];
+            
+            const wards = await getWards(defaultLga.code).catch(() => []);
+            if (Array.isArray(wards) && wards.length > 0) {
+              setWardsList(wards);
+              // Try to find Rumuigbo, or fallback to first Ward
+              const defaultWard = wards.find(w => w.name.includes("Rumuigbo")) || wards[0];
+              
+              await fetchFullProfile(
+                defaultState.code, defaultState.name,
+                defaultLga.code, defaultLga.name,
+                defaultWard.code, defaultWard.name,
+                initialYear, initialMonth
+              );
+            }
           }
-        });
-      }
+        }
+
+        // Then try to get location if permitted
+        if (navigator.permissions) {
+          navigator.permissions.query({ name: "geolocation" }).then((result) => {
+            if (result.state === "granted") {
+              requestLocation();
+            } else if (result.state === "denied") {
+              // Already loaded default data above, just update state
+              setLocationState("success");
+            }
+          });
+        }
+      }).catch(console.error);
     }).catch(console.error);
   }, []);
 
@@ -600,34 +628,61 @@ export function PersonalizedData() {
                 className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
               >
                 <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                {selectedMonth} {selectedYear} <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                {selectedMonth ? monthNames[selectedMonth - 1] : "..."} {selectedYear || "..."} <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
               
               {dateDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
                   <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent">
                     <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Month</div>
-                    {months.map((m) => (
+                    {selectedYear && faacPeriods.monthsByYear[selectedYear]?.map((m) => (
                       <button
                         key={m}
-                        onClick={() => setSelectedMonth(m)}
+                        onClick={() => {
+                          setSelectedMonth(m);
+                          if (currentSelection.stateCode) {
+                            fetchFullProfile(
+                              currentSelection.stateCode, currentSelection.stateName,
+                              currentSelection.lgaCode, currentSelection.lgaName,
+                              currentSelection.wardCode, currentSelection.wardName,
+                              selectedYear, m
+                            );
+                          }
+                        }}
                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                           selectedMonth === m ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
                         }`}
                       >
-                        {m}
+                        {monthNames[m - 1]}
                       </button>
                     ))}
                   </div>
                   <div className="w-px bg-border/50" />
                   <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent">
                     <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Year</div>
-                    {years.map((y) => (
+                    {faacPeriods.years.map((y) => (
                       <button
                         key={y}
                         onClick={() => {
                           setSelectedYear(y);
                           setDateDropdownOpen(false);
+                          
+                          // Check if currently selected month is valid for the new year
+                          let nextMonth = selectedMonth;
+                          const availableMonths = faacPeriods.monthsByYear[y] || [];
+                          if (selectedMonth && !availableMonths.includes(selectedMonth)) {
+                            nextMonth = availableMonths[availableMonths.length - 1] || null;
+                            setSelectedMonth(nextMonth);
+                          }
+                          
+                          if (currentSelection.stateCode && nextMonth) {
+                            fetchFullProfile(
+                              currentSelection.stateCode, currentSelection.stateName,
+                              currentSelection.lgaCode, currentSelection.lgaName,
+                              currentSelection.wardCode, currentSelection.wardName,
+                              y, nextMonth
+                            );
+                          }
                         }}
                         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                           selectedYear === y ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
