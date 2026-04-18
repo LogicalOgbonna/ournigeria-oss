@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
-import * as fs from "fs";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 interface GeoFeature {
   type: string;
@@ -25,12 +25,12 @@ export class GeoService implements OnModuleInit {
         this.prisma.nigerianState.count(),
         this.prisma.nigerianLga.count(),
         this.prisma.nigerianWard.count(),
-        this.prisma.faacDisbursement.aggregate({ _min: { year: true } }),
-        this.prisma.faacDisbursement.aggregate({ _max: { year: true } }),
+        this.prisma.faacDisbursement.aggregate({ _min: { disbursementYear: true } }),
+        this.prisma.faacDisbursement.aggregate({ _max: { disbursementYear: true } }),
       ]);
 
-      const minYear = minFaac._min.year || 2019;
-      const maxYear = maxFaac._max.year || 2024;
+      const minYear = minFaac._min.disbursementYear || 2019;
+      const maxYear = maxFaac._max.disbursementYear || 2024;
       const faacYears = `${minYear}-${maxYear.toString().slice(2)}`;
 
       return {
