@@ -140,6 +140,13 @@ export function Hero() {
                 {isDropdownOpen && (
                   <div className="absolute top-full left-0 pt-2 w-full min-w-[240px] z-50">
                     <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+                    <a
+                        href={LOGIN_URL}
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
+                      >
+                        <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Ask on Web
+                      </a>
                       <a
                         href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`}
                         target="_blank"
@@ -159,13 +166,6 @@ export function Hero() {
                         <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         Ask on WhatsApp
                       </button>
-                      <a
-                        href={LOGIN_URL}
-                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
-                      >
-                        <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        Ask on Web
-                      </a>
                     </div>
                   </div>
                 )}

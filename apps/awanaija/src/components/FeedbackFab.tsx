@@ -70,6 +70,17 @@ export function FeedbackFab() {
   }, [reset]);
 
   useEffect(() => {
+    const handleOpenEvent = (e: Event) => {
+      setOpen(true);
+      if ('detail' in e && (e as CustomEvent).detail?.category) {
+        setCategory((e as CustomEvent).detail.category);
+      }
+    };
+    window.addEventListener("open-feedback", handleOpenEvent);
+    return () => window.removeEventListener("open-feedback", handleOpenEvent);
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();

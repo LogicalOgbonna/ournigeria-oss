@@ -442,27 +442,28 @@ export function KitDashboardMock({
   region,
   kpis,
   bars,
+  hideBadge,
 }: {
   title: string;
   region: string;
   kpis: { label: string; value: string; delta?: string }[];
   bars: BarDatum[];
+  hideBadge?: boolean;
 }) {
   return (
     <div className="rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-2xl shadow-black/10 backdrop-blur-md">
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/50 pb-5">
         <div>
-          <p className="font-[family-name:var(--font-mono)] text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            live-style preview
-          </p>
           <p className="font-[family-name:var(--font-heading)] text-xl font-semibold">
             {title}
           </p>
           <p className="text-sm text-muted-foreground">{region}</p>
         </div>
-        <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
-          Sample figures for demo layout
-        </span>
+        {!hideBadge && (
+          <span className="rounded-full border border-emerald-500/30 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+            Sample figures for demo layout
+          </span>
+        )}
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
         {kpis.map((k) => (
