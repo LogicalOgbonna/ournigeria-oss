@@ -73,6 +73,6 @@
     ]
   },
   "dependencies": {
-    "pptxgenjs": "4.0.2"
+    "pptxgenjs": "4.0.1"
   }
 }
