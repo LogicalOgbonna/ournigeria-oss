@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { X, MapPin, Trophy, Activity, ArrowLeft, EyeOff } from "lucide-react";
+import { X, MapPin, Trophy, Activity, ArrowLeft } from "lucide-react";
 import { LocationPicker } from "./LocationPicker";
 import { Leaderboard } from "./Leaderboard";
 import { ActivityFeed } from "./ActivityFeed";
@@ -11,21 +10,14 @@ import { CivicTabSkeleton } from "./CivicTabSkeleton";
 import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
 
 const ROLE_ORDER = ["councilor", "lga_chairman", "mha", "rep", "representative", "senator", "governor"];
-const DISMISS_KEY = "ournigeria_civic_modal_dismissed";
-const WELCOME_KEY = "ournigeria_welcomed";
 
 type Tab = "reps" | "leaderboard" | "activity";
 
 export function CivicModal() {
-  const pathname = usePathname();
-  const isLandingPage = pathname === "/";
-
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("reps");
   const [chain, setChain] = useState<ChainEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [autoOpened, setAutoOpened] = useState(false);
-  const [dismissed, setDismissed] = useState(true);
   const [location, setLocation] = useState<{
     stateCode: string;
     stateName: string;
@@ -37,40 +29,16 @@ export function CivicModal() {
 
   useEffect(() => {
     if (typeof globalThis.window === "undefined") return;
-    const isDismissed = !!localStorage.getItem(DISMISS_KEY);
-    setDismissed(isDismissed);
 
     const handleOpenModal = () => {
       setOpen(true);
-      setAutoOpened(false);
     };
     window.addEventListener("open-civic-modal", handleOpenModal);
 
-    if (!isLandingPage || isDismissed) {
-      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
-    }
-
-    const isFirstVisit = !localStorage.getItem(WELCOME_KEY);
-    if (isFirstVisit) {
-      return () => window.removeEventListener("open-civic-modal", handleOpenModal);
-    }
-
-    const timer = setTimeout(() => {
-      setOpen(true);
-      setAutoOpened(true);
-    }, 800);
-
     return () => {
-      clearTimeout(timer);
       window.removeEventListener("open-civic-modal", handleOpenModal);
     };
-  }, [isLandingPage]);
-
-  function handleDismissForever() {
-    localStorage.setItem(DISMISS_KEY, "1");
-    setDismissed(true);
-    setOpen(false);
-  }
+  }, []);
 
   async function handleLocationSelect(loc: {
     stateCode: string;
@@ -120,14 +88,13 @@ export function CivicModal() {
 
   function handleClose() {
     setOpen(false);
-    setAutoOpened(false);
   }
 
   return (
     <>
       {/* Floating trigger button */}
       <button
-        onClick={() => { setOpen(true); setAutoOpened(false); }}
+        onClick={() => { setOpen(true); }}
         className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-full shadow-lg shadow-emerald-600/25 transition-all hover:scale-105 active:scale-95"
       >
         <MapPin className="w-5 h-5" />
@@ -166,16 +133,6 @@ export function CivicModal() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Don't show again — inside modal, only when auto-opened on landing */}
-                {autoOpened && isLandingPage && (
-                  <button
-                    onClick={handleDismissForever}
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors mr-1"
-                  >
-                    <EyeOff className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Don&apos;t show again</span>
-                  </button>
-                )}
                 <button
                   onClick={handleClose}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"

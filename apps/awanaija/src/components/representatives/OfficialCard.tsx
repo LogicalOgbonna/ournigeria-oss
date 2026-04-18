@@ -80,8 +80,11 @@ const PARTY_COLORS: Record<string, string> = {
 };
 
 interface LocationInfo {
+  stateCode?: string;
   stateName?: string;
+  lgaCode?: string;
   lgaName?: string;
+  wardCode?: string;
   wardName?: string;
 }
 
@@ -282,8 +285,11 @@ function VacantCard({
     if (position.lgaCode) params.set("lgaCode", position.lgaCode);
     if (position.lga) params.set("lgaName", position.lga);
   }
+  if (location.stateCode && !params.has("stateCode")) params.set("stateCode", location.stateCode);
   if (location.stateName && !params.has("stateName")) params.set("stateName", location.stateName);
+  if (location.lgaCode && !params.has("lgaCode")) params.set("lgaCode", location.lgaCode);
   if (location.lgaName && !params.has("lgaName")) params.set("lgaName", location.lgaName);
+  if (location.wardCode && !params.has("wardCode")) params.set("wardCode", location.wardCode);
   if (location.wardName && !params.has("wardName")) params.set("wardName", location.wardName);
 
   return (

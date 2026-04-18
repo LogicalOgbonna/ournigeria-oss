@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronDown, Map, Trophy, Database, Users, Search, PlusCircle, Activity, LayoutList, FileText } from "lucide-react";
+import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGIN_URL } from "@/lib/constants";
 
 export function Navbar() {
   const [morphed, setMorphed] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,6 +78,13 @@ export function Navbar() {
                       <div className="text-xs text-muted-foreground">See which states have the most complete data</div>
                     </div>
                   </Link>
+                  <Link href="/activity" className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors">
+                    <Activity className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Contribution Updates</div>
+                      <div className="text-xs text-muted-foreground">Recent contributions, you should contribute too</div>
+                    </div>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -99,13 +108,6 @@ export function Navbar() {
                     <div>
                       <div className="text-sm font-medium text-foreground">Find Your Reps</div>
                       <div className="text-xs text-muted-foreground">From your street to the senate</div>
-                    </div>
-                  </Link>
-                  <Link href="/activity" className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors">
-                    <Activity className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    <div>
-                      <div className="text-sm font-medium text-foreground">Recent Updates</div>
-                      <div className="text-xs text-muted-foreground">Recent contributions, you should contribute too</div>
                     </div>
                   </Link>
                 </div>
@@ -148,19 +150,90 @@ export function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <a
-              href={LOGIN_URL}
-              className="btn-magnetic inline-flex items-center gap-1.5 rounded-[1.25rem] bg-emerald-600 px-5 py-2 text-sm font-medium text-white"
+            <div
+              className="relative"
+              onMouseEnter={() => setIsDropdownOpen(true)}
+              onMouseLeave={() => setIsDropdownOpen(false)}
             >
-              <span className="btn-slide bg-emerald-700" />
-              <span className="relative z-10 flex items-center gap-1.5">
-                Open Dashboard
-                <ArrowRight className="h-3.5 w-3.5" />
-              </span>
-            </a>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="btn-magnetic inline-flex items-center gap-1.5 rounded-[1.25rem] bg-emerald-600 px-5 py-2 text-sm font-medium text-white cursor-pointer"
+              >
+                <span className="btn-slide bg-emerald-700" />
+                <span className="relative z-10 flex items-center gap-1.5">
+                  Ask Now
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${isDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                  <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 flex flex-col gap-1">
+                    <a
+                      href={LOGIN_URL}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted text-foreground"
+                    >
+                      <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      On Web
+                    </a>
+                    <a
+                      href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted text-foreground"
+                    >
+                      <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      On Telegram
+                    </a>
+                    <button
+                      onClick={() => {
+                        setIsModalOpen(true);
+                        setIsDropdownOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted text-left cursor-pointer text-foreground"
+                    >
+                      <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      On WhatsApp
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
+
+      {/* WhatsApp Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                <MessageCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">WhatsApp is coming</h3>
+              <p className="text-sm text-muted-foreground">
+                We&apos;re currently working on bringing Our Nigeria to WhatsApp. In
+                the meantime, please try our Telegram bot or the Web app.
+              </p>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="mt-6 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 dark:bg-emerald-500 cursor-pointer"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

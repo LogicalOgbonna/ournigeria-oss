@@ -44,7 +44,7 @@ export default async function LgaPage({
     notFound();
   }
 
-  const { stateName, name: lgaName, chairman, councilors, stats, wards } = lga;
+  const { stateName, name: lgaName, chairman, senator, houseMembers, stateAssemblyMembers, councilors, stats, wards } = lga;
 
   const months = [
     { value: "1", label: "January" },
@@ -113,6 +113,45 @@ export default async function LgaPage({
       default:
         return "bg-muted text-muted-foreground border-border";
     }
+  };
+
+  const renderOfficialCard = (official: any, roleLabel: string, subLabel?: string) => {
+    if (!official) return null;
+    return (
+      <Link 
+        key={official.id}
+        href={`/officials/${official.id}`}
+        className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
+      >
+        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
+          {official.image ? (
+            <Image src={official.image} alt={official.name} fill className="object-cover" sizes="48px" />
+          ) : (
+            <Users className="w-6 h-6 text-muted-foreground" />
+          )}
+        </div>
+        <div className="space-y-1 flex-1">
+          <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            {roleLabel}
+          </p>
+          <h3 className="font-heading text-base font-semibold leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            {official.name || "Information Unavailable"}
+          </h3>
+          <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
+            <span className="px-1.5 py-0.5 rounded bg-muted text-foreground font-medium">
+              {official.party || "N/A"}
+            </span>
+            {subLabel && (
+              <>
+                <span>•</span>
+                <span className="truncate max-w-[120px]" title={subLabel}>{subLabel}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
+      </Link>
+    );
   };
 
   return (
@@ -242,38 +281,34 @@ export default async function LgaPage({
               </div>
 
               {/* Chairman Card */}
-              <Link 
-                href={`/officials/${chairman?.id || 'unknown'}`}
-                className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-                  {chairman?.image ? (
-                    <Image src={chairman.image} alt={chairman.name} fill className="object-cover" sizes="48px" />
-                  ) : (
+              {chairman ? renderOfficialCard(chairman, "LGA Chairman", chairman.term) : (
+                <div className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <Users className="w-6 h-6 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="space-y-1 flex-1">
-                  <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    LGA Chairman
-                  </p>
-                  <h3 className="font-heading text-base font-semibold leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    {chairman?.name || "Information Unavailable"}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
-                    <span className="px-1.5 py-0.5 rounded bg-muted text-foreground font-medium">
-                      {chairman?.party || "N/A"}
-                    </span>
-                    {chairman?.term && (
-                      <>
-                        <span>•</span>
-                        <span>{chairman.term}</span>
-                      </>
-                    )}
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      LGA Chairman
+                    </p>
+                    <h3 className="font-heading text-base font-semibold leading-tight text-muted-foreground">
+                      Information Unavailable
+                    </h3>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
-              </Link>
+              )}
+
+              {/* Senator */}
+              {senator && renderOfficialCard(senator, "Senator", senator.constituency)}
+
+              {/* House of Reps */}
+              {houseMembers?.map((member: any) => 
+                renderOfficialCard(member, "House of Reps", member.constituency)
+              )}
+
+              {/* State Assembly */}
+              {stateAssemblyMembers?.map((member: any) => 
+                renderOfficialCard(member, "State Assembly", member.constituency)
+              )}
 
               {/* Legislature Summary */}
               <LgaOfficialsAccordion 

@@ -64,7 +64,6 @@ packages/source/debt/
 packages/source/population/
 packages/source/faac/
 packages/source/faac-excel/
-packages/source/nga_admin_boundaries.geojson/
 docs/talk with timi/action_items/value_props/*.md
 
 # db data & backups
