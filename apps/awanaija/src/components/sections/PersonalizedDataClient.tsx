@@ -6,17 +6,23 @@ import {
   KitSectionTitle,
 } from "@/components/landing-variants/LandingVariantKit";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, AtSign, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Phone, Plus, Search, Users } from "lucide-react";
+import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { getStates, getLgas, getWards, getStateDetails, getLgaDetails, getWardDetails, reverseGeocode, getFaacPeriods } from "@/lib/api";
 
 
 
 export function transformProfileData(
   stateCode: string, stateName: string, lgaCode: string, lgaName: string, wardCode: string, wardName: string,
-  stateDetails: any, lgaDetails: any, wardDetails: any
+  stateDetails: any, lgaDetails: any, wardDetails: any,
+  year?: number | null, month?: number | null
 ) {
+  const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const dateLabel = year && month 
+    ? `${monthNamesShort[month - 1]} '${year.toString().slice(-2)}` 
+    : (lgaDetails?.stats?.faacDate || stateDetails?.stats?.faacDate || "YTD");
+
   const officials = [];
   if (stateDetails?.governor) {
     officials.push({ ...stateDetails.governor, role: "Governor", contactType: "email", contact: stateDetails.governor.email || null });
@@ -64,7 +70,7 @@ export function transformProfileData(
     ward: wardName,
     lgaKpis: [
       {
-        label: "LGA FAAC (YTD)",
+        label: `LGA FAAC (${dateLabel})`,
         value: lgaDetails?.stats?.faac || "N/A",
         delta: "Federal allocation directly to the local government.",
       },
@@ -82,7 +88,7 @@ export function transformProfileData(
         delta: "How much the state plans to spend to improve your life.",
       },
       {
-        label: "FAAC (YTD)",
+        label: `FAAC (${dateLabel})`,
         value: stateDetails?.stats?.faac || "N/A",
         delta: "Your state's share of the national wealth.",
       },
@@ -160,7 +166,7 @@ interface PersonalizedDataClientProps {
 
 export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, children }: PersonalizedDataClientProps) {
   const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
-  const [data, setData] = useState<any>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails));
+  const [data, setData] = useState<any>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   
@@ -198,7 +204,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
     try {
       const stateSlug = stateName.toLowerCase().replace(/ /g, '-');
       const lgaSlug = lgaName.toLowerCase().replace(/ /g, '-');
-      const wardSlug = wardName.toLowerCase().replace(/ /g, '-');
+      const wardSlug = wardName.split('/')[0].trim().toLowerCase().replace(/ /g, '-');
 
       const yStr = year?.toString();
       const mStr = month?.toString();
@@ -215,7 +221,8 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
 
       const newData = transformProfileData(
         stateCode, stateName, lgaCode, lgaName, wardCode, wardName,
-        stateDetails, lgaDetails, wardDetails
+        stateDetails, lgaDetails, wardDetails,
+        year, month
       );
 
       setData(newData);
@@ -266,11 +273,13 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
     setLocationState("loading");
     if (!navigator.geolocation) {
       setLocationState("denied");
+      window.dispatchEvent(new CustomEvent("location-request-completed"));
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        window.dispatchEvent(new CustomEvent("location-request-completed"));
         try {
           const res = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
           if (res && (res as any).errorCode === "OUTSIDE_NIGERIA") {
@@ -310,6 +319,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
       },
       () => {
         setLocationState("denied");
+        window.dispatchEvent(new CustomEvent("location-request-completed"));
       }
     );
   };

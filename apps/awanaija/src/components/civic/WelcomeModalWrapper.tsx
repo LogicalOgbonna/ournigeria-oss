@@ -20,5 +20,16 @@ export function WelcomeModalWrapper() {
     localStorage.setItem("hasSeenWelcomeModal", "true");
   };
 
+  useEffect(() => {
+    const handleLocationCompleted = () => {
+      handleClose();
+    };
+
+    window.addEventListener("location-request-completed", handleLocationCompleted);
+    return () => {
+      window.removeEventListener("location-request-completed", handleLocationCompleted);
+    };
+  }, []);
+
   return <WelcomeModal isOpen={isOpen} onClose={handleClose} />;
 }

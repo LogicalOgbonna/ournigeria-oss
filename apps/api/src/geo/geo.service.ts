@@ -114,8 +114,13 @@ export class GeoService implements OnModuleInit {
         this.logger.log(`[reverseGeocode] extracted stateName: "${stateName}"`);
         // Look up state code from DB
         if (stateName) {
+          let searchStateName = stateName;
+          if (stateName === "Federal Capital Territory") {
+            searchStateName = "FCT";
+          }
+          
           const state = await this.prisma.nigerianState.findFirst({
-            where: { name: { equals: stateName, mode: "insensitive" } },
+            where: { name: { equals: searchStateName, mode: "insensitive" } },
           });
           this.logger.log(`[reverseGeocode] DB state lookup result: ${JSON.stringify(state)}`);
           stateCode = state?.code ?? null;
@@ -128,30 +133,35 @@ export class GeoService implements OnModuleInit {
     }
 
     // Find LGA
-    if (stateCode) {
-      let lgaMatchFound = false;
-      for (const feature of this.lgaFeatures) {
-        if (this.pointInPolygon(lat, lng, feature.geometry)) {
-          lgaMatchFound = true;
-          const lgaName_ = feature.properties.adm2_name || feature.properties.admin2Name_en || feature.properties.admin2Name || null;
-          this.logger.log(`[reverseGeocode] LGA polygon match! extracted lgaName: "${lgaName_}", properties: ${JSON.stringify(feature.properties)}`);
-          if (lgaName_) {
-            lgaName = lgaName_;
-            const lga = await this.prisma.nigerianLga.findFirst({
-              where: {
-                stateCode,
-                name: { equals: lgaName as string, mode: "insensitive" },
-              },
-            });
-            this.logger.log(`[reverseGeocode] DB LGA lookup result: ${JSON.stringify(lga)}`);
-            lgaCode = lga?.code ?? null;
-          }
-          break;
+    let lgaMatchFound = false;
+    for (const feature of this.lgaFeatures) {
+      if (this.pointInPolygon(lat, lng, feature.geometry)) {
+        lgaMatchFound = true;
+        const lgaName_ = feature.properties.adm2_name || feature.properties.admin2Name_en || feature.properties.admin2Name || null;
+        this.logger.log(`[reverseGeocode] LGA polygon match! extracted lgaName: "${lgaName_}", properties: ${JSON.stringify(feature.properties)}`);
+
+        if (lgaName_ && stateCode) {
+          lgaName = lgaName_;
+          
+          let searchLgaName = lgaName as string;
+
+          const lga = await this.prisma.nigerianLga.findFirst({
+            where: {
+              stateCode,
+              OR: [
+                { name: { equals: searchLgaName, mode: "insensitive" } },
+                { name: { startsWith: searchLgaName, mode: "insensitive" } }
+              ]
+            },
+          });
+          this.logger.log(`[reverseGeocode] DB LGA lookup result: ${JSON.stringify(lga)}`);
+          lgaCode = lga?.code ?? null;
         }
+        break;
       }
-      if (!lgaMatchFound) {
-        this.logger.warn(`[reverseGeocode] NO LGA polygon matched for lat=${lat}, lng=${lng}`);
-      }
+    }
+    if (!lgaMatchFound) {
+      this.logger.warn(`[reverseGeocode] NO LGA polygon matched for lat=${lat}, lng=${lng}`);
     }
 
     // Ward-level: attempt DB lookup via LGA → wards if LGA is found
@@ -171,7 +181,10 @@ export class GeoService implements OnModuleInit {
   }
 
   async getStateDetails(slug: string, year?: number, month?: number) {
-    const searchName = slug.replace(/-state$/i, '').replace(/-/g, ' ');
+    let searchName = slug.replace(/-state$/i, '').replace(/-/g, ' ');
+    if (searchName.toLowerCase() === "federal capital territory") {
+      searchName = "FCT";
+    }
     
     const state = await this.prisma.nigerianState.findFirst({
       where: {
@@ -192,7 +205,8 @@ export class GeoService implements OnModuleInit {
                     }
                   } : undefined,
                   orderBy: { createdAt: "desc" },
-                  take: year && month ? 1 : 12
+                  take: year && month ? 1 : 12,
+                  include: { disbursement: true }
                 }
               }
             }
@@ -237,7 +251,8 @@ export class GeoService implements OnModuleInit {
                 }
               } : undefined,
               orderBy: { createdAt: "desc" },
-              take: year && month ? 1 : 12
+              take: year && month ? 1 : 12,
+              include: { disbursement: true }
             }
           }
         }
@@ -334,6 +349,15 @@ export class GeoService implements OnModuleInit {
     const houseMembers = houseMemberPositions.map(mapOfficial);
     const stateAssemblyMembers = stateAssemblyPositions.map(mapOfficial);
 
+    let faacDate = "";
+    if (faacYtd > 0) {
+      const latestFaac = fiscal?.faacStateAllocations?.[0];
+      if (latestFaac?.disbursement) {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        faacDate = `${monthNames[latestFaac.disbursement.disbursementMonth - 1]} '${latestFaac.disbursement.disbursementYear.toString().slice(-2)}`;
+      }
+    }
+
     return {
       code: state.code,
       name: state.name,
@@ -346,6 +370,7 @@ export class GeoService implements OnModuleInit {
       stats: {
         budget: budgetTotal,
         faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A",
+        faacDate: faacDate || undefined,
         igr: igr ? `₦${(Number(igr.total) / 1_000_000_000).toFixed(1)}B` : "N/A",
         senators: senators.length,
         houseMembers: houseMembers.length,
@@ -363,18 +388,25 @@ export class GeoService implements OnModuleInit {
         }, 0) || 0;
         
         let faacFormatted = "N/A";
+        let faacDate = "";
         if (lgaFaac > 0) {
           if (lgaFaac >= 1_000_000_000) {
             faacFormatted = `₦${(lgaFaac / 1_000_000_000).toFixed(1)}B`;
           } else {
             faacFormatted = `₦${(lgaFaac / 1_000_000).toFixed(1)}M`;
           }
+          const latestFaac = lga.fiscalEntity?.faacLgaAllocations?.[0];
+          if (latestFaac?.disbursement) {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            faacDate = `${monthNames[latestFaac.disbursement.disbursementMonth - 1]} '${latestFaac.disbursement.disbursementYear.toString().slice(-2)}`;
+          }
         }
 
         return {
           code: lga.code,
           name: lga.name,
-          faac: faacFormatted
+          faac: faacFormatted,
+          faacDate: faacDate || undefined
         };
       }),
       availablePeriods: await this.getAvailableFaacPeriods(),
@@ -434,7 +466,10 @@ export class GeoService implements OnModuleInit {
   }
 
   async getLgaDetails(stateSlug: string, lgaSlug: string, year?: number, month?: number) {
-    const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    let stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    if (stateSearchName.toLowerCase() === "federal capital territory") {
+      stateSearchName = "FCT";
+    }
 
     const state = await this.prisma.nigerianState.findFirst({
       where: {
@@ -475,7 +510,8 @@ export class GeoService implements OnModuleInit {
                 }
               } : undefined,
               orderBy: { createdAt: "desc" },
-              take: year && month ? 1 : 12
+              take: year && month ? 1 : 12,
+              include: { disbursement: true }
             }
           }
         }
@@ -604,11 +640,17 @@ export class GeoService implements OnModuleInit {
     }, 0) || 0;
 
     let faacFormatted = "N/A";
+    let faacDate = "";
     if (faacYtd > 0) {
       if (faacYtd >= 1_000_000_000) {
         faacFormatted = `₦${(faacYtd / 1_000_000_000).toFixed(1)}B`;
       } else {
         faacFormatted = `₦${(faacYtd / 1_000_000).toFixed(1)}M`;
+      }
+      const latestFaac = fiscal?.faacLgaAllocations?.[0];
+      if (latestFaac?.disbursement) {
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        faacDate = `${monthNames[latestFaac.disbursement.disbursementMonth - 1]} '${latestFaac.disbursement.disbursementYear.toString().slice(-2)}`;
       }
     }
 
@@ -624,6 +666,7 @@ export class GeoService implements OnModuleInit {
       councilors,
       stats: {
         faac: faacFormatted,
+        faacDate: faacDate || undefined,
         igr: "N/A", // Not tracked at LGA level currently
         population: "N/A", // Not tracked at LGA level currently
       },
@@ -635,7 +678,10 @@ export class GeoService implements OnModuleInit {
   }
 
   async getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
-    const stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    let stateSearchName = stateSlug.replace(/-state$/i, '').replace(/-/g, ' ');
+    if (stateSearchName.toLowerCase() === "federal capital territory") {
+      stateSearchName = "FCT";
+    }
 
     const state = await this.prisma.nigerianState.findFirst({
       where: {

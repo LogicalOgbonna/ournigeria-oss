@@ -411,7 +411,6 @@ function ActionPane({ idx, onClose }: { idx: number; onClose: () => void }) {
         {helper}
       </p>
       <Btn variant="dark" icon={<PinIcon color="#fff" size={16}/>} className="h-12 mb-2.5 w-full" onClick={() => {
-        onClose();
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("request-location"));
         }

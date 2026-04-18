@@ -1,5 +1,5 @@
-import { PersonalizedDataClient, transformProfileData } from "./PersonalizedDataClient";
-import { getStates, getLgas, getWards, getStateDetails, getLgaDetails, getWardDetails, getFaacPeriods } from "@/lib/api";
+import { getFaacPeriods, getLgaDetails, getLgas, getStateDetails, getStates, getWardDetails, getWards } from "@/lib/api";
+import { PersonalizedDataClient } from "./PersonalizedDataClient";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3000/api";
 
@@ -37,7 +37,7 @@ export async function PersonalizedData() {
 
   const stateSlug = defaultState.name.toLowerCase().replace(/ /g, '-');
   const lgaSlug = defaultLga.name.toLowerCase().replace(/ /g, '-');
-  const wardSlug = defaultWard.name.toLowerCase().replace(/ /g, '-');
+  const wardSlug = defaultWard.name.split('/')[0].trim().toLowerCase().replace(/ /g, '-');
 
   const yStr = initialYear?.toString();
   const mStr = initialMonth?.toString();

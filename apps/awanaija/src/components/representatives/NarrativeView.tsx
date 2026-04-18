@@ -65,8 +65,10 @@ export function NarrativeView({
   const senatorName = senator?.official?.name;
 
   const lgaFaac = lgaDetails?.stats?.faac;
+  const lgaFaacDate = (lgaDetails?.stats as any)?.faacDate || "YTD";
   const stateBudget = stateDetails?.stats?.budget;
   const stateFaac = stateDetails?.stats?.faac;
+  const stateFaacDate = (stateDetails?.stats as any)?.faacDate || "YTD";
   const stateIgr = stateDetails?.stats?.igr;
   const domesticDebt = stateDetails?.economy?.domesticDebt;
   const externalDebt = stateDetails?.economy?.externalDebt;
@@ -184,7 +186,7 @@ export function NarrativeView({
           columns={3}
           stats={[
             { label: "Est. Population", value: lgaDetails?.stats?.population },
-            { label: "FAAC (YTD)", value: lgaFaac, highlight: true },
+            { label: `FAAC (${lgaFaacDate})`, value: lgaFaac, highlight: true },
             { label: "IGR", value: lgaDetails?.stats?.igr },
           ]}
         />
@@ -265,7 +267,7 @@ export function NarrativeView({
           columns={4}
           stats={[
             { label: "Budget", value: stateBudget },
-            { label: "FAAC", value: stateFaac, highlight: true },
+            { label: `FAAC (${stateFaacDate})`, value: stateFaac, highlight: true },
             { label: "IGR", value: stateIgr },
             { label: "Domestic Debt", value: domesticDebt, negative: true },
           ]}
