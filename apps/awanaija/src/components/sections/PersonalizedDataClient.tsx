@@ -381,18 +381,22 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
       return false;
     };
 
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: "geolocation" }).then((result) => {
-        if (result.state === "granted" || result.state === "prompt") {
-          requestLocation();
+        if (navigator.permissions) {
+          navigator.permissions.query({ name: "geolocation" }).then((result) => {
+            if (result.state === "granted") {
+              requestLocation();
+            } else {
+              const loaded = loadFromStorage();
+              if (!loaded) {
+                if (result.state === "prompt") {
+                  setLocationState("idle");
+                } else if (result.state === "denied") {
+                  setLocationState("success");
+                }
+              }
+            }
+          });
         } else {
-          const loaded = loadFromStorage();
-          if (!loaded && result.state === "denied") {
-            setLocationState("success");
-          }
-        }
-      });
-    } else {
       loadFromStorage();
     }
   }, []);

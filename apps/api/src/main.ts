@@ -6,6 +6,7 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { closePgVector } from "./mastra/rag/config";
 import { closeSharedPool } from "./mastra/rag/db-pool";
@@ -18,6 +19,11 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+
+  app.use(helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+  }));
 
   // Allow larger request bodies for base64-encoded image uploads (proposals)
   app.useBodyParser("json", { limit: "2mb" });
@@ -41,8 +47,11 @@ async function bootstrap() {
     .setVersion("0.1.0")
     .addCookieAuth("nb_uid")
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("docs", app, document);
+
+  if (process.env.NODE_ENV !== "production") {
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("docs", app, document);
+  }
 
   // Graceful shutdown: close standalone DB pools
   app.enableShutdownHooks();
@@ -61,7 +70,9 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`API running on http://localhost:${port}`);
-  console.log(`Swagger docs at http://localhost:${port}/docs`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`Swagger docs at http://localhost:${port}/docs`);
+  }
 }
 
 bootstrap();

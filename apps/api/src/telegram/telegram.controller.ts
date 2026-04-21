@@ -23,6 +23,9 @@ export class TelegramController {
     private config: ConfigService,
   ) {
     this.webhookSecret = this.config.get<string>('TELEGRAM_WEBHOOK_SECRET');
+    if (!this.webhookSecret) {
+      this.logger.warn("TELEGRAM_WEBHOOK_SECRET not set — webhook is unauthenticated");
+    }
   }
 
   @Public()
@@ -34,7 +37,15 @@ export class TelegramController {
     @Body() update: Record<string, unknown>,
     @Headers('x-telegram-bot-api-secret-token') secretToken?: string,
   ): Promise<{ ok: true }> {
-    if (this.webhookSecret && secretToken !== this.webhookSecret) {
+    if (process.env.NODE_ENV === "production") {
+      if (!this.webhookSecret) {
+        this.logger.error("TELEGRAM_WEBHOOK_SECRET not configured in production");
+        throw new ForbiddenException("Webhook not configured");
+      }
+      if (secretToken !== this.webhookSecret) {
+        throw new ForbiddenException("Invalid webhook secret");
+      }
+    } else if (this.webhookSecret && secretToken !== this.webhookSecret) {
       throw new ForbiddenException('Invalid webhook secret');
     }
 

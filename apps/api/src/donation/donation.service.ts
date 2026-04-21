@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@ournigeria/database';
 import { DonationProvider, DonationStatus } from '@prisma/client';
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { InitializeDonationDto } from './dto/initialize-donation.dto';
 
 @Injectable()
@@ -177,7 +177,9 @@ export class DonationService {
       .update(body)
       .digest('hex');
 
-    if (hash !== signature) {
+    const hashBuf = Buffer.from(hash, "hex");
+    const sigBuf  = Buffer.from(signature, "hex");
+    if (hashBuf.length !== sigBuf.length || !timingSafeEqual(hashBuf, sigBuf)) {
       this.logger.warn('Invalid Paystack webhook signature');
       throw new BadRequestException('Invalid signature');
     }
@@ -209,7 +211,9 @@ export class DonationService {
       return;
     }
 
-    if (verifHash !== secretHash) {
+    const a = Buffer.from(verifHash, "utf8");
+    const b = Buffer.from(secretHash, "utf8");
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
       this.logger.warn('Invalid Flutterwave webhook hash');
       throw new BadRequestException('Invalid hash');
     }

@@ -11,9 +11,10 @@ import { Request, Response } from "express";
 import { ChatService } from "./chat.service";
 import { PrismaService } from "@ournigeria/database";
 import { getLangfuse } from "../lib/langfuse";
+import { cache } from "@ournigeria/cache";
 
 import { isRetryableLLMError } from "./retry-utils";
-export { isRetryableLLMError };
+export { isRetryableLLMError } from "./retry-utils";
 
 const RETRY_DELAYS = [1000, 3000]; // ms — two retries with backoff
 const SLOW_FAILURE_THRESHOLD = 10_000; // ms — skip retry if attempt took >10s
@@ -59,6 +60,16 @@ export class ChatController {
           .status(HttpStatus.BAD_REQUEST)
           .json({ error: "Message is too long (max 5000 characters)" });
       }
+
+      const CHAT_RATE_LIMIT = 20; // requests per minute
+      const CHAT_RATE_WINDOW_MS = 60_000;
+
+      const chatCache = cache.namespace("chat:rate");
+      const count = (await chatCache.get<number>(userId)) ?? 0;
+      if (count >= CHAT_RATE_LIMIT) {
+        return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests. Please slow down." });
+      }
+      await chatCache.set(userId, count + 1, CHAT_RATE_WINDOW_MS);
 
       // Set SSE headers
       res.setHeader("Content-Type", "text/event-stream");

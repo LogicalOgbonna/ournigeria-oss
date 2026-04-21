@@ -15,6 +15,7 @@ export interface EnvConfig {
   TAVILY_API_KEY: string;
   APP_URL: string;
   CORS_ORIGINS: string;
+  AUTH_SIGNING_SECRET: string;
   TELEGRAM_BOT_TOKEN: string;
   AUTH_COOKIE_DOMAIN?: string;
   AWS_REGION: string;
@@ -59,6 +60,7 @@ const REQUIRED_VARS: (keyof EnvConfig)[] = [
   "TAVILY_API_KEY",
   "APP_URL",
   "CORS_ORIGINS",
+  "AUTH_SIGNING_SECRET",
   "TELEGRAM_BOT_TOKEN",
   "AWS_REGION",
   "AWS_ACCESS_KEY_ID",
@@ -100,6 +102,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     TAVILY_API_KEY: config.TAVILY_API_KEY as string,
     APP_URL: config.APP_URL as string,
     CORS_ORIGINS: config.CORS_ORIGINS as string,
+    AUTH_SIGNING_SECRET: config.AUTH_SIGNING_SECRET as string,
     TELEGRAM_BOT_TOKEN: config.TELEGRAM_BOT_TOKEN as string,
     AUTH_COOKIE_DOMAIN: (config.AUTH_COOKIE_DOMAIN as string) || undefined,
     AWS_REGION: config.AWS_REGION as string,

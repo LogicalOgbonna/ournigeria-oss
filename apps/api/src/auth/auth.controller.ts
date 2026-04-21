@@ -82,12 +82,11 @@ function appendQueryParam(urlString: string, key: string, value: string): string
 /** Sign a user ID for the nb_auth callback so the web proxy can verify it wasn't forged. */
 function signAuthToken(userId: string): string {
   const ts = Date.now().toString(36);
-  const secret = process.env.TELEGRAM_BOT_TOKEN || "";
+  const secret = process.env.AUTH_SIGNING_SECRET || "";
   const sig = crypto
     .createHmac("sha256", secret)
     .update(`${userId}:${ts}`)
-    .digest("hex")
-    .slice(0, 16);
+    .digest("hex");
   return `${userId}.${ts}.${sig}`;
 }
 
@@ -102,14 +101,13 @@ function verifyAuthToken(token: string): string | null {
   if (Number.isNaN(timestamp)) return null;
   if (Date.now() - timestamp > 5 * 60 * 1000) return null;
 
-  const secret = process.env.TELEGRAM_BOT_TOKEN || "";
+  const secret = process.env.AUTH_SIGNING_SECRET || "";
   if (!secret) return null;
 
   const expected = crypto
     .createHmac("sha256", secret)
     .update(`${userId}:${ts}`)
-    .digest("hex")
-    .slice(0, 16);
+    .digest("hex");
 
   try {
     const sigBuffer = Buffer.from(sig, "utf8");

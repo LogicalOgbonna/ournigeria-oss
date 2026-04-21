@@ -23,6 +23,7 @@ dist/
 # misc
 .DS_Store
 *.pem
+.gstack/
 
 # debug
 npm-debug.log*
