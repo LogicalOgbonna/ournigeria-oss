@@ -146,7 +146,15 @@ const LLM_PROVIDERS = [
     id: "deepseek",
     label: "DeepSeek",
     baseUrl: "https://api.deepseek.com/v1",
-    models: ["deepseek-chat", "deepseek-reasoner"],
+    models: [
+      "deepseek-v4-pro",
+      "deepseek-v4-flash",
+      "deepseek-v3.2-speciale",
+      "deepseek-v3.2",
+      "deepseek-v3",
+      "deepseek-reasoner",
+      "deepseek-chat",
+    ],
   },
   {
     id: "fireworks",

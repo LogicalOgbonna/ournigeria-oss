@@ -3,6 +3,7 @@ packages:
   - packages/*
 
 catalog:
+  '@ai-sdk/deepseek': 2.0.29
   '@ai-sdk/openai': 3.0.31
   '@ai-sdk/provider': 3.0.8
   '@aws-sdk/client-s3': 3.999.0

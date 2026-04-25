@@ -1,4 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { createDeepSeek } from "@ai-sdk/deepseek";
+import { LanguageModel } from "ai";
 import { PgVector } from "@mastra/pg";
 import {
   getSetting,
@@ -105,16 +107,32 @@ export const RAG_CONFIG: ReturnType<typeof getRagConfig> = new Proxy({} as any, 
 
 let _openaiProvider: ReturnType<typeof createOpenAI>;
 let _embeddingProvider: ReturnType<typeof createOpenAI>;
-let _chatModel: ReturnType<ReturnType<typeof createOpenAI>["chat"]>;
-let _chatModelSmall: ReturnType<ReturnType<typeof createOpenAI>["chat"]>;
+let _chatModel: LanguageModel;
+let _chatModelSmall: LanguageModel;
 let _embeddingModel: ReturnType<ReturnType<typeof createOpenAI>["embedding"]>;
 
 function buildProviders() {
-  _openaiProvider = createOpenAI({
-    baseURL: getSetting("llm.base_url", "LLM_BASE_URL", ""),
-    apiKey: getSetting("llm.api_key", "LLM_API_KEY", ""),
-    fetch: fetchWithTimeout,
-  });
+  const llmProvider = getSetting("llm.provider", "LLM_PROVIDER", "openai");
+  const llmModel = getSetting("llm.model", "LLM_MODEL", "");
+  const llmModelSmall = getSetting("llm.model_small", "LLM_MODEL_SMALL") || llmModel;
+
+  if (llmProvider === "deepseek" || llmModel.includes("deepseek")) {
+    const deepseekProvider = createDeepSeek({
+      baseURL: getSetting("llm.base_url", "LLM_BASE_URL", ""),
+      apiKey: getSetting("llm.api_key", "LLM_API_KEY", ""),
+      fetch: fetchWithTimeout,
+    });
+    _chatModel = deepseekProvider(llmModel);
+    _chatModelSmall = deepseekProvider(llmModelSmall);
+  } else {
+    _openaiProvider = createOpenAI({
+      baseURL: getSetting("llm.base_url", "LLM_BASE_URL", ""),
+      apiKey: getSetting("llm.api_key", "LLM_API_KEY", ""),
+      fetch: fetchWithTimeout,
+    });
+    _chatModel = _openaiProvider.chat(llmModel);
+    _chatModelSmall = _openaiProvider.chat(llmModelSmall);
+  }
 
   const embProvider = getSetting("embedding.provider", "EMBEDDING_PROVIDER", "");
   _embeddingProvider = createOpenAI({
@@ -123,10 +141,6 @@ function buildProviders() {
     fetch: createEmbeddingFetch(embProvider),
   });
 
-  const llmModel = getSetting("llm.model", "LLM_MODEL", "");
-  const llmModelSmall = getSetting("llm.model_small", "LLM_MODEL_SMALL") || llmModel;
-  _chatModel = _openaiProvider.chat(llmModel);
-  _chatModelSmall = _openaiProvider.chat(llmModelSmall);
   _embeddingModel = _embeddingProvider.embedding(getSetting("embedding.model", "EMBEDDING_MODEL", ""));
 }
 
@@ -168,13 +182,13 @@ export function getEmbeddingModel() {
 
 export const chatModel = new Proxy({} as any, {
   get(_, prop) {
-    return Reflect.get(getChatModel(), prop);
+    return Reflect.get(getChatModel() as any, prop);
   },
   has(_, prop) {
-    return Reflect.has(getChatModel(), prop);
+    return Reflect.has(getChatModel() as any, prop);
   },
   ownKeys() {
-    return Reflect.ownKeys(getChatModel());
+    return Reflect.ownKeys(getChatModel() as any);
   },
   getOwnPropertyDescriptor(_, prop) {
     return Object.getOwnPropertyDescriptor(getChatModel(), prop);
@@ -186,13 +200,13 @@ export const chatModel = new Proxy({} as any, {
 
 export const chatModelSmall = new Proxy({} as any, {
   get(_, prop) {
-    return Reflect.get(getChatModelSmall(), prop);
+    return Reflect.get(getChatModelSmall() as any, prop);
   },
   has(_, prop) {
-    return Reflect.has(getChatModelSmall(), prop);
+    return Reflect.has(getChatModelSmall() as any, prop);
   },
   ownKeys() {
-    return Reflect.ownKeys(getChatModelSmall());
+    return Reflect.ownKeys(getChatModelSmall() as any);
   },
   getOwnPropertyDescriptor(_, prop) {
     return Object.getOwnPropertyDescriptor(getChatModelSmall(), prop);
