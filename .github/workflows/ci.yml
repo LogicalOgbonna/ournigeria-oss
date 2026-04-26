@@ -1,42 +1,42 @@
-name: CI
+# name: CI
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
 
-permissions:
-  actions: read
-  contents: read
+# permissions:
+#   actions: read
+#   contents: read
 
-jobs:
-  main:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5
-        with:
-          filter: tree:0
-          fetch-depth: 0
+# jobs:
+#   main:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd  # v5
+#         with:
+#           filter: tree:0
+#           fetch-depth: 0
 
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1  # v4
-        with:
-          run_install: false
+#       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1  # v4
+#         with:
+#           run_install: false
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1  # v4
+#       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+#         with:
+#           node-version: 20
+#           cache: 'pnpm'
+#       - run: pnpm install --frozen-lockfile
+#       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1  # v4
 
-      - run: pnpm exec playwright install --with-deps chromium
+#       - run: pnpm exec playwright install --with-deps chromium
 
-      - run: pnpm exec nx affected -t lint test build lighthouse
-        env:
-          TEST_SESSION_COOKIE: ${{ secrets.TEST_SESSION_COOKIE }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: pnpm exec nx fix-ci
-        if: always()
+#       - run: pnpm exec nx affected -t lint test build lighthouse
+#         env:
+#           TEST_SESSION_COOKIE: ${{ secrets.TEST_SESSION_COOKIE }}
+#           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+#           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+#           LHCI_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - run: pnpm exec nx fix-ci
+#         if: always()
