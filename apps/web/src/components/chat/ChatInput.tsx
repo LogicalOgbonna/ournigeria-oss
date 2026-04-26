@@ -35,12 +35,39 @@ const LANGUAGE_OPTIONS: {
   },
 ];
 
+function toExpirationMs(n: number): number {
+  return n < 1e12 ? n * 1000 : n;
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return "Ready";
+  const s = Math.ceil(ms / 1000);
+  const d = Math.floor(s / (24 * 3600));
+  const h = Math.floor((s % (24 * 3600)) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const rs = s % 60;
+  
+  const parts = [];
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  if (rs > 0 || parts.length === 0) parts.push(`${rs}s`);
+  
+  return parts.join(" ");
+}
+
 interface ChatInputProps {
   onSend: (message: string, tool?: ToolId | null, language?: Language) => void;
   isLoading: boolean;
+  /** Roll-off times from 429; input stays disabled while every time is still in the future. */
+  rateLimitExpirations?: number[];
 }
 
-export function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  isLoading,
+  rateLimitExpirations = [],
+}: ChatInputProps) {
   const [input, setInput] = useState("");
   const [selectedTool, setSelectedTool] = useState<ToolId | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -55,6 +82,18 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
+  const [rateLimitNow, setRateLimitNow] = useState(() => Date.now());
+
+  // Re-render on an interval when count-downs are active (deferred `now` to avoid sync setState in effect).
+  useEffect(() => {
+    if (rateLimitExpirations.length === 0) return;
+    const t0 = setTimeout(() => setRateLimitNow(Date.now()), 0);
+    const id = setInterval(() => setRateLimitNow(Date.now()), 1000);
+    return () => {
+      clearTimeout(t0);
+      clearInterval(id);
+    };
+  }, [rateLimitExpirations]);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
@@ -62,9 +101,18 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
     window.dispatchEvent(new CustomEvent("language-change", { detail: lang }));
   };
 
+  const expMs = rateLimitExpirations.map(toExpirationMs);
+  /** All roll-off times still in the future — no message slot has opened since 429. */
+  const allSlotsInFuture =
+    expMs.length > 0 && expMs.every((t) => t > rateLimitNow);
+  const rateLimitLocksInput = allSlotsInFuture;
+  const countdownMs = allSlotsInFuture
+    ? Math.max(0, Math.min(...expMs) - rateLimitNow)
+    : 0;
+
   const handleSubmit = () => {
     const trimmed = input.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading || rateLimitLocksInput) return;
     onSend(trimmed, selectedTool, language);
     setInput("");
     if (textareaRef.current) {
@@ -111,6 +159,14 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
   const activeLabel = selectedTool
     ? AVAILABLE_TOOLS.find((t) => t.id === selectedTool)?.label
     : "Auto";
+
+  const defaultPlaceholder = selectedTool
+    ? PLACEHOLDER[selectedTool]
+    : PLACEHOLDER.default;
+  const placeholderText =
+    rateLimitLocksInput && countdownMs > 0
+      ? `Next message in ${formatCountdown(countdownMs)}…`
+      : defaultPlaceholder;
 
   return (
     <div className="border-t border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
@@ -238,16 +294,15 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={
-                selectedTool ? PLACEHOLDER[selectedTool] : PLACEHOLDER.default
-              }
+              disabled={isLoading || rateLimitLocksInput}
+              placeholder={placeholderText}
               rows={1}
-              className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+              className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             />
             <Button
               size="icon"
               onClick={handleSubmit}
-              disabled={!input.trim() || isLoading}
+              disabled={!input.trim() || isLoading || rateLimitLocksInput}
               className="mb-1 h-9 w-9 shrink-0 rounded-xl bg-emerald-600 text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:shadow-none"
             >
               {isLoading ? (

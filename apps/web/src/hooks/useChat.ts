@@ -40,6 +40,46 @@ export interface ConversationForUI {
   updatedAt: Date;
 }
 
+function toExpirationMsFromBody(
+  e: string | number,
+): number | null {
+  if (typeof e === "number" && !Number.isNaN(e)) {
+    return e < 1e12 ? e * 1000 : e;
+  }
+  if (typeof e === "string") {
+    const t = new Date(e).getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+  return null;
+}
+
+function parseRateLimitBody(
+  data: unknown,
+): { expirations: number[]; retryAfterMs: number | null } {
+  if (!data || typeof data !== "object") {
+    return { expirations: [], retryAfterMs: null };
+  }
+  const o = data as Record<string, unknown>;
+  const raw = o.expirations;
+  const exp: number[] = [];
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      const t = toExpirationMsFromBody(item as string | number);
+      if (t !== null) exp.push(t);
+    }
+  }
+  let retryAfterMs: number | null = null;
+  if (typeof o.retryAfterMs === "number" && o.retryAfterMs > 0) {
+    retryAfterMs = o.retryAfterMs;
+  } else if (typeof o.retry_after_ms === "number" && o.retry_after_ms > 0) {
+    retryAfterMs = o.retry_after_ms;
+  }
+  if (exp.length === 0 && retryAfterMs !== null) {
+    exp.push(Date.now() + retryAfterMs);
+  }
+  return { expirations: exp, retryAfterMs };
+}
+
 export function useChat(conversationId?: string) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<ConversationForUI[]>([]);
@@ -54,6 +94,11 @@ export function useChat(conversationId?: string) {
   const [streamingText, setStreamingText] = useState<string>("");
   const [statusText, setStatusText] = useState<string>("");
   const [isLimitReached, setIsLimitReached] = useState(false);
+  /** ISO strings or absolute UNIX ms; sliding-window roll-off times from 429. */
+  const [rateLimitExpirations, setRateLimitExpirations] = useState<number[]>([]);
+  const [rateLimitRetryAfterMs, setRateLimitRetryAfterMs] = useState<
+    number | null
+  >(null);
   const idCounter = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -247,6 +292,24 @@ export function useChat(conversationId?: string) {
           } catch {}
         }
         if (res.status === 429) {
+          let exps: number[] = [];
+          let retryMs: number | null = null;
+          try {
+            const data = (await res.json()) as unknown;
+            const p = parseRateLimitBody(data);
+            exps = p.expirations;
+            retryMs = p.retryAfterMs;
+          } catch {
+            exps = [Date.now() + 60_000];
+            retryMs = 60_000;
+          }
+          if (exps.length === 0) {
+            const fallback = retryMs ?? 60_000;
+            exps = [Date.now() + fallback];
+            if (retryMs == null) retryMs = fallback;
+          }
+          setRateLimitExpirations(exps);
+          setRateLimitRetryAfterMs(retryMs);
           setIsLimitReached(true);
           // Remove the "user" message we just optimistically added so they can try again later
           setMessages((prev) => prev.slice(0, -1));
@@ -362,6 +425,8 @@ export function useChat(conversationId?: string) {
         setMessages((prev) => [...prev, assistantMessage]);
         setStreamingText("");
         setStatusText("");
+        setRateLimitExpirations([]);
+        setRateLimitRetryAfterMs(null);
 
         // Optimistic conversation list update (no network call)
         setConversations((prev) => {
@@ -490,5 +555,7 @@ export function useChat(conversationId?: string) {
     retryLoad: fetchConversations,
     isLimitReached,
     setIsLimitReached,
+    rateLimitExpirations,
+    rateLimitRetryAfterMs,
   };
 }

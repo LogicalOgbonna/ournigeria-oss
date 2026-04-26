@@ -23,7 +23,7 @@ import { SystemBanners } from "@/components/notifications/SystemBanner";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Markdown } from "./Markdown";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { PricingModal } from "@/components/pricing/PricingModal";
+import { RateLimitModal } from "./RateLimitModal";
 
 function StreamingBubble({ text }: { text: string }) {
   return (
@@ -173,6 +173,8 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     retryLoad,
     isLimitReached,
     setIsLimitReached,
+    rateLimitExpirations,
+    rateLimitRetryAfterMs,
   } = useChat(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -357,7 +359,11 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} isLoading={isLoading} />
+      <ChatInput
+        onSend={handleSend}
+        isLoading={isLoading}
+        rateLimitExpirations={rateLimitExpirations}
+      />
 
       {/* Share Dialog */}
       {shareDialogOpen &&
@@ -388,9 +394,11 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <PricingModal
+      <RateLimitModal
         isOpen={isLimitReached}
         onClose={() => setIsLimitReached(false)}
+        expirations={rateLimitExpirations}
+        retryAfterMs={rateLimitRetryAfterMs}
       />
     </div>
   );

@@ -162,6 +162,22 @@ const SETTING_DEFINITIONS = [
     valueType: "string",
     description: "Langfuse base URL",
   },
+  {
+    key: "chat_rate_limit_questions",
+    envKey: "CHAT_RATE_LIMIT_QUESTIONS",
+    category: "chat",
+    valueType: "number",
+    description:
+      "Max chat messages per user per sliding window (default 3 if unset)",
+  },
+  {
+    key: "chat_rate_limit_window",
+    envKey: "CHAT_RATE_LIMIT_WINDOW",
+    category: "chat",
+    valueType: "duration",
+    description:
+      "Sliding window length for chat rate limit (default 5 minutes if unset)",
+  },
 ];
 
 const READ_ONLY_VARS = [

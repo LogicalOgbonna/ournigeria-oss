@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Loader2,
+  // Loader2,
   Check,
   Copy,
   Heart,
@@ -49,23 +49,19 @@ interface DonationHistoryResponse {
 type DonationType = "one-time" | "monthly";
 type Provider = "PAYSTACK" | "FLUTTERWAVE" | "CRYPTO";
 
-const AMOUNT_PRESETS = [
+/* const AMOUNT_PRESETS = [
   { label: "\u20A6500", value: 50000 },
   { label: "\u20A61K", value: 100000 },
   { label: "\u20A65K", value: 500000 },
   { label: "\u20A610K", value: 1000000 },
   { label: "\u20A650K", value: 5000000 },
   { label: "Custom", value: 0 },
-] as const;
+] as const; */
 
 const CRYPTO_WALLETS = [
   {
-    label: "Ethereum / Base / Optimism",
-    address: "0x742d35Cc6634C0532925a3b844Bc9e7595f5bA16",
-  },
-  {
     label: "Solana",
-    address: "7EcDhSYGxXyscszYEp35KHN8vvw3svAuLKTzXwCFLtV",
+    address: "4F7M9tEkmbSpBHbeG8mq55J3NsSyD9h6XdAjReDc9kP1",
   },
 ] as const;
 
@@ -98,17 +94,17 @@ export default function DonatePage() {
   const router = useRouter();
 
   // Profile
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [, setProfile] = useState<Profile | null>(null);
+  const [, setProfileLoading] = useState(true);
 
   // Form state
-  const [donationType, setDonationType] = useState<DonationType>("one-time");
-  const [selectedPreset, setSelectedPreset] = useState(2); // default: 5K
-  const [customAmount, setCustomAmount] = useState("");
-  const [email, setEmail] = useState("");
-  const [provider, setProvider] = useState<Provider>("PAYSTACK");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, ] = useState<DonationType>("one-time");
+  const [, ] = useState(2); // default: 5K
+  const [, ] = useState("");
+  const [, setEmail] = useState("");
+  const [provider, ] = useState<Provider>("CRYPTO");
+  const [, ] = useState(false);
+  const [error, ] = useState<string | null>(null);
 
   // History
   const [history, setHistory] = useState<Donation[]>([]);
@@ -134,7 +130,6 @@ export default function DonatePage() {
 
   /* ---- Fetch donation history ---- */
   const fetchHistory = useCallback(() => {
-    setHistoryLoading(true);
     fetch(apiUrl("/api/donate/history"), { credentials: "include" })
       .then((r) => {
         if (!r.ok) throw new Error();
@@ -152,13 +147,13 @@ export default function DonatePage() {
   }, [fetchHistory]);
 
   /* ---- Derived amount ---- */
-  const isCustom = AMOUNT_PRESETS[selectedPreset].value === 0;
+  /* const isCustom = AMOUNT_PRESETS[selectedPreset].value === 0;
   const amountKobo = isCustom
     ? Math.round(parseFloat(customAmount || "0") * 100)
-    : AMOUNT_PRESETS[selectedPreset].value;
+    : AMOUNT_PRESETS[selectedPreset].value; */
 
   /* ---- Submit ---- */
-  const handleDonate = async () => {
+  /* const handleDonate = async () => {
     if (provider === "CRYPTO") return; // crypto section is informational
     if (amountKobo < 10000) {
       setError("Minimum donation is \u20A6100");
@@ -207,7 +202,7 @@ export default function DonatePage() {
       );
       setSubmitting(false);
     }
-  };
+  }; */
 
   /* ---- Copy wallet address ---- */
   const copyAddress = (address: string) => {
@@ -270,7 +265,7 @@ export default function DonatePage() {
         </div>
 
         {/* One-time / Monthly toggle */}
-        <div className="mb-6 flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
+        {/* <div className="mb-6 flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
           {(["one-time", "monthly"] as const).map((t) => (
             <button
               key={t}
@@ -284,10 +279,10 @@ export default function DonatePage() {
               {t === "one-time" ? "One-time" : "Monthly"}
             </button>
           ))}
-        </div>
+        </div> */}
 
         {/* Amount selector */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 font-[family-name:var(--font-mono)]">
             Amount
           </label>
@@ -325,10 +320,10 @@ export default function DonatePage() {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Email */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <label
             htmlFor="donate-email"
             className="mb-1.5 block text-xs font-medium text-slate-500 dark:text-slate-400"
@@ -344,10 +339,10 @@ export default function DonatePage() {
             disabled={profileLoading}
             className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors disabled:opacity-50"
           />
-        </div>
+        </div> */}
 
         {/* Payment method */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 font-[family-name:var(--font-mono)]">
             Payment method
           </label>
@@ -387,7 +382,7 @@ export default function DonatePage() {
               </button>
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Crypto section (shown when Crypto is selected) */}
         {provider === "CRYPTO" && (
@@ -460,7 +455,7 @@ export default function DonatePage() {
         )}
 
         {/* Donate button (hidden for crypto) */}
-        {provider !== "CRYPTO" && (
+        {/* {provider !== "CRYPTO" && (
           <button
             onClick={handleDonate}
             disabled={submitting || amountKobo < 10000}
@@ -476,7 +471,7 @@ export default function DonatePage() {
               </>
             )}
           </button>
-        )}
+        )} */}
 
         {/* ---- Donation History ---- */}
         <section className="mt-12">

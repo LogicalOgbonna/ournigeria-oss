@@ -49,7 +49,7 @@ interface Setting {
   encrypted: boolean;
   description: string;
   category: string;
-  valueType: "string" | "number" | "boolean" | "secret";
+  valueType: "string" | "number" | "boolean" | "secret" | "duration";
   updatedAt: string;
   updatedBy: string;
 }
@@ -311,6 +311,12 @@ const TABS = [
     testable: false,
   },
   {
+    id: "rate-limiting",
+    label: "Rate Limiting",
+    categories: ["chat"],
+    testable: false,
+  },
+  {
     id: "infrastructure",
     label: "Infrastructure",
     categories: [],
@@ -447,6 +453,39 @@ function SettingField({
           placeholder={setting.value || "Enter value"}
           onChange={onChange}
         />
+      ) : setting.valueType === "duration" ? (
+        <div className="flex items-center gap-2">
+          {(() => {
+            const parts = value ? value.split(" ") : ["5", "minutes"];
+            const numVal = parts[0] || "5";
+            const unitVal = parts[1] || "minutes";
+            return (
+              <>
+                <Input
+                  id={id}
+                  type="number"
+                  value={numVal}
+                  onChange={(e) => onChange(`${e.target.value} ${unitVal}`)}
+                  className="flex-1"
+                />
+                <Select
+                  value={unitVal}
+                  onValueChange={(v) => onChange(`${numVal} ${v}`)}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="seconds">Seconds</SelectItem>
+                    <SelectItem value="minutes">Minutes</SelectItem>
+                    <SelectItem value="hours">Hours</SelectItem>
+                    <SelectItem value="days">Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            );
+          })()}
+        </div>
       ) : setting.valueType === "number" ? (
         <Input
           id={id}
