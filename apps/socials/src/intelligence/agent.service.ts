@@ -1,279 +1,267 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText, stepCountIs, tool } from "ai";
+import { createDeepSeek } from "@ai-sdk/deepseek";
+import { z } from "zod";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
-import type { TopicMatch } from "./topic-matcher.js";
-import type { ContentDecision } from "./content-selector.js";
 
-export interface AgentResult {
-  content: string;
-  format: "opinion_tweet" | "thread";
-  toolResults: unknown[];
-  dataQuery: string;
+export interface DiscoveredTweetSnapshot {
+  id: string;
+  text: string;
+  authorScreenName: string;
+  authorName: string;
+  authorBio: string;
+  authorFollowers: number;
+  replyCount: number;
+  retweetCount: number;
+  likeCount: number;
+  quoteCount: number;
+  isReply: boolean;
+  isQuote: boolean;
+  tweetCreatedAt: Date;
 }
 
-const SYSTEM_PROMPT = `You are OurNigeria's civic data analyst for Twitter. Your job is to generate data-driven social media content about Nigerian government spending, budgets, corruption, and public finance.
+export interface AgentTopicContext {
+  name: string;
+  domain: "budget" | "corruption" | "faac" | "govspend" | "general";
+  description: string;
+}
 
-VOICE: Write in Nigerian Pidgin English. Be direct, punchy, and cite specific numbers.
-FORMAT: When asked for an opinion_tweet, write a single tweet (max 280 chars). When asked for a thread, write a JSON array of tweet strings.
+export interface AgentClassification {
+  score: number;
+  intent: string;
+  reason: string;
+}
 
-RULES:
-1. Always cite specific state, year, and amount from the search results.
-2. Use ₦ symbol for Naira amounts (e.g., ₦1.3B, ₦47M).
-3. Never make unsourced claims — only use data from tool results.
-4. Frame content as questions or observations, never as accusations.
-5. Include the state name and year for context.
-6. For opinion tweets: [Pidgin hook] + [data point] + [implicit question].
-7. For threads: 3-5 tweets, each under 280 chars. Start with a hook, end with a call to action.`;
+export interface AgentResult {
+  action: "quote" | "reply" | "skip";
+  text: string;
+  confidence: number;
+  reasoning: string;
+  toolResults: unknown[];
+  dataQuery: string;
+  /** Approximate USD cost of the agent call, used for daily budget tracking. */
+  costUsd: number;
+}
+
+const AgentResultJsonSchema = z.object({
+  action: z.enum(["quote", "reply", "skip"]),
+  text: z.string(),
+  confidence: z.number().min(0).max(1),
+  reasoning: z.string(),
+});
+
+const SYSTEM_PROMPT = `You are OurNigeria's civic data analyst on Twitter/X. You craft on-brand responses to real tweets that surface Nigerian government spending, budgets, corruption cases, and public finance figures.
+
+VOICE: Nigerian Pidgin English. Direct, punchy, citizen-journalist tone. Cite specific numbers from your tools.
+
+OUTPUT FORMAT — return ONLY a JSON object with this exact shape:
+{
+  "action": "quote" | "reply" | "skip",
+  "text": string,                  // empty if action is "skip"
+  "confidence": number,            // 0..1, your self-rated confidence
+  "reasoning": string              // one sentence explaining your action choice
+}
+
+Rules:
+1. Cite specific state, year, amount from search results. Use the Naira symbol (e.g., 1.3B, 47M Naira).
+2. Never make unsourced claims — only use data your tools returned.
+3. Frame as questions or observations, never accusations.
+4. Action selection:
+   - "quote": you have a substantive data-backed point to amplify alongside the tweet. Use when author has a meaningful follower count (>= ~10k) or the tweet itself is a strong signal you want to widen.
+   - "reply": you have a direct, conversational data point that fits as a comment thread. Use for lower-follower authors or direct questions/claims you can correct/expand.
+   - "skip": you cannot find supporting data, the tweet is off-topic for your tools, the response would be unsourced or generic, OR responding adds no civic value.
+5. Tweet text MUST be no more than 280 characters.
+6. Prefer skipping over weak/generic responses. Reviewers approve drafts manually — quality over volume.`;
 
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
-  private readonly client: Anthropic;
-  private readonly model: string;
-
-  // Tool definitions for the Claude Agent SDK
-  private readonly tools: Anthropic.Tool[] = [
-    {
-      name: "budget_search",
-      description:
-        "Search Nigerian budget documents for spending figures, allocations, and financial details.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query about Nigerian budgets",
-          },
-          state: {
-            type: "string",
-            description: "Filter by state name (lowercase)",
-          },
-          year: {
-            type: "number",
-            description: "Filter by budget year",
-          },
-          sector: {
-            type: "string",
-            description: "Filter by sector (education, health, infrastructure, etc.)",
-          },
-        },
-        required: ["query"],
-      },
-    },
-    {
-      name: "corruption_search",
-      description:
-        "Search EFCC corruption case files for Nigerian officials.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query about corruption cases",
-          },
-          official: {
-            type: "string",
-            description: "Filter by official name",
-          },
-          state: {
-            type: "string",
-            description: "Filter by state",
-          },
-        },
-        required: ["query"],
-      },
-    },
-    {
-      name: "faac_search",
-      description:
-        "Search FAAC federal allocation data for states and LGAs.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query about FAAC allocations",
-          },
-          state: {
-            type: "string",
-            description: "Filter by state name",
-          },
-          year: {
-            type: "number",
-            description: "Filter by year",
-          },
-        },
-        required: ["query"],
-      },
-    },
-    {
-      name: "govspend_search",
-      description:
-        "Search government payment records and contractor data.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          query: {
-            type: "string",
-            description: "Search query about government payments",
-          },
-          organization: {
-            type: "string",
-            description: "Filter by MDA/organization name",
-          },
-          year: {
-            type: "string",
-            description: "Filter by year",
-          },
-        },
-        required: ["query"],
-      },
-    },
-  ];
+  private readonly model: ReturnType<ReturnType<typeof createDeepSeek>>;
+  private readonly modelId: string;
+  private readonly temperature: number;
+  private readonly inputUsdPerM: number;
+  private readonly outputUsdPerM: number;
 
   constructor(config: ConfigService<SocialsEnvConfig>) {
-    this.client = new Anthropic({
-      apiKey: config.get("LLM_API_KEY")!,
+    const provider = createDeepSeek({
+      apiKey: config.get("DEEPSEEK_API_KEY")!,
+      baseURL: config.get("DEEPSEEK_BASE_URL"),
     });
-    this.model = config.get("LLM_MODEL") ?? "claude-sonnet-4-20250514";
+    this.modelId = config.get("SOCIALS_DRAFTER_MODEL")!;
+    this.model = provider(this.modelId);
+    this.temperature = config.get("SOCIALS_DRAFTER_TEMPERATURE")!;
+    this.inputUsdPerM = config.get("SOCIALS_DRAFTER_INPUT_USD_PER_M")!;
+    this.outputUsdPerM = config.get("SOCIALS_DRAFTER_OUTPUT_USD_PER_M")!;
   }
 
   async generate(
-    topic: string,
-    match: TopicMatch,
-    decision: ContentDecision,
+    input: {
+      discoveredTweet: DiscoveredTweetSnapshot;
+      topic: AgentTopicContext;
+      classification: AgentClassification;
+    },
     toolExecutor: (
       name: string,
-      input: Record<string, unknown>,
+      args: Record<string, unknown>,
     ) => Promise<unknown>,
   ): Promise<AgentResult | null> {
-    const formatInstruction =
-      decision.format === "thread"
-        ? "Generate a Twitter thread as a JSON array of tweet strings (3-5 tweets, each under 280 chars)."
-        : "Generate a single opinion tweet (max 280 chars).";
+    const { discoveredTweet, topic, classification } = input;
 
-    const userPrompt = `Topic trending on Twitter: "${topic}"
-Domain: ${match.domain}
-${match.entities.states.length > 0 ? `States mentioned: ${match.entities.states.join(", ")}` : ""}
-${match.entities.sectors.length > 0 ? `Sectors: ${match.entities.sectors.join(", ")}` : ""}
+    const userPrompt = `You are responding to this tweet:
 
-${formatInstruction}
+Author: ${discoveredTweet.authorName} (@${discoveredTweet.authorScreenName})
+Followers: ${discoveredTweet.authorFollowers}
+Engagement: ${discoveredTweet.likeCount} likes, ${discoveredTweet.replyCount} replies, ${discoveredTweet.quoteCount} quotes
+Posted: ${discoveredTweet.tweetCreatedAt.toISOString()}
 
-First, search our database for relevant data using the available tools. Then generate content based on what you find. If you don't find relevant data, respond with "NO_DATA".`;
+Tweet text:
+"""
+${discoveredTweet.text}
+"""
 
-    const allToolResults: unknown[] = [];
-    let dataQuery = "";
-    let messages: Anthropic.MessageParam[] = [
-      { role: "user", content: userPrompt },
-    ];
+Topic that matched this tweet: "${topic.name}" (domain: ${topic.domain})
+Topic description: ${topic.description}
 
-    // Agentic loop: tool use → execute → feed back → repeat
-    const maxIterations = 5;
-    for (let i = 0; i < maxIterations; i++) {
-      let response: Anthropic.Message;
-      try {
-        response = await Promise.race([
-          this.client.messages.create({
-            model: this.model,
-            max_tokens: 1024,
-            system: SYSTEM_PROMPT,
-            tools: this.tools,
-            messages,
-          }),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("Agent timeout (90s)")),
-              90_000,
-            ),
-          ),
-        ]);
-      } catch (error) {
-        this.logger.error(
-          `Agent error: ${error instanceof Error ? error.message : error}`,
-        );
-        return null;
-      }
+Classifier said: relevance ${classification.score.toFixed(2)}, intent="${classification.intent}", reason="${classification.reason}"
 
-      // Check for text output (final response)
-      const textBlock = response.content.find(
-        (b) => b.type === "text",
+Your job:
+1. Search OurNigeria's data tools for facts that meaningfully respond to this tweet. Prefer the ${topic.domain}_search tool first, but use others if relevant.
+2. Decide quote / reply / skip. Skip is fine if data isn't there or response would be weak.
+3. Return the JSON object only.`;
+
+    const collectedToolResults: unknown[] = [];
+    let lastDataQuery = "";
+
+    const buildSearchTool = (
+      name: "budget_search" | "corruption_search" | "faac_search" | "govspend_search",
+      description: string,
+      schema: z.ZodTypeAny,
+    ) =>
+      tool({
+        description,
+        inputSchema: schema,
+        execute: async (args: Record<string, unknown>) => {
+          lastDataQuery = `${name}: ${JSON.stringify(args)}`;
+          this.logger.log(`Tool call: ${name}`);
+          const result = await toolExecutor(name, args);
+          collectedToolResults.push(result);
+          return result;
+        },
+      });
+
+    const tools = {
+      budget_search: buildSearchTool(
+        "budget_search",
+        "Search Nigerian budget documents for spending figures, allocations, and financial details.",
+        z.object({
+          query: z.string().describe("Search query about Nigerian budgets"),
+          state: z.string().optional().describe("Filter by state name (lowercase)"),
+          year: z.number().optional().describe("Filter by budget year"),
+          sector: z
+            .string()
+            .optional()
+            .describe("Filter by sector (education, health, infrastructure, etc.)"),
+        }),
+      ),
+      corruption_search: buildSearchTool(
+        "corruption_search",
+        "Search EFCC corruption case files for Nigerian officials.",
+        z.object({
+          query: z.string().describe("Search query about corruption cases"),
+          official: z.string().optional().describe("Filter by official name"),
+          state: z.string().optional().describe("Filter by state"),
+        }),
+      ),
+      faac_search: buildSearchTool(
+        "faac_search",
+        "Search FAAC federal allocation data for states and LGAs.",
+        z.object({
+          query: z.string().describe("Search query about FAAC allocations"),
+          state: z.string().optional().describe("Filter by state name"),
+          year: z.number().optional().describe("Filter by year"),
+        }),
+      ),
+      govspend_search: buildSearchTool(
+        "govspend_search",
+        "Search government payment records and contractor data.",
+        z.object({
+          query: z.string().describe("Search query about government payments"),
+          organization: z.string().optional().describe("Filter by MDA/organization name"),
+          year: z.string().optional().describe("Filter by year"),
+        }),
+      ),
+    };
+
+    let result;
+    try {
+      result = await generateText({
+        model: this.model,
+        system: SYSTEM_PROMPT,
+        prompt: userPrompt,
+        tools,
+        stopWhen: stepCountIs(5),
+        temperature: this.temperature,
+        abortSignal: AbortSignal.timeout(90_000),
+      });
+    } catch (err) {
+      this.logger.error(
+        `agent error: ${err instanceof Error ? err.message : err}`,
       );
-      if (
-        response.stop_reason === "end_turn" &&
-        textBlock &&
-        textBlock.type === "text"
-      ) {
-        const text = textBlock.text.trim();
-        if (text === "NO_DATA" || text.includes("NO_DATA")) {
-          this.logger.log("Agent found no relevant data");
-          return null;
-        }
-
-        return {
-          content: text,
-          format: decision.format,
-          toolResults: allToolResults,
-          dataQuery,
-        };
-      }
-
-      // Process tool uses
-      const toolUses = response.content.filter(
-        (b) => b.type === "tool_use",
-      );
-      if (toolUses.length === 0) {
-        // No tool use and no text — unexpected
-        if (textBlock && textBlock.type === "text") {
-          return {
-            content: textBlock.text.trim(),
-            format: decision.format,
-            toolResults: allToolResults,
-            dataQuery,
-          };
-        }
-        this.logger.warn("Agent returned no tool use and no text");
-        return null;
-      }
-
-      // Execute tools and build response
-      const toolResultBlocks: Anthropic.ToolResultBlockParam[] = [];
-      for (const toolUse of toolUses) {
-        if (toolUse.type !== "tool_use") continue;
-
-        dataQuery = `${toolUse.name}: ${JSON.stringify(toolUse.input)}`;
-        this.logger.log(`Tool call: ${toolUse.name}`);
-
-        try {
-          const result = await toolExecutor(
-            toolUse.name,
-            toolUse.input as Record<string, unknown>,
-          );
-          allToolResults.push(result);
-          toolResultBlocks.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: JSON.stringify(result),
-          });
-        } catch (error) {
-          toolResultBlocks.push({
-            type: "tool_result",
-            tool_use_id: toolUse.id,
-            content: `Error: ${error instanceof Error ? error.message : error}`,
-            is_error: true,
-          });
-        }
-      }
-
-      // Feed results back
-      messages = [
-        ...messages,
-        { role: "assistant", content: response.content },
-        { role: "user", content: toolResultBlocks },
-      ];
+      return null;
     }
 
-    this.logger.warn("Agent hit max iterations without completing");
-    return null;
+    const parsed = this.parseFinalJson(result.text);
+    if (!parsed) return null;
+
+    return {
+      ...parsed,
+      toolResults: collectedToolResults,
+      dataQuery: lastDataQuery,
+      costUsd: this.estimateCostUsd(
+        result.usage?.inputTokens ?? 0,
+        result.usage?.outputTokens ?? 0,
+      ),
+    };
+  }
+
+  private parseFinalJson(
+    text: string,
+  ): Pick<AgentResult, "action" | "text" | "confidence" | "reasoning"> | null {
+    let body = text.trim();
+    const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(body);
+    if (fenced) body = fenced[1].trim();
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
+      return null;
+    }
+
+    const safe = AgentResultJsonSchema.safeParse(parsed);
+    if (!safe.success) {
+      this.logger.warn(
+        `agent JSON failed schema: ${JSON.stringify(safe.error.issues)}`,
+      );
+      return null;
+    }
+
+    if (safe.data.action !== "skip" && safe.data.text.length === 0) {
+      this.logger.warn(
+        `agent returned ${safe.data.action} but empty text; treating as skip`,
+      );
+      return { ...safe.data, action: "skip", text: "" };
+    }
+
+    return safe.data;
+  }
+
+  private estimateCostUsd(inputTokens: number, outputTokens: number): number {
+    return (
+      (inputTokens * this.inputUsdPerM) / 1_000_000 +
+      (outputTokens * this.outputUsdPerM) / 1_000_000
+    );
   }
 }

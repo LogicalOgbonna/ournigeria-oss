@@ -64,6 +64,20 @@ export class TwitterPublisher {
     }
   }
 
+  async publishQuote(
+    quoteTweetId: string,
+    content: string,
+  ): Promise<TweetResult> {
+    try {
+      return await this.twitter.postQuote(quoteTweetId, content);
+    } catch (error) {
+      this.logger.warn(
+        `Quote failed, retrying: ${error instanceof Error ? error.message : error}`,
+      );
+      return await this.twitter.postQuote(quoteTweetId, content);
+    }
+  }
+
   private async publishThread(tweets: string[]): Promise<TweetResult[]> {
     return this.twitter.postThread(tweets);
   }

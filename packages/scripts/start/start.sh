@@ -2,7 +2,7 @@
 set -eo pipefail
 
 # ─── App config (bash 3.2 compatible) ───────────────────────────────────────
-ALL_APPS="api web dashboard ingest awanaija"
+ALL_APPS="api web dashboard ingest awanaija socials"
 
 get_port() {
   case "$1" in
@@ -11,6 +11,7 @@ get_port() {
     dashboard) echo 3004 ;;
     ingest)    echo 3002 ;;
     awanaija)  echo 3003 ;;
+    socials)   echo 3005 ;;
   esac
 }
 
@@ -21,12 +22,13 @@ get_command() {
     dashboard) echo "pnpm dashboard:dev" ;;
     ingest)    echo "pnpm ingest:dev" ;;
     awanaija)  echo "pnpm awanaija:dev" ;;
+    socials)   echo "pnpm socials:dev" ;;
   esac
 }
 
 is_valid_app() {
   case "$1" in
-    api|web|dashboard|ingest|awanaija) return 0 ;;
+    api|web|dashboard|ingest|awanaija|socials) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -44,7 +46,7 @@ NC='\033[0m'
 usage() {
   echo -e "${CYAN}Usage:${NC} $0 [options] [app ...]"
   echo ""
-  echo "Apps: api, web, dashboard, ingest, awanaija"
+  echo "Apps: api, web, dashboard, ingest, awanaija, socials"
   echo "If no apps specified, all apps are started."
   echo ""
   echo "Options:"

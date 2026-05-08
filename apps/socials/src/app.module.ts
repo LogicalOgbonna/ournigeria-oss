@@ -10,6 +10,7 @@ import { SchedulerModule } from "./scheduler/scheduler.module.js";
 import { ReplyQueueModule } from "./reply-queue/reply-queue.module.js";
 import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { HealthModule } from "./health/health.module.js";
+import { NotificationsModule } from "./notifications/notifications.module.js";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HealthModule } from "./health/health.module.js";
       allowExitOnIdle: false,
     }),
     ScheduleModule.forRoot(),
+    NotificationsModule,
     PlatformModule,
     IntelligenceModule,
     ContentModule,

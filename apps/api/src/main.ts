@@ -11,10 +11,6 @@ import { AppModule } from "./app.module";
 import { closePgVector } from "./mastra/rag/config";
 import { closeSharedPool } from "./mastra/rag/db-pool";
 import { runRagMigrations } from "./mastra/rag/migrations/run-migrations";
-import { Neo4jService } from "./graph/neo4j.service";
-import { setNeo4jServiceForTools } from "./mastra/tools/graph-search";
-import { setNeo4jServiceForTraversal } from "./mastra/tools/traverse-graph";
-
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
@@ -61,11 +57,6 @@ async function bootstrap() {
 
   // Run RAG migrations (idempotent, non-blocking)
   runRagMigrations().catch(() => {});
-
-  // Wire Neo4j into graph tools
-  const neo4j = app.get(Neo4jService);
-  setNeo4jServiceForTools(neo4j);
-  setNeo4jServiceForTraversal(neo4j);
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);

@@ -1,11 +1,13 @@
 import { Module } from "@nestjs/common";
 import { AgentService } from "./agent.service.js";
-import { TopicMatcher } from "./topic-matcher.js";
-import { ContentSelector } from "./content-selector.js";
 import { SafetyFilter } from "./safety-filter.js";
+import { DrafterService } from "./drafter.service.js";
+import { PlatformModule } from "../platforms/platform.module.js";
+import { ReplyQueueModule } from "../reply-queue/reply-queue.module.js";
 
 @Module({
-  providers: [AgentService, TopicMatcher, ContentSelector, SafetyFilter],
-  exports: [AgentService, TopicMatcher, ContentSelector, SafetyFilter],
+  imports: [PlatformModule, ReplyQueueModule],
+  providers: [AgentService, SafetyFilter, DrafterService],
+  exports: [AgentService, SafetyFilter],
 })
 export class IntelligenceModule {}

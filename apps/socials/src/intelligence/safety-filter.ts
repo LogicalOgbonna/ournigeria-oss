@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 
 export interface SafetyResult {
   safe: boolean;
-  reason?: string;
+  warnings: string[];
 }
 
 const BLOCKED_KEYWORDS = [
@@ -28,24 +28,19 @@ export class SafetyFilter {
   private readonly logger = new Logger(SafetyFilter.name);
 
   check(content: string, toolResults?: unknown[]): SafetyResult {
+    const warnings: string[] = [];
+
     // 1. Keyword blocklist check
     const lower = content.toLowerCase();
     for (const keyword of BLOCKED_KEYWORDS) {
       if (lower.includes(keyword)) {
-        this.logger.warn(`Blocked keyword found: "${keyword}"`);
-        return {
-          safe: false,
-          reason: `Contains blocked keyword: "${keyword}"`,
-        };
+        warnings.push(`Contains blocked keyword: "${keyword}"`);
       }
     }
 
     // 2. Figure validation: cited figures must exist in tool results
     if (toolResults && toolResults.length > 0) {
-      const figureCheck = this.validateFigures(content, toolResults);
-      if (!figureCheck.safe) {
-        return figureCheck;
-      }
+      warnings.push(...this.validateFigures(content, toolResults));
     }
 
     // 3. Length validation
@@ -55,14 +50,15 @@ export class SafetyFilter {
 
     for (const tweet of tweets) {
       if (tweet.length > 280) {
-        return {
-          safe: false,
-          reason: `Tweet exceeds 280 chars (${tweet.length} chars)`,
-        };
+        warnings.push(`Tweet exceeds 280 chars (${tweet.length} chars)`);
       }
     }
 
-    return { safe: true };
+    if (warnings.length > 0) {
+      this.logger.warn(`safety warnings: ${warnings.join("; ")}`);
+    }
+
+    return { safe: warnings.length === 0, warnings };
   }
 
   private isThread(content: string): boolean {
@@ -74,45 +70,32 @@ export class SafetyFilter {
     }
   }
 
-  private validateFigures(
-    content: string,
-    toolResults: unknown[],
-  ): SafetyResult {
-    // Extract all monetary figures from the generated content
+  private validateFigures(content: string, toolResults: unknown[]): string[] {
+    const warnings: string[] = [];
     const figures: string[] = [];
     for (const pattern of NAIRA_PATTERNS) {
       const matches = content.match(pattern);
-      if (matches) {
-        figures.push(...matches);
-      }
+      if (matches) figures.push(...matches);
     }
 
-    if (figures.length === 0) {
-      return { safe: true };
-    }
+    if (figures.length === 0) return warnings;
 
-    // Serialize tool results to check if figures appear in source data
     const toolText = JSON.stringify(toolResults);
 
     for (const figure of figures) {
-      // Normalize: remove currency symbols and whitespace
       const normalized = figure
         .replace(/[₦N,\s]/g, "")
         .replace(/NGN/gi, "");
 
-      // Check if any form of this number appears in tool results
-      if (!toolText.includes(normalized) && !this.fuzzyNumberMatch(normalized, toolText)) {
-        this.logger.warn(
-          `Figure "${figure}" not found in tool results`,
-        );
-        return {
-          safe: false,
-          reason: `Cited figure "${figure}" not found in source data`,
-        };
+      if (
+        !toolText.includes(normalized) &&
+        !this.fuzzyNumberMatch(normalized, toolText)
+      ) {
+        warnings.push(`Cited figure "${figure}" not found in source data`);
       }
     }
 
-    return { safe: true };
+    return warnings;
   }
 
   private fuzzyNumberMatch(figure: string, sourceText: string): boolean {

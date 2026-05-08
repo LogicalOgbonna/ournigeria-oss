@@ -13,8 +13,6 @@ import { maybeSummarize } from "./summarize";
 import { extractAndSaveMemory, loadUserProfile } from "./user-memory";
 import { getLangfuse } from "../lib/langfuse";
 import { invalidateConversationList } from "../conversations/conversations.service";
-import { DisambiguationService } from "../graph/disambiguation.service";
-import { SuggestionsService } from "../graph/suggestions.service";
 
 const convMetaCache = cache.namespace("conv:meta");
 
@@ -26,8 +24,6 @@ export class ChatService {
 
   constructor(
     readonly prisma: PrismaService,
-    @Optional() @Inject(DisambiguationService) private disambiguationService?: DisambiguationService,
-    @Optional() @Inject(SuggestionsService) private suggestionsService?: SuggestionsService,
   ) {}
 
   /**
@@ -235,18 +231,6 @@ export class ChatService {
 
     // TL;DR observability
     console.log(`[tldr] summary_present=${!!richContent.summary}, text_length=${richContent.text.length}, summary_length=${richContent.summary?.length ?? 0}`);
-
-    // Emit graph-powered follow-up suggestions (non-blocking)
-    if (this.suggestionsService && resolvedTool !== "general") {
-      this.emitSuggestions(
-        message,
-        resolvedTool,
-        richContent,
-        send,
-      ).catch((err) => {
-        this.logger.debug(`Suggestions emit failed: ${err instanceof Error ? err.message : err}`);
-      });
-    }
 
     // Persist assistant message (with retry on sequence collision)
     const { sequenceNumber: assistantSeq, messageId: assistantMsgId } = await this.createMessageWithSeqRetry({
@@ -496,47 +480,4 @@ export class ChatService {
     console.log(`[SourceReference] Persisted ${refs.length}/${sources.length} references for message ${messageId}`);
   }
 
-  private async emitSuggestions(
-    message: string,
-    resolvedTool: string,
-    richContent: AIResponseContent,
-    send: (data: Record<string, unknown>) => void,
-  ): Promise<void> {
-    if (!this.suggestionsService) return;
-
-    // Extract entity names from the message and response sources
-    const entities: string[] = [];
-
-    // From response sources
-    if (richContent.sources) {
-      for (const source of richContent.sources) {
-        if (source.state) entities.push(source.state);
-      }
-    }
-    if (richContent.officials) {
-      for (const officialGroup of richContent.officials) {
-        if (officialGroup.state) entities.push(officialGroup.state);
-        for (const o of officialGroup.officials ?? []) {
-          if (o.name) entities.push(o.name);
-        }
-      }
-    }
-
-    // Extract state names from message as fallback
-    if (entities.length === 0) {
-      const words = message.split(/\s+/).filter((w) => w.length > 2);
-      entities.push(...words.slice(0, 3));
-    }
-
-    if (entities.length === 0) return;
-
-    const suggestions = await this.suggestionsService.getRelated(
-      [...new Set(entities)],
-      resolvedTool,
-    );
-
-    if (suggestions.length > 0) {
-      send({ type: "suggestions", suggestions });
-    }
-  }
 }
