@@ -3,9 +3,12 @@ import { getStates, getLgas, getWards, getOfficials } from '@/lib/api';
 
 export const revalidate = 86400; // Revalidate every 24 hours
 
+const slugify = (s: string) =>
+  encodeURIComponent(s.toLowerCase().replace(/\s+/g, '-'));
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://ournigeria.ng';
-  
+
   const staticRoutes = [
     '',
     '/states',
@@ -28,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const states = await getStates();
 
     for (const state of states) {
-      const stateSlug = state.name.toLowerCase().replace(/\s+/g, '-');
+      const stateSlug = slugify(state.name);
       dynamicRoutes.push({
         url: `${baseUrl}/states/${stateSlug}`,
         lastModified: new Date(),
@@ -46,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           
           await Promise.all(
             lgaChunk.map(async (lga) => {
-              const lgaSlug = lga.name.toLowerCase().replace(/\s+/g, '-');
+              const lgaSlug = slugify(lga.name);
               dynamicRoutes.push({
                 url: `${baseUrl}/states/${stateSlug}/${lgaSlug}`,
                 lastModified: new Date(),
@@ -57,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
               try {
                 const wards = await getWards(lga.code);
                 for (const ward of wards) {
-                  const wardSlug = ward.name.split('/')[0].trim().toLowerCase().replace(/\s+/g, '-');
+                  const wardSlug = slugify(ward.name.split('/')[0].trim());
                   dynamicRoutes.push({
                     url: `${baseUrl}/states/${stateSlug}/${lgaSlug}/${wardSlug}`,
                     lastModified: new Date(),
