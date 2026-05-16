@@ -161,6 +161,7 @@ model NigerianLga {
   wards              NigerianWard[]
   senatorialMappings SenatorialDistrictLga[]
   officialPositions  OfficialPosition[]
+  budgetLocations    BudgetLocation[]
 
   @@index([stateCode], map: "idx_lgas_state")
   @@map("nigerian_lgas")
@@ -511,6 +512,8 @@ model Document {
   budgetLineItems   BudgetLineItem[]
   budgetActuals     BudgetActual[]
   faacDisbursements FaacDisbursement[]
+  budgetDocumentSections BudgetDocumentSection[]
+  budgetProjects         BudgetProject[]
 
   @@index([entityCode, fiscalYear], map: "idx_documents_entity_year")
   @@index([stateCode, fiscalYear], map: "idx_documents_state_year")
@@ -1075,6 +1078,8 @@ model FiscalEntity {
   faacLgaAllocations   FaacLgaAllocation[]
   gdpRecords           GdpRecord[]
   populationEstimates  PopulationEstimate[]
+  budgetDocumentSections BudgetDocumentSection[]
+  budgetProjects         BudgetProject[]
 
   @@map("fiscal_entities")
 }
@@ -1102,6 +1107,7 @@ model BudgetAdminCode {
   children  BudgetAdminCode[] @relation("AdminParent")
   lineItems BudgetLineItem[]
   actuals   BudgetActual[]
+  primaryProjects BudgetProject[]
 
   @@unique([code, entityCode], map: "uq_admin_code_entity")
   @@index([entityCode], map: "idx_admin_codes_entity")
@@ -1167,6 +1173,7 @@ model BudgetProgramme {
   entity    FiscalEntity     @relation(fields: [entityCode], references: [code])
   lineItems BudgetLineItem[]
   actuals   BudgetActual[]
+  primaryProjects BudgetProject[]
 
   @@unique([code, entityCode], map: "uq_programme_code_entity")
   @@index([entityCode], map: "idx_programmes_entity")
@@ -1184,6 +1191,11 @@ model BudgetLocation {
 
   entity    FiscalEntity     @relation(fields: [entityCode], references: [code])
   lineItems BudgetLineItem[]
+  projectLocations BudgetProjectLocation[]
+
+  canonicalLgaCode String?      @map("canonical_lga_code") @db.VarChar(60)
+  isStateWide      Boolean      @default(false) @map("is_state_wide")
+  canonicalLga     NigerianLga? @relation(fields: [canonicalLgaCode], references: [code])
 
   @@unique([code, entityCode], map: "uq_location_code_entity")
   @@index([entityCode], map: "idx_locations_entity")
@@ -1193,6 +1205,73 @@ model BudgetLocation {
 // ============================================================
 // Budget Fact Tables
 // ============================================================
+
+model BudgetDocumentSection {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode       String   @map("entity_code") @db.VarChar(60)
+  fiscalYear       Int      @map("fiscal_year") @db.SmallInt
+  documentKind     String   @map("document_kind") @db.VarChar(50)
+  sectionKey       String   @map("section_key") @db.VarChar(100)
+  title            String   @db.Text
+  parentSectionId  String?  @map("parent_section_id") @db.Uuid
+  sortOrder        Int      @default(0) @map("sort_order")
+  sourceDocumentId String?  @map("source_document_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity         FiscalEntity            @relation(fields: [entityCode], references: [code])
+  parentSection  BudgetDocumentSection?  @relation("SectionHierarchy", fields: [parentSectionId], references: [id])
+  childSections  BudgetDocumentSection[] @relation("SectionHierarchy")
+  sourceDocument Document?               @relation(fields: [sourceDocumentId], references: [id])
+  lineItems      BudgetLineItem[]
+  actuals        BudgetActual[]
+
+  @@unique([entityCode, fiscalYear, documentKind, sectionKey], map: "uq_budget_section")
+  @@index([entityCode, fiscalYear], map: "idx_budget_section_entity_year")
+  @@map("budget_document_sections")
+}
+
+model BudgetProject {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode         String   @map("entity_code") @db.VarChar(60)
+  fiscalYear         Int      @map("fiscal_year") @db.SmallInt
+  name               String   @db.Text
+  externalCode       String?  @map("external_code") @db.VarChar(100)
+  primaryAdminId     String?  @map("primary_admin_id") @db.Uuid
+  primaryProgrammeId String?  @map("primary_programme_id") @db.Uuid
+  climateRelated     Boolean  @default(false) @map("climate_related")
+  nutritionRelated   Boolean  @default(false) @map("nutrition_related")
+  isStateWide        Boolean  @default(false) @map("is_state_wide")
+  sourceDocumentId   String?  @map("source_document_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  entity           FiscalEntity            @relation(fields: [entityCode], references: [code])
+  primaryAdmin     BudgetAdminCode?        @relation(fields: [primaryAdminId], references: [id])
+  primaryProgramme BudgetProgramme?        @relation(fields: [primaryProgrammeId], references: [id])
+  sourceDocument   Document?               @relation(fields: [sourceDocumentId], references: [id])
+  locations        BudgetProjectLocation[]
+  lineItems        BudgetLineItem[]
+  actuals          BudgetActual[]
+
+  @@unique([entityCode, fiscalYear, externalCode], map: "uq_budget_project_ext_code")
+  @@index([entityCode, fiscalYear], map: "idx_budget_project_entity_year")
+  // Note: PR specifies optional helper index for name lookup, Prisma supports index on Text
+  @@index([entityCode, fiscalYear, name], map: "idx_budget_project_name")
+  @@map("budget_projects")
+}
+
+model BudgetProjectLocation {
+  projectId String   @map("project_id") @db.Uuid
+  locationId String   @map("location_id") @db.Uuid
+  weight     Decimal? @db.Decimal(5, 2)
+
+  project  BudgetProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  location BudgetLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, locationId])
+  @@map("budget_project_locations")
+}
 
 /// Approved budget line items. ~1M rows.
 /// Cross-entity consistency constraint in migration SQL:
@@ -1219,17 +1298,21 @@ model BudgetLineItem {
   sourceDocumentId String?    @map("source_document_id") @db.Uuid
   sourcePage       Int?       @map("source_page")
   sourceAnchor     String?    @map("source_anchor") @db.Text
+  sectionId        String?    @map("section_id") @db.Uuid
+  projectId        String?    @map("project_id") @db.Uuid
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
-  entity         FiscalEntity        @relation(fields: [entityCode], references: [code])
-  admin          BudgetAdminCode     @relation(fields: [adminId], references: [id])
-  economic       BudgetEconomicCode? @relation(fields: [economicCode], references: [code])
-  function       BudgetFunctionCode? @relation(fields: [functionCode], references: [code])
-  fund           BudgetFundCode?     @relation(fields: [fundCode], references: [code])
-  location       BudgetLocation?     @relation(fields: [locationId], references: [id])
-  programme      BudgetProgramme?    @relation(fields: [programmeId], references: [id])
-  sourceDocument Document?           @relation(fields: [sourceDocumentId], references: [id])
+  entity         FiscalEntity          @relation(fields: [entityCode], references: [code])
+  admin          BudgetAdminCode       @relation(fields: [adminId], references: [id])
+  economic       BudgetEconomicCode?   @relation(fields: [economicCode], references: [code])
+  function       BudgetFunctionCode?   @relation(fields: [functionCode], references: [code])
+  fund           BudgetFundCode?       @relation(fields: [fundCode], references: [code])
+  location       BudgetLocation?       @relation(fields: [locationId], references: [id])
+  programme      BudgetProgramme?      @relation(fields: [programmeId], references: [id])
+  sourceDocument Document?             @relation(fields: [sourceDocumentId], references: [id])
+  section        BudgetDocumentSection? @relation(fields: [sectionId], references: [id])
+  project        BudgetProject?        @relation(fields: [projectId], references: [id])
 
   // Uniqueness constraint in migration SQL (uses COALESCE for nullable fund_code)
   @@index([entityCode, fiscalYear], map: "idx_bli_entity_year")
@@ -1259,15 +1342,19 @@ model BudgetActual {
   performancePct   Decimal  @map("performance_pct") @db.Decimal(5, 2)
   balance          Decimal  @db.Decimal(20, 2)
   sourceDocumentId String?  @map("source_document_id") @db.Uuid
+  sectionId        String?  @map("section_id") @db.Uuid
+  projectId        String?  @map("project_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
-  entity         FiscalEntity        @relation(fields: [entityCode], references: [code])
-  admin          BudgetAdminCode?    @relation(fields: [adminId], references: [id])
-  economic       BudgetEconomicCode? @relation(fields: [economicCode], references: [code])
-  function       BudgetFunctionCode? @relation(fields: [functionCode], references: [code])
-  programme      BudgetProgramme?    @relation(fields: [programmeId], references: [id])
-  sourceDocument Document?           @relation(fields: [sourceDocumentId], references: [id])
+  entity         FiscalEntity          @relation(fields: [entityCode], references: [code])
+  admin          BudgetAdminCode?      @relation(fields: [adminId], references: [id])
+  economic       BudgetEconomicCode?   @relation(fields: [economicCode], references: [code])
+  function       BudgetFunctionCode?   @relation(fields: [functionCode], references: [code])
+  programme      BudgetProgramme?      @relation(fields: [programmeId], references: [id])
+  sourceDocument Document?             @relation(fields: [sourceDocumentId], references: [id])
+  section        BudgetDocumentSection? @relation(fields: [sectionId], references: [id])
+  project        BudgetProject?        @relation(fields: [projectId], references: [id])
 
   @@index([entityCode, fiscalYear, quarter], map: "idx_ba_entity_year_qtr")
   @@index([performancePct], map: "idx_ba_performance")
