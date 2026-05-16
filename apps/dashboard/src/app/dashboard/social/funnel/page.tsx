@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -241,7 +241,7 @@ function deriveStage(t: TweetItem): {
   };
 }
 
-export default function SocialFunnelPage() {
+function SocialFunnelPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stage = (searchParams.get("stage") as StageKey) || "all";
@@ -609,5 +609,17 @@ function TweetCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+export default function SocialFunnelPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8 text-center text-muted-foreground">
+        Loading funnel...
+      </div>
+    }>
+      <SocialFunnelPageContent />
+    </Suspense>
   );
 }
