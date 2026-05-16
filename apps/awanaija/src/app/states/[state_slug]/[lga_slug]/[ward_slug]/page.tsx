@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquare, Construction } from "lucide-react";
@@ -8,11 +9,38 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 60;
 
+type Props = {
+  params: Promise<{ state_slug: string; lga_slug: string; ward_slug: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { state_slug, lga_slug, ward_slug } = await params;
+  let ward;
+  try {
+    ward = await getWardDetails(state_slug, lga_slug, ward_slug);
+  } catch (error) {
+    return { title: "Ward Not Found" };
+  }
+
+  if (!ward || ward.error) return { title: "Ward Not Found" };
+
+  return {
+    title: `${ward.name} Ward, ${ward.lgaName} LGA | Our Nigeria`,
+    description: `Explore community updates and projects for ${ward.name} Ward in ${ward.lgaName} Local Government Area, ${ward.stateName} State.`,
+    alternates: {
+      canonical: `https://ournigeria.ng/states/${state_slug}/${lga_slug}/${ward_slug}`,
+    },
+    openGraph: {
+      title: `${ward.name} Ward, ${ward.lgaName} LGA`,
+      description: `Explore community updates and projects for ${ward.name} Ward.`,
+      url: `https://ournigeria.ng/states/${state_slug}/${lga_slug}/${ward_slug}`,
+    }
+  };
+}
+
 export default async function WardPage({
   params,
-}: {
-  params: Promise<{ state_slug: string; lga_slug: string; ward_slug: string }>;
-}) {
+}: Props) {
   const resolvedParams = await params;
   
   let ward;
@@ -60,8 +88,54 @@ export default async function WardPage({
     }
   };
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "GovernmentOrganization",
+    "name": `${wardName} Ward`,
+    "url": `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${resolvedParams.ward_slug}`,
+    "parentOrganization": {
+      "@type": "GovernmentOrganization",
+      "name": `${lgaName} Local Government Area`,
+      "url": `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}`
+    },
+    ...(councilor ? {
+      "member": {
+        "@type": "Person",
+        "name": councilor.name,
+        "jobTitle": "Ward Councilor"
+      }
+    } : {})
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [] as any[]
+  };
+
+  if (councilor) {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `Who is the current councilor for ${wardName} Ward in ${lgaName} LGA?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The current councilor for ${wardName} Ward is ${councilor.name}${councilor.party ? ` of the ${councilor.party}` : ''}.`
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {faqJsonLd.mainEntity.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <Navbar />
 
       <main className="container max-w-5xl mx-auto px-4 pt-24 pb-20 space-y-16 flex-1">

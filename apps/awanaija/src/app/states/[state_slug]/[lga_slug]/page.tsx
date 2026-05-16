@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import React, { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,13 +10,40 @@ import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
 import { notFound } from "next/navigation";
 import { getLgaDetails, getFaacPeriods } from "@/lib/api";
 
+type Props = {
+  params: Promise<{ state_slug: string; lga_slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { state_slug, lga_slug } = await params;
+  let lga;
+  try {
+    lga = await getLgaDetails(state_slug, lga_slug);
+  } catch (error) {
+    return { title: "LGA Not Found" };
+  }
+
+  if (!lga || lga.error) return { title: "LGA Not Found" };
+
+  return {
+    title: `${lga.name} LGA, ${lga.stateName} State | Our Nigeria`,
+    description: `Explore the FAAC allocation, internally generated revenue, and projects for ${lga.name} Local Government Area in ${lga.stateName} State.`,
+    alternates: {
+      canonical: `https://ournigeria.ng/states/${state_slug}/${lga_slug}`,
+    },
+    openGraph: {
+      title: `${lga.name} LGA, ${lga.stateName} State`,
+      description: `Explore FAAC allocation, revenue, and projects for ${lga.name} LGA.`,
+      url: `https://ournigeria.ng/states/${state_slug}/${lga_slug}`,
+    }
+  };
+}
+
 export default async function LgaPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ state_slug: string; lga_slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+}: Props) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
@@ -154,8 +182,83 @@ export default async function LgaPage({
     );
   };
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "GovernmentOrganization",
+    "name": `${lga.name} Local Government Area`,
+    "url": `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}`,
+    "parentOrganization": {
+      "@type": "GovernmentOrganization",
+      "name": `${stateName} State Government`,
+      "url": `https://ournigeria.ng/states/${resolvedParams.state_slug}`
+    },
+    ...(chairman ? {
+      "member": {
+        "@type": "Person",
+        "name": chairman.name,
+        "jobTitle": "LGA Chairman"
+      }
+    } : {}),
+    ...(wards && wards.length > 0 ? {
+      "subOrganization": wards.map((ward: any) => ({
+        "@type": "GovernmentOrganization",
+        "name": `${ward.name} Ward`,
+        "url": `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${ward.name.toLowerCase().split('/')[0].replace(/\s+/g, '-')}`
+      }))
+    } : {})
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [] as any[]
+  };
+
+  if (chairman) {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `Who is the current chairman of ${lga.name} LGA?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The current chairman of ${lga.name} Local Government Area is ${chairman.name}${chairman.party ? ` of the ${chairman.party}` : ''}.`
+      }
+    });
+  }
+
+  if (stats?.faac && stats.faac !== "N/A") {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `How much FAAC allocation did ${lga.name} LGA receive${year && month ? ` in ${months.find(m => m.value === month)?.label} ${year}` : year ? ` in ${year}` : ' recently'}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `${lga.name} Local Government Area received a FAAC allocation of ${stats.faac}${year && month ? ` in ${months.find(m => m.value === month)?.label} ${year}` : year ? ` in ${year}` : ''}.`
+      }
+    });
+  }
+
+  if (stats?.population && stats.population !== "N/A") {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `What is the estimated population of ${lga.name} LGA?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The estimated population of ${lga.name} Local Government Area is ${stats.population}.`
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {faqJsonLd.mainEntity.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <Navbar />
 
       <main className="container max-w-6xl mx-auto px-4 pt-24 pb-20 flex-1">

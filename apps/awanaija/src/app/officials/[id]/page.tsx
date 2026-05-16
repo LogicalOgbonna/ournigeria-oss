@@ -34,9 +34,13 @@ export async function generateMetadata({
   return {
     title: `${official.name} - ${role}, ${location} | OurNigeria`,
     description: `Profile of ${official.name}, ${role} in ${location}. Help complete this profile with verified information.`,
+    alternates: {
+      canonical: `https://ournigeria.ng/officials/${id}`,
+    },
     openGraph: {
       title: `${official.name} - ${role}`,
       description: `${role} in ${location}. ${Math.round(official.completenessScore * 100)}% complete.`,
+      url: `https://ournigeria.ng/officials/${id}`,
       type: "profile",
     },
   };

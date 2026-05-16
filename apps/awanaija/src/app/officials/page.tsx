@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { Search, Filter, User, ChevronDown, ArrowLeft } from "lucide-react";
 import { getOfficials, type Official } from "@/lib/api";
@@ -6,6 +7,19 @@ import { ActivityFeed } from "@/components/civic/ActivityFeed";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { OfficialsClientContent } from "./OfficialsClientContent";
+
+export const metadata: Metadata = {
+  title: "Nigerian Officials Directory | Our Nigeria",
+  description: "Browse the directory of Nigerian government officials. Help complete their profiles with verified public information.",
+  alternates: {
+    canonical: "https://ournigeria.ng/officials",
+  },
+  openGraph: {
+    title: "Nigerian Officials Directory",
+    description: "Browse the directory of Nigerian government officials.",
+    url: "https://ournigeria.ng/officials",
+  }
+};
 
 export default async function OfficialsDirectoryPage({
   searchParams,

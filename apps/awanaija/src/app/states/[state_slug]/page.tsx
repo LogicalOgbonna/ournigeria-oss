@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info, Construction } from "lucide-react";
@@ -11,13 +12,40 @@ import { getStateDetails } from "@/lib/api";
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
+type Props = {
+  params: Promise<{ state_slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { state_slug } = await params;
+  let state;
+  try {
+    state = await getStateDetails(state_slug);
+  } catch (error) {
+    return { title: "State Not Found" };
+  }
+
+  if (!state || state.error) return { title: "State Not Found" };
+
+  return {
+    title: `${state.name} State - Budget, FAAC & Economy | Our Nigeria`,
+    description: `Explore the budget, FAAC allocation, and internally generated revenue (IGR) for ${state.name} State. See how public funds are spent.`,
+    alternates: {
+      canonical: `https://ournigeria.ng/states/${state_slug}`,
+    },
+    openGraph: {
+      title: `${state.name} State - Budget, FAAC & Economy`,
+      description: `Explore the budget, FAAC allocation, and IGR for ${state.name} State.`,
+      url: `https://ournigeria.ng/states/${state_slug}`,
+    }
+  };
+}
+
 export default async function StatePage({
   params,
   searchParams,
-}: {
-  params: Promise<{ state_slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+}: Props) {
   const { state_slug } = await params;
   const resolvedSearchParams = await searchParams;
   const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
@@ -102,8 +130,89 @@ export default async function StatePage({
     { value: "12", label: "December" },
   ];
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "GovernmentOrganization",
+    "name": `${state.name} State Government`,
+    "url": `https://ournigeria.ng/states/${state_slug}`,
+    ...(governor ? {
+      "member": {
+        "@type": "Person",
+        "name": governor.name,
+        "jobTitle": "Governor"
+      }
+    } : {}),
+    ...(lgas && lgas.length > 0 ? {
+      "subOrganization": lgas.map((lga: any) => ({
+        "@type": "GovernmentOrganization",
+        "name": `${lga.name} Local Government Area`,
+        "url": `https://ournigeria.ng/states/${state_slug}/${lga.name.toLowerCase().replace(/\s+/g, '-')}`
+      }))
+    } : {})
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [] as any[]
+  };
+
+  if (governor) {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `Who is the current governor of ${state.name} State?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The current governor of ${state.name} State is ${governor.name}${governor.party ? ` of the ${governor.party}` : ''}.`
+      }
+    });
+  }
+
+  if (stats?.budget && stats.budget !== "N/A") {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `What is the approved budget for ${state.name} State${year ? ` in ${year}` : ''}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The approved budget for ${state.name} State is ${stats.budget}.`
+      }
+    });
+  }
+
+  if (stats?.faac && stats.faac !== "N/A") {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `How much FAAC allocation did ${state.name} State receive${year && month ? ` in ${months.find(m => m.value === month)?.label} ${year}` : year ? ` in ${year}` : ' recently'}?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `${state.name} State received a FAAC allocation of ${stats.faac}${year && month ? ` in ${months.find(m => m.value === month)?.label} ${year}` : year ? ` in ${year}` : ''}.`
+      }
+    });
+  }
+
+  if (economy?.population && economy.population !== "N/A") {
+    faqJsonLd.mainEntity.push({
+      "@type": "Question",
+      "name": `What is the estimated population of ${state.name} State?`,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": `The estimated population of ${state.name} State is ${economy.population}.`
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {faqJsonLd.mainEntity.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       <Navbar />
 
       <main className="container max-w-6xl mx-auto px-4 pt-24 pb-20 flex-1">
