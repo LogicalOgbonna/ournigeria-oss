@@ -84,12 +84,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Using a large limit to grab as many as possible for the sitemap
       const officialsRes = await getOfficials({ limit: '5000' });
       for (const official of officialsRes.data) {
+        const imageUrl = official.imageUrl
+          ? (/^https?:\/\//.test(official.imageUrl)
+              ? official.imageUrl
+              : `${baseUrl}${official.imageUrl.startsWith('/') ? '' : '/'}${official.imageUrl}`)
+          : null;
         dynamicRoutes.push({
           url: `${baseUrl}/officials/${official.id}`,
           lastModified: new Date(),
           changeFrequency: 'monthly' as const,
           priority: 0.5,
-          ...(official.imageUrl ? { images: [official.imageUrl] } : {}),
+          ...(imageUrl ? { images: [imageUrl] } : {}),
         });
       }
     } catch (e) {
