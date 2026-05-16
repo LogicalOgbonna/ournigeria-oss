@@ -3,8 +3,6 @@ import { budgetSearchInputSchema } from "./budget-search";
 import { corruptionSearchInputSchema } from "./corruption-search";
 import { govspendSearchInputSchema } from "./govspend-search";
 import { faacSearchInputSchema } from "./faac-search";
-import { graphSearchInputSchema } from "./graph-search";
-import { traverseGraphInputSchema, traverseGraphDescription } from "./traverse-graph";
 import { impactCalculatorInputSchema } from "./impact-calculator";
 import { contextualImpactInputSchema } from "./contextual-impact";
 
@@ -43,17 +41,6 @@ export const TOOL_DEFINITIONS: AnthropicToolDefinition[] = [
     description:
       "Search FAAC (Federation Account Allocation Committee) disbursement data. Use this tool to find monthly federal revenue allocations to states and local governments, including statutory allocation, VAT, exchange gain, EMTL, ecology, and 13% derivation. Supports filtering by state, LGA, year, month, geopolitical zone, and data granularity level.",
     input_schema: toJsonSchema(faacSearchInputSchema),
-  },
-  {
-    name: "graph-search",
-    description:
-      "Search the knowledge graph for relationships between Nigerian officials, states, MDAs, contractors, and corruption cases. Use this to find connections, trace relationships, and discover cross-domain links that vector search cannot provide.",
-    input_schema: toJsonSchema(graphSearchInputSchema),
-  },
-  {
-    name: "traverse-graph",
-    description: traverseGraphDescription,
-    input_schema: toJsonSchema(traverseGraphInputSchema),
   },
   {
     name: "impact-calculator",

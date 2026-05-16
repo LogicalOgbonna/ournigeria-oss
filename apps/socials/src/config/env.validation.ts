@@ -1,11 +1,50 @@
 export interface SocialsEnvConfig {
   DATABASE_URL: string;
+  // OpenAI key + model used by @ournigeria/tools (RAG search agents).
+  // NOT consumed by the socials drafter — that runs on DeepSeek via AI SDK.
   LLM_API_KEY: string;
   LLM_MODEL: string;
-  TWITTER_API_KEY: string;
-  TWITTER_API_SECRET: string;
-  TWITTER_ACCESS_TOKEN: string;
-  TWITTER_ACCESS_SECRET: string;
+  LLM_BASE_URL?: string;
+  // DeepSeek — backs both the per-tweet classifier and the drafter agent.
+  DEEPSEEK_API_KEY: string;
+  DEEPSEEK_BASE_URL?: string;
+  // Posting auth (OAuth2 user-context). Tokens persist in DB; these are only
+  // read by the bootstrap script that seeds the initial token row.
+  X_OAUTH2_CLIENT_ID: string;
+  X_OAUTH2_CLIENT_SECRET: string;
+  X_OAUTH2_ACCESS_TOKEN?: string;
+  X_OAUTH2_REFRESH_TOKEN?: string;
+  // Roamer extension auth
+  ROAMER_INGEST_KEY: string;
+  // Admin cookie HMAC (shared with apps/dashboard)
+  ADMIN_SESSION_SECRET: string;
+  // Telegram ops alerts
+  TELEGRAM_BOT_TOKEN?: string;
+  SOCIALS_OPS_CHAT_ID?: string;
+  // Roamer pacing
+  ROAM_WINDOW_MS?: number;
+  ROAM_COOLDOWN_MS?: number;
+  ROAM_RATE_LIMIT_COOLDOWN_MS?: number;
+  ROAM_RATE_LIMIT_ALERT_MS?: number;
+  ROAM_HEARTBEAT_MS?: number;
+  ROAM_HEARTBEAT_STALE_MS?: number;
+  ROAM_EMPTY_POLL_MS?: number;
+  ROAM_DAILY_SUMMARY_MS?: number;
+  ROAM_PRUNE_INTERVAL_MS?: number;
+  ROAM_TWEET_SEEN_TTL_DAYS?: number;
+  // Drafter pacing
+  SOCIALS_DRAFTER_INTERVAL_MS?: number;
+  SOCIALS_DRAFTER_BACKLOG_CAP?: number;
+  SOCIALS_AGENT_DAILY_BUDGET_USD?: number;
+  // Drafter + classifier model knobs (parameterized so operators can swap
+  // models / temperatures via Infisical without redeploy).
+  SOCIALS_DRAFTER_MODEL?: string;
+  SOCIALS_CLASSIFIER_MODEL?: string;
+  SOCIALS_DRAFTER_TEMPERATURE?: number;
+  SOCIALS_CLASSIFIER_TEMPERATURE?: number;
+  SOCIALS_DRAFTER_INPUT_USD_PER_M?: number;
+  SOCIALS_DRAFTER_OUTPUT_USD_PER_M?: number;
+  // Legacy (FAAC infographic cron + analytics polling)
   SOCIAL_POLL_INTERVAL_MS: number;
   SOCIAL_MAX_POSTS_DAY: number;
   SOCIAL_MAX_REPLIES_DAY: number;
@@ -13,7 +52,6 @@ export interface SocialsEnvConfig {
   NEO4J_USER?: string;
   NEO4J_PASSWORD?: string;
   // RAG pipeline config (shared with API for search tools)
-  LLM_BASE_URL?: string;
   EMBEDDING_PROVIDER?: string;
   EMBEDDING_API_KEY?: string;
   EMBEDDING_MODEL?: string;
@@ -32,10 +70,11 @@ const REQUIRED_VARS: (keyof SocialsEnvConfig)[] = [
   "DATABASE_URL",
   "LLM_API_KEY",
   "LLM_MODEL",
-  "TWITTER_API_KEY",
-  "TWITTER_API_SECRET",
-  "TWITTER_ACCESS_TOKEN",
-  "TWITTER_ACCESS_SECRET",
+  "DEEPSEEK_API_KEY",
+  "X_OAUTH2_CLIENT_ID",
+  "X_OAUTH2_CLIENT_SECRET",
+  "ROAMER_INGEST_KEY",
+  "ADMIN_SESSION_SECRET",
 ];
 
 export function validateEnv(
@@ -49,26 +88,60 @@ export function validateEnv(
     );
   }
 
+  const num = (key: keyof SocialsEnvConfig, fallback?: number): number | undefined => {
+    const raw = config[key as string];
+    if (raw === undefined || raw === null || raw === "") return fallback;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
   return {
     DATABASE_URL: config.DATABASE_URL as string,
     LLM_API_KEY: config.LLM_API_KEY as string,
     LLM_MODEL: config.LLM_MODEL as string,
-    TWITTER_API_KEY: config.TWITTER_API_KEY as string,
-    TWITTER_API_SECRET: config.TWITTER_API_SECRET as string,
-    TWITTER_ACCESS_TOKEN: config.TWITTER_ACCESS_TOKEN as string,
-    TWITTER_ACCESS_SECRET: config.TWITTER_ACCESS_SECRET as string,
-    SOCIAL_POLL_INTERVAL_MS: Number(config.SOCIAL_POLL_INTERVAL_MS) || 1_200_000,
-    SOCIAL_MAX_POSTS_DAY: Number(config.SOCIAL_MAX_POSTS_DAY) || 5,
-    SOCIAL_MAX_REPLIES_DAY: Number(config.SOCIAL_MAX_REPLIES_DAY) || 10,
+    LLM_BASE_URL: (config.LLM_BASE_URL as string) || undefined,
+    DEEPSEEK_API_KEY: config.DEEPSEEK_API_KEY as string,
+    DEEPSEEK_BASE_URL: (config.DEEPSEEK_BASE_URL as string) || undefined,
+    X_OAUTH2_CLIENT_ID: config.X_OAUTH2_CLIENT_ID as string,
+    X_OAUTH2_CLIENT_SECRET: config.X_OAUTH2_CLIENT_SECRET as string,
+    X_OAUTH2_ACCESS_TOKEN: (config.X_OAUTH2_ACCESS_TOKEN as string) || undefined,
+    X_OAUTH2_REFRESH_TOKEN: (config.X_OAUTH2_REFRESH_TOKEN as string) || undefined,
+    ROAMER_INGEST_KEY: config.ROAMER_INGEST_KEY as string,
+    ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
+    TELEGRAM_BOT_TOKEN: (config.TELEGRAM_BOT_TOKEN as string) || undefined,
+    SOCIALS_OPS_CHAT_ID: (config.SOCIALS_OPS_CHAT_ID as string) || undefined,
+    ROAM_WINDOW_MS: num("ROAM_WINDOW_MS", 300_000),
+    ROAM_COOLDOWN_MS: num("ROAM_COOLDOWN_MS", 600_000),
+    ROAM_RATE_LIMIT_COOLDOWN_MS: num("ROAM_RATE_LIMIT_COOLDOWN_MS", 1_800_000),
+    ROAM_RATE_LIMIT_ALERT_MS: num("ROAM_RATE_LIMIT_ALERT_MS", 1_800_000),
+    ROAM_HEARTBEAT_MS: num("ROAM_HEARTBEAT_MS", 30_000),
+    ROAM_HEARTBEAT_STALE_MS: num("ROAM_HEARTBEAT_STALE_MS", 60_000),
+    ROAM_EMPTY_POLL_MS: num("ROAM_EMPTY_POLL_MS", 30_000),
+    ROAM_DAILY_SUMMARY_MS: num("ROAM_DAILY_SUMMARY_MS", 86_400_000),
+    ROAM_PRUNE_INTERVAL_MS: num("ROAM_PRUNE_INTERVAL_MS", 86_400_000),
+    ROAM_TWEET_SEEN_TTL_DAYS: num("ROAM_TWEET_SEEN_TTL_DAYS", 30),
+    SOCIALS_DRAFTER_INTERVAL_MS: num("SOCIALS_DRAFTER_INTERVAL_MS", 30_000),
+    SOCIALS_DRAFTER_BACKLOG_CAP: num("SOCIALS_DRAFTER_BACKLOG_CAP", 50),
+    SOCIALS_AGENT_DAILY_BUDGET_USD: num("SOCIALS_AGENT_DAILY_BUDGET_USD", 1),
+    SOCIALS_DRAFTER_MODEL:
+      (config.SOCIALS_DRAFTER_MODEL as string) || "deepseek-v4-flash",
+    SOCIALS_CLASSIFIER_MODEL:
+      (config.SOCIALS_CLASSIFIER_MODEL as string) || "deepseek-v4-flash",
+    SOCIALS_DRAFTER_TEMPERATURE: num("SOCIALS_DRAFTER_TEMPERATURE", 0.5),
+    SOCIALS_CLASSIFIER_TEMPERATURE: num("SOCIALS_CLASSIFIER_TEMPERATURE", 0.2),
+    SOCIALS_DRAFTER_INPUT_USD_PER_M: num("SOCIALS_DRAFTER_INPUT_USD_PER_M", 0.30),
+    SOCIALS_DRAFTER_OUTPUT_USD_PER_M: num("SOCIALS_DRAFTER_OUTPUT_USD_PER_M", 1.20),
+    SOCIAL_POLL_INTERVAL_MS: num("SOCIAL_POLL_INTERVAL_MS", 1_200_000)!,
+    SOCIAL_MAX_POSTS_DAY: num("SOCIAL_MAX_POSTS_DAY", 5)!,
+    SOCIAL_MAX_REPLIES_DAY: num("SOCIAL_MAX_REPLIES_DAY", 10)!,
     NEO4J_URI: (config.NEO4J_URI as string) || undefined,
     NEO4J_USER: (config.NEO4J_USER as string) || undefined,
     NEO4J_PASSWORD: (config.NEO4J_PASSWORD as string) || undefined,
-    LLM_BASE_URL: (config.LLM_BASE_URL as string) || undefined,
     EMBEDDING_PROVIDER: (config.EMBEDDING_PROVIDER as string) || undefined,
     EMBEDDING_API_KEY: (config.EMBEDDING_API_KEY as string) || undefined,
     EMBEDDING_MODEL: (config.EMBEDDING_MODEL as string) || undefined,
     EMBEDDING_BASE_URL: (config.EMBEDDING_BASE_URL as string) || undefined,
-    EMBEDDING_DIMENSION: Number(config.EMBEDDING_DIMENSION) || undefined,
+    EMBEDDING_DIMENSION: num("EMBEDDING_DIMENSION"),
     VECTOR_INDEX_BUDGET: (config.VECTOR_INDEX_BUDGET as string) || undefined,
     VECTOR_INDEX_CORRUPTION: (config.VECTOR_INDEX_CORRUPTION as string) || undefined,
     VECTOR_INDEX_GOVSPEND: (config.VECTOR_INDEX_GOVSPEND as string) || undefined,

@@ -1,14 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ImageGeneratorService } from "../content/image-generator.js";
 
-// Mock Neo4j service
-function createMockNeo4j(enabled = true) {
-  return {
-    enabled,
-    executeRead: vi.fn(),
-  };
-}
-
 // Mock @ournigeria/tools
 vi.mock("@ournigeria/tools", () => ({
   executeToolCall: vi.fn(),
@@ -21,22 +13,21 @@ vi.mock("@ournigeria/content", () => ({
 
 describe("ImageGeneratorService", () => {
   let service: ImageGeneratorService;
-  let neo4j: ReturnType<typeof createMockNeo4j>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    neo4j = createMockNeo4j();
-    service = new ImageGeneratorService(neo4j as any);
+    service = new ImageGeneratorService();
   });
 
-  it("Neo4j available + breakdown parsed → returns buffer + altText", async () => {
-    neo4j.executeRead.mockResolvedValue({
-      records: [{ get: () => 871_000_000 }],
+  it("Data found + breakdown parsed → returns buffer + altText", async () => {
+    // Mock tool call for total allocation
+    const { executeToolCall } = await import("@ournigeria/tools");
+    (executeToolCall as any).mockResolvedValueOnce({
+      results: [{ metadata: { total_allocation: 871_000_000 } }],
     });
 
     // Mock tool call for breakdown
-    const { executeToolCall } = await import("@ournigeria/tools");
-    (executeToolCall as any).mockResolvedValue({
+    (executeToolCall as any).mockResolvedValueOnce({
       results: [{
         text: "Gross Statutory: 453,000,000 Deduction: 253,000,000 VAT: 392,000,000 EMTL: 136,000,000",
       }],
@@ -49,13 +40,15 @@ describe("ImageGeneratorService", () => {
     expect(result!.altText).toContain("December 2025");
   });
 
-  it("Neo4j available + breakdown parse fails → returns total-only buffer", async () => {
-    neo4j.executeRead.mockResolvedValue({
-      records: [{ get: () => 500_000_000 }],
+  it("Data found + breakdown parse fails → returns total-only buffer", async () => {
+    const { executeToolCall } = await import("@ournigeria/tools");
+    // Mock tool call for total allocation
+    (executeToolCall as any).mockResolvedValueOnce({
+      results: [{ metadata: { total_allocation: 500_000_000 } }],
     });
 
-    const { executeToolCall } = await import("@ournigeria/tools");
-    (executeToolCall as any).mockResolvedValue({
+    // Mock tool call for breakdown
+    (executeToolCall as any).mockResolvedValueOnce({
       results: [{ text: "No breakdown data available" }],
     });
 
@@ -64,25 +57,7 @@ describe("ImageGeneratorService", () => {
     expect(result!.buffer).toBeInstanceOf(Buffer);
   });
 
-  it("Neo4j down → falls back to pgvector query", async () => {
-    const downNeo4j = createMockNeo4j(false);
-    const svc = new ImageGeneratorService(downNeo4j as any);
-
-    const { executeToolCall } = await import("@ournigeria/tools");
-    (executeToolCall as any).mockResolvedValue({
-      results: [{
-        metadata: { total_allocation: 300_000_000 },
-        text: "some text",
-      }],
-    });
-
-    const result = await svc.generateFaacImage("FallbackLGA", "FallbackState", "March", 2025);
-    expect(result).not.toBeNull();
-  });
-
   it("No data found → returns null", async () => {
-    neo4j.executeRead.mockResolvedValue({ records: [] });
-
     const { executeToolCall } = await import("@ournigeria/tools");
     (executeToolCall as any).mockResolvedValue({ results: [] });
 

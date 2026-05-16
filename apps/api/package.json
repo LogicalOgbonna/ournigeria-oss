@@ -42,7 +42,6 @@
     "helmet": "^8.1.0",
     "langfuse": "3.38.6",
     "langfuse-vercel": "3.38.6",
-    "neo4j-driver": "catalog:",
     "opossum": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",

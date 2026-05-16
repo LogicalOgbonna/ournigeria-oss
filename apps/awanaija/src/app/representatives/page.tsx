@@ -23,7 +23,7 @@ export default async function RepresentativesPage({
   let stateDetails: {
     name?: string;
     economy?: { population?: string; domesticDebt?: string; externalDebt?: string; gdp?: string };
-    stats?: { budget?: string; faac?: string; igr?: string };
+    stats?: { budget?: string; faac?: string; igr?: string; igrFiscalYear?: number; igrPeriod?: string };
   } | null = null;
   let lgaDetails: {
     name?: string;

@@ -99,9 +99,6 @@ catalogs:
     lucide-react:
       specifier: 0.575.0
       version: 0.575.0
-    neo4j-driver:
-      specifier: 6.0.1
-      version: 6.0.1
     next:
       specifier: 16.1.6
       version: 16.1.6
@@ -306,9 +303,6 @@ importers:
       langfuse-vercel:
         specifier: 3.38.6
         version: 3.38.6(ai@6.0.97(zod@3.25.76))
-      neo4j-driver:
-        specifier: 'catalog:'
-        version: 6.0.1
       opossum:
         specifier: 'catalog:'
         version: 9.0.0
@@ -637,9 +631,9 @@ importers:
 
   apps/socials:
     dependencies:
-      '@anthropic-ai/sdk':
-        specifier: 0.39.0
-        version: 0.39.0
+      '@ai-sdk/deepseek':
+        specifier: ^2.0.0
+        version: 2.0.29(zod@3.25.76)
       '@nestjs/common':
         specifier: 'catalog:'
         version: 11.1.14(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -667,9 +661,9 @@ importers:
       '@ournigeria/tools':
         specifier: workspace:*
         version: link:../../packages/tools
-      neo4j-driver:
-        specifier: 'catalog:'
-        version: 6.0.1
+      ai:
+        specifier: ^6.0.0
+        version: 6.0.97(zod@3.25.76)
       opossum:
         specifier: 'catalog:'
         version: 9.0.0
@@ -1097,9 +1091,6 @@ packages:
   '@antfu/ni@25.0.0':
     resolution: {integrity: sha512-9q/yCljni37pkMr4sPrI3G4jqdIk074+iukc5aFJl7kmDCCsiJrbZ6zKxnES1Gwg+i9RcDZwvktl23puGslmvA==}
     hasBin: true
-
-  '@anthropic-ai/sdk@0.39.0':
-    resolution: {integrity: sha512-eMyDIPRZbt1CCLErRCi3exlAvNkBtRe+kW5vvJyef93PmNr/clstYgHhtvmkxN82nlKgzyGPCyGxrm0JQ1ZIdg==}
 
   '@aws-crypto/crc32@5.2.0':
     resolution: {integrity: sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg==}
@@ -9323,16 +9314,6 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  neo4j-driver-bolt-connection@6.0.1:
-    resolution: {integrity: sha512-1KyG73TO+CwnYJisdHD0sjUw9yR+P5q3JFcmVPzsHT4/whzCjuXSMpmY4jZcHH2PdY2cBUq4l/6WcDiPMxW2UA==}
-
-  neo4j-driver-core@6.0.1:
-    resolution: {integrity: sha512-5I2KxICAvcHxnWdJyDqwu8PBAQvWVTlQH2ve3VQmtVdJScPqWhpXN1PiX5IIl+cRF3pFpz9GQF53B5n6s0QQUQ==}
-
-  neo4j-driver@6.0.1:
-    resolution: {integrity: sha512-8DDF2MwEJNz7y7cp97x4u8fmVIP4CWS8qNBxdwxTG0fWtsS+2NdeC+7uXwmmuFOpHvkfXqv63uWY73bfDtOH8Q==}
-    engines: {node: '>=18.0.0'}
-
   netmask@2.1.1:
     resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
     engines: {node: '>= 0.4.0'}
@@ -11280,6 +11261,7 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -11837,18 +11819,6 @@ snapshots:
       fzf: 0.5.2
       package-manager-detector: 1.6.0
       tinyexec: 1.0.4
-
-  '@anthropic-ai/sdk@0.39.0':
-    dependencies:
-      '@types/node': 18.19.130
-      '@types/node-fetch': 2.6.13
-      abort-controller: 3.0.0
-      agentkeepalive: 4.6.0
-      form-data-encoder: 1.7.2
-      formdata-node: 4.4.1
-      node-fetch: 2.7.0
-    transitivePeerDependencies:
-      - encoding
 
   '@aws-crypto/crc32@5.2.0':
     dependencies:
@@ -21672,20 +21642,6 @@ snapshots:
   negotiator@1.0.0: {}
 
   neo-async@2.6.2: {}
-
-  neo4j-driver-bolt-connection@6.0.1:
-    dependencies:
-      buffer: 6.0.3
-      neo4j-driver-core: 6.0.1
-      string_decoder: 1.3.0
-
-  neo4j-driver-core@6.0.1: {}
-
-  neo4j-driver@6.0.1:
-    dependencies:
-      neo4j-driver-bolt-connection: 6.0.1
-      neo4j-driver-core: 6.0.1
-      rxjs: 7.8.2
 
   netmask@2.1.1: {}
 

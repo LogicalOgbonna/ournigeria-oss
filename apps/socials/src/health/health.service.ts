@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
-import { Neo4jService } from "../platforms/neo4j.service.js";
 
 export interface HealthCheck {
   status: "ok" | "degraded" | "down";
@@ -9,7 +8,6 @@ export interface HealthCheck {
   checks: {
     database: { status: "ok" | "down"; latency: number };
     memory: { status: "ok" | "degraded"; rss_mb: number };
-    neo4j: { status: "ok" | "down" | "disabled"; latency: number };
     twitter: { status: "ok" | "unchecked" };
   };
 }
@@ -18,14 +16,12 @@ export interface HealthCheck {
 export class HealthService {
   constructor(
     private prisma: PrismaService,
-    private neo4j: Neo4jService,
   ) {}
 
   async check(): Promise<HealthCheck> {
     const checks = {
       database: await this.checkDatabase(),
       memory: this.checkMemory(),
-      neo4j: await this.neo4j.healthCheck(),
       twitter: { status: "ok" as const },
     };
 

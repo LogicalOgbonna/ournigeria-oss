@@ -91,10 +91,18 @@ export default function SocialAnalyticsPage() {
     ])
       .then(([statsResult, postsResult, chartResult]) => {
         if (statsResult.status === "fulfilled") setStats(statsResult.value);
-        if (postsResult.status === "fulfilled")
-          setPosts(postsResult.value.data ?? postsResult.value ?? []);
-        if (chartResult.status === "fulfilled")
-          setChartData(chartResult.value.data ?? chartResult.value ?? []);
+        if (postsResult.status === "fulfilled") {
+          const v = postsResult.value;
+          setPosts(
+            Array.isArray(v) ? v : Array.isArray(v?.items) ? v.items : [],
+          );
+        }
+        if (chartResult.status === "fulfilled") {
+          const v = chartResult.value;
+          setChartData(
+            Array.isArray(v) ? v : Array.isArray(v?.data) ? v.data : [],
+          );
+        }
       })
       .finally(() => setLoading(false));
   }, []);

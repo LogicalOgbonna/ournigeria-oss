@@ -9,10 +9,14 @@
     "start": "infisical run --env prod --path /socials -- node dist/main",
     "start:prod": "infisical run --env prod --path /socials -- node dist/main",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "x-oauth-bootstrap": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-bootstrap.ts",
+    "seed-topics": "infisical run --env dev --path /socials -- tsx src/scripts/seed-topics.ts",
+    "seed-bot-sessions": "infisical run --env dev --path /socials -- tsx src/scripts/seed-bot-sessions.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.39.0",
+    "@ai-sdk/deepseek": "^2.0.0",
+    "ai": "^6.0.0",
     "@nestjs/common": "catalog:",
     "@nestjs/config": "catalog:",
     "@nestjs/core": "catalog:",
@@ -22,7 +26,6 @@
     "@ournigeria/content": "workspace:*",
     "@ournigeria/database": "workspace:*",
     "@ournigeria/tools": "workspace:*",
-    "neo4j-driver": "catalog:",
     "opossum": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",

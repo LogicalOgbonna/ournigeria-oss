@@ -26,7 +26,7 @@ export function RepresentativesClient({
   stateDetails?: {
     name?: string;
     economy?: { population?: string; domesticDebt?: string; externalDebt?: string; gdp?: string };
-    stats?: { budget?: string; faac?: string; igr?: string };
+    stats?: { budget?: string; faac?: string; igr?: string; igrFiscalYear?: number; igrPeriod?: string };
   } | null;
   lgaDetails?: {
     name?: string;

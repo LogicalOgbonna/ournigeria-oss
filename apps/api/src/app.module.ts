@@ -15,7 +15,6 @@ import { AdminModule } from "./admin/admin.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { HealthModule } from "./health/health.module";
 import { DonationModule } from "./donation/donation.module";
-import { GraphModule } from "./graph/graph.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 import { OfficialsModule } from "./officials/officials.module";
 import { ProposalsModule } from "./proposals/proposals.module";
@@ -44,7 +43,6 @@ import { ContactModule } from "./contact/contact.module";
     AdminModule,
     FeedbackModule,
     DonationModule,
-    GraphModule,
     HealthModule,
     OfficialsModule,
     ProposalsModule,

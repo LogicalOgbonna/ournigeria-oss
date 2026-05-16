@@ -21,7 +21,7 @@ interface StateDetails {
     externalDebt?: string;
     gdp?: string;
   };
-  stats?: { budget?: string; faac?: string; igr?: string };
+  stats?: { budget?: string; faac?: string; igr?: string; igrFiscalYear?: number; igrPeriod?: string };
 }
 
 interface LgaDetails {
@@ -69,7 +69,20 @@ export function NarrativeView({
   const stateBudget = stateDetails?.stats?.budget;
   const stateFaac = stateDetails?.stats?.faac;
   const stateFaacDate = (stateDetails?.stats as any)?.faacDate || "YTD";
-  const stateIgr = stateDetails?.stats?.igr;
+  const stateIgrRaw = stateDetails?.stats?.igr;
+  const stateIgr =
+    stateIgrRaw && stateIgrRaw !== "N/A" ? stateIgrRaw : undefined;
+  const stateIgrStatLabel = (() => {
+    const s = stateDetails?.stats;
+    const y = s?.igrFiscalYear;
+    const p = s?.igrPeriod;
+    if (y != null && p) {
+      if (p === "FY") return `IGR (FY ${y})`;
+      return `IGR (${p} ${y})`;
+    }
+    if (y != null) return `IGR (${y})`;
+    return "IGR";
+  })();
   const domesticDebt = stateDetails?.economy?.domesticDebt;
   const externalDebt = stateDetails?.economy?.externalDebt;
 
@@ -268,7 +281,7 @@ export function NarrativeView({
           stats={[
             { label: "Budget", value: stateBudget },
             { label: `FAAC (${stateFaacDate})`, value: stateFaac, highlight: true },
-            { label: "IGR", value: stateIgr },
+            { label: stateIgrStatLabel, value: stateIgr },
             { label: "Domestic Debt", value: domesticDebt, negative: true },
           ]}
         />

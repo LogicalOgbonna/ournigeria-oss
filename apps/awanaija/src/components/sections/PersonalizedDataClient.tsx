@@ -6,24 +6,180 @@ import {
   KitSectionTitle,
 } from "@/components/landing-variants/LandingVariantKit";
 import { Button } from "@/components/ui/button";
+import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
 import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+const DEFAULT_SECTOR_BARS: BarDatum[] = [
+  { label: "Education", value: 0, color: "bg-blue-500" },
+  { label: "Healthcare", value: 0, color: "bg-emerald-500" },
+  { label: "Infrastructure", value: 0, color: "bg-amber-500" },
+  { label: "Security", value: 0, color: "bg-rose-500" },
+  { label: "Others", value: 0, color: "bg-slate-500" },
+];
 
+const FALLBACK_BAR_COLORS = [
+  "bg-blue-500",
+  "bg-emerald-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-violet-500",
+  "bg-cyan-500",
+  "bg-orange-500",
+  "bg-slate-500",
+] as const;
+
+type GeoOfficial = {
+  id?: string;
+  name?: string;
+  party?: string | null;
+  constituency?: string | null;
+  email?: string | null;
+  image?: string | null;
+  [key: string]: unknown;
+};
+
+type GeoStats = {
+  faacDate?: string | null;
+  faac?: string | null;
+  budget?: string | null;
+  igr?: string | null;
+  /** Fiscal year of the headline IGR row (decoupled from FAAC query year). */
+  igrFiscalYear?: number | null;
+  igrPeriod?: string | null;
+  recurrentExpenditure?: string | null;
+  capitalExpenditure?: string | null;
+};
+
+type StateDetails = {
+  governor?: GeoOfficial | null;
+  stats?: GeoStats | null;
+  economy?: {
+    domesticDebt?: string | null;
+    externalDebt?: string | null;
+  } | null;
+  sectors?: Array<{ name: string; percentage: number; color: string }> | null;
+};
+
+type LgaDetails = {
+  stats?: Pick<GeoStats, "faacDate" | "faac"> | null;
+  senator?: GeoOfficial | null;
+  houseMembers?: GeoOfficial[] | null;
+  stateAssemblyMembers?: GeoOfficial[] | null;
+  chairman?: GeoOfficial | null;
+};
+
+type WardDetails = {
+  councilor?: GeoOfficial | null;
+};
+
+/** State/LGA/ward picker lists — `getStates` returns extra fields; only code+name are used here. */
+type GeoListEntry = { code: string; name: string };
+
+type ProfileKpi = {
+  label: string;
+  value: string;
+  delta: string;
+  debtPair?: { domestic: string; external: string };
+};
+
+type ProfileLgaKpi = {
+  label: string;
+  value: string;
+  delta: string;
+};
+
+type ProfileOfficialRow =
+  | { isMissing: true; role: string }
+  | {
+      isMissing?: false;
+      role: string;
+      id?: string;
+      name?: string;
+      party?: string | null;
+      term?: string;
+      contact?: string | null;
+      contactType?: string;
+      image?: string | null;
+      [key: string]: unknown;
+    };
+
+type ProfileLineItem = {
+  title: string;
+  amount: string;
+  status: string;
+  date: string;
+};
+
+export type ProfileViewData = {
+  id: string;
+  state: string;
+  lga: string;
+  ward: string;
+  lgaKpis: ProfileLgaKpi[];
+  officials: ProfileOfficialRow[];
+  kpis: ProfileKpi[];
+  bars: BarDatum[];
+  lineItems: ProfileLineItem[];
+};
+
+type FlowStop = { label: string; sub: string; amt: string };
+
+type NairaLocationContext = {
+  name: string;
+  lga: string;
+  ward: string;
+  derivation?: boolean;
+};
+
+function igrKpiLabel(stats: GeoStats | null | undefined): string {
+  const y = stats?.igrFiscalYear;
+  const p = stats?.igrPeriod;
+  if (y != null && p) {
+    if (p === "FY") return `IGR (FY ${y})`;
+    return `IGR (${p} ${y})`;
+  }
+  if (y != null) return `IGR (${y})`;
+  return "Internally Generated Revenue";
+}
+
+function geocodeIndicatesOutsideNigeria(res: unknown): boolean {
+  return (
+    typeof res === "object" &&
+    res !== null &&
+    "errorCode" in res &&
+    (res as { errorCode?: string }).errorCode === "OUTSIDE_NIGERIA"
+  );
+}
+
+function sectorsToBars(
+  sectors: Array<{ name: string; percentage: number; color: string }> | null | undefined,
+): BarDatum[] {
+  if (!sectors?.length) {
+    return DEFAULT_SECTOR_BARS;
+  }
+  return sectors.map((s, i) => ({
+    label: s.name,
+    value: s.percentage,
+    color: s.color || FALLBACK_BAR_COLORS[i % FALLBACK_BAR_COLORS.length]!,
+  }));
+}
 
 export function transformProfileData(
   stateCode: string, stateName: string, lgaCode: string, lgaName: string, wardCode: string, wardName: string,
-  stateDetails: any, lgaDetails: any, wardDetails: any,
+  stateDetails: StateDetails | null | undefined,
+  lgaDetails: LgaDetails | null | undefined,
+  wardDetails: WardDetails | null | undefined,
   year?: number | null, month?: number | null
-) {
+): ProfileViewData {
   const monthNamesShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const dateLabel = year && month 
     ? `${monthNamesShort[month - 1]} '${year.toString().slice(-2)}` 
     : (lgaDetails?.stats?.faacDate || stateDetails?.stats?.faacDate || "YTD");
 
-  const officials = [];
+  const officials: ProfileOfficialRow[] = [];
   if (stateDetails?.governor) {
     officials.push({ ...stateDetails.governor, role: "Governor", contactType: "email", contact: stateDetails.governor.email || null });
   } else {
@@ -95,31 +251,29 @@ export function transformProfileData(
       {
         label: "State Debt",
         value: stateDetails?.economy?.domesticDebt || "N/A",
-        delta: "The heavy burden of debt hanging over the state's future.",
+        delta: "Debt the state owes.",
+        debtPair: {
+          domestic: stateDetails?.economy?.domesticDebt ?? "N/A",
+          external: stateDetails?.economy?.externalDebt ?? "N/A",
+        },
       },
       {
-        label: "Internally Generated Revenue",
+        label: igrKpiLabel(stateDetails?.stats),
         value: stateDetails?.stats?.igr || "N/A",
         delta: "How much the state is making from your taxes and levies.",
       },
       {
         label: "Recurrent Expenditure",
-        value: "N/A",
+        value: stateDetails?.stats?.recurrentExpenditure ?? "N/A",
         delta: "What the state pays just to keep the lights on and pay salaries.",
       },
       {
         label: "Capital Expenditure",
-        value: "N/A",
+        value: stateDetails?.stats?.capitalExpenditure ?? "N/A",
         delta: "What the state invests in roads, hospitals, and schools.",
       },
     ],
-    bars: [
-      { label: "Education", value: 0, color: "bg-blue-500" },
-      { label: "Healthcare", value: 0, color: "bg-emerald-500" },
-      { label: "Infrastructure", value: 0, color: "bg-amber-500" },
-      { label: "Security", value: 0, color: "bg-rose-500" },
-      { label: "Others", value: 0, color: "bg-slate-500" },
-    ],
+    bars: sectorsToBars(stateDetails?.sectors),
     lineItems: [
       {
         title: "Construction of Primary Health Center",
@@ -145,12 +299,12 @@ export function transformProfileData(
 
 interface PersonalizedDataClientProps {
   initialFaacPeriods: { years: number[], monthsByYear: Record<number, number[]> };
-  initialStatesList: any[];
-  initialLgasList: any[];
-  initialWardsList: any[];
-  initialStateDetails: any;
-  initialLgaDetails: any;
-  initialWardDetails: any;
+  initialStatesList: GeoListEntry[];
+  initialLgasList: GeoListEntry[];
+  initialWardsList: GeoListEntry[];
+  initialStateDetails: StateDetails | null;
+  initialLgaDetails: LgaDetails | null;
+  initialWardDetails: WardDetails | null;
   initialSelection: {
     stateCode: string;
     stateName: string;
@@ -166,7 +320,7 @@ interface PersonalizedDataClientProps {
 
 export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, children }: PersonalizedDataClientProps) {
   const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
-  const [data, setData] = useState<any>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
+  const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   
@@ -179,9 +333,9 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   const [pendingSelection, setPendingSelection] = useState({ stateCode: "", stateName: "", lgaCode: "", lgaName: "" });
   const [currentSelection, setCurrentSelection] = useState(initialSelection);
 
-  const [statesList, setStatesList] = useState<{code: string, name: string}[]>(initialStatesList);
-  const [lgasList, setLgasList] = useState<{code: string, name: string}[]>(initialLgasList);
-  const [wardsList, setWardsList] = useState<{code: string, name: string}[]>(initialWardsList);
+  const [statesList, setStatesList] = useState<GeoListEntry[]>(initialStatesList);
+  const [lgasList, setLgasList] = useState<GeoListEntry[]>(initialLgasList);
+  const [wardsList, setWardsList] = useState<GeoListEntry[]>(initialWardsList);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -282,7 +436,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
         window.dispatchEvent(new CustomEvent("location-request-completed"));
         try {
           const res = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-          if (res && (res as any).errorCode === "OUTSIDE_NIGERIA") {
+          if (geocodeIndicatesOutsideNigeria(res)) {
             setLocationState("outside_nigeria");
             return;
           }
@@ -667,7 +821,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 </div>
                 
                 <div className="grid gap-4">
-                  {data.lgaKpis.map((kpi: any) => (
+                  {data.lgaKpis.map((kpi) => (
                     <div
                       key={kpi.label}
                       className="rounded-xl border border-border/50 bg-background/60 px-4 py-3"
@@ -701,7 +855,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                   </span>
                 </div>
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-theme">
-                  {data.officials.map((official: any) => {
+                  {data.officials.map((official) => {
                     if (official.isMissing) {
                       return (
                         <div 
@@ -912,7 +1066,7 @@ function SkeletonLoader() {
 }
 
 // --- V2 Follow the Naira Components ---
-function FlowCanvas({ active, stops }: { active: number; stops: any[] }) {
+function FlowCanvas({ active, stops }: { active: number; stops: FlowStop[] }) {
   const H = 220;
   const pct = active / (stops.length - 1);
   return (
@@ -1016,7 +1170,7 @@ function SplitPreview() {
   );
 }
 
-function StateBreakdown({ loc }: { loc: any }) {
+function StateBreakdown({ loc }: { loc: Pick<NairaLocationContext, "name" | "derivation"> }) {
   const parts = [
     { label: "Equality share", pct: 40 },
     { label: "Population", pct: 30 },
@@ -1076,7 +1230,7 @@ function WardOutcomes({ ward }: { ward: string }) {
   );
 }
 
-function LgLineItems({ data }: { data: any }) {
+function LgLineItems({ data }: { data: ProfileViewData }) {
   return (
     <section className="py-12 lg:py-16 relative">
       <KitContainer>
@@ -1098,46 +1252,14 @@ function LgLineItems({ data }: { data: any }) {
         </div>
         
         <p className="mt-4 text-xs text-muted-foreground">
-          Sourced from official budget documents. Think something's off? <button onClick={() => window.dispatchEvent(new CustomEvent("open-feedback", { detail: { category: "data_issue" } }))} className="text-emerald-600 dark:text-emerald-400 font-medium underline underline-offset-2 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Flag it — we re-verify.</button>
+          Sourced from official budget documents. Think something&apos; off? <button onClick={() => globalThis.dispatchEvent(new CustomEvent("open-feedback", { detail: { category: "data_issue" } }))} className="text-emerald-600 dark:text-emerald-400 font-medium underline underline-offset-2 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors">Flag it — we re-verify.</button>
         </p>
       </KitContainer>
     </section>
   );
 }
 
-function NeighbourComparison({ data }: { data: any }) {
-  const getNeighbours = (stateName: string) => {
-    if (stateName.includes("Rivers")) {
-      return [
-        { state: "Bayelsa", budget: "₦598B", faac: "₦23.1B", debt: "₦178B", igr: "₦18.2B" },
-        { state: "Abia", budget: "₦567B", faac: "₦19.4B", debt: "₦142B", igr: "₦20.0B" },
-        { state: "Akwa Ibom", budget: "₦1.18T", faac: "₦42.0B", debt: "₦303B", igr: "₦35.5B" },
-      ];
-    }
-    if (stateName.includes("Lagos")) {
-      return [
-        { state: "Ogun", budget: "₦553B", faac: "₦18.5B", debt: "₦293B", igr: "₦146B" },
-      ];
-    }
-    if (stateName.includes("Kano")) {
-      return [
-        { state: "Katsina", budget: "₦434B", faac: "₦24.2B", debt: "₦130B", igr: "₦13.5B" },
-        { state: "Jigawa", budget: "₦298B", faac: "₦21.5B", debt: "₦110B", igr: "₦10.2B" },
-        { state: "Kaduna", budget: "₦458B", faac: "₦26.8B", debt: "₦180B", igr: "₦15.8B" },
-        { state: "Bauchi", budget: "₦398B", faac: "₦22.1B", debt: "₦145B", igr: "₦12.4B" },
-      ];
-    }
-    return [];
-  };
-
-  const neighbours = getNeighbours(data.state);
-  
-  // Extract values from the main state data
-  const stateBudget = data.kpis.find((k: any) => k.label.includes('Budget'))?.value || "₦0B";
-  const stateFaac = data.kpis.find((k: any) => k.label.includes('FAAC'))?.value || "₦0B";
-  const stateDebt = data.kpis.find((k: any) => k.label.includes('Debt'))?.value || "₦0B";
-  const stateIgr = data.kpis.find((k: any) => k.label.includes('Revenue'))?.value || "₦0B";
-
+function NeighbourComparison({ data }: { data: ProfileViewData }) {
   return (
     <section className="py-12 lg:py-16 relative">
       <KitContainer>
@@ -1162,7 +1284,7 @@ function NeighbourComparison({ data }: { data: any }) {
   );
 }
 
-function TakeAction({ data }: { data: any }) {
+function TakeAction({ data }: { data: ProfileViewData }) {
   return (
     <section className="py-16 lg:py-24 relative">
       <KitContainer>
@@ -1184,7 +1306,7 @@ function TakeAction({ data }: { data: any }) {
               1 Minute
             </div>
             <h3 className="mb-4 font-[family-name:var(--font-heading)] text-2xl font-bold text-rose-950 dark:text-rose-100 leading-tight">
-              Report what isn't working
+              Report what isn&apos;t working
             </h3>
             <p className="mb-8 text-[15px] leading-relaxed text-rose-900/80 dark:text-rose-200/70">
               See a stalled project, ghost contractor, or phantom school? Flag it and we follow up.
@@ -1391,7 +1513,7 @@ function FaqAndTestimonials() {
             <div className="flex flex-col gap-6 animate-scroll-down">
               {scrollItems.map((t, i) => (
                 <div key={i} className="rounded-2xl border border-border/50 bg-muted/20 dark:bg-muted/5 p-8 shadow-sm backdrop-blur-sm transition-colors hover:border-emerald-500/30">
-                  <p className="text-foreground leading-relaxed text-lg font-medium">"{t.quote}"</p>
+                  <p className="text-foreground leading-relaxed text-lg font-medium">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-8 flex items-center gap-4">
                     <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-400 text-lg font-bold font-[family-name:var(--font-heading)]">
                       {t.author.charAt(0)}
@@ -1412,7 +1534,7 @@ function FaqAndTestimonials() {
   );
 }
 
-function FollowTheNaira({ data }: { data: any }) {
+function FollowTheNaira({ data }: { data: ProfileViewData }) {
   const [active, setActive] = useState(0);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -1444,15 +1566,16 @@ function FollowTheNaira({ data }: { data: any }) {
     };
   }, []);
 
+  const faacStateKpi = data.kpis.find((k) => k.label.includes("FAAC"));
   const SAMPLE_COMPACT = { 
     purse: "₦1.35T", 
     states: "₦361B", 
-    state: data.kpis.find((k: any) => k.label.includes('FAAC'))?.value || "₦32.5B", 
+    state: faacStateKpi?.value ?? "₦32.5B", 
     lg: data.lgaKpis[0]?.value || "₦620.5M", 
     ward: "???" 
   };
 
-  const stops = [
+  const stops: FlowStop[] = [
     { label: "FAAC POT", sub: "Federation Account", amt: SAMPLE_COMPACT.purse },
     { label: "FIRST SPLIT", sub: "Fed · States · LGAs", amt: SAMPLE_COMPACT.states },
     { label: data.state.toUpperCase(), sub: "State Allocation", amt: SAMPLE_COMPACT.state },
@@ -1488,7 +1611,7 @@ function FollowTheNaira({ data }: { data: any }) {
     },
   ];
 
-  const loc = { name: data.state, lga: data.lga, ward: data.ward, derivation: true };
+  const loc: NairaLocationContext = { name: data.state, lga: data.lga, ward: data.ward, derivation: true };
 
   return (
     <div className="relative max-w-5xl mx-auto mt-12 flex flex-col md:flex-row gap-8 items-start">

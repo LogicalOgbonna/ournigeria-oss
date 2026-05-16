@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { Neo4jService } from "../platforms/neo4j.service.js";
 
 export interface FaacImageResult {
   buffer: Buffer;
@@ -18,7 +17,7 @@ interface FaacBreakdown {
 export class ImageGeneratorService {
   private readonly logger = new Logger(ImageGeneratorService.name);
 
-  constructor(private readonly neo4j: Neo4jService) {}
+  constructor() {}
 
   /**
    * Generate a FAAC allocation infographic for a given LGA.
@@ -112,42 +111,7 @@ export class ImageGeneratorService {
     month: string,
     year: number,
   ): Promise<{ totalAllocation: number } | null> {
-    if (!this.neo4j.enabled) {
-      // Fallback: try pgvector tool for total allocation
-      return this.queryFaacFromPgvector(lgaName, stateName, month, year);
-    }
-
-    try {
-      const result = await this.neo4j.executeRead(
-        `MATCH (f:FAACAllocation {lga: $lga, state: $state, month: $month, year: $year})
-         RETURN f.amount AS totalAllocation
-         LIMIT 1`,
-        { lga: lgaName, state: stateName, month, year },
-      );
-
-      const record = result.records[0];
-      if (!record) {
-        return this.queryFaacFromPgvector(lgaName, stateName, month, year);
-      }
-
-      const amount = record.get("totalAllocation");
-      // Neo4j may return Integer objects
-      const totalAllocation =
-        typeof amount === "object" && amount?.toNumber
-          ? amount.toNumber()
-          : Number(amount);
-
-      if (!totalAllocation || totalAllocation <= 0) {
-        return null;
-      }
-
-      return { totalAllocation };
-    } catch (error) {
-      this.logger.warn(
-        `Neo4j query failed, falling back to pgvector: ${error instanceof Error ? error.message : error}`,
-      );
-      return this.queryFaacFromPgvector(lgaName, stateName, month, year);
-    }
+    return this.queryFaacFromPgvector(lgaName, stateName, month, year);
   }
 
   private async queryFaacFromPgvector(
