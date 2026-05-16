@@ -2,6 +2,35 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { formatNaira } from "../lib/format";
+import { buildTopFunctionSectorRows } from "./sector-expenditure";
+
+/** Lower = preferred headline row when multiple `IgrRecord`s share the same fiscal year (FY over partials). */
+const IGR_PERIOD_RANK: Record<string, number> = {
+  FY: 0,
+  H1: 1,
+  H2: 2,
+  Q1: 3,
+  Q2: 4,
+  Q3: 5,
+  Q4: 6,
+};
+
+function igrPeriodScore(period: string): number {
+  return IGR_PERIOD_RANK[period] ?? 50;
+}
+
+/** Latest fiscal year, then prefer FY over H1/H2/Q1–Q4 for that year. */
+function pickHeadlineIgrRecord<T extends { fiscalYear: number; period: string; total: unknown }>(
+  rows: T[],
+): T | null {
+  if (!rows.length) return null;
+  const sorted = [...rows].sort((a, b) => {
+    if (b.fiscalYear !== a.fiscalYear) return b.fiscalYear - a.fiscalYear;
+    return igrPeriodScore(a.period) - igrPeriodScore(b.period);
+  });
+  return sorted[0] ?? null;
+}
 
 interface GeoFeature {
   type: string;
@@ -238,11 +267,6 @@ export class GeoService implements OnModuleInit {
               orderBy: { quarter: "desc" },
               take: 4 // Might need both domestic and external
             },
-            igrRecords: {
-              where: year ? { fiscalYear: year } : undefined,
-              orderBy: { fiscalYear: "desc" },
-              take: 1
-            },
             faacStateAllocations: {
               where: year || month ? {
                 disbursement: {
@@ -278,7 +302,15 @@ export class GeoService implements OnModuleInit {
     const gdp = fiscal?.gdpRecords[0];
     const domesticDebt = fiscal?.debtRecords.find(d => d.debtType === "domestic");
     const externalDebt = fiscal?.debtRecords.find(d => d.debtType === "external");
-    const igr = fiscal?.igrRecords[0];
+
+    const entityCodeForIgr = fiscal?.code;
+    const igrRows = entityCodeForIgr
+      ? await this.prisma.igrRecord.findMany({
+          where: { entityCode: entityCodeForIgr },
+          select: { fiscalYear: true, period: true, total: true },
+        })
+      : [];
+    const igr = pickHeadlineIgrRecord(igrRows);
     
     // Calculate YTD FAAC
     const faacYtd = fiscal?.faacStateAllocations.reduce((sum, record) => {
@@ -286,20 +318,69 @@ export class GeoService implements OnModuleInit {
     }, 0) || 0;
 
     let budgetTotal = "N/A";
-    if (latestBudget) {
-      const budgetSum = await this.prisma.budgetLineItem.aggregate({
-        where: {
-          entityCode: state.code,
-          fiscalYear: latestBudget.fiscalYear
-        },
-        _sum: {
-          approvedBudget: true
+    let recurrentExpenditure = "N/A";
+    let capitalExpenditure = "N/A";
+    let budgetBreakdown:
+      | {
+          total: string;
+          capital: { amount: string; percentage: number; color: string };
+          recurrent: { amount: string; percentage: number; color: string };
+          explanation: string;
         }
-      });
+      | undefined;
+    /** Always returned on the payload (null = no budget year). Top COFOG function groups by spend. */
+    let sectorsPayload: Awaited<ReturnType<typeof buildTopFunctionSectorRows>> | null = null;
+
+    if (latestBudget) {
+      const fy = latestBudget.fiscalYear;
+      const baseWhere = { entityCode: state.code, fiscalYear: fy };
+      const [budgetSum, recurrentSumAgg, capitalSumAgg] = await Promise.all([
+        this.prisma.budgetLineItem.aggregate({
+          where: baseWhere,
+          _sum: { approvedBudget: true },
+        }),
+        this.prisma.budgetLineItem.aggregate({
+          where: { ...baseWhere, budgetType: "recurrent_expenditure" },
+          _sum: { approvedBudget: true },
+        }),
+        this.prisma.budgetLineItem.aggregate({
+          where: { ...baseWhere, budgetType: "capital_expenditure" },
+          _sum: { approvedBudget: true },
+        }),
+      ]);
+
       const sumValue = budgetSum._sum.approvedBudget;
       if (sumValue) {
         budgetTotal = `₦${(Number(sumValue) / 1_000_000_000_000).toFixed(2)}T`;
       }
+
+      const recurrentNum = Number(recurrentSumAgg._sum.approvedBudget) || 0;
+      const capitalNum = Number(capitalSumAgg._sum.approvedBudget) || 0;
+      recurrentExpenditure = formatNaira(recurrentNum);
+      capitalExpenditure = formatNaira(capitalNum);
+
+      const expTotal = recurrentNum + capitalNum;
+      const capitalPct =
+        expTotal > 0 ? Number(((capitalNum / expTotal) * 100).toFixed(1)) : 0;
+      const recurrentPct =
+        expTotal > 0 ? Number(((recurrentNum / expTotal) * 100).toFixed(1)) : 0;
+
+      budgetBreakdown = {
+        total: budgetTotal,
+        capital: {
+          amount: capitalExpenditure,
+          percentage: capitalPct,
+          color: "bg-emerald-500",
+        },
+        recurrent: {
+          amount: recurrentExpenditure,
+          percentage: recurrentPct,
+          color: "bg-amber-500",
+        },
+        explanation: `Approved budget line items for FY ${fy}: capital expenditure (projects, infrastructure) versus recurrent expenditure (running costs and salaries), from published state appropriation data.`,
+      };
+
+      sectorsPayload = await buildTopFunctionSectorRows(this.prisma, state.code, fy);
     }
 
     // Get counts and lists for National and State Assembly
@@ -367,11 +448,17 @@ export class GeoService implements OnModuleInit {
         houseMembers,
         stateAssembly: stateAssemblyMembers,
       },
+      ...(budgetBreakdown ? { budgetBreakdown } : {}),
+      sectors: sectorsPayload,
       stats: {
         budget: budgetTotal,
+        budgetFiscalYear: latestBudget?.fiscalYear,
+        recurrentExpenditure,
+        capitalExpenditure,
         faac: faacYtd ? `₦${(faacYtd / 1_000_000_000).toFixed(1)}B` : "N/A",
         faacDate: faacDate || undefined,
-        igr: igr ? `₦${(Number(igr.total) / 1_000_000_000).toFixed(1)}B` : "N/A",
+        igr: igr ? formatNaira(Number(igr.total)) : "N/A",
+        ...(igr ? { igrFiscalYear: igr.fiscalYear, igrPeriod: igr.period } : {}),
         senators: senators.length,
         houseMembers: houseMembers.length,
         stateAssembly: stateAssemblyMembers.length,

@@ -63,6 +63,8 @@ packages/source/govspend/
 packages/source/igr/
 packages/source/gdp/
 packages/source/debt/
+packages/source/housekeeping/
+packages/source/cleaned/
 packages/source/population/
 packages/source/faac/
 packages/source/faac-excel/

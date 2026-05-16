@@ -1110,10 +1110,10 @@ model BudgetAdminCode {
 
 /// Economic codes — nationally standardized (NCoA). Code-only PK.
 model BudgetEconomicCode {
-  code       String   @id @db.VarChar(8)
+  code       String   @id @db.VarChar(50)
   name       String   @db.Text
   level      Int      @db.SmallInt
-  parentCode String?  @map("parent_code") @db.VarChar(8)
+  parentCode String?  @map("parent_code") @db.VarChar(50)
   type       String   @db.VarChar(15) // "revenue" | "expenditure"
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
@@ -1204,7 +1204,7 @@ model BudgetLineItem {
   entityCode       String     @map("entity_code") @db.VarChar(60)
   fiscalYear       Int        @map("fiscal_year") @db.SmallInt
   adminId          String     @map("admin_id") @db.Uuid
-  economicCode     String     @map("economic_code") @db.VarChar(8)
+  economicCode     String?    @map("economic_code") @db.VarChar(50)
   functionCode     String?    @map("function_code") @db.VarChar(5)
   fundCode         String?    @map("fund_code") @db.VarChar(5)
   locationId       String?    @map("location_id") @db.Uuid
@@ -1217,12 +1217,14 @@ model BudgetLineItem {
   outYear1         Decimal?   @map("out_year_1") @db.Decimal(20, 2)
   outYear2         Decimal?   @map("out_year_2") @db.Decimal(20, 2)
   sourceDocumentId String?    @map("source_document_id") @db.Uuid
+  sourcePage       Int?       @map("source_page")
+  sourceAnchor     String?    @map("source_anchor") @db.Text
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt        DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
   entity         FiscalEntity        @relation(fields: [entityCode], references: [code])
   admin          BudgetAdminCode     @relation(fields: [adminId], references: [id])
-  economic       BudgetEconomicCode  @relation(fields: [economicCode], references: [code])
+  economic       BudgetEconomicCode? @relation(fields: [economicCode], references: [code])
   function       BudgetFunctionCode? @relation(fields: [functionCode], references: [code])
   fund           BudgetFundCode?     @relation(fields: [fundCode], references: [code])
   location       BudgetLocation?     @relation(fields: [locationId], references: [id])
@@ -1233,6 +1235,7 @@ model BudgetLineItem {
   @@index([entityCode, fiscalYear], map: "idx_bli_entity_year")
   @@index([adminId], map: "idx_bli_admin")
   @@index([economicCode], map: "idx_bli_economic")
+  @@index([entityCode, fiscalYear, sourcePage], map: "idx_bli_entity_year_source_page")
   @@index([fiscalYear, budgetType], map: "idx_bli_year_type")
   @@index([approvedBudget(sort: Desc)], map: "idx_bli_approved_desc")
   @@map("budget_line_items")
@@ -1246,7 +1249,7 @@ model BudgetActual {
   quarter          Int      @db.SmallInt
   reportSection    String   @map("report_section") @db.VarChar(30)
   adminId          String?  @map("admin_id") @db.Uuid
-  economicCode     String?  @map("economic_code") @db.VarChar(8)
+  economicCode     String?  @map("economic_code") @db.VarChar(50)
   functionCode     String?  @map("function_code") @db.VarChar(5)
   programmeId      String?  @map("programme_id") @db.Uuid
   description      String?  @db.Text
@@ -1277,6 +1280,10 @@ model BudgetMetadata {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   entityCode         String   @map("entity_code") @db.VarChar(60)
   fiscalYear         Int      @map("fiscal_year") @db.SmallInt
+  openingBalance     Decimal? @map("opening_balance") @db.Decimal(20, 2)
+  closingBalance     Decimal? @map("closing_balance") @db.Decimal(20, 2)
+  totalRevenue       Decimal? @map("total_revenue") @db.Decimal(20, 2)
+  totalExpenditure   Decimal? @map("total_expenditure") @db.Decimal(20, 2)
   headOfGovernment   String?  @map("head_of_government") @db.VarChar(200)
   headParty          String?  @map("head_party") @db.VarChar(50)
   headImageUrl       String?  @map("head_image_url") @db.Text

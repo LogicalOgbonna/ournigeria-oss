@@ -281,10 +281,12 @@ export function KitHorizontalBars({
             </div>
             <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  d.color,
+                )}
                 style={{
                   width: `${(d.value / max) * 100}%`,
-                  backgroundColor: d.color,
                 }}
               />
             </div>
@@ -437,6 +439,63 @@ export function KitCtaBand({
   );
 }
 
+export type DashboardKpi = {
+  label: string;
+  value: string;
+  delta?: string;
+  /** When set on "State Debt", renders domestic + external in a two-column split. */
+  debtPair?: { domestic: string; external: string };
+};
+
+const monoDebt =
+  "font-[family-name:var(--font-mono)] font-semibold text-red-600 dark:text-red-400";
+
+function StateDebtKpiContent({
+  debt,
+  fallbackValue,
+  delta,
+}: {
+  debt: { domestic: string; external: string };
+  fallbackValue: string;
+  delta?: string;
+}) {
+  const dom = debt.domestic !== "N/A" ? debt.domestic : null;
+  const ext = debt.external !== "N/A" ? debt.external : null;
+
+  const deltaEl = delta ? (
+    <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{delta}</p>
+  ) : null;
+
+  if (!dom && !ext) {
+    return (
+      <>
+        <p className={cn("mt-1 text-lg", monoDebt)}>{fallbackValue}</p>
+        {deltaEl}
+      </>
+    );
+  }
+
+  return (
+    <div className="mt-1">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-border/40 bg-background/40 px-2 py-1.5 text-center">
+          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+            Domestic
+          </p>
+          <p className={cn("mt-0.5 text-sm leading-tight", monoDebt)}>{dom ?? "—"}</p>
+        </div>
+        <div className="rounded-lg border border-border/40 bg-background/40 px-2 py-1.5 text-center">
+          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+            External
+          </p>
+          <p className={cn("mt-0.5 text-sm leading-tight", monoDebt)}>{ext ?? "—"}</p>
+        </div>
+      </div>
+      {deltaEl}
+    </div>
+  );
+}
+
 export function KitDashboardMock({
   title,
   region,
@@ -446,7 +505,7 @@ export function KitDashboardMock({
 }: {
   title: string;
   region: string;
-  kpis: { label: string; value: string; delta?: string }[];
+  kpis: DashboardKpi[];
   bars: BarDatum[];
   hideBadge?: boolean;
 }) {
@@ -466,22 +525,33 @@ export function KitDashboardMock({
         )}
       </div>
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        {kpis.map((k) => (
-          <div
-            key={k.label}
-            className="rounded-xl border border-border/50 bg-background/60 px-4 py-3"
-          >
-            <p className="text-[11px] font-medium text-muted-foreground">
-              {k.label}
-            </p>
-            <p className="mt-1 font-[family-name:var(--font-mono)] text-lg font-semibold text-emerald-700 dark:text-emerald-400">
-              {k.value}
-            </p>
-            {k.delta ? (
-              <p className="mt-1 text-[11px] text-muted-foreground">{k.delta}</p>
-            ) : null}
-          </div>
-        ))}
+        {kpis.map((k) => {
+          const isDebtCard = k.label === "State Debt" && k.debtPair;
+          return (
+            <div
+              key={k.label}
+              className="rounded-xl border border-border/50 bg-background/60 px-4 py-3"
+            >
+              <p className="text-[11px] font-medium text-muted-foreground">{k.label}</p>
+              {isDebtCard ? (
+                <StateDebtKpiContent
+                  debt={k.debtPair!}
+                  fallbackValue={k.value}
+                  delta={k.delta}
+                />
+              ) : (
+                <>
+                  <p className="mt-1 font-[family-name:var(--font-mono)] text-lg font-semibold text-emerald-700 dark:text-emerald-400">
+                    {k.value}
+                  </p>
+                  {k.delta ? (
+                    <p className="mt-1 text-[11px] text-muted-foreground">{k.delta}</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="mt-6">
         <KitHorizontalBars

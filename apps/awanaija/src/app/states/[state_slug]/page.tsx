@@ -40,17 +40,34 @@ export default async function StatePage({
   }
 
   const { governor, stats, economy, lgas } = state;
+
+  const igrCardTitle = (() => {
+    const y = stats?.igrFiscalYear;
+    const p = stats?.igrPeriod;
+    if (y != null && p) {
+      if (p === "FY") return `IGR (FY ${y})`;
+      return `IGR (${p} ${y})`;
+    }
+    if (y != null) return `IGR (${y})`;
+    return "IGR";
+  })();
   const budgetBreakdown = state.budgetBreakdown || {
     total: "N/A",
     capital: { amount: "N/A", percentage: 0, color: "bg-emerald-500" },
     recurrent: { amount: "N/A", percentage: 0, color: "bg-amber-500" },
     explanation: "Budget breakdown data is currently unavailable."
   };
-  const sectors = state.sectors || [
+  const sectorFallback = [
     { name: "Infrastructure", amount: "N/A", color: "bg-[#d97706]", percentage: 0 },
     { name: "Education", amount: "N/A", color: "bg-[#059669]", percentage: 0 },
     { name: "Health", amount: "N/A", color: "bg-[#0891b2]", percentage: 0 },
   ];
+  const sectors =
+    state.sectors?.length > 0
+      ? [...state.sectors]
+          .sort((a: { percentage: number }, b: { percentage: number }) => b.percentage - a.percentage)
+          .slice(0, 3)
+      : sectorFallback;
 
   const news = [
     {
@@ -152,7 +169,7 @@ export default async function StatePage({
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-4 h-4 text-emerald-500" />
                       <p className="font-sans text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                        {year ? `IGR (${year})` : "IGR"}
+                        {igrCardTitle}
                       </p>
                     </div>
                     <p className="font-mono text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -226,7 +243,8 @@ export default async function StatePage({
               </h2>
               <div className="bg-card border border-border rounded-[10px] p-6 space-y-6">
                 <p className="font-sans text-sm text-muted-foreground">
-                  Top 3 funded sectors in the {year ? `${year} Approved Budget` : "Approved Budget"}
+                  Top COFOG function groups by approved expenditure in the{" "}
+                  {year ? `${year} Approved Budget` : "Approved Budget"}
                 </p>
                   <div className="space-y-4">
                     {sectors.map((sector: { name: string; amount: string; color: string; percentage: number }, i: number) => (
