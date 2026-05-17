@@ -47,12 +47,6 @@ export default function NotFound() {
               <Home className="h-4 w-4" />
               Make we go back house
             </Link>
-            <Link
-              href="/#process"
-              className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-background px-8 text-sm font-medium text-foreground transition-all hover:bg-muted"
-            >
-              See how e work
-            </Link>
           </div>
         </div>
       </div>

@@ -38,15 +38,15 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://ournigeria.ng"),
-  title: "Our Nigeria - See Where Nigeria Money Dey Go",
-  description:
-    "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states. Ask questions in plain English or Pidgin and get clear, sourced answers.",
-  openGraph: {
-    title: "Our Nigeria - See Where Nigeria Money Dey Go",
+  export const metadata: Metadata = {
+    metadataBase: new URL("https://ournigeria.ng"),
+    title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
     description:
-      "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states.",
+      "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states. Ask questions and get clear, sourced answers on government spending.",
+    openGraph: {
+      title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
+      description:
+        "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states.",
     url: "https://ournigeria.ng",
     siteName: "Our Nigeria",
     type: "website",

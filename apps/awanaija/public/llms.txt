@@ -1,0 +1,21 @@
+# Our Nigeria
+
+> A civic technology platform enabling citizens to track Nigerian government spending, budgets, and FAAC allocations.
+
+## About
+Our Nigeria empowers citizens with data on how public money is spent across Nigeria's 36 states and the Federal Capital Territory. We aggregate, digitize, and simplify government financial records to make them accessible to everyone in plain English and Pidgin.
+
+## Data Sources
+- **Approved Budgets:** State and local government approved budgets, tracking both Capital and Recurrent expenditures.
+- **FAAC Allocations:** Monthly Federation Account Allocation Committee disbursements to states and LGAs.
+- **Internally Generated Revenue (IGR):** Revenue generated independently by state governments.
+- **EFCC Anti-Corruption Records:** Public investigations and cases handled by the Economic and Financial Crimes Commission.
+- **GovSpend:** Federal and state payment records.
+
+## Site Structure
+- **States Directory:** [https://ournigeria.ng/states](https://ournigeria.ng/states) - Browse all 36 states, their LGAs, and Wards for specific financial data.
+- **Representatives Directory:** [https://ournigeria.ng/representatives](https://ournigeria.ng/representatives) - Find your elected officials at the local, state, and federal levels.
+- **Officials Directory:** [https://ournigeria.ng/officials](https://ournigeria.ng/officials) - Browse the database of Nigerian public officials.
+
+## Technical Details
+The platform is open-source and powered by an AI-driven multi-agent system that analyzes over 700+ budget documents (comprising over 700,000 vector embeddings) to answer citizen queries accurately using authoritative sources.
