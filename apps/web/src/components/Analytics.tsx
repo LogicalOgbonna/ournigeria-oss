@@ -8,6 +8,13 @@ export function Analytics() {
 
   return (
     <>
+      <Script
+        defer
+        src="https://cloud.umami.is/script.js"
+        data-website-id="3ba1d60c-3802-4751-a7e6-3b3cd839780f"
+        strategy="afterInteractive"
+      />
+
       {/* Google Analytics 4 */}
       {gaId && (
         <>
