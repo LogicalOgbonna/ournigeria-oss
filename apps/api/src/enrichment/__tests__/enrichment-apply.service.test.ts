@@ -59,4 +59,15 @@ describe("EnrichmentApplyService.apply (integration)", () => {
     await expect(svc.apply(proposal.id, "11111111-1111-1111-1111-111111111111"))
       .rejects.toThrow(/not appliable/i);
   });
+
+  it("refuses to apply a proposal that is not pending/needs_human", async () => {
+    const proposal = await prisma.changeProposal.create({
+      data: {
+        targetTable: "nigerian_officials", targetPk: officialId, targetField: "email",
+        proposedValue: "x@y.z", changeKind: "fill", status: "rejected",
+      },
+    });
+    await expect(svc.apply(proposal.id, "11111111-1111-1111-1111-111111111111"))
+      .rejects.toThrow(/cannot be applied in status 'rejected'/i);
+  });
 });

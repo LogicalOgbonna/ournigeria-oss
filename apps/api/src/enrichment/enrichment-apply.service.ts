@@ -10,7 +10,11 @@ export class EnrichmentApplyService {
   async apply(proposalId: string, adminId: string): Promise<void> {
     const proposal = await this.prisma.changeProposal.findUnique({ where: { id: proposalId } });
     if (!proposal) throw new NotFoundException("proposal not found");
-    if (proposal.status === "approved") throw new BadRequestException("already applied");
+    // Only un-reviewed proposals may be applied — never re-apply an approved one or
+    // resurrect a rejected / needs-more-sources one.
+    if (proposal.status !== "pending" && proposal.status !== "needs_human") {
+      throw new BadRequestException(`proposal cannot be applied in status '${proposal.status}'`);
+    }
     if (!isAppliable(proposal.targetTable, proposal.targetField)) {
       throw new BadRequestException(`field ${proposal.targetTable}.${proposal.targetField} is not appliable`);
     }
