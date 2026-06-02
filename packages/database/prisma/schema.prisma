@@ -386,6 +386,58 @@ model ActivityLog {
   @@map("activity_log")
 }
 
+// ============================================================
+// Agent Data Enrichment (agent proposes, owner approves)
+// Distinct from citizen DataProposal/ProposalVote above.
+// ============================================================
+
+model ChangeProposal {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetTable   String    @map("target_table") @db.VarChar(63)
+  targetPk      String    @map("target_pk") @db.VarChar(255)
+  targetField   String    @map("target_field") @db.VarChar(63)
+  currentValue  Json?     @map("current_value") @db.JsonB
+  proposedValue Json      @map("proposed_value") @db.JsonB
+  changeKind    String    @map("change_kind") @db.VarChar(20) // fill | correction
+  status        String    @default("pending") @db.VarChar(30) // pending | needs_human | approved | rejected | needs_more_sources
+  confidence    String    @default("medium") @db.VarChar(10)  // low | medium | high
+  reasoning     String?   @db.Text
+  agentRunId    String?   @map("agent_run_id") @db.Uuid
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+  reviewNote    String?   @map("review_note") @db.Text
+  appliedAt     DateTime? @map("applied_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  sources ProposalSource[]
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_change_proposals_status_date")
+  @@index([targetTable, targetPk], map: "idx_change_proposals_target")
+  @@index([agentRunId], map: "idx_change_proposals_run")
+  @@map("change_proposals")
+}
+
+model ProposalSource {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proposalId  String   @map("proposal_id") @db.Uuid
+  url         String   @db.Text
+  archiveUrl  String?  @map("archive_url") @db.Text
+  publisher   String   @db.VarChar(255)
+  snippet     String   @db.Text
+  format      String   @db.VarChar(20)  // xlsx | pdf | docx | html | ...
+  locator     String?  @db.Text         // e.g. Sheet "Net FAAC"!B12, p.34 §3.2
+  sourceTier  String   @map("source_tier") @db.VarChar(20) // canonical | official | web
+  confidence  String   @default("medium") @db.VarChar(10)
+  retrievedAt DateTime @map("retrieved_at") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  proposal ChangeProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId], map: "idx_proposal_sources_proposal")
+  @@map("proposal_sources")
+}
+
 model User {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phoneNumber String?   @unique @map("phone_number") @db.VarChar(20)

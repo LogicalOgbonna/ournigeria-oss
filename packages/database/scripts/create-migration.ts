@@ -30,6 +30,12 @@ const IGNORED_TABLES = [
   "corruption_chunks",
   "govspend_chunks",
   "faac_chunks",
+  // Mastra PgVector index tables (env VECTOR_INDEX_* names)
+  "faac_vectors",
+  "faac_vectors_qwen",
+  "budget_vectors",
+  "corruption_vectors",
+  "govspend_vectors",
 ];
 
 function run(cmd: string): string {
