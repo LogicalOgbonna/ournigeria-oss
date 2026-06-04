@@ -27,10 +27,16 @@ cd /Users/arinzeogbonna/conductor/workspaces/spending/colombo && \
 ```
 Returns `[{ officialId, name, missing: [fields...] }]`. Pick ONE official and ONE missing field.
 
-## 2. Research that one field
-Use web search. Prefer `*.gov.ng`, `nass.gov.ng`, `inecnigeria.org`, `placng.org`. Capture, per
-source: url, exact quoted snippet, publisher (domain), retrieval time. If a source is an Excel or
-PDF document, parse it for a precise locator:
+## 2. Research that one field (use the BROWSER — camofox, not web search)
+Use the **browser tool** (camofox, anti-detection Firefox) to research — open pages and read their
+real content. Do NOT use the `web` search toolset.
+- Go straight to authoritative sites first: `*.gov.ng`, `nass.gov.ng`, the relevant State
+  Government site, `inecnigeria.org`, `placng.org`. Navigate directly (e.g. the state's
+  Government House / Office of the Governor page).
+- To discover URLs, browse a search engine (e.g. open `https://duckduckgo.com/?q=...`) and read the
+  result links, then visit the actual pages. Camofox bypasses anti-bot blocks, so read the live page.
+- Capture, per source: url, **exact quoted snippet** copied from the page, publisher (domain),
+  retrieval time. If a source is an Excel or PDF document, parse it for a precise locator:
 ```bash
 cd /Users/arinzeogbonna/conductor/workspaces/spending/colombo && \
   npx tsx -e "import('./apps/api/src/enrichment/parser/located-parser').then(m=>m.parseLocated(process.argv[1], process.argv[2])).then(d=>console.log(JSON.stringify(d)))" <file> <xlsx|pdf>
