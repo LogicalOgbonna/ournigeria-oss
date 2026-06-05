@@ -4,6 +4,7 @@ import { generateText, stepCountIs, tool } from "ai";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { z } from "zod";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
+import { getSystemPrompt, type DraftDomain } from "./system-prompts.js";
 
 export interface DiscoveredTweetSnapshot {
   id: string;
@@ -23,7 +24,7 @@ export interface DiscoveredTweetSnapshot {
 
 export interface AgentTopicContext {
   name: string;
-  domain: "budget" | "corruption" | "faac" | "govspend" | "general";
+  domain: DraftDomain;
   description: string;
 }
 
@@ -51,29 +52,35 @@ const AgentResultJsonSchema = z.object({
   reasoning: z.string(),
 });
 
-const SYSTEM_PROMPT = `
-You are OurNigeria's civic data analyst on Twitter/X.
-You craft on-brand responses to real tweets that surface Nigerian government spending, budgets, corruption cases, and public finance figures.
-
-VOICE: English. Direct, punchy, citizen-journalist tone. Cite specific numbers from your tools.
-
-OUTPUT FORMAT — return ONLY a JSON object with this exact shape:
-{
-  "action": "quote" | "reply" | "skip",
-  "text": string,                  // empty if action is "skip"
-  "confidence": number,            // 0..1, your self-rated confidence
-  "reasoning": string              // one sentence explaining your action choice
+/**
+ * Extract the first balanced JSON object `{ ... }` from a string, ignoring any
+ * prose the model prepended/appended despite the "ONLY JSON" instruction.
+ * Brace-aware and string-literal-aware (so braces inside string values don't
+ * confuse the depth count). Returns the object substring, or null.
+ */
+export function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inStr = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
 }
-
-Rules:
-1. Cite specific state, year, amount from search results. Use the Naira symbol (e.g., ₦1.3B, ₦47M).
-2. Never make unsourced claims — only use data your tools returned.
-3. Action selection:
-   - "quote": you have a substantive data-backed point to amplify alongside the tweet. Use when author has a meaningful follower count (>= ~10k) or the tweet itself is a strong signal you want to widen.
-   - "reply": you have a direct, conversational data point that fits as a comment thread. Use for lower-follower authors or direct questions/claims you can correct/expand.
-   - "skip": you cannot find supporting data, the tweet is off-topic for your tools, the response would be unsourced or generic, OR responding adds no civic value.
-4. Tweet text MUST be no more than 280 characters.
-5. Prefer skipping over weak/generic responses. Reviewers approve drafts manually — quality over volume.`;
 
 @Injectable()
 export class AgentService {
@@ -198,10 +205,10 @@ Your job:
     try {
       result = await generateText({
         model: this.model,
-        system: SYSTEM_PROMPT,
+        system: getSystemPrompt(topic.domain),
         prompt: userPrompt,
         tools,
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(10),
         temperature: this.temperature,
         abortSignal: AbortSignal.timeout(90_000),
       });
@@ -237,8 +244,21 @@ Your job:
     try {
       parsed = JSON.parse(body);
     } catch {
-      this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
-      return null;
+      // Flash models sometimes wrap the JSON in prose ("Based on the data,
+      // here's my context… { … }") despite the ONLY-JSON instruction.
+      // Recover the first balanced object rather than dropping the draft.
+      const extracted = extractFirstJsonObject(body);
+      if (extracted) {
+        try {
+          parsed = JSON.parse(extracted);
+        } catch {
+          /* fall through to the non-JSON warning below */
+        }
+      }
+      if (parsed === undefined) {
+        this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
+        return null;
+      }
     }
 
     const safe = AgentResultJsonSchema.safeParse(parsed);

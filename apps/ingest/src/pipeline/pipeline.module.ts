@@ -7,14 +7,12 @@ import { FaacPipeline } from "./faac.pipeline";
 import { PipelineRegistry } from "./pipeline.registry";
 import { BudgetSummarizerService } from "./budget-summarizer.service";
 import { CorruptionProfileService } from "./corruption-profile.service";
-import { FaacExtractorService } from "./faac-extractor.service";
 
 @Module({
   imports: [ExtractorsModule],
   providers: [
     BudgetSummarizerService,
     CorruptionProfileService,
-    FaacExtractorService,
     BudgetPipeline,
     CorruptionPipeline,
     GovspendPipeline,

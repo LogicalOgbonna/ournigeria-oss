@@ -127,7 +127,7 @@ docker compose build webhook
 
 # ─── Pull initial images ──────────────────────────────────────────
 echo "8. Pulling initial images..."
-docker compose pull api-blue ingest-blue || echo "   WARNING: Pull failed — check GHCR auth"
+docker compose pull api-blue ingest-blue socials-blue || echo "   WARNING: Pull failed — check GHCR auth"
 
 echo ""
 echo "═══════════════════════════════════════════════════"
@@ -135,8 +135,9 @@ echo "  Bootstrap complete!"
 echo ""
 echo "  Next steps:"
 echo "  1. Verify $DEPLOY_DIR/.env has correct values"
-echo "  2. Configure NPM to forward API traffic to traefik:80"
+echo "  2. Configure NPM to forward API/ingest/socials traffic to traefik:80"
 echo "     (NPM and Traefik are on the 'npm-proxy' network)"
+echo "     Proxy hosts: ournigeria-api / ournigeria-ingest / ournigeria-socials .example.invalid"
 echo "  3. Run: cd $DEPLOY_DIR && docker compose up -d"
 echo "  4. Ensure port $WEBHOOK_PORT is reachable for GitHub webhooks"
 echo "  5. Set DEPLOY_WEBHOOK_URL and WEBHOOK_SECRET in GitHub repo secrets"

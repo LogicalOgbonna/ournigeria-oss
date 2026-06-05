@@ -1,0 +1,25 @@
+# Sandboxed enrichment agent — Hermes config.
+# HERMES_HOME is this single-purpose home (SOUL.md + this config + skills/ + .env).
+# Secrets come from .env (written at boot from container env), never baked into the image.
+model:
+  default: "deepseek-v4-flash"
+  provider: "custom"
+  base_url: "https://api.deepseek.com/v1"
+
+# Only what the agent needs: browse (camofox) + run the bundled CLIs (terminal,
+# container-confined) + read files. NO web-search, no delegation, no kanban, etc.
+toolsets: '["browser", "terminal", "file"]'
+
+agent:
+  max_turns: 60
+  reasoning_effort: medium
+
+browser:
+  inactivity_timeout: 180
+
+display:
+  personality: concise
+  streaming: true
+
+telegram:
+  reactions: false

@@ -54,6 +54,7 @@ jobs:
           echo "Affected projects: $AFFECTED"
           echo "api=$(echo "$AFFECTED" | grep -q '^api$' && echo true || echo false)" >> "$GITHUB_OUTPUT"
           echo "ingest=$(echo "$AFFECTED" | grep -q '^ingest$' && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "socials=$(echo "$AFFECTED" | grep -q '^socials$' && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Build matrix
         id: set-matrix
@@ -61,6 +62,7 @@ jobs:
           APPS=()
           [ "${{ steps.affected.outputs.api }}" = "true" ] && APPS+=("api")
           [ "${{ steps.affected.outputs.ingest }}" = "true" ] && APPS+=("ingest")
+          [ "${{ steps.affected.outputs.socials }}" = "true" ] && APPS+=("socials")
           if [ ${#APPS[@]} -eq 0 ]; then
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
             echo "any_changed=false" >> "$GITHUB_OUTPUT"

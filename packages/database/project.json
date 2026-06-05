@@ -5,6 +5,7 @@
   "targets": {
     "build": {
       "command": "prisma generate && tsc",
+      "cache": false,
       "options": {
         "cwd": "packages/database"
       }

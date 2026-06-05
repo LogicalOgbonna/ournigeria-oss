@@ -62,6 +62,38 @@ x-ingest-common: &ingest-common
       max-file: "5"
   networks: [internal]
 
+x-socials-common: &socials-common
+  image: ghcr.io/${GHCR_OWNER:-ournigeria}/ournigeria-socials:${IMAGE_TAG:-latest}
+  restart: unless-stopped
+  stop_grace_period: 30s
+  environment:
+    - INFISICAL_TOKEN=${INFISICAL_TOKEN}
+    - INFISICAL_ENV=${INFISICAL_ENV:-prod}
+    - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
+    - PORT=3005
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+    interval: 15s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+  deploy:
+    resources:
+      limits:
+        memory: 2G
+        cpus: "1.0"
+      reservations:
+        memory: 512M
+  depends_on:
+    postgres:
+      condition: service_healthy
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "50m"
+      max-file: "5"
+  networks: [internal]
+
 services:
   # ─── Database (unchanged) ───────────────────────────────────────
   postgres:
@@ -139,39 +171,14 @@ services:
     <<: *ingest-common
     container_name: ournigeria_ingest_green
 
-  # ─── Social Intelligence Agent ────────────────────────────────
-  socials:
-    image: ghcr.io/${GHCR_OWNER:-ournigeria}/ournigeria-socials:${IMAGE_TAG:-latest}
-    container_name: ournigeria_socials
-    restart: unless-stopped
-    stop_grace_period: 30s
-    environment:
-      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
-      - INFISICAL_ENV=${INFISICAL_ENV:-prod}
-      - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
-      - PORT=3005
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: "1.0"
-        reservations:
-          memory: 512M
-    depends_on:
-      postgres:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-    networks: [internal]
+  # ─── Social Intelligence Agent (Blue/Green) ────────────────────
+  socials-blue:
+    <<: *socials-common
+    container_name: ournigeria_socials_blue
+
+  socials-green:
+    <<: *socials-common
+    container_name: ournigeria_socials_green
 
   # ─── Webhook Receiver ──────────────────────────────────────────
   webhook:

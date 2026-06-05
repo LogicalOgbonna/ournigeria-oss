@@ -35,6 +35,7 @@ import {
   Hash,
   Activity,
   Filter,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -54,6 +55,7 @@ const generalNav = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "Users", href: "/dashboard/users", icon: Users },
   { title: "Proposals", href: "/dashboard/proposals", icon: MessageSquare },
+  { title: "Enrichment", href: "/dashboard/enrichment", icon: Sparkles },
   { title: "Feedback", href: "/dashboard/feedback", icon: MessageSquare },
   { title: "Donations", href: "/dashboard/donations", icon: Heart },
 ];

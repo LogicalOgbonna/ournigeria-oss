@@ -22,6 +22,7 @@ import { GeoModule } from "./geo/geo.module";
 import { CompletenessModule } from "./completeness/completeness.module";
 import { ActivityModule } from "./activity/activity.module";
 import { ContactModule } from "./contact/contact.module";
+import { EnrichmentModule } from "./enrichment/enrichment.module";
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ContactModule } from "./contact/contact.module";
     CompletenessModule,
     ActivityModule,
     ContactModule,
+    EnrichmentModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [

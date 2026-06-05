@@ -122,9 +122,10 @@ export class VectorService implements OnModuleDestroy {
     indexName: string,
     vectors: number[][],
     metadata: Record<string, unknown>[],
+    ids?: string[],
   ): Promise<void> {
     await this.withRetry(
-      () => this.pgVector.upsert({ indexName, vectors, metadata }),
+      () => this.pgVector.upsert({ indexName, vectors, metadata, ids }),
       'upsert',
     );
   }

@@ -1,0 +1,59 @@
+# Sandboxed enrichment stack (local / prod-parity).
+#
+# - agent: official Hermes image + bundled CLIs, single-purpose home on a named volume.
+#   No host filesystem mounts → the agent's `terminal` toolset is confined to the container.
+# - camofox: headless anti-detect browser, reachable only over the private `enrichment` net.
+#
+# Local wiring: the agent also joins the dev DB's network (spending_default) to reach
+# `ournigeria_db:5432` as the least-privileged `enrichment_agent` role. For prod, swap the
+# `devdb` external network for the production stack's `internal` network + DB host.
+#
+# Secrets come from deploy/enrichment/.env (gitignored). Copy .env.example to start.
+name: ournigeria-enrichment
+
+services:
+  camofox:
+    build:
+      context: ../..
+      dockerfile: deploy/enrichment/Dockerfile.camofox
+    image: ournigeria-enrichment-camofox
+    container_name: enrichment_camofox
+    restart: unless-stopped
+    networks: [enrichment]
+    # No published ports — only the agent reaches it via the enrichment network.
+
+  agent:
+    build:
+      context: ../..
+      dockerfile: deploy/enrichment/Dockerfile.agent
+    image: ournigeria-enrichment-agent
+    container_name: enrichment_agent
+    restart: unless-stopped
+    depends_on: [camofox]
+    # Secrets come from Infisical, injected at up-time:
+    #   infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml up -d
+    # The ${VAR:?} guards fail fast if a secret wasn't injected (i.e. you forgot `infisical run`).
+    # Telegram names are mapped from ENRICHMENT_*-namespaced Infisical secrets so the agent
+    # never reuses the app's shared TELEGRAM_BOT_TOKEN (used by the API for Telegram login).
+    environment:
+      TELEGRAM_BOT_TOKEN: "${ENRICHMENT_TELEGRAM_BOT_TOKEN:?set-via-infisical-run}"
+      TELEGRAM_ALLOWED_USERS: "${ENRICHMENT_TELEGRAM_ALLOWED_USERS:?set-via-infisical-run}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
+      ENRICHMENT_AGENT_DATABASE_URL: "${ENRICHMENT_AGENT_DATABASE_URL:?set-via-infisical-run}"
+      CAMOFOX_URL: "http://camofox:9377"
+      HERMES_UID: "10000"
+      HERMES_GID: "10000"
+    volumes:
+      - enrichment_home:/opt/data   # Hermes home — a named volume, never a host path.
+    networks: [enrichment, devdb]
+    command: ["gateway", "run"]
+
+networks:
+  enrichment:
+    driver: bridge
+  devdb:
+    external: true
+    name: spending_default
+
+volumes:
+  enrichment_home:
