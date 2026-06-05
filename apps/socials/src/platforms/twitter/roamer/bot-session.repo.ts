@@ -126,6 +126,14 @@ export class BotSessionRepo {
       xClientUuid: input.xClientUuid,
       searchTimelineOpHash: input.searchTimelineOpHash,
       lastUsedAt: now,
+      // A fresh capture means this session is good to use again: make it
+      // immediately claimable and clear any prior working/error/cooldown state.
+      // Otherwise a session stuck in "working" from a crashed run stays
+      // unclaimable and test-query / roamer report "no claimable bot sessions".
+      status: "idle",
+      consecutiveErrors: 0,
+      cooldownUntil: null,
+      lastError: null,
     };
     return this.prisma.socialsBotSession.upsert({
       where: { userName_path: { userName: input.userName, path: input.path } },

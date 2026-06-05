@@ -33,6 +33,10 @@ export function getSettingNumber(
   fallback?: number,
 ): number {
   const raw = getSetting(key, envKey);
+  // Empty string (setting absent in both store and env) must fall back, not
+  // coerce to 0 via Number("") — otherwise rag.top_k / embedding.dimension etc.
+  // silently become 0 for consumers that don't load DB settings (e.g. socials).
+  if (raw === "") return fallback ?? 0;
   const num = Number(raw);
   return Number.isFinite(num) ? num : (fallback ?? 0);
 }

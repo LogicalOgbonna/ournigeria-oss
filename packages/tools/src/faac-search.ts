@@ -84,7 +84,7 @@ export const faacSearchInputSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      "Filter by data level: 'lga_monthly' for per-LGA data, 'state_monthly' for per-state summaries, 'national_monthly' for national totals, 'zone_monthly' for zone aggregates, 'state_annual' for yearly state summaries",
+      "Filter by data level: 'lga_monthly' for per-LGA data, 'state_monthly' for per-state summaries, 'national_monthly' for national totals, 'zone_monthly' for zone aggregates, 'fgn_monthly' for the federal-government beneficiary breakdown (FGN CRF Account, FCT-Abuja, Stabilization, etc.), 'state_annual' for yearly state summaries",
     ),
   topK: z
     .number()
