@@ -1,3 +1,4 @@
 {
-  "ignoreCommand": "exit 1"
+  "ignoreCommand": "exit 1",
+  "buildCommand": "npx nx run @ournigeria/dashboard:build --skip-nx-cache"
 }
