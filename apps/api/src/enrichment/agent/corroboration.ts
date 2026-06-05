@@ -31,6 +31,14 @@ export function validateCorroboration(
   const independent = distinctPublishers(input.sources);
   const canonical = input.sources.filter((s) => s.tier === "canonical").length;
 
+  // Spec create bar (Q2-C): >=1 authoritative (canonical|official) OR >=2 independent web.
+  if (input.changeKind === "create") {
+    const authoritative = input.sources.filter((s) => s.tier === "canonical" || s.tier === "official").length;
+    if (authoritative >= 1) return { ok: true, reason: "authoritative source satisfies create" };
+    if (independent >= 2) return { ok: true, reason: `${independent} independent web sources satisfy create` };
+    return { ok: false, reason: `create needs >=1 authoritative or >=2 independent sources, have ${authoritative} authoritative / ${independent} independent` };
+  }
+
   if (canonical >= 1) {
     if (effective === "fill") return { ok: true, reason: "canonical source satisfies fill" };
     if (canonical >= 2) return { ok: true, reason: "two canonical sources satisfy correction" };

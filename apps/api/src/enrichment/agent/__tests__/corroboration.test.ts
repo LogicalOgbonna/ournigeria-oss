@@ -45,3 +45,46 @@ describe("validateCorroboration", () => {
       sources: [src("oagf.gov.ng", "canonical"), src("b.org")] }, profile).ok).toBe(true);
   });
 });
+
+describe("validateCorroboration — create bar", () => {
+  const profile = {
+    domain: "councilors", targetTable: "nigerian_officials",
+    targetFields: [], sensitiveFields: [],
+    trustedDomains: ["absiec.org", "*.gov.ng"], sourceTemplates: [],
+  } as const;
+
+  const src = (publisher: string, tier: "canonical" | "official" | "web") =>
+    ({ url: `https://${publisher}/x`, publisher, tier });
+
+  it("passes with one authoritative (official) source", () => {
+    const r = validateCorroboration(
+      { changeKind: "create", targetField: "__create__", sources: [src("absiec.org", "official")] },
+      profile as any,
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("passes with two independent web sources", () => {
+    const r = validateCorroboration(
+      { changeKind: "create", targetField: "__create__", sources: [src("dailypost.ng", "web"), src("thisdaylive.com", "web")] },
+      profile as any,
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("fails with a single web source", () => {
+    const r = validateCorroboration(
+      { changeKind: "create", targetField: "__create__", sources: [src("dailypost.ng", "web")] },
+      profile as any,
+    );
+    expect(r.ok).toBe(false);
+  });
+
+  it("fails with two web pages from the same publisher", () => {
+    const r = validateCorroboration(
+      { changeKind: "create", targetField: "__create__", sources: [src("dailypost.ng", "web"), src("dailypost.ng", "web")] },
+      profile as any,
+    );
+    expect(r.ok).toBe(false);
+  });
+});
