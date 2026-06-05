@@ -35,16 +35,6 @@ export function Hero() {
         <div className="flex min-h-[100dvh] flex-col items-center justify-end gap-16 pb-24 pt-32 lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
           {/* Left — Text content, pushed bottom-left on desktop */}
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
-            {/* Badge */}
-            <div className="hero-badge mb-8 opacity-0 animate-fade-in-up" style={{ animationDelay: "0s" }}>
-              <span className="inline-flex items-center gap-2.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-4 py-1.5 text-sm font-medium text-emerald-700 backdrop-blur-sm dark:border-emerald-700/40 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                Na Our Country
-              </span>
-            </div>
 
             {/* Headline — Carousel */}
             <div className="hero-line opacity-0 animate-fade-in-up group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden" style={{ animationDelay: "0.3s" }}>
