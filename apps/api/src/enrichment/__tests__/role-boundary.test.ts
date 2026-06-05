@@ -72,6 +72,18 @@ describe("enrichment_agent role boundary", () => {
     ).rejects.toThrow(/permission denied/i);
   });
 
+  it("CANNOT insert into nigerian_officials or official_positions (create is apply-only)", async () => {
+    await expect(
+      agent.query(`INSERT INTO nigerian_officials (name) VALUES ('rogue')`),
+    ).rejects.toThrow(/permission denied/i);
+    await expect(
+      agent.query(
+        `INSERT INTO official_positions (official_id, role, ward_code, appointment_type, status, start_date)
+         VALUES (gen_random_uuid(), 'councilor', 'abia_aba_north_eziama', 'elected', 'active', '2024-11-04')`,
+      ),
+    ).rejects.toThrow(/permission denied/i);
+  });
+
   it("CANNOT escalate to enrichment_apply via SET ROLE", async () => {
     await expect(agent.query(`SET ROLE enrichment_apply`)).rejects.toThrow(/permission denied/i);
   });

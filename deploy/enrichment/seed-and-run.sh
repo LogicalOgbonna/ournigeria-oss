@@ -11,8 +11,13 @@ if [ ! -f "$HOME_DIR/SOUL.md" ]; then
   mkdir -p "$HOME_DIR/skills"
   cp -a /opt/seed/SOUL.md       "$HOME_DIR/SOUL.md"
   cp -a /opt/seed/config.yaml   "$HOME_DIR/config.yaml"
-  cp -a /opt/seed/skills/.      "$HOME_DIR/skills/"
 fi
+
+# Always re-sync skills from the image so a rebuild ships new/updated skills without
+# wiping the agent's sessions/memory (SOUL + config stay first-boot-only above).
+echo "[seed] syncing skills into $HOME_DIR/skills"
+mkdir -p "$HOME_DIR/skills"
+cp -a /opt/seed/skills/. "$HOME_DIR/skills/"
 
 # Secrets: always rewritten from env so rotation just needs a container restart.
 umask 077

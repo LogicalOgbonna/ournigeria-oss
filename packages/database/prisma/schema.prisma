@@ -394,11 +394,11 @@ model ActivityLog {
 model ChangeProposal {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   targetTable   String    @map("target_table") @db.VarChar(63)
-  targetPk      String    @map("target_pk") @db.VarChar(255)
+  targetPk      String?   @map("target_pk") @db.VarChar(255)
   targetField   String    @map("target_field") @db.VarChar(63)
   currentValue  Json?     @map("current_value") @db.JsonB
   proposedValue Json      @map("proposed_value") @db.JsonB
-  changeKind    String    @map("change_kind") @db.VarChar(20) // fill | correction
+  changeKind    String    @map("change_kind") @db.VarChar(20) // fill | correction | create
   status        String    @default("pending") @db.VarChar(30) // pending | needs_human | approved | rejected | needs_more_sources
   confidence    String    @default("medium") @db.VarChar(10)  // low | medium | high
   reasoning     String?   @db.Text

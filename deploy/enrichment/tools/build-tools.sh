@@ -5,9 +5,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../../.."   # repo root
 
-for cli in find-candidates submit-proposal parse-located; do
+for cli in find-candidates submit-proposal parse-located find-councilor-gaps submit-create-proposal; do
   npx esbuild "apps/api/src/enrichment/agent/${cli}.cli.ts" \
     --bundle --platform=node --target=node22 --format=cjs --packages=external \
     --outfile="deploy/enrichment/tools/${cli}.cjs"
 done
-echo "Bundled: find-candidates.cjs submit-proposal.cjs parse-located.cjs"
+echo "Bundled: find-candidates.cjs submit-proposal.cjs parse-located.cjs find-councilor-gaps.cjs submit-create-proposal.cjs"

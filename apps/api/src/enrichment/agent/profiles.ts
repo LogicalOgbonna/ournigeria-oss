@@ -13,8 +13,20 @@ const OFFICIALS: EnrichmentProfile = {
   sourceTemplates: [], // officials have no single canonical document
 };
 
+const COUNCILORS: EnrichmentProfile = {
+  domain: "councilors",
+  targetTable: "nigerian_officials",
+  targetFields: [], // create-only: no field-level enrichment via this profile
+  sensitiveFields: [],
+  // SIEC domains (per-state, run LG elections) + general gov + civic. Expand as states roll out.
+  trustedDomains: ["absiec.org", "*.gov.ng", "placng.org", "inecnigeria.org"],
+  // The ABSIEC results page is the canonical councilor source for Abia.
+  sourceTemplates: [{ publisher: "absiec.org", urlIncludes: "election-results", format: "html" }],
+};
+
 const PROFILES: Record<string, EnrichmentProfile> = {
   officials: OFFICIALS,
+  councilors: COUNCILORS,
 };
 
 export function getProfile(domain: string): EnrichmentProfile {
