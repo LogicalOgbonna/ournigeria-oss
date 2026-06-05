@@ -22,7 +22,14 @@ export function ProposalCard({
   const [moreOpen, setMoreOpen] = useState(false);
   const isCorrection = proposal.changeKind === "correction";
   const isCreate = proposal.changeKind === "create";
-  const entity = isCreate ? (proposal.proposedValue as CouncilorProposedEntity) : null;
+  const entity =
+    isCreate &&
+    proposal.proposedValue &&
+    typeof proposal.proposedValue === "object" &&
+    "official" in proposal.proposedValue &&
+    "position" in proposal.proposedValue
+      ? (proposal.proposedValue as CouncilorProposedEntity)
+      : null;
   const reviewable = proposal.status === "pending" || proposal.status === "needs_human";
 
   async function approve() {
