@@ -1,0 +1,18 @@
+# Sandboxed enrichment agent: official Hermes image + the bundled enrichment CLIs +
+# a single-purpose home seed. No host mounts; runs as the image's non-root hermes user
+# (via s6-setuidgid). Build context = repo root.
+FROM nousresearch/hermes-agent:latest
+
+# Bundled CLIs (esbuild output) + their runtime deps (pg, xlsx, pdf-parse).
+COPY deploy/enrichment/tools/ /opt/enrichment-tools/
+RUN cd /opt/enrichment-tools && npm install --omit=dev --no-audit --no-fund
+
+# Seed material copied into HERMES_HOME (/opt/data) on first boot by the entrypoint.
+COPY docs/enrichment/officials-agent-profile.md /opt/seed/SOUL.md
+COPY deploy/enrichment/config.yaml               /opt/seed/config.yaml
+COPY deploy/enrichment/skill/SKILL.md            /opt/seed/skills/enrichment/SKILL.md
+COPY deploy/enrichment/seed-and-run.sh           /opt/enrichment/seed-and-run.sh
+RUN chmod +x /opt/enrichment/seed-and-run.sh
+
+ENTRYPOINT ["/opt/enrichment/seed-and-run.sh"]
+CMD ["gateway", "run"]

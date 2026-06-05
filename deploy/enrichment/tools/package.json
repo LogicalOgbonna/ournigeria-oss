@@ -1,0 +1,10 @@
+{
+  "name": "enrichment-tools",
+  "private": true,
+  "description": "Bundled CLIs the sandboxed Hermes enrichment agent invokes.",
+  "dependencies": {
+    "pg": "8.13.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "pdf-parse": "2.4.5"
+  }
+}
