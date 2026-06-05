@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "setup": "pnpm install && pnpm --filter @ournigeria/cache --filter @ournigeria/database --filter @ournigeria/tools run build"
+  }
+}
