@@ -30,11 +30,19 @@ services:
     container_name: enrichment_agent
     restart: unless-stopped
     depends_on: [camofox]
-    env_file: [.env]
+    # Secrets come from Infisical, injected at up-time:
+    #   infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml up -d
+    # The ${VAR:?} guards fail fast if a secret wasn't injected (i.e. you forgot `infisical run`).
+    # Telegram names are mapped from ENRICHMENT_*-namespaced Infisical secrets so the agent
+    # never reuses the app's shared TELEGRAM_BOT_TOKEN (used by the API for Telegram login).
     environment:
-      - CAMOFOX_URL=http://camofox:9377
-      - HERMES_UID=10000
-      - HERMES_GID=10000
+      TELEGRAM_BOT_TOKEN: "${ENRICHMENT_TELEGRAM_BOT_TOKEN:?set-via-infisical-run}"
+      TELEGRAM_ALLOWED_USERS: "${ENRICHMENT_TELEGRAM_ALLOWED_USERS:?set-via-infisical-run}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
+      ENRICHMENT_AGENT_DATABASE_URL: "${ENRICHMENT_AGENT_DATABASE_URL:?set-via-infisical-run}"
+      CAMOFOX_URL: "http://camofox:9377"
+      HERMES_UID: "10000"
+      HERMES_GID: "10000"
     volumes:
       - enrichment_home:/opt/data   # Hermes home — a named volume, never a host path.
     networks: [enrichment, devdb]

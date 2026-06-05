@@ -14,15 +14,33 @@ filesystem access** and only the least-privileged `enrichment_agent` DB credenti
 The agent's home (`/opt/data`) is a **named volume**, not a host path. Secrets come from `.env`
 (gitignored) → written into the home at boot; rotation = restart.
 
+## Secrets (Infisical — never a local .env)
+
+The agent's secrets live in Infisical and are injected at `up` time. There is no `.env` file.
+Set them once (names are ENRICHMENT_*-namespaced so they never collide with the app's shared
+`TELEGRAM_BOT_TOKEN`, which the API uses for Telegram login):
+
+```bash
+infisical secrets set \
+  ENRICHMENT_TELEGRAM_BOT_TOKEN="..." \
+  ENRICHMENT_TELEGRAM_ALLOWED_USERS="573695075" \
+  DEEPSEEK_API_KEY="..." \
+  ENRICHMENT_AGENT_DATABASE_URL="postgresql://enrichment_agent:<pw>@ournigeria_db:5432/spending" \
+  --env dev
+```
+
+The compose maps `ENRICHMENT_TELEGRAM_*` → the `TELEGRAM_*` names Hermes reads inside the container.
+
 ## Run (local, against the dev DB)
 
 ```bash
-cp .env.example .env        # fill in DeepSeek key, agent DB url, bot token, allowed user id
 # dev DB must be up (docker compose -f ../../docker-compose.dev.yml up -d) and the
 # enrichment_agent role must have a login password (see the backend plan, Phase 1.3).
-docker compose up -d --build
-docker compose logs -f agent
+infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml up -d --build
+infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml logs -f agent
 ```
+
+Forgetting `infisical run` fails fast — the `${VAR:?}` guards in compose reject empty secrets.
 
 The agent connects Telegram (locked to `TELEGRAM_ALLOWED_USERS`), reaches `ournigeria_db` as
 `enrichment_agent`, and browses via `camofox`. DM the bot or run a one-off:
