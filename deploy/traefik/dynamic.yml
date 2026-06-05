@@ -16,6 +16,12 @@ http:
       entryPoints:
         - web
 
+    socials:
+      rule: "Host(`ournigeria-socials.example.invalid`)"
+      service: socials
+      entryPoints:
+        - web
+
   services:
     api:
       loadBalancer:
@@ -26,3 +32,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://ingest-blue:3002"
+
+    socials:
+      loadBalancer:
+        servers:
+          - url: "http://socials-blue:3005"

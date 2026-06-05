@@ -164,8 +164,8 @@ Env: \`$DEPLOY_ENV\`"
 if [ "$DEPLOY_ENV" = "staging" ]; then
   echo "Staging deploy: simple restart (no blue-green)"
   export IMAGE_TAG="$NEW_IMAGE_TAG"
-  docker compose -f "$COMPOSE_FILE" pull api-blue ingest-blue
-  docker compose -f "$COMPOSE_FILE" up -d api-blue ingest-blue
+  docker compose -f "$COMPOSE_FILE" pull api-blue ingest-blue socials-blue
+  docker compose -f "$COMPOSE_FILE" up -d api-blue ingest-blue socials-blue
   DEPLOY_END=$(date +%s)
   log_deploy "success" "" "$(( DEPLOY_END - DEPLOY_START ))"
   notify "✅ *Staging deploy complete*
@@ -200,7 +200,7 @@ echo "Pulling images with tag: $NEW_IMAGE_TAG"
 export IMAGE_TAG="$NEW_IMAGE_TAG"
 REGISTRY="ghcr.io/logicalogbonna"
 
-for svc in api ingest; do
+for svc in api ingest socials; do
   new_image="${REGISTRY}/ournigeria-${svc}:${NEW_IMAGE_TAG}"
   if docker pull "$new_image" >/dev/null 2>&1; then
     echo "Pulled new ${svc} image: $new_image"
@@ -265,6 +265,51 @@ Action: Rolled back"
   exit 1
 fi
 
+# ─── DEPLOY SOCIALS (before the shared Traefik switch) ────────────
+# Socials shares the single Traefik dynamic file with api + ingest, so it must be
+# healthy on $STANDBY BEFORE we flip the file (one swap switches all three).
+echo ""
+echo "── Deploying Socials to $STANDBY stack ──"
+echo "Starting socials-$STANDBY..."
+if ! docker compose -f "$COMPOSE_FILE" up -d "socials-${STANDBY}"; then
+  echo "ERROR: Failed to start socials-$STANDBY. Aborting before switch (active stack untouched)."
+  docker compose -f "$COMPOSE_FILE" rm -sf "api-${STANDBY}" 2>/dev/null || true
+  log_deploy "socials_start_failed"
+  notify "❌ *Deploy FAILED*
+Stage: Socials start (\`$STANDBY\`)
+Tag: \`$NEW_IMAGE_TAG\`"
+  exit 1
+fi
+
+echo "Health check socials-$STANDBY (up to ${HEALTH_TIMEOUT}s)..."
+SOCIALS_HEALTHY=false
+for i in $(seq 1 $HEALTH_TIMEOUT); do
+  if curl -sf "http://socials-${STANDBY}:3005/health" >/dev/null 2>&1; then
+    SOCIALS_HEALTHY=true
+    echo "Socials health check PASSED after ${i}s"
+    break
+  fi
+  if [ $((i % 10)) -eq 0 ]; then
+    if ! check_container_alive "ournigeria_socials_${STANDBY}"; then
+      echo "Container crashed — aborting health check early"
+      break
+    fi
+  fi
+  sleep 1
+done
+
+if [ "$SOCIALS_HEALTHY" != "true" ]; then
+  echo "ERROR: Socials health check FAILED after ${HEALTH_TIMEOUT}s"
+  echo "Aborting before Traefik switch — active stack untouched (no downtime)."
+  docker compose -f "$COMPOSE_FILE" rm -sf "socials-${STANDBY}" "api-${STANDBY}" 2>/dev/null || true
+  log_deploy "socials_health_check_failed" "rollback"
+  notify "❌ *Deploy FAILED*
+Stage: Socials health check (\`$STANDBY\`)
+Tag: \`$NEW_IMAGE_TAG\`
+Action: Aborted before switch"
+  exit 1
+fi
+
 # Switch Traefik routing for API
 # NOTE: Use 'cat src > dst' instead of 'cp' to preserve the file inode.
 # Docker bind mounts track inodes — 'cp' creates a new inode, leaving
@@ -305,6 +350,10 @@ echo "Draining api-$ACTIVE (${DRAIN_WAIT}s)..."
 sleep "$DRAIN_WAIT"
 docker compose -f "$COMPOSE_FILE" stop "api-${ACTIVE}"
 
+# Drain old Socials (switched together with API via the shared Traefik file)
+echo "Draining socials-$ACTIVE..."
+docker compose -f "$COMPOSE_FILE" stop "socials-${ACTIVE}" 2>/dev/null || true
+
 # ─── DEPLOY INGEST (step 2 of 2) ──────────────────────────────────
 echo ""
 echo "── Deploying Ingest to $STANDBY stack ──"
@@ -342,16 +391,16 @@ if [ "$INGEST_HEALTHY" != "true" ]; then
   echo "Rolling back: stopping ingest-$STANDBY..."
   docker compose -f "$COMPOSE_FILE" stop "ingest-${STANDBY}"
   docker compose -f "$COMPOSE_FILE" rm -f "ingest-${STANDBY}"
-  # Also rollback API back to original stack
-  echo "Rolling back API to $ACTIVE..."
+  # Also rollback API + Socials back to original stack (both were switched + drained above)
+  echo "Rolling back API + Socials to $ACTIVE..."
   cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
-  docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}"
-  docker compose -f "$COMPOSE_FILE" stop "api-${STANDBY}"
+  docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}" "socials-${ACTIVE}"
+  docker compose -f "$COMPOSE_FILE" stop "api-${STANDBY}" "socials-${STANDBY}"
   log_deploy "ingest_health_check_failed" "rollback"
   notify "❌ *Deploy FAILED*
 Stage: Ingest health check (\`$STANDBY\`)
 Tag: \`$NEW_IMAGE_TAG\`
-Action: Rolled back API + Ingest"
+Action: Rolled back API + Socials + Ingest"
   exit 1
 fi
 
