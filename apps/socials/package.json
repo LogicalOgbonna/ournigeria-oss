@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "x-oauth-bootstrap": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-bootstrap.ts",
+    "x-oauth-authorize": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-authorize.ts",
     "seed-topics": "infisical run --env dev --path /socials -- tsx src/scripts/seed-topics.ts",
     "seed-bot-sessions": "infisical run --env dev --path /socials -- tsx src/scripts/seed-bot-sessions.ts"
   },

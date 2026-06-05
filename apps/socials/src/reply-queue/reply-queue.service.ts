@@ -1,9 +1,48 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { Prisma } from "@prisma/client";
+import { ApiResponseError } from "twitter-api-v2";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
 
 export type DraftAction = "reply" | "quote";
+
+/** Token is missing or expired — needs (re)authorization. */
+const X_AUTH_EXPIRED =
+  "X account authorization is missing or expired. Re-authorize the X account (run `pnpm x-oauth-authorize`), then try approving again.";
+
+/** Token authenticates but the X app lacks write permission (403). */
+const X_NO_WRITE =
+  "The X app can read but not post (403). In the X Developer Portal set User authentication → App permissions to 'Read and write', then re-authorize (`pnpm x-oauth-authorize`).";
+
+/**
+ * If a publish failure is an X authorization/permission problem, return the
+ * actionable message to surface as a 422 (vs a content/transient error, which
+ * returns null and bubbles up as a 500). Distinguishes 403 "no write
+ * permission" from 401/400 "expired/missing" so the dashboard shows the right fix.
+ */
+function xAuthFailureMessage(err: unknown): string | null {
+  if (err instanceof ApiResponseError) {
+    if (err.code === 403) return X_NO_WRITE;
+    if (err.code === 401) return X_AUTH_EXPIRED;
+    const body = `${err.message} ${JSON.stringify(
+      (err as { data?: unknown }).data ?? {},
+    )}`.toLowerCase();
+    return /token|invalid_request|invalid_grant|unauthoriz/.test(body)
+      ? X_AUTH_EXPIRED
+      : null;
+  }
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return /oauth2 tokens|cannot refresh|token was invalid|invalid_grant|unauthoriz/.test(
+    msg,
+  )
+    ? X_AUTH_EXPIRED
+    : null;
+}
 
 export interface OriginalTweetSnapshot {
   id: string;
@@ -131,19 +170,33 @@ export class ReplyQueueService {
     }
 
     let result;
-    if (post.postType === "reply") {
-      if (!post.inReplyToId) throw new Error("reply draft missing inReplyToId");
-      result = await this.publisher.publishReply(
-        post.inReplyToId,
-        post.content,
-      );
-    } else {
-      if (!post.quotedTweetId)
-        throw new Error("quote draft missing quotedTweetId");
-      result = await this.publisher.publishQuote(
-        post.quotedTweetId,
-        post.content,
-      );
+    try {
+      if (post.postType === "reply") {
+        if (!post.inReplyToId)
+          throw new Error("reply draft missing inReplyToId");
+        result = await this.publisher.publishReply(
+          post.inReplyToId,
+          post.content,
+        );
+      } else {
+        if (!post.quotedTweetId)
+          throw new Error("quote draft missing quotedTweetId");
+        result = await this.publisher.publishQuote(
+          post.quotedTweetId,
+          post.content,
+        );
+      }
+    } catch (err) {
+      // An auth/permission failure is an expected, actionable state — surface
+      // it as a clear 422 with the right fix, not an opaque 500.
+      const hint = xAuthFailureMessage(err);
+      if (hint) {
+        this.logger.warn(
+          `approve(${id}) blocked by X auth/permission: ${err instanceof Error ? err.message : err}`,
+        );
+        throw new UnprocessableEntityException(hint);
+      }
+      throw err;
     }
 
     return this.prisma.socialPost.update({

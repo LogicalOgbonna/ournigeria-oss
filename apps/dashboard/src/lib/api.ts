@@ -45,7 +45,20 @@ export async function socialsFetch(path: string, opts?: RequestInit) {
     },
   });
   if (!res.ok) {
-    throw new Error(`Socials API error: ${res.status} ${res.statusText}`);
+    // Prefer the server's JSON `message` (e.g. NestJS HttpException) over the
+    // bare statusText so the UI shows what actually went wrong and how to fix it.
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      if (body?.message) {
+        detail = Array.isArray(body.message)
+          ? body.message.join("; ")
+          : String(body.message);
+      }
+    } catch {
+      /* non-JSON error body — keep statusText */
+    }
+    throw new Error(`Socials API error: ${res.status} ${detail}`);
   }
   return res.json();
 }

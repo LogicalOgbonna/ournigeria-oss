@@ -26,6 +26,11 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
   const [editing, setEditing] = useState(false);
   const [draftText, setDraftText] = useState(draft.content);
   const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function errMsg(e: unknown): string {
+    return e instanceof Error ? e.message : String(e);
+  }
 
   const original = draft.originalTweetSnapshot;
   const isQuote = draft.postType === "quote";
@@ -38,9 +43,12 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
 
   async function approve() {
     setBusy("approve");
+    setError(null);
     try {
       await socialsFetch(`/v1/replies/${draft.id}/approve`, { method: "POST" });
       onChanged();
+    } catch (e) {
+      setError(errMsg(e));
     } finally {
       setBusy(null);
     }
@@ -48,9 +56,12 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
 
   async function reject() {
     setBusy("reject");
+    setError(null);
     try {
       await socialsFetch(`/v1/replies/${draft.id}/reject`, { method: "POST" });
       onChanged();
+    } catch (e) {
+      setError(errMsg(e));
     } finally {
       setBusy(null);
     }
@@ -58,6 +69,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
 
   async function saveEdit() {
     setBusy("edit");
+    setError(null);
     try {
       await socialsFetch(`/v1/replies/${draft.id}`, {
         method: "PATCH",
@@ -65,6 +77,8 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
       });
       setEditing(false);
       onChanged();
+    } catch (e) {
+      setError(errMsg(e));
     } finally {
       setBusy(null);
     }
@@ -274,6 +288,13 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
             ) : null}
           </div>
         ) : null}
+
+        {error && (
+          <div className="mt-2 flex items-start gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
