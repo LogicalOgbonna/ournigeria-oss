@@ -17,21 +17,64 @@ import {
   XCircle,
   AlertCircle,
   ThumbsUp,
+  ThumbsDown,
   ExternalLink,
+  ArrowRight,
   User,
 } from "lucide-react";
+
+const PUBLIC_SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
 
 interface ProposalItem {
   id: string;
   officialId: string;
   officialName: string;
   targetField: string;
+  currentValue: any;
   proposedValue: any;
   sourceUrl: string | null;
+  proposerPhone: string | null;
   status: string;
   voteScore: number;
+  upvoteCount: number;
+  downvoteCount: number;
   voteCount: number;
   createdAt: string;
+}
+
+/** Unwrap the `{ value, type }` envelope community proposals use, else the raw value. */
+function unwrapValue(v: any): unknown {
+  if (v && typeof v === "object" && "value" in v) return v.value;
+  return v;
+}
+
+function displayValue(v: unknown): string {
+  const raw = unwrapValue(v);
+  if (raw === null || raw === undefined || raw === "") return "—";
+  if (typeof raw === "string") return raw;
+  return JSON.stringify(raw);
+}
+
+function isImageValue(v: unknown): v is string {
+  const raw = unwrapValue(v);
+  return (
+    typeof raw === "string" &&
+    (raw.startsWith("data:image") || /^https?:\/\//.test(raw))
+  );
+}
+
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -209,10 +252,10 @@ export default function ProposalsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Select all */}
           {statusFilter === "submitted" && (
-            <label className="flex items-center gap-2 px-3 py-1 text-sm text-muted-foreground cursor-pointer">
+            <label className="flex items-center gap-2 px-1 py-1 text-sm text-muted-foreground cursor-pointer">
               <input
                 type="checkbox"
                 checked={selected.size === proposals.length}
@@ -223,36 +266,75 @@ export default function ProposalsPage() {
             </label>
           )}
 
-          {proposals.map((proposal) => (
-            <Card key={proposal.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  {/* Checkbox for bulk */}
-                  {statusFilter === "submitted" && (
-                    <input
-                      type="checkbox"
-                      checked={selected.has(proposal.id)}
-                      onChange={() => toggleSelect(proposal.id)}
-                      className="mt-1 rounded"
-                    />
-                  )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 items-stretch">
+            {proposals.map((proposal) => {
+              const hasCurrent =
+                proposal.currentValue !== null &&
+                proposal.currentValue !== undefined &&
+                proposal.currentValue !== "";
+              const isImageField = proposal.targetField === "imageUrl";
+              const fieldLabel =
+                FIELD_LABELS[proposal.targetField] || proposal.targetField;
+              const reviewable =
+                proposal.status === "submitted" ||
+                proposal.status === "under_review";
 
-                  {/* Vote score */}
-                  <div className="flex flex-col items-center w-10 shrink-0">
-                    <ThumbsUp className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-mono font-bold">
-                      {proposal.voteScore}
-                    </span>
-                  </div>
+              return (
+                <Card key={proposal.id} className="flex flex-col h-full">
+                  <CardContent className="p-4 flex flex-col gap-2.5 flex-1">
+                    {/* Header: checkbox + official link + vote tally */}
+                    <div className="flex items-start gap-2">
+                      {statusFilter === "submitted" && (
+                        <input
+                          type="checkbox"
+                          checked={selected.has(proposal.id)}
+                          onChange={() => toggleSelect(proposal.id)}
+                          className="mt-1 rounded shrink-0"
+                        />
+                      )}
+                      <a
+                        href={`${PUBLIC_SITE_URL}/officials/${proposal.officialId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 min-w-0 flex-1 font-medium text-sm text-emerald-700 dark:text-emerald-400 hover:underline"
+                        title={proposal.officialName}
+                      >
+                        <User className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{proposal.officialName}</span>
+                        <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+                      </a>
+                      {/* Vote tally */}
+                      <div className="flex items-center gap-1.5 shrink-0 rounded-md bg-muted/60 px-2 py-1">
+                        <span className="font-mono text-sm font-bold leading-none">
+                          {proposal.voteScore > 0 ? `+${proposal.voteScore}` : proposal.voteScore}
+                        </span>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-0.5">
+                            <ThumbsUp className="w-2.5 h-2.5" />
+                            {proposal.upvoteCount}
+                          </span>
+                          <span className="inline-flex items-center gap-0.5">
+                            <ThumbsDown className="w-2.5 h-2.5" />
+                            {proposal.downvoteCount}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm">
-                        {proposal.officialName}
-                      </span>
+                    {/* Badges: field + change kind + status */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge variant="outline" className="text-xs">
-                        {FIELD_LABELS[proposal.targetField] || proposal.targetField}
+                        {fieldLabel}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          hasCurrent
+                            ? "border-amber-300 text-amber-700 dark:text-amber-400"
+                            : "border-emerald-300 text-emerald-700 dark:text-emerald-400"
+                        }`}
+                      >
+                        {hasCurrent ? "overwrite" : "fill"}
                       </Badge>
                       <Badge
                         className={`text-xs ${STATUS_COLORS[proposal.status] || ""}`}
@@ -261,23 +343,59 @@ export default function ProposalsPage() {
                       </Badge>
                     </div>
 
-                    {proposal.targetField === "imageUrl" && typeof (proposal.proposedValue as any)?.value === "string" && ((proposal.proposedValue as any).value.startsWith("data:image") || (proposal.proposedValue as any).value.startsWith("http")) ? (
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Proposed:</span>
-                        <img
-                          src={(proposal.proposedValue as any).value}
-                          alt="Proposed photo"
-                          className="w-12 h-12 rounded-lg object-cover border"
-                        />
+                    {/* Value diff: current -> proposed */}
+                    {isImageField ? (
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {hasCurrent && isImageValue(proposal.currentValue) && (
+                          <>
+                            <img
+                              src={unwrapValue(proposal.currentValue) as string}
+                              alt="Current photo"
+                              className="w-14 h-14 rounded-lg object-cover border opacity-70 grayscale"
+                            />
+                            <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                          </>
+                        )}
+                        {isImageValue(proposal.proposedValue) ? (
+                          <img
+                            src={unwrapValue(proposal.proposedValue) as string}
+                            alt="Proposed photo"
+                            className="w-14 h-14 rounded-lg object-cover border"
+                          />
+                        ) : (
+                          <span className="font-mono text-sm break-words">
+                            {displayValue(proposal.proposedValue)}
+                          </span>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground mt-1 truncate">
-                        Proposed: {(proposal.proposedValue as any)?.value || JSON.stringify(proposal.proposedValue)}
-                      </p>
+                      <div className="text-sm min-w-0">
+                        {hasCurrent && (
+                          <div className="flex items-start gap-1.5 text-muted-foreground">
+                            <span className="font-mono line-through break-words min-w-0 line-clamp-3">
+                              {displayValue(proposal.currentValue)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-1.5">
+                          {hasCurrent && (
+                            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                          )}
+                          <span className="font-mono font-medium text-emerald-700 dark:text-emerald-400 break-words min-w-0 line-clamp-4">
+                            {displayValue(proposal.proposedValue)}
+                          </span>
+                        </div>
+                      </div>
                     )}
 
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span>{new Date(proposal.createdAt).toLocaleDateString()}</span>
+                    {/* Footer metadata */}
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-muted-foreground">
+                      <span title={new Date(proposal.createdAt).toLocaleString()}>
+                        {relativeTime(proposal.createdAt)}
+                      </span>
+                      {proposal.proposerPhone && (
+                        <span className="font-mono truncate max-w-full">by {proposal.proposerPhone}</span>
+                      )}
                       <span>{proposal.voteCount} votes</span>
                       {proposal.sourceUrl && (
                         <a
@@ -290,44 +408,44 @@ export default function ProposalsPage() {
                         </a>
                       )}
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  {(proposal.status === "submitted" || proposal.status === "under_review") && (
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleAction(proposal.id, "approve")}
-                        disabled={acting}
-                        title="Approve"
-                      >
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleAction(proposal.id, "reject")}
-                        disabled={acting}
-                        title="Reject"
-                      >
-                        <XCircle className="w-4 h-4 text-red-500" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleAction(proposal.id, "needs_evidence")}
-                        disabled={acting}
-                        title="Needs Evidence"
-                      >
-                        <AlertCircle className="w-4 h-4 text-orange-500" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    {/* Actions pinned to bottom */}
+                    {reviewable && (
+                      <div className="mt-auto flex items-center gap-1.5 pt-1">
+                        <Button
+                          size="sm"
+                          className="flex-1 px-2"
+                          onClick={() => handleAction(proposal.id, "approve")}
+                          disabled={acting}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1 shrink-0" /> Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 px-2"
+                          onClick={() => handleAction(proposal.id, "needs_evidence")}
+                          disabled={acting}
+                          title="Needs evidence"
+                        >
+                          <AlertCircle className="w-4 h-4 mr-1 shrink-0 text-orange-500" /> Evidence
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="flex-1 px-2 text-red-500 hover:text-red-600"
+                          onClick={() => handleAction(proposal.id, "reject")}
+                          disabled={acting}
+                        >
+                          <XCircle className="w-4 h-4 mr-1 shrink-0" /> Reject
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
