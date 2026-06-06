@@ -137,17 +137,17 @@ export default function EnrichmentPage() {
             <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted p-2">
               <span className="px-1 text-sm font-medium">{selected.size} selected</span>
               {actions.includes("approve") && (
-                <Button size="sm" onClick={() => setBulkAction("approve")} disabled={acting}>
+                <Button size="sm" onClick={() => setBulkAction("approve")} disabled={busy || acting}>
                   <Check className="size-4" /> Approve
                 </Button>
               )}
               {actions.includes("reject") && (
-                <Button size="sm" variant="destructive" onClick={() => setBulkAction("reject")} disabled={acting}>
+                <Button size="sm" variant="destructive" onClick={() => setBulkAction("reject")} disabled={busy || acting}>
                   <X className="size-4" /> Reject
                 </Button>
               )}
               {actions.includes("request-more") && (
-                <Button size="sm" variant="outline" onClick={() => setBulkAction("request-more")} disabled={acting}>
+                <Button size="sm" variant="outline" onClick={() => setBulkAction("request-more")} disabled={busy || acting}>
                   <HelpCircle className="size-4" /> Request more
                 </Button>
               )}

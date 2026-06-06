@@ -53,8 +53,10 @@ export class AdminEnrichmentController {
         if (action === "approve") {
           await this.applySvc.apply(id, req.adminId);
         } else {
-          await this.prisma.changeProposal.update({
-            where: { id },
+          // Only un-reviewed proposals may be rejected/bounced — never flip an already-applied
+          // proposal to 'rejected' (its data is live), which would desync status from reality.
+          const updated = await this.prisma.changeProposal.updateMany({
+            where: { id, status: { in: ["pending", "needs_human", "needs_more_sources"] } },
             data: {
               status: action === "reject" ? "rejected" : "needs_more_sources",
               reviewNote: body.note,
@@ -62,6 +64,9 @@ export class AdminEnrichmentController {
               reviewedAt: new Date(),
             },
           });
+          if (updated.count === 0) {
+            throw new BadRequestException("proposal not found or not in a reviewable status");
+          }
         }
         results.push({ id, status: "ok" });
       } catch (e) {
