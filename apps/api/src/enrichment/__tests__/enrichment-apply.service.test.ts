@@ -141,4 +141,11 @@ describe("EnrichmentApplyService.apply — create branch (integration)", () => {
     const p = await mkProposal(entity({ role: "governor" }));
     await expect(svc.apply(p.id, ADMIN)).rejects.toThrow(/not a creatable entity/i);
   });
+
+  it("rejects a create whose ward does not exist with a clean 400 (not a raw FK 500)", async () => {
+    // Regression: a non-existent ward must surface as a BadRequestException, not leak the
+    // official_positions.ward_code FK violation as an unhandled 500.
+    const p = await mkProposal(entity({ wardCode: "no_such_ward_does_not_exist" }));
+    await expect(svc.apply(p.id, ADMIN)).rejects.toThrow(/ward .* does not exist/i);
+  });
 });

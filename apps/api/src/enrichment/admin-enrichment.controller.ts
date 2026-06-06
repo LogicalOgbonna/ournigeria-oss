@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { Public } from "../auth/decorators/public";
 import { AdminGuard } from "../admin/admin.guard";
@@ -23,6 +23,52 @@ export class AdminEnrichmentController {
   @Get(":id")
   get(@Param("id") id: string) {
     return this.query.getWithSources(id);
+  }
+
+  /**
+   * Bulk review. `approve` reuses the per-item apply path (and its safety guard, so
+   * needs_more_sources items error individually); `reject`/`request-more` set status with
+   * a shared note. Per-item try/catch — one bad item never aborts the batch.
+   */
+  @Post("bulk")
+  async bulk(
+    @Body() body: { ids?: string[]; action?: string; note?: string },
+    @Req() req: any,
+  ) {
+    const ids = body?.ids;
+    const action = body?.action;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException("ids must be a non-empty array");
+    }
+    if (ids.length > 100) {
+      throw new BadRequestException("Maximum 100 proposals per bulk action");
+    }
+    if (action !== "approve" && action !== "reject" && action !== "request-more") {
+      throw new BadRequestException("action must be approve | reject | request-more");
+    }
+
+    const results: Array<{ id: string; status: "ok" | "error"; error?: string }> = [];
+    for (const id of ids) {
+      try {
+        if (action === "approve") {
+          await this.applySvc.apply(id, req.adminId);
+        } else {
+          await this.prisma.changeProposal.update({
+            where: { id },
+            data: {
+              status: action === "reject" ? "rejected" : "needs_more_sources",
+              reviewNote: body.note,
+              reviewedBy: req.adminId,
+              reviewedAt: new Date(),
+            },
+          });
+        }
+        results.push({ id, status: "ok" });
+      } catch (e) {
+        results.push({ id, status: "error", error: e instanceof Error ? e.message : "failed" });
+      }
+    }
+    return { results };
   }
 
   @Post(":id/approve")

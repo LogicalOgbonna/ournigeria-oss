@@ -70,6 +70,10 @@ export class EnrichmentApplyService {
     if (!isCreatableCouncilor(proposal.targetTable, pos.role)) {
       throw new BadRequestException(`not a creatable entity: ${proposal.targetTable} / ${pos.role}`);
     }
+    // official_positions.ward_code has an FK to nigerian_wards(code); validate up front so a
+    // stale/unknown ward returns a clean 400 instead of leaking the FK violation as a 500.
+    const ward = await this.prisma.nigerianWard.findUnique({ where: { code: pos.wardCode }, select: { code: true } });
+    if (!ward) throw new BadRequestException(`ward ${pos.wardCode} does not exist`);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
