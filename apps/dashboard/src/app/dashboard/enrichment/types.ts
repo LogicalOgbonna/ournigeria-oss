@@ -25,6 +25,10 @@ export interface ChangeProposal {
   reviewNote: string | null;
   createdAt: string;
   sources: ProposalSource[];
+  /** Whose data is changing — resolved server-side from targetPk (null for unknown rows). */
+  officialName?: string | null;
+  /** Public-profile id for the link; null for create proposals (no page yet). */
+  officialId?: string | null;
 }
 
 export interface CouncilorProposedEntity {
