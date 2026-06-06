@@ -30,6 +30,13 @@ const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
 const MAX_PROPOSALS_PER_DAY = 30;
 const MAX_VOTES_PER_DAY = 20;
 
+/** Mask a proposer phone for admin display: +2348012345678 -> +234•••5678 */
+function maskPhone(phone: string): string {
+  if (!phone) return phone;
+  if (phone.length <= 8) return phone;
+  return `${phone.slice(0, 4)}•••${phone.slice(-4)}`;
+}
+
 @Injectable()
 export class ProposalsService {
   private readonly s3: S3Client;
@@ -582,7 +589,25 @@ export class ProposalsService {
         skip,
         take: limit,
         include: {
-          official: { select: { id: true, name: true } },
+          official: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              email: true,
+              phoneNumber: true,
+              officeAddress: true,
+              twitterHandle: true,
+              facebookUrl: true,
+              dateOfBirth: true,
+              gender: true,
+              education: true,
+              biography: true,
+            },
+          },
+          position: {
+            select: { partyAcronym: true, wardCode: true, lgaCode: true },
+          },
           _count: { select: { votes: true } },
         },
       }),
@@ -590,20 +615,35 @@ export class ProposalsService {
     ]);
 
     return {
-      data: proposals.map((p) => ({
-        id: p.id,
-        officialId: p.officialId,
-        officialName: p.official.name,
-        targetField: p.targetField,
-        proposedValue: p.proposedValue,
-        sourceUrl: p.sourceUrl,
-        status: p.status,
-        voteScore: p.voteScore,
-        upvoteCount: p.upvoteCount,
-        downvoteCount: p.downvoteCount,
-        voteCount: p._count.votes,
-        createdAt: p.createdAt.toISOString(),
-      })),
+      data: proposals.map((p) => {
+        // Surface the live value this proposal would overwrite, so admins can
+        // review a correction without guessing. Relational fields live on the
+        // position; everything else on the official.
+        const source: Record<string, unknown> =
+          RELATIONAL_FIELDS.has(p.targetField) && p.position
+            ? (p.position as Record<string, unknown>)
+            : (p.official as Record<string, unknown>);
+        const currentRaw = source[p.targetField];
+        const currentValue =
+          currentRaw instanceof Date ? currentRaw.toISOString() : (currentRaw ?? null);
+
+        return {
+          id: p.id,
+          officialId: p.officialId,
+          officialName: p.official.name,
+          targetField: p.targetField,
+          currentValue,
+          proposedValue: p.proposedValue,
+          sourceUrl: p.sourceUrl,
+          proposerPhone: maskPhone(p.proposerPhone),
+          status: p.status,
+          voteScore: p.voteScore,
+          upvoteCount: p.upvoteCount,
+          downvoteCount: p.downvoteCount,
+          voteCount: p._count.votes,
+          createdAt: p.createdAt.toISOString(),
+        };
+      }),
       total,
       page,
       limit,

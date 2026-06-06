@@ -3,23 +3,31 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, HelpCircle, ArrowRight } from "lucide-react";
+import { Check, X, HelpCircle, User, ExternalLink } from "lucide-react";
 import { SourceEvidence } from "./source-evidence";
 import { ReviewNoteDialog } from "./review-note-dialog";
+import { ConfirmDialog } from "./confirm-dialog";
 import { STATUS_STYLES, formatValue, formatDate } from "@/app/dashboard/enrichment/lib";
 import type { ChangeProposal, CouncilorProposedEntity } from "@/app/dashboard/enrichment/types";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
+
 export function ProposalCard({
   proposal, onApprove, onReject, onRequestMore, busy,
+  selectable, selected, onToggleSelect,
 }: {
   proposal: ChangeProposal;
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string, note: string) => Promise<void>;
   onRequestMore: (id: string, note: string) => Promise<void>;
   busy: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [approveOpen, setApproveOpen] = useState(false);
   const isCorrection = proposal.changeKind === "correction";
   const isCreate = proposal.changeKind === "create";
   const entity =
@@ -32,29 +40,77 @@ export function ProposalCard({
       : null;
   const reviewable = proposal.status === "pending" || proposal.status === "needs_human";
 
-  async function approve() {
-    if (isCorrection && !confirm("This OVERWRITES an existing value. Approve the correction?")) return;
-    if (isCreate && !confirm("This CREATES a new official + position in live data. Approve?")) return;
-    await onApprove(proposal.id);
+  // Whose data is changing. create carries the new name in its payload (no public page yet);
+  // fill/correction resolve to an existing official id the server attached.
+  const officialName = isCreate ? (entity?.official.name ?? proposal.officialName ?? null) : (proposal.officialName ?? null);
+  const officialId = isCreate ? null : (proposal.officialId ?? null);
+
+  // fill is a low-risk additive write — approve straight away, no confirm (prior behaviour).
+  // correction/create touch live data, so they go through the modal instead of window.confirm.
+  function requestApprove() {
+    if (isCorrection || isCreate) { setApproveOpen(true); return; }
+    void onApprove(proposal.id);
   }
 
   return (
-    <Card>
-      <CardContent className="space-y-3 py-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono text-sm">{isCreate ? "new record" : `${proposal.targetTable}.${proposal.targetField}`}</span>
-          <Badge className={isCorrection
-            ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-            : isCreate
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
-              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"}>
-            {proposal.changeKind}
-          </Badge>
-          <Badge className={STATUS_STYLES[proposal.status]}>{proposal.status}</Badge>
-          <span className="text-xs text-muted-foreground">confidence: {proposal.confidence}</span>
-          <span className="ml-auto text-xs text-muted-foreground">{formatDate(proposal.createdAt)}</span>
+    <Card className="h-full">
+      <CardContent className="flex h-full flex-col gap-3 py-6">
+        {/* WHO — the official whose data is changing, linked to their public page */}
+        <div className="flex items-start gap-2">
+          {selectable && (
+            <input
+              type="checkbox"
+              className="mt-1 rounded"
+              checked={!!selected}
+              onChange={() => onToggleSelect?.(proposal.id)}
+              aria-label="Select proposal"
+            />
+          )}
+          <div className="min-w-0 flex-1 space-y-1.5">
+            {officialName ? (
+              officialId ? (
+                <a
+                  href={`${SITE_URL}/officials/${officialId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex max-w-full items-center gap-1.5 font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                  title={`Open ${officialName}'s published page`}
+                >
+                  <User className="size-4 shrink-0" />
+                  <span className="truncate">{officialName}</span>
+                  <ExternalLink className="size-3 shrink-0 opacity-60" />
+                </a>
+              ) : (
+                <span className="inline-flex max-w-full items-center gap-1.5 font-medium">
+                  <User className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{officialName}</span>
+                  {isCreate && <span className="text-xs font-normal text-muted-foreground">(new)</span>}
+                </span>
+              )
+            ) : (
+              <span className="text-sm text-muted-foreground">Unknown official</span>
+            )}
+
+            {/* WHAT — the field + classification */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-xs text-muted-foreground">
+                {isCreate ? "new record" : proposal.targetField}
+              </span>
+              <Badge className={isCorrection
+                ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
+                : isCreate
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"}>
+                {proposal.changeKind}
+              </Badge>
+              <Badge className={STATUS_STYLES[proposal.status]}>{proposal.status}</Badge>
+              <span className="text-xs text-muted-foreground">confidence: {proposal.confidence}</span>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs text-muted-foreground">{formatDate(proposal.createdAt)}</span>
         </div>
 
+        {/* CHANGE — before → after */}
         {isCreate && entity ? (
           <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
             <p className="font-medium">New councilor: {entity.official.name}</p>
@@ -68,10 +124,15 @@ export function ProposalCard({
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-mono text-muted-foreground line-through">{formatValue(proposal.currentValue)}</span>
-            <ArrowRight className="size-4 text-muted-foreground" />
-            <span className="font-mono font-medium text-emerald-700 dark:text-emerald-400">{formatValue(proposal.proposedValue)}</span>
+          <div className="space-y-1 rounded-md bg-muted/40 p-2 text-sm">
+            <div className="flex items-baseline gap-2">
+              <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Before</span>
+              <span className="break-all font-mono text-muted-foreground line-through">{formatValue(proposal.currentValue)}</span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="w-12 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">After</span>
+              <span className="break-all font-mono font-medium text-emerald-700 dark:text-emerald-400">{formatValue(proposal.proposedValue)}</span>
+            </div>
           </div>
         )}
 
@@ -84,9 +145,13 @@ export function ProposalCard({
           {proposal.sources.map((s) => <SourceEvidence key={s.id} source={s} />)}
         </div>
 
+        {proposal.reviewNote && (
+          <p className="text-xs text-muted-foreground">Note: {proposal.reviewNote}</p>
+        )}
+
         {reviewable && (
-          <div className="flex gap-2 pt-1">
-            <Button size="sm" onClick={approve} disabled={busy}>
+          <div className="mt-auto flex flex-wrap gap-2 pt-1">
+            <Button size="sm" onClick={requestApprove} disabled={busy}>
               <Check className="size-4" /> Approve
             </Button>
             <Button size="sm" variant="destructive" onClick={() => setRejectOpen(true)} disabled={busy}>
@@ -97,10 +162,13 @@ export function ProposalCard({
             </Button>
           </div>
         )}
-        {proposal.reviewNote && (
-          <p className="text-xs text-muted-foreground">Note: {proposal.reviewNote}</p>
-        )}
 
+        <ConfirmDialog open={approveOpen} onOpenChange={setApproveOpen}
+          title={isCreate ? "Create new record?" : "Approve correction?"}
+          description={isCreate
+            ? "This CREATES a new official + position in live data."
+            : "This OVERWRITES an existing value in live data."}
+          confirmLabel="Approve" destructive onConfirm={() => onApprove(proposal.id)} />
         <ReviewNoteDialog open={rejectOpen} onOpenChange={setRejectOpen}
           title="Reject proposal" description="Optionally say why. The proposal will be marked rejected."
           confirmLabel="Reject" destructive onConfirm={(n) => onReject(proposal.id, n)} />
