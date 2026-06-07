@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Users } from "lucide-react";
 
 interface Official {
   id: string;
+  slug?: string | null;
   name: string;
   party: string;
   constituency: string;
@@ -36,7 +37,7 @@ export function StateOfficialsAccordion({ stateCode, stats, officials }: StateOf
   const renderOfficial = (official: Official, roleTitle: string) => (
     <Link
       key={official.id}
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-md transition-colors"
     >
       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "@ournigeria/database";
+import { PrismaService, UUID_RE } from "@ournigeria/database";
 
 const TRACKED_FIELDS = [
   "name",
@@ -72,9 +72,11 @@ export class OfficialsService {
     };
   }
 
-  async getById(id: string) {
+  async getByIdOrSlug(idOrSlug: string) {
+    // Legacy UUID URLs resolve by id; new SEO URLs resolve by slug.
+    const where = UUID_RE.test(idOrSlug) ? { id: idOrSlug } : { slug: idOrSlug };
     const official = await this.prisma.nigerianOfficial.findUnique({
-      where: { id },
+      where,
       include: {
         positions: {
           where: { status: "active" },
@@ -414,8 +416,12 @@ export class OfficialsService {
   formatOfficial(official: any) {
     return {
       id: official.id,
+      slug: official.slug ?? null,
       name: official.name,
       imageUrl: official.imageUrl,
+      dateOfBirth: official.dateOfBirth
+        ? official.dateOfBirth.toISOString().split("T")[0]
+        : null,
       email: official.email,
       phoneNumber: official.phoneNumber,
       officeAddress: official.officeAddress,

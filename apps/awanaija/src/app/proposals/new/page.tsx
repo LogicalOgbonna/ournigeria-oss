@@ -759,7 +759,7 @@ function EditOfficialContent() {
           </p>
           {official && (
             <Link
-              href={`/officials/${official.id}`}
+              href={`/officials/${official.slug ?? official.id}`}
               className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
             >
               Back to {official.name}&apos;s profile
@@ -797,7 +797,7 @@ function EditOfficialContent() {
     <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
       <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
         <Link
-          href={official ? `/officials/${official.id}` : "/"}
+          href={official ? `/officials/${official.slug ?? official.id}` : "/"}
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-600 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />

@@ -33,6 +33,7 @@ const FALLBACK_BAR_COLORS = [
 
 type GeoOfficial = {
   id?: string;
+  slug?: string | null;
   name?: string;
   party?: string | null;
   constituency?: string | null;
@@ -97,6 +98,7 @@ type ProfileOfficialRow =
       isMissing?: false;
       role: string;
       id?: string;
+      slug?: string | null;
       name?: string;
       party?: string | null;
       term?: string;
@@ -188,21 +190,21 @@ export function transformProfileData(
   
   if (lgaDetails?.senator) {
     const sen = lgaDetails.senator;
-    officials.push({ id: sen.id, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image });
+    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image });
   } else {
     officials.push({ isMissing: true, role: "Senator" });
   }
   
   if (lgaDetails?.houseMembers?.[0]) {
     const rep = lgaDetails.houseMembers[0];
-    officials.push({ id: rep.id, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image });
+    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image });
   } else {
     officials.push({ isMissing: true, role: "House of Reps" });
   }
   
   if (lgaDetails?.stateAssemblyMembers?.[0]) {
     const mha = lgaDetails.stateAssemblyMembers[0];
-    officials.push({ id: mha.id, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image });
+    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image });
   } else {
     officials.push({ isMissing: true, role: "State House" });
   }
@@ -887,7 +889,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
 
                     return (
                       <Link 
-                        href={`/officials/${official.id}`}
+                        href={`/officials/${official.slug ?? official.id}`}
                         key={official.role} 
                         className="group flex items-start gap-4 border-b border-border/50 pb-4 last:border-0 last:pb-0 transition-colors hover:bg-muted/20 rounded-xl p-2 -mx-2"
                       >

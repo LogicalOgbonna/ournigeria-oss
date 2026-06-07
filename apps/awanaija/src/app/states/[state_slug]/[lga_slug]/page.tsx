@@ -148,7 +148,7 @@ export default async function LgaPage({
     return (
       <Link 
         key={official.id}
-        href={`/officials/${official.id}`}
+        href={`/officials/${official.slug ?? official.id}`}
         className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
       >
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">

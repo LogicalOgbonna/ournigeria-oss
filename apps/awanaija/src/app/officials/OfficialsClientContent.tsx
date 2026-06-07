@@ -37,7 +37,7 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
 
   return (
     <Link
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       className="flex gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all"
       style={{ borderLeftWidth: "3px", borderLeftColor: partyColor }}
     >

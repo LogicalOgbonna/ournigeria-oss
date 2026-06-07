@@ -83,17 +83,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       // Using a large limit to grab as many as possible for the sitemap
       const officialsRes = await getOfficials({ limit: '5000' });
+      // Officials are high-demand SEO pages (~half of all impressions); surface
+      // them with the human-readable slug and a slightly higher priority.
+      if (officialsRes.total > officialsRes.data.length) {
+        console.warn(
+          `sitemap: officials truncated — ${officialsRes.data.length}/${officialsRes.total} included (raise the limit or paginate)`,
+        );
+      }
       for (const official of officialsRes.data) {
+        // Skip any official without a slug rather than emit a UUID URL.
+        if (!official.slug) continue;
         const imageUrl = official.imageUrl
           ? (/^https?:\/\//.test(official.imageUrl)
               ? official.imageUrl
               : `${baseUrl}${official.imageUrl.startsWith('/') ? '' : '/'}${official.imageUrl}`)
           : null;
         dynamicRoutes.push({
-          url: `${baseUrl}/officials/${official.id}`,
+          url: `${baseUrl}/officials/${official.slug}`,
           lastModified: new Date(),
           changeFrequency: 'monthly' as const,
-          priority: 0.5,
+          priority: 0.6,
           ...(imageUrl ? { images: [imageUrl] } : {}),
         });
       }

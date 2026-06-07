@@ -502,7 +502,7 @@ export default async function StatePage({
               <div className="space-y-4">
                 {/* Governor Card */}
                 <Link 
-                  href={`/officials/${governor?.id || 'unknown'}`}
+                  href={`/officials/${governor?.slug ?? governor?.id ?? 'unknown'}`}
                   className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">

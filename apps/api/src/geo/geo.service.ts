@@ -305,6 +305,7 @@ export class GeoService implements OnModuleInit {
     const governorPosition = state.officialPositions[0];
     const governor = governorPosition ? {
       id: governorPosition.official.id,
+      slug: governorPosition.official.slug,
       name: governorPosition.official.name,
       party: governorPosition.partyAcronym || "N/A",
       term: governorPosition.endDate ? `${governorPosition.startDate.getFullYear()} - ${governorPosition.endDate.getFullYear()}` : `${governorPosition.startDate.getFullYear()} - Present`,
@@ -435,6 +436,7 @@ export class GeoService implements OnModuleInit {
 
     const mapOfficial = (pos: any) => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
@@ -675,6 +677,7 @@ export class GeoService implements OnModuleInit {
 
     const councilors = councilorPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       ward: pos.ward?.name || "Unknown Ward",
@@ -686,6 +689,7 @@ export class GeoService implements OnModuleInit {
     const chairmanPosition = lga.officialPositions[0];
     const chairman = chairmanPosition ? {
       id: chairmanPosition.official.id,
+      slug: chairmanPosition.official.slug,
       name: chairmanPosition.official.name,
       party: chairmanPosition.partyAcronym || "N/A",
       term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
@@ -711,6 +715,7 @@ export class GeoService implements OnModuleInit {
 
     const senator = senatorPosition ? {
       id: senatorPosition.official.id,
+      slug: senatorPosition.official.slug,
       name: senatorPosition.official.name,
       party: senatorPosition.partyAcronym || "N/A",
       constituency: senatorPosition.constituency?.name || "Unknown Constituency",
@@ -738,6 +743,7 @@ export class GeoService implements OnModuleInit {
 
     const houseMembers = houseMemberPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
@@ -765,6 +771,7 @@ export class GeoService implements OnModuleInit {
 
     const stateAssemblyMembers = stateAssemblyPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
@@ -865,6 +872,7 @@ export class GeoService implements OnModuleInit {
     const councilorPosition = ward.officialPositions[0];
     const councilor = councilorPosition ? {
       id: councilorPosition.official.id,
+      slug: councilorPosition.official.slug,
       name: councilorPosition.official.name,
       party: councilorPosition.partyAcronym || "N/A",
       phone: councilorPosition.official.phoneNumber || "N/A",

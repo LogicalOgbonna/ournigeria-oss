@@ -143,7 +143,7 @@ export function NarrativeOfficialCard({
         </span>
       </div>
       <div className="p-6 flex flex-col sm:flex-row gap-6">
-        <Link href={`/officials/${official.id}`} className="shrink-0">
+        <Link href={`/officials/${official.slug ?? official.id}`} className="shrink-0">
           {showImage ? (
             <img
               src={official.imageUrl!}
@@ -161,7 +161,7 @@ export function NarrativeOfficialCard({
         </Link>
         <div className="flex-1 space-y-3">
           <div>
-            <Link href={`/officials/${official.id}`}>
+            <Link href={`/officials/${official.slug ?? official.id}`}>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-heading hover:text-emerald-600 transition-colors">
                 {official.name}
               </h2>
