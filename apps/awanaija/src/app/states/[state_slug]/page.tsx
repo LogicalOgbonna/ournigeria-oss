@@ -68,6 +68,9 @@ export default async function StatePage({
   }
 
   const { governor, stats, economy, lgas } = state;
+  const profile = state.profile ?? null;
+  const sourceDocuments: { fileName: string; fiscalYear: number; path: string }[] =
+    state.sourceDocuments ?? [];
 
   const igrCardTitle = (() => {
     const y = stats?.igrFiscalYear;
@@ -238,9 +241,35 @@ export default async function StatePage({
                       {governor?.party || "N/A"}
                     </span>
                   </div>
-                  <h1 className="font-serif text-5xl md:text-6xl text-foreground">
-                    {state.name}
-                  </h1>
+                  <div className="flex items-center gap-4">
+                    {profile?.sealImageUrl && (
+                      // Plain <img>: our-origin asset, avoids next/image SVG config.
+                      <img
+                        src={profile.sealImageUrl}
+                        alt={`${state.name} State seal`}
+                        className="w-16 h-16 object-contain shrink-0"
+                      />
+                    )}
+                    <div>
+                      <h1 className="font-serif text-5xl md:text-6xl text-foreground">
+                        {state.name}
+                      </h1>
+                      {profile?.motto && (
+                        <p className="font-sans text-sm italic text-muted-foreground mt-1">
+                          &ldquo;{profile.motto}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {(profile?.dateCreated || profile?.landAreaSqKm) && (
+                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground font-sans pt-1">
+                      {profile?.dateCreated && <span>Created {profile.dateCreated}</span>}
+                      {profile?.landAreaSqKm && (
+                        <span>{profile.landAreaSqKm.toLocaleString()} km²</span>
+                      )}
+                      <span>{state.lgas.length} LGAs</span>
+                    </div>
+                  )}
                 </div>
 
                 <Suspense fallback={<div className="h-10" />}>
@@ -286,13 +315,31 @@ export default async function StatePage({
                     </p>
                   </div>
                 </div>
+                {profile?.about && (
+                  <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-2xl pt-2">
+                    {profile.about}
+                  </p>
+                )}
             </section>
 
             {/* Budget Breakdown & Explanation */}
             <section className="space-y-6">
-              <h2 className="font-heading text-2xl font-semibold">
-                Budget Breakdown
-              </h2>
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="font-heading text-2xl font-semibold">
+                  Budget Breakdown
+                </h2>
+                {sourceDocuments.length > 0 && (
+                  <a
+                    href={`/api/sources/download?path=${encodeURIComponent(sourceDocuments[0].path)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1 shrink-0"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Source budget ({sourceDocuments[0].fiscalYear})
+                  </a>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Visualization Card */}
                 <div className="bg-card border border-border rounded-[10px] p-6 space-y-6">
@@ -499,6 +546,107 @@ export default async function StatePage({
                 />
               </div>
             </div>
+
+            {/* Official Resources */}
+            {profile?.links &&
+              Object.values(profile.links).some(Boolean) && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
+                    Official Resources
+                  </h3>
+                  <div className="bg-card border border-border rounded-[10px] divide-y divide-border">
+                    {[
+                      { label: "State Government", href: profile.links.official },
+                      { label: "Ministry of Finance", href: profile.links.financeMinistry },
+                      { label: "House of Assembly", href: profile.links.assembly },
+                      { label: "INEC (Electoral)", href: profile.links.inec },
+                    ]
+                      .filter((l) => l.href)
+                      .map((l) => (
+                        <a
+                          key={l.label}
+                          href={l.href as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-4 flex items-center justify-between group hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="font-sans text-sm text-foreground">{l.label}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Contact & Accountability */}
+            {profile?.contact &&
+              Object.values(profile.contact).some(Boolean) && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
+                    Contact & Accountability
+                  </h3>
+                  <div className="bg-card border border-border rounded-[10px] divide-y divide-border text-sm">
+                    {profile.contact.address && (
+                      <p className="p-4 font-sans text-muted-foreground">{profile.contact.address}</p>
+                    )}
+                    {profile.contact.phone && (
+                      <a href={`tel:${profile.contact.phone}`} className="p-4 flex items-center justify-between hover:bg-muted/50">
+                        <span className="text-muted-foreground">Phone</span>
+                        <span className="font-mono text-foreground">{profile.contact.phone}</span>
+                      </a>
+                    )}
+                    {profile.contact.email && (
+                      <a href={`mailto:${profile.contact.email}`} className="p-4 flex items-center justify-between hover:bg-muted/50">
+                        <span className="text-muted-foreground">Email</span>
+                        <span className="font-mono text-emerald-600 truncate ml-2">{profile.contact.email}</span>
+                      </a>
+                    )}
+                    {profile.contact.complaintPortal && (
+                      <a href={profile.contact.complaintPortal} target="_blank" rel="noopener noreferrer" className="p-4 flex items-center justify-between hover:bg-muted/50">
+                        <span className="text-muted-foreground">Citizen Complaints</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    )}
+                    {profile.contact.whistleblower && (
+                      <a href={profile.contact.whistleblower} target="_blank" rel="noopener noreferrer" className="p-4 flex items-center justify-between hover:bg-muted/50">
+                        <span className="text-muted-foreground">Report Corruption</span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            {/* Official Socials */}
+            {profile?.socials &&
+              Object.values(profile.socials).some(Boolean) && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
+                    Official Channels
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "X", href: profile.socials.twitter },
+                      { label: "Facebook", href: profile.socials.facebook },
+                      { label: "Instagram", href: profile.socials.instagram },
+                      { label: "YouTube", href: profile.socials.youtube },
+                      { label: "News", href: profile.socials.news },
+                    ]
+                      .filter((s) => s.href)
+                      .map((s) => (
+                        <a
+                          key={s.label}
+                          href={s.href as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-md border border-border bg-card text-xs font-sans hover:border-emerald-500/50 hover:text-emerald-600 transition-colors"
+                        >
+                          {s.label}
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              )}
 
             {/* State Economy & Demographics */}
             <div className="space-y-4">
