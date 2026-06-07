@@ -6,6 +6,7 @@ import {
   KitSectionTitle,
 } from "@/components/landing-variants/LandingVariantKit";
 import { Button } from "@/components/ui/button";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
 import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
@@ -894,20 +895,14 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                         className="group flex items-start gap-4 border-b border-border/50 pb-4 last:border-0 last:pb-0 transition-colors hover:bg-muted/20 rounded-xl p-2 -mx-2"
                       >
                         <div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900/50 transition-transform group-hover:scale-105 flex items-center justify-center">
-                          {official.image ? (
-                            <img 
-                              src={official.image} 
-                              alt={official.name} 
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                          ) : null}
-                          <span className={`font-semibold text-emerald-700 dark:text-emerald-400 ${official.image ? 'hidden' : ''}`}>
-                            {official.name?.charAt(0) || "?"}
-                          </span>
+                          <OfficialAvatar
+                            src={official.image}
+                            alt={official.name ?? ""}
+                            initial={official.name?.charAt(0) || "?"}
+                            px={44}
+                            imgClassName="h-full w-full object-cover"
+                            initialClassName="font-semibold text-emerald-700 dark:text-emerald-400"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">

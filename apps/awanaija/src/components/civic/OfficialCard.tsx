@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { User, ExternalLink, Calendar } from "lucide-react";
+import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Position } from "@/lib/api";
 
 interface OfficialCardProps {
@@ -70,9 +71,10 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
         {/* Photo: square on desktop, circle on mobile */}
         <div className="hidden md:block shrink-0">
           {showImage ? (
-            <img
+            <SmartImage
               src={official.imageUrl!}
               alt={official.name}
+              px={96}
               className="w-24 h-full object-cover"
               onError={() => setImgError(true)}
             />
@@ -89,9 +91,10 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
           <div className="flex items-start gap-3">
             <div className="md:hidden shrink-0">
               {showImage ? (
-                <img
+                <SmartImage
                   src={official.imageUrl!}
                   alt={official.name}
+                  px={44}
                   className="w-11 h-11 rounded-full object-cover"
                   onError={() => setImgError(true)}
                 />

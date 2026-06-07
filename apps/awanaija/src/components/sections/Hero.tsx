@@ -37,7 +37,9 @@ export function Hero() {
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
 
             {/* Headline — Carousel */}
-            <div className="hero-line opacity-0 animate-fade-in-up group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden" style={{ animationDelay: "0.3s" }}>
+            {/* LCP element — renders at full opacity immediately (no entrance fade) so
+                Largest Contentful Paint isn't delayed by the animation. */}
+            <div className="hero-line group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden">
               <div
                 className="absolute left-0 top-0 flex flex-col w-full animate-[carousel-headline_20s_linear_infinite]"
                 style={{
@@ -98,7 +100,7 @@ export function Hero() {
             </div>
 
             {/* Subtext */}
-            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground opacity-0 animate-fade-in-up sm:text-lg leading-relaxed" style={{ animationDelay: "0.7s" }}>
+            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed">
               Knowledge is the first step to good citizenship. Explore{" "}
               <strong className="text-foreground">
                 budgets, daily govspend, and corruption records
