@@ -4,7 +4,11 @@ import { PersonalizedData } from "@/components/sections/PersonalizedData";
 import { Footer } from "@/components/sections/Footer";
 import { WelcomeModalWrapper } from "@/components/civic/WelcomeModalWrapper";
 
-export const dynamic = "force-dynamic";
+// ISR: the homepage's initial (pre-personalization) snapshot is cached and
+// revalidated every 5 min instead of re-running the SSR API waterfall on every
+// request. Per-user personalization stays fully live (client-side fetches in
+// PersonalizedDataClient hit the DB in real time and are never cached).
+export const revalidate = 300;
 
 export default function Home() {
   const jsonLd = {
