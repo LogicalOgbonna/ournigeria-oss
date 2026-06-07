@@ -261,15 +261,6 @@ export default async function StatePage({
                       )}
                     </div>
                   </div>
-                  {(profile?.dateCreated || profile?.landAreaSqKm) && (
-                    <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground font-sans pt-1">
-                      {profile?.dateCreated && <span>Created {profile.dateCreated}</span>}
-                      {profile?.landAreaSqKm && (
-                        <span>{profile.landAreaSqKm.toLocaleString()} km²</span>
-                      )}
-                      <span>{state.lgas.length} LGAs</span>
-                    </div>
-                  )}
                 </div>
 
                 <Suspense fallback={<div className="h-10" />}>
@@ -652,11 +643,23 @@ export default async function StatePage({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide font-heading">
-                  State Economy {year && `(${year})`}
+                  State Stats {year && `(${year})`}
                 </h3>
               </div>
 
               <div className="bg-card border border-border rounded-[10px] divide-y divide-border">
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">Created</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{profile?.dateCreated || "N/A"}</span>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">Land Area</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{profile?.landAreaSqKm ? `${profile.landAreaSqKm.toLocaleString()} km²` : "N/A"}</span>
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <span className="font-sans text-sm text-muted-foreground">LGAs</span>
+                  <span className="font-mono text-sm font-semibold text-foreground">{state.lgas.length}</span>
+                </div>
                 <div className="p-4 flex items-center justify-between">
                   <span className="font-sans text-sm text-muted-foreground">Est. Population</span>
                   <span className="font-mono text-sm font-semibold text-foreground">{economy?.population || "N/A"}</span>
