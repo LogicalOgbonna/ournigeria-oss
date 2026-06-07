@@ -279,11 +279,27 @@ export class GeoService implements OnModuleInit {
               include: { disbursement: true }
             }
           }
-        }
+        },
+        stateProfile: true,
       }
     });
 
     if (!state) return null;
+
+    // Internal "view source budget data" — the actual ingested documents we
+    // analyzed for this state (not an external portal; states have none).
+    const documents = await this.prisma.document.findMany({
+      where: { stateCode: state.code, fileType: "pdf" },
+      orderBy: { fiscalYear: "desc" },
+      take: 6,
+      select: { fileName: true, fiscalYear: true, filePath: true },
+    });
+    const sourceDocuments = documents.map((d) => ({
+      fileName: d.fileName,
+      fiscalYear: d.fiscalYear,
+      // Consumed by the page as /api/sources/download?path=<filePath>
+      path: d.filePath,
+    }));
 
     // Formatting the response to match the frontend expectations
     const governorPosition = state.officialPositions[0];
@@ -497,6 +513,41 @@ export class GeoService implements OnModuleInit {
         };
       }),
       availablePeriods: await this.getAvailableFaacPeriods(),
+      sourceDocuments,
+      profile: state.stateProfile
+        ? {
+            about: state.stateProfile.about,
+            motto: state.stateProfile.motto,
+            dateCreated: state.stateProfile.dateCreated
+              ? state.stateProfile.dateCreated.getFullYear()
+              : null,
+            landAreaSqKm: state.stateProfile.landAreaSqKm
+              ? Number(state.stateProfile.landAreaSqKm)
+              : null,
+            sealImageUrl: state.stateProfile.sealImageUrl,
+            flagImageUrl: state.stateProfile.flagImageUrl,
+            links: {
+              official: state.stateProfile.officialWebsiteUrl,
+              financeMinistry: state.stateProfile.financeMinistryUrl,
+              assembly: state.stateProfile.assemblyWebsiteUrl,
+              inec: state.stateProfile.inecInfoUrl,
+            },
+            contact: {
+              address: state.stateProfile.contactAddress,
+              phone: state.stateProfile.contactPhone,
+              email: state.stateProfile.contactEmail,
+              complaintPortal: state.stateProfile.complaintPortalUrl,
+              whistleblower: state.stateProfile.whistleblowerUrl,
+            },
+            socials: {
+              twitter: state.stateProfile.twitterUrl,
+              facebook: state.stateProfile.facebookUrl,
+              instagram: state.stateProfile.instagramUrl,
+              youtube: state.stateProfile.youtubeUrl,
+              news: state.stateProfile.newsUrl,
+            },
+          }
+        : null,
     };
   }
 
