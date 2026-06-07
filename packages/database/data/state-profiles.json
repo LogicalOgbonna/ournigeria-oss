@@ -3,7 +3,36 @@
     "description": "Curated state-level profile data for OurNigeria StateProfile seeding. See docs/superpowers/specs/2026-06-07-state-profile-design.md.",
     "generated": "2026-06-07",
     "rule": "Best-effort web research. null where unverified. A wrong official link is worse than a missing one. Each non-null value cites a source in `sources`.",
-    "note": "Some Wikimedia image URLs are 120px thumbnails as researched; the SQL generator may upscale or the read-path may request a larger size."
+    "note": "Some Wikimedia image URLs are 120px thumbnails as researched; the SQL generator may upscale or the read-path may request a larger size.",
+    "imageUpgrade": {
+      "date": "2026-06-07",
+      "rule": "HD pass: prefer SVG > official .gov.ng full-res logo > Commons original. Rehost winners to S3 at implementation (consistent with governor-image rehosting).",
+      "upgraded": [
+        "kwara",
+        "plateau",
+        "adamawa",
+        "gombe",
+        "taraba",
+        "kaduna",
+        "abia",
+        "enugu",
+        "imo",
+        "bayelsa",
+        "delta",
+        "edo",
+        "osun",
+        "ekiti"
+      ],
+      "caveats": [
+        "gombe: official logo.png requires a browser User-Agent/Referer to serve (curl default UA gets 404). The rehost fetcher must set a UA.",
+        "imo: seal is served from a third-party bucket (axxpoint-bucket.s3) referenced by the official imostate.gov.ng site, not a .gov.ng path directly. Visually verified genuine.",
+        "abia: NEW official emblem adopted 5 Jun 2024 (2843x2317) now used; replaces the older heraldic arms.",
+        "niger & benue: both adopted NEW seals (2024 / Feb 2025) but no clean high-res cut-out of the new design is public yet — kept the established older seal.",
+        "plateau: stable Commons JPG (489x465) used; a sharper 667x667 seal is embedded in the official site logomark SVG and could be extracted/hosted during rehosting if higher res is needed.",
+        "rivers & jigawa: still no genuine verified seal located — sealImageUrl stays null (a placeholder would be worse).",
+        "AVOID: Wikimedia File:FCT_logo.svg is the Portuguese science foundation, NOT Abuja FCT."
+      ]
+    }
   },
   "benue": {
     "about": "Benue is a state in Nigeria's North Central region, named after the Benue River, and is known for its agricultural output with major ethnic groups including the Tiv, Idoma, and Igede. Its capital is Makurdi.",
@@ -78,7 +107,7 @@
     "motto": "State of Harmony",
     "dateCreated": "1967-05-27",
     "landAreaSqKm": 36825,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/en/2/21/Emblem_of_Kwara_State.png",
+    "sealImageUrl": "https://kwarastate.gov.ng/wp-content/uploads/2020/04/Kwara-Vector-logo-1.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://kwarastate.gov.ng/",
     "financeMinistryUrl": "https://mof.kw.gov.ng/",
@@ -99,7 +128,7 @@
       "motto": "https://en.wikipedia.org/wiki/Kwara_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Kwara_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Kwara_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Kwara_State",
+      "sealImageUrl": "https://kwarastate.gov.ng/",
       "officialWebsiteUrl": "https://kwarastate.gov.ng/",
       "financeMinistryUrl": "https://mof.kw.gov.ng/",
       "assemblyWebsiteUrl": "https://hoa.kw.gov.ng/",
@@ -178,7 +207,7 @@
     "motto": "Home of Peace and Tourism",
     "dateCreated": "1976-02-03",
     "landAreaSqKm": 30913,
-    "sealImageUrl": null,
+    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Plateau_State_Coat_of_arms.jpg",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://plateaustate.gov.ng/",
     "financeMinistryUrl": null,
@@ -200,7 +229,8 @@
       "dateCreated": "https://en.wikipedia.org/wiki/Plateau_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Plateau_State",
       "officialWebsiteUrl": "https://plateaustate.gov.ng/",
-      "newsUrl": "https://www.plateaustate.gov.ng/news/"
+      "newsUrl": "https://www.plateaustate.gov.ng/news/",
+      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Plateau_State_Coat_of_arms.jpg"
     }
   },
   "fct": {
@@ -244,7 +274,7 @@
     "motto": "Land of Beauty",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 36917,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Seal_of_Adamawa_State.png",
+    "sealImageUrl": "https://adamawastate.gov.ng/wp-content/uploads/2020/07/New-ADSG-Logo.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://adamawastate.gov.ng/",
     "financeMinistryUrl": null,
@@ -265,7 +295,7 @@
       "motto": "https://en.wikipedia.org/wiki/Adamawa_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Adamawa_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Adamawa_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/File:Seal_of_Adamawa_State.png",
+      "sealImageUrl": "https://adamawastate.gov.ng/",
       "officialWebsiteUrl": "https://adamawastate.gov.ng/",
       "contactAddress": "https://adamawastate.gov.ng/",
       "contactEmail": "https://adamawastate.gov.ng/"
@@ -338,7 +368,7 @@
     "motto": "Jewel in the Savannah",
     "dateCreated": "1996-10-01",
     "landAreaSqKm": 18768,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/en/8/8c/Gombe_State_Seal.png",
+    "sealImageUrl": "https://gombestate.gov.ng/assets/images/logo.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://gombestate.gov.ng/",
     "financeMinistryUrl": null,
@@ -359,7 +389,7 @@
       "motto": "https://en.wikipedia.org/wiki/Gombe_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Gombe_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Gombe_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Gombe_State",
+      "sealImageUrl": "https://gombestate.gov.ng/",
       "officialWebsiteUrl": "https://gombestate.gov.ng/",
       "contactAddress": "https://gombestate.gov.ng/",
       "contactEmail": "https://gombestate.gov.ng/"
@@ -370,7 +400,7 @@
     "motto": "Nature's Gift to the Nation",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 54473,
-    "sealImageUrl": null,
+    "sealImageUrl": "https://mfbep.tr.gov.ng/wp-content/uploads/2024/08/R-1.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://tarabastate.gov.ng/",
     "financeMinistryUrl": null,
@@ -393,7 +423,8 @@
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Taraba_State",
       "officialWebsiteUrl": "https://tarabastate.gov.ng/",
       "contactEmail": "https://tarabastate.gov.ng/",
-      "twitterUrl": "https://x.com/OfficialTaraba"
+      "twitterUrl": "https://x.com/OfficialTaraba",
+      "sealImageUrl": "https://mfbep.tr.gov.ng/"
     }
   },
   "yobe": {
@@ -465,7 +496,7 @@
     "motto": "Centre of Learning",
     "dateCreated": "1967-05-27",
     "landAreaSqKm": 46053,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/en/7/7b/Coat_of_arms_of_Kaduna_State.png",
+    "sealImageUrl": "https://kdsg.gov.ng/wp-content/uploads/2024/11/KD_logo.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://kdsg.gov.ng/",
     "financeMinistryUrl": null,
@@ -486,7 +517,7 @@
       "motto": "https://en.wikipedia.org/wiki/Kaduna_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Kaduna_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Kaduna_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Kaduna_State",
+      "sealImageUrl": "https://kdsg.gov.ng/",
       "officialWebsiteUrl": "https://kdsg.gov.ng/",
       "contactAddress": "https://kdsg.gov.ng/contact-us/",
       "contactPhone": "https://kdsg.gov.ng/contact-us/",
@@ -659,7 +690,7 @@
     "motto": "God's Own State",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 6320,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/93/Abia_State_coat_of_arms.jpg",
+    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/11/ABSG_Coat_of_Arms_Master.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://abiastate.gov.ng/",
     "financeMinistryUrl": null,
@@ -680,7 +711,7 @@
       "motto": "https://en.wikipedia.org/wiki/Abia_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Abia_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Abia_State",
-      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Abia_State_coat_of_arms.jpg",
+      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:ABSG_Coat_of_Arms_Master.png",
       "officialWebsiteUrl": "https://abiastate.gov.ng/"
     }
   },
@@ -754,7 +785,7 @@
     "motto": "Coal City State",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 7161,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Enugu_state_Coat_of_Arms.jpg",
+    "sealImageUrl": "https://enugustate.gov.ng/wp-content/uploads/2024/05/enugu_state_logo-.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://enugustate.gov.ng/",
     "financeMinistryUrl": null,
@@ -775,7 +806,7 @@
       "motto": "https://en.wikipedia.org/wiki/Enugu_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Enugu_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Enugu_State",
-      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Enugu_state_Coat_of_Arms.jpg",
+      "sealImageUrl": "https://enugustate.gov.ng/",
       "officialWebsiteUrl": "https://enugustate.gov.ng/"
     }
   },
@@ -784,7 +815,7 @@
     "motto": "Eastern Heartland",
     "dateCreated": "1976-02-03",
     "landAreaSqKm": 5530,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Imo_State_Government.jpg",
+    "sealImageUrl": "https://axxpoint-bucket.s3.us-west-2.amazonaws.com/images/imo-state-logo.png",
     "flagImageUrl": "https://upload.wikimedia.org/wikipedia/commons/1/15/Imo_State_Flag.svg",
     "officialWebsiteUrl": "https://imostate.gov.ng/",
     "financeMinistryUrl": null,
@@ -805,7 +836,7 @@
       "motto": "https://en.wikipedia.org/wiki/Imo_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Imo_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Imo_State",
-      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Imo_State_Government.jpg",
+      "sealImageUrl": "https://imostate.gov.ng/",
       "flagImageUrl": "https://commons.wikimedia.org/wiki/File:Imo_State_Flag.svg",
       "officialWebsiteUrl": "https://imostate.gov.ng/"
     }
@@ -850,7 +881,7 @@
     "motto": "Truth, Service and Justice",
     "dateCreated": "1996-10-01",
     "landAreaSqKm": 10773,
-    "sealImageUrl": null,
+    "sealImageUrl": "https://bayelsastate.gov.ng/wp-content/uploads/2025/12/png-clipart-bayelsa-state-osun-state-rivers-state-kaduna-state-coat-of-arms-osun-state-bayelsa-state-rivers-state-removebg-preview.webp",
     "flagImageUrl": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Flag_of_Bayelsa_State.svg",
     "officialWebsiteUrl": "https://bayelsastate.gov.ng/",
     "financeMinistryUrl": "https://www.mof.by.gov.ng/",
@@ -877,7 +908,8 @@
       "contactAddress": "https://bayelsastate.gov.ng/",
       "contactPhone": "https://bayelsastate.gov.ng/",
       "contactEmail": "https://bayelsastate.gov.ng/",
-      "newsUrl": "https://bayelsastate.gov.ng/news/"
+      "newsUrl": "https://bayelsastate.gov.ng/news/",
+      "sealImageUrl": "https://bayelsastate.gov.ng/state-symbols/"
     }
   },
   "cross_river": {
@@ -915,7 +947,7 @@
     "motto": null,
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 17698,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/en/d/d6/Seal_of_delta_State.png",
+    "sealImageUrl": "https://deltastate.gov.ng/wp-content/uploads/2024/02/cropped-logo-1.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://deltastate.gov.ng/",
     "financeMinistryUrl": null,
@@ -935,7 +967,7 @@
       "about": "https://en.wikipedia.org/wiki/Delta_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Delta_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Delta_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Delta_State",
+      "sealImageUrl": "https://deltastate.gov.ng/",
       "officialWebsiteUrl": "https://deltastate.gov.ng/",
       "contactAddress": "https://deltastate.gov.ng/",
       "contactPhone": "https://deltastate.gov.ng/",
@@ -949,7 +981,7 @@
     "motto": "Heartbeat of Nigeria",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 19559,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/e/eb/Seal_of_Edo_State.png",
+    "sealImageUrl": "https://edostate.gov.ng/wp-content/uploads/2023/03/cropped-EDSG-LOGO-Hi-res-300x300.png",
     "flagImageUrl": null,
     "officialWebsiteUrl": "https://edostate.gov.ng/",
     "financeMinistryUrl": null,
@@ -970,7 +1002,7 @@
       "motto": "https://edostate.gov.ng/",
       "dateCreated": "https://en.wikipedia.org/wiki/Edo_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Edo_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Edo_State",
+      "sealImageUrl": "https://edostate.gov.ng/",
       "officialWebsiteUrl": "https://edostate.gov.ng/",
       "contactAddress": "https://edostate.gov.ng/contact/",
       "contactEmail": "https://edostate.gov.ng/contact/",
@@ -1013,7 +1045,7 @@
     "motto": "Land of Honour and Integrity",
     "dateCreated": "1996-10-01",
     "landAreaSqKm": 6353,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/en/5/53/Seal_of_Ekiti_State.png",
+    "sealImageUrl": "https://www.ekitistate.gov.ng/wp-content/uploads/LOGO-1.jpg",
     "flagImageUrl": "https://upload.wikimedia.org/wikipedia/commons/0/02/Ekiti_State_Flag.gif",
     "officialWebsiteUrl": "https://www.ekitistate.gov.ng/",
     "financeMinistryUrl": null,
@@ -1034,7 +1066,7 @@
       "motto": "https://en.wikipedia.org/wiki/Ekiti_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Ekiti_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Ekiti_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Ekiti_State",
+      "sealImageUrl": "https://www.ekitistate.gov.ng/",
       "flagImageUrl": "https://en.wikipedia.org/wiki/Ekiti_State",
       "officialWebsiteUrl": "https://www.ekitistate.gov.ng/",
       "assemblyWebsiteUrl": "https://www.hoa.ek.gov.ng/",
@@ -1152,8 +1184,8 @@
     "motto": "State of the Living Spring",
     "dateCreated": "1991-08-27",
     "landAreaSqKm": 9251,
-    "sealImageUrl": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Osun_state_official_logo_2024.jpg",
-    "flagImageUrl": null,
+    "sealImageUrl": "https://www.osunstate.gov.ng/wp-content/uploads/2024/05/osunlogo-transparent.png",
+    "flagImageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/8f/Flag_of_Osun_State%2C_Nigeria.svg",
     "officialWebsiteUrl": "https://www.osunstate.gov.ng/",
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
@@ -1173,11 +1205,12 @@
       "motto": "https://en.wikipedia.org/wiki/Osun_State",
       "dateCreated": "https://en.wikipedia.org/wiki/Osun_State",
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Osun_State",
-      "sealImageUrl": "https://en.wikipedia.org/wiki/Osun_State",
+      "sealImageUrl": "https://www.osunstate.gov.ng/",
       "officialWebsiteUrl": "https://www.osunstate.gov.ng/",
       "contactAddress": "https://www.osunstate.gov.ng/",
       "twitterUrl": "https://x.com/osun_state_gov",
-      "facebookUrl": "https://www.facebook.com/OsunstateGov/"
+      "facebookUrl": "https://www.facebook.com/OsunstateGov/",
+      "flagImageUrl": "https://commons.wikimedia.org/wiki/File:Flag_of_Osun_State,_Nigeria.svg"
     }
   },
   "oyo": {
