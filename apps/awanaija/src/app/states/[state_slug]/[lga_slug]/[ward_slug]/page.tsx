@@ -5,6 +5,7 @@ import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquar
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { getWardDetails } from "@/lib/api";
+import { SmartImage } from "@/components/ui/SmartImage";
 import { notFound } from "next/navigation";
 
 export const revalidate = 60;
@@ -177,7 +178,7 @@ export default async function WardPage({
               <Link href={`/officials/${councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                   {councilor.image ? (
-                    <img src={councilor.image} alt={councilor.name} className="w-full h-full object-cover" />
+                    <SmartImage src={councilor.image} alt={councilor.name} px={64} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-8 h-8 text-muted-foreground" />
                   )}

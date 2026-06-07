@@ -14,6 +14,7 @@ import {
   ThumbsDown,
   Pencil,
 } from "lucide-react";
+import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Proposal } from "@/lib/api";
 import { voteOnProposal } from "@/lib/api";
 
@@ -98,9 +99,11 @@ export function OfficialProfile({ official }: { official: Official }) {
           {/* Photo */}
           <div className="w-[120px] h-[120px] min-w-[120px] rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
             {official.imageUrl && !imgError ? (
-              <img
+              <SmartImage
                 src={official.imageUrl}
                 alt={official.name}
+                px={120}
+                priority
                 className="w-full h-full object-cover"
                 onError={() => setImgError(true)}
               />
