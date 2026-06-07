@@ -62,7 +62,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
 
   return (
     <Link
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       onClick={onClick}
       className="block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all cursor-pointer"
       style={{ borderLeftWidth: "4px", borderLeftColor: partyColor }}

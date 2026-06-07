@@ -57,10 +57,10 @@ export class OfficialsController {
   }
 
   @Public()
-  @Get(":id")
-  async getById(@Param("id") id: string, @Res() res: Response) {
+  @Get(":idOrSlug")
+  async getByIdOrSlug(@Param("idOrSlug") idOrSlug: string, @Res() res: Response) {
     try {
-      const official = await this.service.getById(id);
+      const official = await this.service.getByIdOrSlug(idOrSlug);
       return res.json(official);
     } catch (err: any) {
       if (err.status === 404) {

@@ -213,8 +213,10 @@ export async function verifyOtp(phoneNumber: string, code: string) {
 // Types
 export interface Official {
   id: string;
+  slug: string | null;
   name: string;
   imageUrl: string | null;
+  dateOfBirth: string | null;
   email: string | null;
   phoneNumber: string | null;
   officeAddress: string | null;

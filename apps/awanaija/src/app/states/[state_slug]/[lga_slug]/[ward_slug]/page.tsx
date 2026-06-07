@@ -175,7 +175,7 @@ export default async function WardPage({
           </h2>
           {councilor ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Link href={`/officials/${councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
+              <Link href={`/officials/${councilor.slug ?? councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
                   {councilor.image ? (
                     <SmartImage src={councilor.image} alt={councilor.name} px={64} className="w-full h-full object-cover" />

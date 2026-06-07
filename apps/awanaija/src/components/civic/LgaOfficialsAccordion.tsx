@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
 
 interface Councilor {
   id: string;
+  slug?: string | null;
   name: string;
   party: string;
   ward: string;
@@ -60,7 +61,7 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               councilors.map((councilor, i) => (
                 <Link
                   key={i}
-                  href={`/officials/${councilor.id}`}
+                  href={`/officials/${councilor.slug ?? councilor.id}`}
                   className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors group"
                 >
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
