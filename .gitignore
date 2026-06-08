@@ -85,3 +85,6 @@ packages/plans/
 
 # lighthouse
 .lighthouseci/
+
+# gstack local scratch
+.superpowers/
