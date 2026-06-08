@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { User, Phone, MapPin, HelpCircle } from "lucide-react";
+import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Position } from "@/lib/api";
 
 type RoleLevel = "local" | "state" | "assembly" | "hor" | "senator";
@@ -143,11 +144,12 @@ export function NarrativeOfficialCard({
         </span>
       </div>
       <div className="p-6 flex flex-col sm:flex-row gap-6">
-        <Link href={`/officials/${official.id}`} className="shrink-0">
+        <Link href={`/officials/${official.slug ?? official.id}`} className="shrink-0">
           {showImage ? (
-            <img
+            <SmartImage
               src={official.imageUrl!}
               alt={official.name}
+              px={112}
               className="w-28 h-28 rounded-xl object-cover shadow-sm"
               onError={() => setImgError(true)}
             />
@@ -161,7 +163,7 @@ export function NarrativeOfficialCard({
         </Link>
         <div className="flex-1 space-y-3">
           <div>
-            <Link href={`/officials/${official.id}`}>
+            <Link href={`/officials/${official.slug ?? official.id}`}>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white font-heading hover:text-emerald-600 transition-colors">
                 {official.name}
               </h2>

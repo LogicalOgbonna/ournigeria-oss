@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import React, { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { ArrowLeft, ChevronRight, MapPin, AlertCircle, CheckCircle2, Clock, Users, Activity, Construction } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
@@ -149,15 +149,17 @@ export default async function LgaPage({
     return (
       <Link 
         key={official.id}
-        href={`/officials/${official.id}`}
+        href={`/officials/${official.slug ?? official.id}`}
         className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
       >
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-          {official.image ? (
-            <Image src={official.image} alt={official.name} fill className="object-cover" sizes="48px" />
-          ) : (
-            <Users className="w-6 h-6 text-muted-foreground" />
-          )}
+          <OfficialAvatar
+            src={official.image}
+            alt={official.name}
+            px={48}
+            imgClassName="w-full h-full object-cover"
+            fallback={<Users className="w-6 h-6 text-muted-foreground" />}
+          />
         </div>
         <div className="space-y-1 flex-1">
           <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">

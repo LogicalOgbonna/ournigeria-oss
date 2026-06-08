@@ -60,46 +60,48 @@ export async function reverseGeocode(lat: number, lng: number) {
   return apiFetch<GeoResult>(`/geo/reverse?lat=${lat}&lng=${lng}`);
 }
 
-export async function getFaacPeriods() {
+export async function getFaacPeriods(init?: RequestInit) {
   return apiFetch<{
     years: number[];
     monthsByYear: Record<number, number[]>;
-  }>(`/geo/faac-periods`);
+  }>(`/geo/faac-periods`, init);
 }
 
-export async function getStateDetails(slug: string, year?: string, month?: string) {
+export async function getStateDetails(slug: string, year?: string, month?: string, init?: RequestInit) {
   const qs = new URLSearchParams();
   if (year) qs.set("year", year);
   if (month) qs.set("month", month);
   const queryString = qs.toString() ? `?${qs.toString()}` : "";
-  return apiFetch<any>(`/geo/states/${slug}${queryString}`);
+  return apiFetch<any>(`/geo/states/${slug}${queryString}`, init);
 }
 
-export async function getLgaDetails(stateSlug: string, lgaSlug: string, year?: string, month?: string) {
+export async function getLgaDetails(stateSlug: string, lgaSlug: string, year?: string, month?: string, init?: RequestInit) {
   const qs = new URLSearchParams();
   if (year) qs.set("year", year);
   if (month) qs.set("month", month);
   const queryString = qs.toString() ? `?${qs.toString()}` : "";
-  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}${queryString}`);
+  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}${queryString}`, init);
 }
 
-export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
-  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}/wards/${wardSlug}`);
+export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string, init?: RequestInit) {
+  return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}/wards/${wardSlug}`, init);
 }
 
-export async function getStates() {
-  return apiFetch<{ code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[]>("/geo/states");
+export async function getStates(init?: RequestInit) {
+  return apiFetch<{ code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[]>("/geo/states", init);
 }
 
-export async function getLgas(stateCode: string) {
+export async function getLgas(stateCode: string, init?: RequestInit) {
   return apiFetch<{ code: string; name: string }[]>(
     `/geo/lgas?state=${stateCode}`,
+    init,
   );
 }
 
-export async function getWards(lgaCode: string) {
+export async function getWards(lgaCode: string, init?: RequestInit) {
   return apiFetch<{ code: string; name: string }[]>(
     `/geo/wards?lga=${lgaCode}`,
+    init,
   );
 }
 
@@ -211,8 +213,10 @@ export async function verifyOtp(phoneNumber: string, code: string) {
 // Types
 export interface Official {
   id: string;
+  slug: string | null;
   name: string;
   imageUrl: string | null;
+  dateOfBirth: string | null;
   email: string | null;
   phoneNumber: string | null;
   officeAddress: string | null;

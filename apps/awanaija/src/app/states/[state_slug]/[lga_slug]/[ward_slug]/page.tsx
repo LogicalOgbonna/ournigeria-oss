@@ -5,6 +5,7 @@ import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquar
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { getWardDetails } from "@/lib/api";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { notFound } from "next/navigation";
 
 export const revalidate = 60;
@@ -174,13 +175,15 @@ export default async function WardPage({
           </h2>
           {councilor ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Link href={`/officials/${councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
+              <Link href={`/officials/${councilor.slug ?? councilor.id}`} className="bg-card border border-border rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-emerald-500/50 transition-colors group cursor-pointer block">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-                  {councilor.image ? (
-                    <img src={councilor.image} alt={councilor.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-8 h-8 text-muted-foreground" />
-                  )}
+                  <OfficialAvatar
+                    src={councilor.image}
+                    alt={councilor.name}
+                    px={64}
+                    imgClassName="w-full h-full object-cover"
+                    fallback={<User className="w-8 h-8 text-muted-foreground" />}
+                  />
                 </div>
                 <div className="space-y-3 flex-1 w-full">
                   <div className="space-y-1">

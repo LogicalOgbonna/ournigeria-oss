@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Users } from "lucide-react";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 
 interface Official {
   id: string;
+  slug?: string | null;
   name: string;
   party: string;
   constituency: string;
@@ -36,15 +38,17 @@ export function StateOfficialsAccordion({ stateCode, stats, officials }: StateOf
   const renderOfficial = (official: Official, roleTitle: string) => (
     <Link
       key={official.id}
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       className="flex items-center gap-3 p-3 hover:bg-muted/50 rounded-md transition-colors"
     >
       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
-        {official.image ? (
-          <img src={official.image} alt={official.name} className="w-full h-full object-cover" />
-        ) : (
-          <Users className="w-5 h-5 text-muted-foreground" />
-        )}
+        <OfficialAvatar
+          src={official.image}
+          alt={official.name}
+          px={40}
+          imgClassName="w-full h-full object-cover"
+          fallback={<Users className="w-5 h-5 text-muted-foreground" />}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-heading text-sm font-semibold truncate">{official.name}</p>

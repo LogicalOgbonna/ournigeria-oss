@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronDown, User } from "lucide-react";
+import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official } from "@/lib/api";
 
 const ROLES = [
@@ -37,14 +38,14 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
 
   return (
     <Link
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       className="flex gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all"
       style={{ borderLeftWidth: "3px", borderLeftColor: partyColor }}
     >
       {/* Photo */}
       <div className="shrink-0">
         {showImage ? (
-          <img src={official.imageUrl!} alt={official.name} className="w-14 h-14 rounded-lg object-cover" onError={() => setImgError(true)} />
+          <SmartImage src={official.imageUrl!} alt={official.name} px={56} className="w-14 h-14 rounded-lg object-cover" onError={() => setImgError(true)} />
         ) : (
           <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
             <User className="w-6 h-6 text-slate-300 dark:text-slate-600" />

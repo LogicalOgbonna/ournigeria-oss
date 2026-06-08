@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 
 interface Councilor {
   id: string;
+  slug?: string | null;
   name: string;
   party: string;
   ward: string;
@@ -60,15 +62,17 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               councilors.map((councilor, i) => (
                 <Link
                   key={i}
-                  href={`/officials/${councilor.id}`}
+                  href={`/officials/${councilor.slug ?? councilor.id}`}
                   className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors group"
                 >
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-                    {councilor.image ? (
-                      <img src={councilor.image} alt={councilor.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <OfficialAvatar
+                      src={councilor.image}
+                      alt={councilor.name}
+                      px={32}
+                      imgClassName="w-full h-full object-cover"
+                      fallback={<Users className="w-4 h-4 text-muted-foreground" />}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">

@@ -7,9 +7,7 @@ import {
 } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { FeedbackFab } from "@/components/FeedbackFab";
-import { CivicModal } from "@/components/civic/CivicModal";
-import { MobileFabMenu } from "@/components/sections/MobileFabMenu";
+import { DeferredWidgets } from "@/components/DeferredWidgets";
 import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
@@ -87,9 +85,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster position="bottom-left" richColors closeButton />
-          <FeedbackFab />
-          <CivicModal />
-          <MobileFabMenu />
+          <DeferredWidgets />
           <Analytics />
         </ThemeProvider>
       </body>

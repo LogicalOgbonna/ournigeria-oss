@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { User, ExternalLink, Calendar } from "lucide-react";
+import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Position } from "@/lib/api";
 
 interface OfficialCardProps {
@@ -61,7 +62,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
 
   return (
     <Link
-      href={`/officials/${official.id}`}
+      href={`/officials/${official.slug ?? official.id}`}
       onClick={onClick}
       className="block bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden hover:border-emerald-400 dark:hover:border-emerald-600 hover:shadow-md transition-all cursor-pointer"
       style={{ borderLeftWidth: "4px", borderLeftColor: partyColor }}
@@ -70,9 +71,10 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
         {/* Photo: square on desktop, circle on mobile */}
         <div className="hidden md:block shrink-0">
           {showImage ? (
-            <img
+            <SmartImage
               src={official.imageUrl!}
               alt={official.name}
+              px={96}
               className="w-24 h-full object-cover"
               onError={() => setImgError(true)}
             />
@@ -89,9 +91,10 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
           <div className="flex items-start gap-3">
             <div className="md:hidden shrink-0">
               {showImage ? (
-                <img
+                <SmartImage
                   src={official.imageUrl!}
                   alt={official.name}
+                  px={44}
                   className="w-11 h-11 rounded-full object-cover"
                   onError={() => setImgError(true)}
                 />

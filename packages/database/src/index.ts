@@ -6,3 +6,4 @@ export {
 } from './prisma.service';
 export { PrismaClient, Prisma } from '@prisma/client';
 export type { MessageRole } from '@prisma/client';
+export { slugifyName, UUID_RE } from './slug';

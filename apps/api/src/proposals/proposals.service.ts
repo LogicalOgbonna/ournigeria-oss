@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "@ournigeria/database";
+import { PrismaService, slugifyName } from "@ournigeria/database";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
 import { OfficialsService } from "../officials/officials.service";
@@ -239,10 +239,16 @@ export class ProposalsService {
 
     // Create official + position + proposal in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Create the official
+      // 1. Create the official (with a unique SEO slug)
+      const slug = await this.generateUniqueOfficialSlug(
+        tx,
+        data.name.trim(),
+        positionScope.stateCode || data.stateCode,
+      );
       const official = await tx.nigerianOfficial.create({
         data: {
           name: data.name.trim(),
+          slug,
           imageUrl: imageInfo.officialImageUrl,
           ...officialProfile,
           completenessScore: 0,
@@ -329,6 +335,35 @@ export class ProposalsService {
     }
 
     return { officialImageUrl: trimmed, proposalImageUrl: trimmed };
+  }
+
+  /**
+   * Generate a unique, SEO-friendly slug for a new official. Prefetches existing
+   * slugs sharing the same base and disambiguates with the state code, then a
+   * numeric suffix. The DB unique index on `slug` is the final backstop.
+   */
+  private async generateUniqueOfficialSlug(
+    tx: { nigerianOfficial: { findMany: (args: any) => Promise<{ slug: string | null }[]> } },
+    name: string,
+    stateCode?: string,
+  ): Promise<string> {
+    let base = slugifyName(name);
+    if (!base) base = `official-${randomBytes(4).toString("hex")}`;
+
+    const rows = await tx.nigerianOfficial.findMany({
+      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      select: { slug: true },
+    });
+    const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
+
+    if (!used.has(base)) return base;
+
+    const stateSuffix = stateCode ? slugifyName(stateCode) : "";
+    if (stateSuffix && !used.has(`${base}-${stateSuffix}`)) return `${base}-${stateSuffix}`;
+
+    let n = 2;
+    while (used.has(`${base}-${n}`)) n++;
+    return `${base}-${n}`;
   }
 
   private buildIdentifyProposalValue(data: {
