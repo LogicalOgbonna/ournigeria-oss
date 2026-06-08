@@ -84,4 +84,4 @@ packages/plans/
 .claude/**
 
 # lighthouse
-.lighthouseci/
+.lighthouseci/.superpowers/
