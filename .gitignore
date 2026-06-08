@@ -84,4 +84,7 @@ packages/plans/
 .claude/**
 
 # lighthouse
-.lighthouseci/.superpowers/
+.lighthouseci/
+
+# gstack local scratch
+.superpowers/
