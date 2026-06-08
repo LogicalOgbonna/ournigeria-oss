@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { ArrowLeft, ChevronRight, Users, MapPin, TrendingUp, Landmark, Activity, FileText, Info, Construction } from "lucide-react";
 import { Suspense } from "react";
 import { Navbar } from "@/components/sections/Navbar";
@@ -506,11 +506,13 @@ export default async function StatePage({
                   className="bg-card border border-border rounded-[10px] p-4 flex items-start gap-3 group hover:border-emerald-500/50 transition-colors cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-                    {governor?.image ? (
-                      <Image src={governor.image} alt={governor.name} fill className="object-cover" sizes="48px" />
-                    ) : (
-                      <Users className="w-6 h-6 text-muted-foreground" />
-                    )}
+                    <OfficialAvatar
+                      src={governor?.image}
+                      alt={governor?.name ?? "Governor"}
+                      px={48}
+                      imgClassName="w-full h-full object-cover"
+                      fallback={<Users className="w-6 h-6 text-muted-foreground" />}
+                    />
                   </div>
                   <div className="space-y-1 flex-1">
                     <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
