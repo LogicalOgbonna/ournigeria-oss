@@ -6,7 +6,10 @@ import Image from "next/image";
 // `images.remotePatterns` allowlist in next.config.ts — feeding an
 // unconfigured host to next/image throws at render time, so anything not
 // listed here falls back to a plain (but sized + lazy) <img>.
-const OPTIMIZABLE_REMOTE_HOSTS = ["nass.gov.ng"];
+// Stored images are served pre-resized straight from S3/CloudFront, so they
+// bypass next/image (they fall through to the sized <img> branch). This list is
+// for remote hosts we'd still want the optimizer to handle; currently none.
+const OPTIMIZABLE_REMOTE_HOSTS: string[] = [];
 
 function isOptimizable(src: string): boolean {
   if (src.startsWith("/")) return true; // local /public asset

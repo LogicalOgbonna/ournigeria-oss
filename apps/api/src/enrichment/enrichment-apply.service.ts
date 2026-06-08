@@ -3,10 +3,14 @@ import { PrismaService } from "@ournigeria/database";
 import { isAppliable, OFFICIAL_COMPLETENESS_FIELDS } from "./enrichment.constants";
 import { isCreatableCouncilor } from "./councilor.constants";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
+import { ImageStorageService } from "../images/image-storage.service";
 
 @Injectable()
 export class EnrichmentApplyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly imageStorage: ImageStorageService,
+  ) {}
 
   /** Apply an approved proposal to live data, transactionally, as enrichment_apply. */
   async apply(proposalId: string, adminId: string): Promise<void> {
@@ -24,21 +28,40 @@ export class EnrichmentApplyService {
     if (!isAppliable(proposal.targetTable, proposal.targetField)) {
       throw new BadRequestException(`field ${proposal.targetTable}.${proposal.targetField} is not appliable`);
     }
+    // A non-create proposal targets an existing row; a missing PK is malformed.
+    if (!proposal.targetPk) {
+      throw new BadRequestException("proposal is missing a target row id");
+    }
+    const targetPk = proposal.targetPk;
+
+    // Identifiers are safe: both passed isAppliable() against a static allow-list.
+    let value = (proposal.proposedValue as unknown) ?? null;
+
+    // Official photos: the agent proposes a *foreign* image URL (e.g. nass.gov.ng).
+    // Pull it into our own storage (resized webp on S3/CDN) BEFORE the tx — never
+    // persist a hotlinked URL. Done outside the tx because it does network I/O.
+    if (
+      proposal.targetTable === "nigerian_officials" &&
+      proposal.targetField === "image_url" &&
+      typeof value === "string" &&
+      value.length > 0 &&
+      !this.imageStorage.isStoredUrl(value)
+    ) {
+      value = (await this.imageStorage.storeOfficialImage(value, targetPk)).url;
+    }
 
     await this.prisma.$transaction(async (tx) => {
       // Drop to the least-privileged role for the live write; resets at tx end.
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
 
-      // Identifiers are safe: both passed isAppliable() against a static allow-list.
-      const value = (proposal.proposedValue as unknown) ?? null;
       await tx.$executeRawUnsafe(
         `UPDATE "${proposal.targetTable}" SET "${proposal.targetField}" = $1 WHERE id = $2::uuid`,
         value,
-        proposal.targetPk,
+        targetPk,
       );
 
       if (proposal.targetTable === "nigerian_officials") {
-        await this.recomputeOfficialCompleteness(tx, proposal.targetPk);
+        await this.recomputeOfficialCompleteness(tx, targetPk);
       }
 
       await tx.changeProposal.update({
@@ -50,7 +73,7 @@ export class EnrichmentApplyService {
         data: {
           eventType: "proposal_applied",
           targetType: proposal.targetTable,
-          targetId: proposal.targetPk,
+          targetId: targetPk,
           metadata: { proposalId, field: proposal.targetField, changeKind: proposal.changeKind },
         },
       });

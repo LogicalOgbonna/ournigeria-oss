@@ -57,8 +57,6 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
     node_modules/react-dom \
     node_modules/@next \
     node_modules/@swc \
-    node_modules/sharp \
-    node_modules/@img \
     node_modules/@napi-rs \
     node_modules/lightningcss \
     node_modules/esbuild \

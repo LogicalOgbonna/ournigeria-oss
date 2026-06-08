@@ -22,6 +22,8 @@ export interface EnvConfig {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
+  /** CloudFront (or other CDN) base URL for stored images. Falls back to direct S3 when unset. */
+  CDN_BASE_URL?: string;
   ADMIN_SESSION_SECRET: string;
   LANGFUSE_PUBLIC_KEY?: string;
   LANGFUSE_SECRET_KEY?: string;
@@ -109,6 +111,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
     S3_BUCKET: config.S3_BUCKET as string,
+    CDN_BASE_URL: (config.CDN_BASE_URL as string) || undefined,
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
     LANGFUSE_PUBLIC_KEY: (config.LANGFUSE_PUBLIC_KEY as string) || undefined,
     LANGFUSE_SECRET_KEY: (config.LANGFUSE_SECRET_KEY as string) || undefined,
