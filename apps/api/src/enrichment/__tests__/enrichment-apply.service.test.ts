@@ -1,6 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { PrismaService } from "@ournigeria/database";
 import { EnrichmentApplyService } from "../enrichment-apply.service";
+import type { ImageStorageService } from "../../images/image-storage.service";
+
+// These tests don't exercise the image_url path; a stub that reports every URL as
+// already-stored keeps the image branch a no-op.
+const imageStorageStub = {
+  isStoredUrl: () => true,
+  storeOfficialImage: async (s: string) => ({ url: String(s), urlSmall: String(s) }),
+} as unknown as ImageStorageService;
 
 describe("EnrichmentApplyService.apply (integration)", () => {
   let prisma: PrismaService;
@@ -10,7 +18,7 @@ describe("EnrichmentApplyService.apply (integration)", () => {
   beforeAll(async () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
-    svc = new EnrichmentApplyService(prisma);
+    svc = new EnrichmentApplyService(prisma, imageStorageStub);
   });
 
   afterAll(async () => {
@@ -81,7 +89,7 @@ describe("EnrichmentApplyService.apply — create branch (integration)", () => {
   beforeAll(async () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
-    svc = new EnrichmentApplyService(prisma);
+    svc = new EnrichmentApplyService(prisma, imageStorageStub);
     await prisma.$executeRawUnsafe(
       `INSERT INTO nigerian_wards (code, name, lga_code) VALUES ($1, 'Apply Create Ward', 'abia_aba_north') ON CONFLICT (code) DO NOTHING`, WARD);
   });

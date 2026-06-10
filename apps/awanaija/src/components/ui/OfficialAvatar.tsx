@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { SmartImage } from "./SmartImage";
+import { cdnAvatar } from "@/lib/img";
 
 type OfficialAvatarProps = {
   src?: string | null;
@@ -35,7 +36,7 @@ export function OfficialAvatar({
   if (src && !errored) {
     return (
       <SmartImage
-        src={src}
+        src={cdnAvatar(src) ?? src}
         alt={alt}
         px={px}
         className={imgClassName}

@@ -1,8 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { PrismaService, slugifyName } from "@ournigeria/database";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
+import { ImageStorageService } from "../images/image-storage.service";
 import { OfficialsService } from "../officials/officials.service";
 import { ProposalNotifierService } from "./proposal-notifier.service";
 import { validateSourceUrl, validateImageUrl, validateFacebookUrl } from "../lib/url-validation";
@@ -39,24 +38,12 @@ function maskPhone(phone: string): string {
 
 @Injectable()
 export class ProposalsService {
-  private readonly s3: S3Client;
-  private readonly bucket: string;
-
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
+    private imageStorage: ImageStorageService,
     private officialsService: OfficialsService,
     private notifier: ProposalNotifierService,
-  ) {
-    this.bucket = this.config.getOrThrow<string>("S3_BUCKET");
-    this.s3 = new S3Client({
-      region: this.config.getOrThrow<string>("AWS_REGION"),
-      credentials: {
-        accessKeyId: this.config.getOrThrow<string>("AWS_ACCESS_KEY_ID"),
-        secretAccessKey: this.config.getOrThrow<string>("AWS_SECRET_ACCESS_KEY"),
-      },
-    });
-  }
+  ) {}
 
   async create(data: {
     officialId: string;
@@ -703,9 +690,15 @@ export class ProposalsService {
 
     let value = (proposal.proposedValue as any)?.value;
 
-    // If approving a photo with a data URL, upload to S3 first
-    if (proposal.targetField === "imageUrl" && typeof value === "string" && value.startsWith("data:")) {
-      value = await this.uploadDataUrlToS3(value, proposal.officialId);
+    // If approving a photo (data URL or remote URL), normalize it into our own
+    // storage (resized webp on S3/CDN) rather than persisting a foreign URL.
+    if (
+      proposal.targetField === "imageUrl" &&
+      typeof value === "string" &&
+      (value.startsWith("data:") || /^https?:\/\//i.test(value)) &&
+      !this.imageStorage.isStoredUrl(value)
+    ) {
+      value = (await this.imageStorage.storeOfficialImage(value, proposal.officialId)).url;
     }
 
     // Apply the change based on target field
@@ -729,12 +722,13 @@ export class ProposalsService {
       proposedValue?.type === "identify" &&
       !proposal.official.imageUrl &&
       typeof proposedValue?.imageUrl === "string" &&
-      proposedValue.imageUrl.startsWith("data:")
+      (proposedValue.imageUrl.startsWith("data:") || /^https?:\/\//i.test(proposedValue.imageUrl)) &&
+      !this.imageStorage.isStoredUrl(proposedValue.imageUrl)
     ) {
-      const s3Url = await this.uploadDataUrlToS3(proposedValue.imageUrl, proposal.officialId);
+      const storedUrl = (await this.imageStorage.storeOfficialImage(proposedValue.imageUrl, proposal.officialId)).url;
       await this.prisma.nigerianOfficial.update({
         where: { id: proposal.officialId },
-        data: { imageUrl: s3Url },
+        data: { imageUrl: storedUrl },
       });
     }
 
@@ -806,33 +800,6 @@ export class ProposalsService {
     }
 
     return { results };
-  }
-
-  private async uploadDataUrlToS3(dataUrl: string, officialId: string): Promise<string> {
-    // Parse data URL: data:image/jpeg;base64,/9j/4AAQ...
-    const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-    if (!match) {
-      throw new BadRequestException("Invalid image data URL");
-    }
-
-    const contentType = match[1];
-    const ext = contentType.split("/")[1] === "jpeg" ? "jpg" : contentType.split("/")[1];
-    const buffer = Buffer.from(match[2], "base64");
-    const hash = randomBytes(6).toString("hex");
-    const s3Key = `officials/${officialId}/${hash}.${ext}`;
-
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: s3Key,
-        Body: buffer,
-        ContentType: contentType,
-      }),
-    );
-
-    // Return a public URL (assumes bucket has public read or CloudFront)
-    const region = this.config.getOrThrow<string>("AWS_REGION");
-    return `https://${this.bucket}.s3.${region}.amazonaws.com/${s3Key}`;
   }
 
   private async checkProposalRateLimit(phone: string) {
