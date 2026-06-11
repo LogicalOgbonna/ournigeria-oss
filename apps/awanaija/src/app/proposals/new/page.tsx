@@ -213,7 +213,9 @@ function EditOfficialContent() {
   const router = useRouter();
 
   const officialId = searchParams.get("officialId");
-  const fieldParam = searchParams.get("field");
+  // Canonical param is `targetField` (matches the API payload + dashboard). Fall back to the
+  // legacy `field` name still emitted by some links (e.g. OfficialProfile) so both work.
+  const fieldParam = searchParams.get("targetField") || searchParams.get("field");
 
   const [official, setOfficial] = useState<Official | null>(null);
   const [loading, setLoading] = useState(true);

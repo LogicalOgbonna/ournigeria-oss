@@ -267,7 +267,7 @@ export function OfficialProfile({ official }: { official: Official }) {
               {missingFields.map((field) => (
                 <Link
                   key={field}
-                  href={`/proposals/new?officialId=${official.id}&field=${field}`}
+                  href={`/proposals/new?officialId=${official.id}&targetField=${field}`}
                   className="flex items-center gap-2.5 border border-dashed border-emerald-400/40 rounded-xl px-4 py-4 transition-all hover:bg-emerald-400/[0.06] hover:border-emerald-400/70 group"
                 >
                   <Plus className="w-[18px] h-[18px] text-emerald-400 shrink-0" />
@@ -332,7 +332,7 @@ function ChallengeButton({
             {fields.map((field) => (
               <Link
                 key={field}
-                href={`/proposals/new?officialId=${officialId}&field=${field}`}
+                href={`/proposals/new?officialId=${officialId}&targetField=${field}`}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 transition-colors hover:bg-red-400/[0.08] hover:text-red-600 dark:hover:text-red-400"
                 onClick={() => setOpen(false)}
               >
