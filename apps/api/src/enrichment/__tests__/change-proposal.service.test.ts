@@ -34,6 +34,13 @@ describe("ChangeProposalService (integration)", () => {
     expect(list.some((p) => p.id === proposalId)).toBe(true);
   });
 
+  it("attaches a normalized entityRole (unknown for an unresolvable official)", async () => {
+    const list = await svc.listByStatus("pending");
+    const p = list.find((x) => x.id === proposalId);
+    // fake all-zeros targetPk → no official, no current position → unknown bucket
+    expect(p?.entityRole).toBe("unknown");
+  });
+
   it("fetches a proposal with its sources", async () => {
     const p = await svc.getWithSources(proposalId);
     expect(p?.sources).toHaveLength(1);

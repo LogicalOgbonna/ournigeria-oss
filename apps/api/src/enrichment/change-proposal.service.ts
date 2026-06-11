@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+import { normalizeEntityRole, type EntityRole } from "./entity-role";
 
 @Injectable()
 export class ChangeProposalService {
@@ -48,10 +49,14 @@ export class ChangeProposalService {
       positionIds.size
         ? this.prisma.officialPosition.findMany({
             where: { id: { in: [...positionIds] } },
-            select: { id: true, official: { select: { id: true, name: true } } },
+            select: { id: true, role: true, official: { select: { id: true, name: true } } },
           })
-        : Promise.resolve([] as { id: string; official: { id: string; name: string } }[]),
+        : Promise.resolve([] as { id: string; role: string; official: { id: string; name: string } }[]),
     ]);
+
+    // For nigerian_officials-targeted proposals the role isn't on the proposal — resolve each
+    // person's preferred current position role (active, current-dated; most recent start wins).
+    const preferredRoleByOfficial = await this.preferredCurrentRoles([...officialIds]);
 
     const officialById = new Map(officials.map((o) => [o.id, o]));
     const positionById = new Map(positions.map((p) => [p.id, p]));
@@ -59,17 +64,47 @@ export class ChangeProposalService {
     return proposals.map((p) => {
       let officialId: string | null = null;
       let officialName: string | null = null;
+      let rawRole: string | null = null;
       if (p.changeKind === "create") {
-        const v = p.proposedValue as { official?: { name?: string } } | null;
+        const v = p.proposedValue as { official?: { name?: string }; position?: { role?: string } } | null;
         officialName = v?.official?.name ?? null;
+        rawRole = v?.position?.role ?? null;
       } else if (p.targetPk && p.targetTable === "nigerian_officials") {
         const o = officialById.get(p.targetPk);
         if (o) { officialId = o.id; officialName = o.name; }
+        rawRole = preferredRoleByOfficial.get(p.targetPk) ?? null;
       } else if (p.targetPk && p.targetTable === "official_positions") {
         const pos = positionById.get(p.targetPk);
         if (pos?.official) { officialId = pos.official.id; officialName = pos.official.name; }
+        rawRole = pos?.role ?? null;
       }
-      return { ...p, officialId, officialName };
+      const entityRole: EntityRole = normalizeEntityRole(rawRole);
+      return { ...p, officialId, officialName, entityRole };
     });
+  }
+
+  /**
+   * Resolve each official's "current role" for the entity filter: their active, currently-dated
+   * position with the most recent start date. Returns a map of officialId → raw role string
+   * (un-normalized — the caller buckets it). Officials with no active position are absent.
+   */
+  private async preferredCurrentRoles(officialIds: string[]): Promise<Map<string, string>> {
+    const byOfficial = new Map<string, string>();
+    if (officialIds.length === 0) return byOfficial;
+    const positions = await this.prisma.officialPosition.findMany({
+      where: {
+        officialId: { in: officialIds },
+        status: "active",
+        startDate: { lte: new Date() },
+        OR: [{ endDate: null }, { endDate: { gt: new Date() } }],
+      },
+      select: { officialId: true, role: true, startDate: true },
+      orderBy: { startDate: "desc" },
+    });
+    // Ordered desc by startDate, so the first row seen per official is the most recent.
+    for (const pos of positions) {
+      if (!byOfficial.has(pos.officialId)) byOfficial.set(pos.officialId, pos.role);
+    }
+    return byOfficial;
   }
 }

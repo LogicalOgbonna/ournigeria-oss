@@ -29,6 +29,8 @@ export interface ChangeProposal {
   officialName?: string | null;
   /** Public-profile id for the link; null for create proposals (no page yet). */
   officialId?: string | null;
+  /** Resolved entity bucket for the "by entity" filter (governor, senator, …, or "unknown"). */
+  entityRole: string;
 }
 
 export interface CouncilorProposedEntity {

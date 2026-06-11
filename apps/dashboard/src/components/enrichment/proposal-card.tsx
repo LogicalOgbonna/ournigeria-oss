@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, HelpCircle, User, ExternalLink } from "lucide-react";
+import { Check, X, HelpCircle, User, ExternalLink, ChevronRight } from "lucide-react";
 import { SourceEvidence } from "./source-evidence";
 import { ReviewNoteDialog } from "./review-note-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -138,12 +138,15 @@ export function ProposalCard({
 
         {proposal.reasoning && <p className="text-sm text-muted-foreground">{proposal.reasoning}</p>}
 
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <details className="group space-y-2">
+          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground">
+            <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
             {proposal.sources.length} source{proposal.sources.length === 1 ? "" : "s"}
-          </p>
-          {proposal.sources.map((s) => <SourceEvidence key={s.id} source={s} />)}
-        </div>
+          </summary>
+          <div className="space-y-2 pt-2">
+            {proposal.sources.map((s) => <SourceEvidence key={s.id} source={s} />)}
+          </div>
+        </details>
 
         {proposal.reviewNote && (
           <p className="text-xs text-muted-foreground">Note: {proposal.reviewNote}</p>
