@@ -2,6 +2,24 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { normalizeEntityRole, type EntityRole } from "./entity-role";
 
+/** Keyset cursor = base64("<createdAt ISO>|<id>"). Encodes the last row of a page. */
+function encodeCursor(createdAt: Date, id: string): string {
+  return Buffer.from(`${createdAt.toISOString()}|${id}`, "utf8").toString("base64url");
+}
+
+/** Decode a cursor; returns null for missing/garbage input (caller treats as page 1). */
+function decodeCursor(cursor: string | undefined): { createdAt: Date; id: string } | null {
+  if (!cursor) return null;
+  try {
+    const [iso, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+    const createdAt = new Date(iso);
+    if (!id || Number.isNaN(createdAt.getTime())) return null;
+    return { createdAt, id };
+  } catch {
+    return null;
+  }
+}
+
 @Injectable()
 export class ChangeProposalService {
   constructor(private readonly prisma: PrismaService) {}
@@ -13,6 +31,49 @@ export class ChangeProposalService {
       include: { sources: true },
     });
     return this.withOfficial(proposals);
+  }
+
+  /**
+   * Keyset-paginated, server-filtered proposal list for the dashboard. Filters by status
+   * (always) plus optional `actions` (changeKind) and `entities` (denormalized entityRole),
+   * ordered by (createdAt desc, id desc). The cursor encodes the last row of the previous
+   * page; `nextCursor` is null on the final page. A bad/garbage cursor is ignored (page 1).
+   */
+  async listPaginated(opts: {
+    status: string;
+    actions?: string[];
+    entities?: string[];
+    cursor?: string;
+    limit: number;
+  }) {
+    const { status, actions = [], entities = [], cursor, limit } = opts;
+    const cur = decodeCursor(cursor);
+
+    const rows = await this.prisma.changeProposal.findMany({
+      where: {
+        status,
+        ...(actions.length ? { changeKind: { in: actions } } : {}),
+        ...(entities.length ? { entityRole: { in: entities } } : {}),
+        ...(cur
+          ? {
+              OR: [
+                { createdAt: { lt: cur.createdAt } },
+                { createdAt: cur.createdAt, id: { lt: cur.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      include: { sources: true },
+    });
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const items = await this.withOfficial(page);
+    const last = page[page.length - 1];
+    const nextCursor = hasMore && last ? encodeCursor(last.createdAt, last.id) : null;
+    return { items, nextCursor };
   }
 
   getWithSources(id: string) {
@@ -28,7 +89,7 @@ export class ChangeProposalService {
    * directly; `official_positions` proposals resolve through the position's official; a
    * `create` carries the new official's name in its payload (no id/public page yet).
    */
-  private async withOfficial<T extends { changeKind: string; targetTable: string; targetPk: string | null; proposedValue: unknown }>(
+  private async withOfficial<T extends { changeKind: string; targetTable: string; targetPk: string | null; proposedValue: unknown; entityRole?: string | null }>(
     proposals: T[],
   ) {
     const officialIds = new Set<string>();
@@ -78,7 +139,9 @@ export class ChangeProposalService {
         if (pos?.official) { officialId = pos.official.id; officialName = pos.official.name; }
         rawRole = pos?.role ?? null;
       }
-      const entityRole: EntityRole = normalizeEntityRole(rawRole);
+      // Stored (denormalized) value wins; live resolution is the fallback for rows created
+      // before the backfill / write-path change so the response is always populated.
+      const entityRole: EntityRole = (p.entityRole as EntityRole | null) ?? normalizeEntityRole(rawRole);
       return { ...p, officialId, officialName, entityRole };
     });
   }
