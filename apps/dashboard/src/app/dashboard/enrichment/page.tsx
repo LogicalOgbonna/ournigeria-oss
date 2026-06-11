@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryState, parseAsStringEnum, parseAsArrayOf } from "nuqs";
 import { toast } from "sonner";
 import { Check, X, HelpCircle, FilterX, ChevronDown } from "lucide-react";
@@ -84,6 +84,27 @@ function bulkActionsFor(status: string): BulkAction[] {
 }
 
 export default function EnrichmentPage() {
+  // nuqs' useQueryState reads useSearchParams(), which Next requires under a Suspense
+  // boundary or static prerender of this page fails (CSR bailout).
+  return (
+    <Suspense fallback={<EnrichmentSkeleton />}>
+      <EnrichmentView />
+    </Suspense>
+  );
+}
+
+function EnrichmentSkeleton() {
+  return (
+    <div className="space-y-6 p-6">
+      <Skeleton className="h-8 w-64" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
+      </div>
+    </div>
+  );
+}
+
+function EnrichmentView() {
   const [proposals, setProposals] = useState<ChangeProposal[]>([]);
   const [status, setStatus] = useQueryState(
     "status", parseAsStringEnum<Status>([...STATUSES]).withDefault("pending"),
