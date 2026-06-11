@@ -93,6 +93,11 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
             .then((data) => { if (mountedRef.current) setWards(data); })
             .catch(console.error)
             .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+          // Pre-load the LGA list too, so stepping back from ward shows it
+          // (this path skips handleSelectState, which is what normally fetches LGAs).
+          getLgas(state.code)
+            .then((data) => { if (mountedRef.current) setLgas(data); })
+            .catch(console.error);
           return;
         }
 
