@@ -1,9 +1,14 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryState, parseAsStringEnum, parseAsArrayOf } from "nuqs";
 import { toast } from "sonner";
-import { Check, X, HelpCircle } from "lucide-react";
+import { Check, X, HelpCircle, FilterX, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { ProposalCard } from "@/components/enrichment/proposal-card";
 import { ConfirmDialog } from "@/components/enrichment/confirm-dialog";
 import { ReviewNoteDialog } from "@/components/enrichment/review-note-dialog";
@@ -11,8 +16,65 @@ import { enrichmentFetch } from "./lib";
 import type { ChangeProposal } from "./types";
 
 const STATUSES = ["pending", "needs_human", "needs_more_sources", "approved", "rejected"] as const;
+type Status = (typeof STATUSES)[number];
+
+// Action-type filter — mirrors ChangeProposal.changeKind. Multi-select; empty = all.
+const ACTION_VALUES = ["fill", "correction", "create"] as const;
+type ActionFilter = (typeof ACTION_VALUES)[number];
+const ACTION_LABELS: Record<ActionFilter, string> = {
+  fill: "Fill", correction: "Correction", create: "Create",
+};
+
+// Entity filter — fixed bucket set, matches the backend's normalized entityRole. Multi-select; empty = all.
+const ENTITY_VALUES = [
+  "governor", "senator", "representative", "mha", "lga_chairman", "councilor", "unknown",
+] as const;
+type EntityFilter = (typeof ENTITY_VALUES)[number];
+const ENTITY_LABELS: Record<EntityFilter, string> = {
+  governor: "Governor", senator: "Senator", representative: "Representative",
+  mha: "MHA", lga_chairman: "LGA Chairman", councilor: "Councilor", unknown: "Unknown",
+};
 
 type BulkAction = "approve" | "reject" | "request-more";
+
+/** A compact checkbox dropdown for multi-selecting filter values. Empty selection = "all". */
+function MultiSelectFilter<T extends string>({
+  allLabel, values, labels, selected, onChange,
+}: {
+  allLabel: string;
+  values: readonly T[];
+  labels: Record<T, string>;
+  selected: T[];
+  onChange: (next: T[]) => void;
+}) {
+  const toggle = (v: T) =>
+    onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          {allLabel}
+          {selected.length > 0 && (
+            <Badge variant="secondary" className="px-1.5 py-0 text-xs">{selected.length}</Badge>
+          )}
+          <ChevronDown className="size-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44">
+        {values.map((v) => (
+          <DropdownMenuCheckboxItem
+            key={v}
+            checked={selected.includes(v)}
+            onCheckedChange={() => toggle(v)}
+            onSelect={(e) => e.preventDefault()}
+          >
+            {labels[v]}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 /** Which bulk actions a tab permits. Approve only where the backend can apply. */
 function bulkActionsFor(status: string): BulkAction[] {
@@ -23,7 +85,15 @@ function bulkActionsFor(status: string): BulkAction[] {
 
 export default function EnrichmentPage() {
   const [proposals, setProposals] = useState<ChangeProposal[]>([]);
-  const [status, setStatus] = useState<string>("pending");
+  const [status, setStatus] = useQueryState(
+    "status", parseAsStringEnum<Status>([...STATUSES]).withDefault("pending"),
+  );
+  const [action, setAction] = useQueryState(
+    "action", parseAsArrayOf(parseAsStringEnum<ActionFilter>([...ACTION_VALUES])).withDefault([]),
+  );
+  const [entity, setEntity] = useQueryState(
+    "entity", parseAsArrayOf(parseAsStringEnum<EntityFilter>([...ENTITY_VALUES])).withDefault([]),
+  );
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -43,6 +113,21 @@ export default function EnrichmentPage() {
   }, [status]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Action/entity narrow the loaded status list client-side (no refetch). Each is a multi-select
+  // OR within itself, ANDed across the two; an empty selection means "all". Clear selection on
+  // filter change so a bulk action can never touch a proposal hidden by the current filter.
+  const filtersActive = action.length > 0 || entity.length > 0;
+  const filtered = useMemo(
+    () => proposals.filter(
+      (p) => (action.length === 0 || action.includes(p.changeKind as ActionFilter)) &&
+             (entity.length === 0 || entity.includes((p.entityRole ?? "unknown") as EntityFilter)),
+    ),
+    [proposals, action, entity],
+  );
+  useEffect(() => { setSelected(new Set()); }, [action, entity]);
+
+  function clearFilters() { setAction([]); setEntity([]); }
 
   async function act(fn: () => Promise<void>, ok: string) {
     setBusy(true);
@@ -74,7 +159,7 @@ export default function EnrichmentPage() {
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === proposals.length ? new Set() : new Set(proposals.map((p) => p.id))));
+    setSelected((prev) => (prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id))));
   }
 
   async function runBulk(action: BulkAction, note?: string) {
@@ -103,7 +188,7 @@ export default function EnrichmentPage() {
 
   const actions = bulkActionsFor(status);
   const selectable = actions.length > 0;
-  const sel = proposals.filter((p) => selected.has(p.id));
+  const sel = filtered.filter((p) => selected.has(p.id));
   const corrections = sel.filter((p) => p.changeKind === "correction").length;
   const creates = sel.filter((p) => p.changeKind === "create").length;
 
@@ -122,13 +207,34 @@ export default function EnrichmentPage() {
         ))}
       </div>
 
-      {selectable && !loading && proposals.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2">
+        <MultiSelectFilter
+          allLabel="Actions" values={ACTION_VALUES} labels={ACTION_LABELS}
+          selected={action} onChange={setAction}
+        />
+        <MultiSelectFilter
+          allLabel="Entities" values={ENTITY_VALUES} labels={ENTITY_LABELS}
+          selected={entity} onChange={setEntity}
+        />
+        {filtersActive && (
+          <Button size="sm" variant="ghost" onClick={clearFilters}>
+            <FilterX className="size-4" /> Clear filters
+          </Button>
+        )}
+        {!loading && filtersActive && (
+          <span className="text-xs text-muted-foreground">
+            {filtered.length} of {proposals.length}
+          </span>
+        )}
+      </div>
+
+      {selectable && !loading && filtered.length > 0 && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               className="rounded"
-              checked={selected.size === proposals.length && proposals.length > 0}
+              checked={selected.size === filtered.length && filtered.length > 0}
               onChange={toggleAll}
             />
             Select all
@@ -162,9 +268,11 @@ export default function EnrichmentPage() {
         </div>
       ) : proposals.length === 0 ? (
         <p className="text-sm text-muted-foreground">No {status} proposals.</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No proposals match these filters.</p>
       ) : (
         <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {proposals.map((p) => (
+          {filtered.map((p) => (
             <ProposalCard key={p.id} proposal={p} busy={busy || acting}
               onApprove={approve} onReject={reject} onRequestMore={requestMore}
               selectable={selectable} selected={selected.has(p.id)} onToggleSelect={toggleSelect} />
