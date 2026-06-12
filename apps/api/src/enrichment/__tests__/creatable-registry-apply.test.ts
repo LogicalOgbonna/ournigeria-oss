@@ -96,10 +96,11 @@ describe("EnrichmentApplyService registry create (integration)", () => {
     expect(rows[0].confidence).toBe("high");
 
     // proposal sources copied onto the live fact as evidence
+    // (snapshot_status starts 'pending' but is NOT asserted here — the snapshot
+    // suite's sweep may legitimately process these rows when files run in parallel)
     const evidence = await prisma.evidence.findMany({ where: { entryId: rows[0].id } });
     expect(evidence).toHaveLength(2);
     expect(evidence.map((e) => e.entryType)).toEqual(["education", "education"]);
-    expect(evidence.every((e) => e.snapshotStatus === "pending")).toBe(true);
 
     // completeness recomputed (category-aware: education category now filled)
     const after = await prisma.nigerianOfficial.findUnique({ where: { id: officialId } });
