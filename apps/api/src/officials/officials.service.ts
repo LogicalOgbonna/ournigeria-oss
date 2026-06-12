@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService, UUID_RE } from "@ournigeria/database";
 import { EvidenceService, EvidenceView } from "../evidence/evidence.service";
+import { CompletenessService } from "../completeness/completeness.service";
 
 const TRACKED_FIELDS = [
   "name",
@@ -23,6 +24,7 @@ export class OfficialsService {
   constructor(
     private prisma: PrismaService,
     private evidence: EvidenceService,
+    private completenessService: CompletenessService,
   ) {}
 
   async list(params: {
@@ -671,6 +673,11 @@ export class OfficialsService {
     };
   }
 
+  /**
+   * @deprecated Legacy flat-field fallback, used only when completeness_score
+   * is null (pre-backfill rows). The real definition lives in
+   * @ournigeria/shared-types and is computed by CompletenessService (Plan 45c).
+   */
   computeCompleteness(official: any): number {
     let filled = 0;
     for (const field of TRACKED_FIELDS) {
@@ -681,17 +688,9 @@ export class OfficialsService {
     return Number((filled / TRACKED_FIELDS.length).toFixed(2));
   }
 
+  /** Delegates to the single category-aware implementation (Plan 45c, Fix #4). */
   async recomputeCompleteness(officialId: string) {
-    const official = await this.prisma.nigerianOfficial.findUnique({
-      where: { id: officialId },
-    });
-    if (!official) return;
-
-    const score = this.computeCompleteness(official);
-    await this.prisma.nigerianOfficial.update({
-      where: { id: officialId },
-      data: { completenessScore: score },
-    });
+    await this.completenessService.recompute(officialId);
   }
 }
 

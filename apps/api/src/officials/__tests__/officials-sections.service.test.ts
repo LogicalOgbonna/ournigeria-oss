@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaService } from "@ournigeria/database";
 import { EvidenceService } from "../../evidence/evidence.service";
 import { OfficialsService } from "../officials.service";
+import { CompletenessService } from "../../completeness/completeness.service";
 
 /**
  * Plan 45b: getByIdOrSlug returns grouped structured sections with stitched
@@ -17,7 +18,7 @@ describe("OfficialsService sections (integration)", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const evidence = new EvidenceService(prisma);
-    svc = new OfficialsService(prisma, evidence);
+    svc = new OfficialsService(prisma, evidence, new CompletenessService(prisma));
 
     const official = await prisma.nigerianOfficial.create({
       data: {

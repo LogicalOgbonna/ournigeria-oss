@@ -23,16 +23,27 @@ export const APPLIABLE_FIELDS: Record<string, readonly string[]> = {
     "party_acronym", "leadership_role", "end_date", "end_reason",
     "source_url", "source_date", "status",
   ],
+  // Plan 45c structured fact tables — field-level corrections on existing rows.
+  // (Whole-row creation goes through CREATABLE_ENTITIES, not this list.)
+  official_education: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
+  official_careers: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
+  official_party_affiliations: ["start_date", "end_date", "reason"],
+  official_committees: ["committee_name", "chamber", "role", "start_date", "end_date"],
+  official_sponsored_bills: ["title", "bill_number", "status", "status_date", "summary"],
+  official_elections: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
+  official_asset_declarations: ["year", "declared_to", "amount", "currency", "summary"],
+  official_awards: ["title", "awarded_by", "year", "category", "description"],
+  official_publications: ["title", "type", "publisher", "year"],
+  official_family_members: ["relationship", "name", "is_public_figure", "notes"],
+  official_legal_cases: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
+  corruption_cases: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
   // Financial domains (filled in their own later plans; listed so grants + apply agree)
   faac_disbursements: [],
   budget_metadata: [],
 } as const;
 
-/** The 10 official fields that define completeness (mirrors CompletenessService). */
-export const OFFICIAL_COMPLETENESS_FIELDS = [
-  "name", "image_url", "email", "phone_number", "office_address",
-  "twitter_handle", "facebook_url", "education", "biography", "gender",
-] as const;
+// Completeness definition now lives in @ournigeria/shared-types (Plan 45c Fix #4);
+// recompute is owned by CompletenessService.
 
 export function isAppliable(table: string, field: string): boolean {
   return APPLIABLE_FIELDS[table]?.includes(field) ?? false;

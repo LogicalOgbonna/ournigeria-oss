@@ -24,9 +24,142 @@ const COUNCILORS: EnrichmentProfile = {
   sourceTemplates: [{ publisher: "absiec.org", urlIncludes: "election-results", format: "html" }],
 };
 
+// ------------------------------------------------------------------
+// Plan 45c (Fix #3): one profile per structured fact table. Sensitive
+// fields are held to the stricter correction-level corroboration bar.
+// Rollout order: education first, elections second (INEC canonical).
+// ------------------------------------------------------------------
+
+const EDUCATION: EnrichmentProfile = {
+  domain: "education",
+  targetTable: "official_education",
+  targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
+  sensitiveFields: ["qualification", "institution"],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng"],
+  sourceTemplates: [], // no single canonical registry of Nigerian alumni
+};
+
+const ELECTIONS: EnrichmentProfile = {
+  domain: "elections",
+  targetTable: "official_elections",
+  targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
+  sensitiveFields: ["result", "votes"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  sourceTemplates: [
+    // INEC declared-results pages are the canonical election source.
+    { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
+    { publisher: "inecnigeria.org", urlIncludes: "elections", format: "pdf" },
+  ],
+};
+
+const CAREERS: EnrichmentProfile = {
+  domain: "careers",
+  targetTable: "official_careers",
+  targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
+  sensitiveFields: [],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng"],
+  sourceTemplates: [],
+};
+
+const PARTY_AFFILIATIONS: EnrichmentProfile = {
+  domain: "party_affiliations",
+  targetTable: "official_party_affiliations",
+  targetFields: ["start_date", "end_date", "reason"],
+  sensitiveFields: ["start_date", "end_date"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  sourceTemplates: [],
+};
+
+const COMMITTEES: EnrichmentProfile = {
+  domain: "committees",
+  targetTable: "official_committees",
+  targetFields: ["committee_name", "chamber", "role", "start_date", "end_date"],
+  sensitiveFields: [],
+  trustedDomains: ["nass.gov.ng", "placng.org", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "nass.gov.ng", urlIncludes: "committees", format: "html" }],
+};
+
+const BILLS: EnrichmentProfile = {
+  domain: "bills",
+  targetTable: "official_sponsored_bills",
+  targetFields: ["title", "bill_number", "status", "status_date", "summary"],
+  sensitiveFields: [],
+  trustedDomains: ["nass.gov.ng", "placng.org", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "placng.org", urlIncludes: "bills", format: "html" }],
+};
+
+const ASSETS: EnrichmentProfile = {
+  domain: "assets",
+  targetTable: "official_asset_declarations",
+  targetFields: ["year", "declared_to", "amount", "currency", "summary"],
+  sensitiveFields: ["amount"],
+  trustedDomains: ["ccb.gov.ng", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "ccb.gov.ng", urlIncludes: "declaration", format: "pdf" }],
+};
+
+const AWARDS: EnrichmentProfile = {
+  domain: "awards",
+  targetTable: "official_awards",
+  targetFields: ["title", "awarded_by", "year", "category", "description"],
+  sensitiveFields: [],
+  trustedDomains: ["*.gov.ng"],
+  sourceTemplates: [],
+};
+
+const PUBLICATIONS: EnrichmentProfile = {
+  domain: "publications",
+  targetTable: "official_publications",
+  targetFields: ["title", "type", "publisher", "year"],
+  sensitiveFields: [],
+  trustedDomains: [],
+  sourceTemplates: [],
+};
+
+const FAMILY: EnrichmentProfile = {
+  domain: "family",
+  targetTable: "official_family_members",
+  targetFields: ["relationship", "name", "is_public_figure", "notes"],
+  sensitiveFields: ["name", "relationship"],
+  trustedDomains: ["*.gov.ng"],
+  sourceTemplates: [],
+};
+
+const LEGAL_CASES: EnrichmentProfile = {
+  domain: "legal_cases",
+  targetTable: "official_legal_cases",
+  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
+  sensitiveFields: ["status", "outcome", "case_type"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org"],
+  sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }],
+};
+
+const CORRUPTION_CASES: EnrichmentProfile = {
+  domain: "corruption",
+  targetTable: "corruption_cases",
+  targetFields: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
+  sensitiveFields: ["status", "outcome", "amount_involved", "amount_recovered", "sentence"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng"],
+  sourceTemplates: [
+    { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
+    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },
+  ],
+};
+
 const PROFILES: Record<string, EnrichmentProfile> = {
   officials: OFFICIALS,
   councilors: COUNCILORS,
+  education: EDUCATION,
+  elections: ELECTIONS,
+  careers: CAREERS,
+  party_affiliations: PARTY_AFFILIATIONS,
+  committees: COMMITTEES,
+  bills: BILLS,
+  assets: ASSETS,
+  awards: AWARDS,
+  publications: PUBLICATIONS,
+  family: FAMILY,
+  legal_cases: LEGAL_CASES,
+  corruption: CORRUPTION_CASES,
 };
 
 export function getProfile(domain: string): EnrichmentProfile {
