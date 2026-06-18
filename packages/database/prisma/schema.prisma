@@ -494,6 +494,9 @@ model ChangeProposal {
   changeKind    String    @map("change_kind") @db.VarChar(20) // fill | correction | create
   status        String    @default("pending") @db.VarChar(30) // pending | needs_human | approved | rejected | needs_more_sources
   confidence    String    @default("medium") @db.VarChar(10)  // low | medium | high
+  // Denormalized, normalized entity bucket (governor|senator|…|unknown) so the dashboard can
+  // filter by entity server-side. Set at write-time by the agent; backfilled for old rows.
+  entityRole    String?   @map("entity_role") @db.VarChar(20)
   reasoning     String?   @db.Text
   agentRunId    String?   @map("agent_run_id") @db.Uuid
   reviewedBy    String?   @map("reviewed_by") @db.Uuid

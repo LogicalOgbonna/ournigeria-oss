@@ -74,8 +74,8 @@ export async function submitCreateProposal(
     const ins = await client.query(
       `INSERT INTO change_proposals
          (target_table, target_pk, target_field, current_value, proposed_value,
-          change_kind, status, confidence, reasoning, agent_run_id)
-       VALUES ($1, NULL, '__create__', NULL, $2, 'create', $3, $4, $5, $6) RETURNING id`,
+          change_kind, status, confidence, reasoning, agent_run_id, entity_role)
+       VALUES ($1, NULL, '__create__', NULL, $2, 'create', $3, $4, $5, $6, 'councilor') RETURNING id`,
       [profile.targetTable, JSON.stringify(entity), status, input.confidence ?? "medium", input.reasoning ?? null, input.agentRunId ?? null],
     );
     const id: string = ins.rows[0].id;
