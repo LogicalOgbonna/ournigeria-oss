@@ -27,11 +27,12 @@ const VALID_TARGET_FIELDS = [
 const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
 
 const MAX_PROPOSALS_PER_DAY = 30;
+const MAX_ANON_PROPOSALS_PER_HOUR = 5;
 const MAX_VOTES_PER_DAY = 20;
 
 /** Mask a proposer phone for admin display: +2348012345678 -> +234•••5678 */
-function maskPhone(phone: string): string {
-  if (!phone) return phone;
+function maskPhone(phone: string | null): string | null {
+  if (!phone) return null;
   if (phone.length <= 8) return phone;
   return `${phone.slice(0, 4)}•••${phone.slice(-4)}`;
 }
@@ -48,7 +49,9 @@ export class ProposalsService {
   async create(data: {
     officialId: string;
     positionId?: string;
-    proposerPhone: string;
+    proposerPhone: string | null;
+    proposerIp?: string | null;
+    trust: "verified" | "anonymous";
     targetField: string;
     proposedValue: any;
     sourceUrl?: string;
@@ -95,14 +98,20 @@ export class ProposalsService {
       throw new NotFoundException("Official not found");
     }
 
-    // Rate limit check
-    await this.checkProposalRateLimit(data.proposerPhone);
+    // Rate limit: verified submits by phone (30/day), anonymous by IP (5/hour).
+    if (data.trust === "anonymous") {
+      await this.checkAnonymousIpRateLimit(data.proposerIp);
+    } else {
+      await this.checkProposalRateLimit(data.proposerPhone!);
+    }
 
     const proposal = await this.prisma.dataProposal.create({
       data: {
         officialId: data.officialId,
         positionId: data.positionId ?? null,
         proposerPhone: data.proposerPhone,
+        proposerIp: data.proposerIp ?? null,
+        trust: data.trust,
         targetField: data.targetField,
         proposedValue: { value: data.proposedValue },
         sourceUrl: data.sourceUrl ?? null,
@@ -135,11 +144,13 @@ export class ProposalsService {
       })
       .catch(() => {}); // Don't fail proposal creation if notification fails
 
-    return { id: proposal.id, status: "submitted" };
+    return { id: proposal.id, status: "submitted", trust: data.trust };
   }
 
   async identify(data: {
-    proposerPhone: string;
+    proposerPhone: string | null;
+    proposerIp?: string | null;
+    trust: "verified" | "anonymous";
     name: string;
     role: string;
     imageUrl?: string;
@@ -185,8 +196,12 @@ export class ProposalsService {
       data.facebookUrl = r.url;
     }
 
-    // Rate limit check
-    await this.checkProposalRateLimit(data.proposerPhone);
+    // Rate limit: verified submits by phone (30/day), anonymous by IP (5/hour).
+    if (data.trust === "anonymous") {
+      await this.checkAnonymousIpRateLimit(data.proposerIp);
+    } else {
+      await this.checkProposalRateLimit(data.proposerPhone!);
+    }
 
     // Determine the correct geographic scope for the position
     const positionScope: Record<string, string> = {};
@@ -264,6 +279,8 @@ export class ProposalsService {
           officialId: official.id,
           positionId: position.id,
           proposerPhone: data.proposerPhone,
+          proposerIp: data.proposerIp ?? null,
+          trust: data.trust,
           targetField: "name",
           proposedValue: identifyProposalValue,
           sourceUrl: data.sourceUrl || null,
@@ -302,7 +319,7 @@ export class ProposalsService {
       })
       .catch(() => {});
 
-    return { id: result.proposalId, officialId: result.officialId, status: "submitted" };
+    return { id: result.proposalId, officialId: result.officialId, status: "submitted", trust: data.trust };
   }
 
   private normalizeIdentifyImage(imageUrl?: string) {
@@ -658,6 +675,7 @@ export class ProposalsService {
           proposedValue: p.proposedValue,
           sourceUrl: p.sourceUrl,
           proposerPhone: maskPhone(p.proposerPhone),
+          trust: p.trust,
           status: p.status,
           voteScore: p.voteScore,
           upvoteCount: p.upvoteCount,
@@ -809,6 +827,20 @@ export class ProposalsService {
     });
     if (count >= MAX_PROPOSALS_PER_DAY) {
       throw new ForbiddenException("Daily proposal limit reached (5 per day). Try again tomorrow.");
+    }
+  }
+
+  private async checkAnonymousIpRateLimit(ip?: string | null) {
+    // No resolvable IP → fail closed so anonymous floods can't bypass the limit.
+    if (!ip) {
+      throw new ForbiddenException("Could not verify request origin. Try again later.");
+    }
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const count = await this.prisma.dataProposal.count({
+      where: { proposerIp: ip, createdAt: { gte: hourAgo } },
+    });
+    if (count >= MAX_ANON_PROPOSALS_PER_HOUR) {
+      throw new ForbiddenException("Too many submissions from this network. Try again in an hour.");
     }
   }
 
