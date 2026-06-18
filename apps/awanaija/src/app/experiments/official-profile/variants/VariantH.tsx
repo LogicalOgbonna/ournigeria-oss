@@ -293,22 +293,22 @@ export function VariantH() {
   return (
     <div className="bg-[oklch(0.10_0.005_160)] text-slate-100 font-sans min-h-screen">
       {/* full-bleed hero (inner content centered to the reading column) */}
-      <header className="relative pt-9 pb-11 max-md:pt-7 max-md:pb-[26px] bg-gradient-to-b from-[oklch(0.13_0.015_160)] to-[oklch(0.10_0.005_160)]">
+      <header className="relative pt-6 pb-7 max-md:pt-5 max-md:pb-5 bg-gradient-to-b from-[oklch(0.13_0.015_160)] to-[oklch(0.10_0.005_160)]">
         <div className="max-w-[1040px] mx-auto px-[72px] max-md:px-6">
         <a href="/officials" className="inline-flex items-center gap-2.5 text-sm text-slate-300/70 whitespace-nowrap">
           <span className="text-base leading-none">←</span><span>Back to officials</span>
         </a>
-        <div className="flex gap-9 items-start mt-10 max-md:flex-col max-md:items-center max-md:text-center max-md:mt-[30px] max-md:gap-0">
-          <div className="w-[140px] h-[140px] max-md:w-[108px] max-md:h-[108px] shrink-0 rounded-[26px] max-md:rounded-[22px] border border-emerald-400/30 bg-gradient-to-br from-emerald-900 to-[oklch(0.3_0.06_160)] flex items-center justify-center font-serif text-emerald-400 text-[53px] max-md:text-[41px]">
+        <div className="flex gap-6 items-start mt-5 max-md:flex-col max-md:items-center max-md:text-center max-md:mt-5 max-md:gap-0">
+          <div className="w-[104px] h-[104px] max-md:w-[88px] max-md:h-[88px] shrink-0 rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-900 to-[oklch(0.3_0.06_160)] flex items-center justify-center font-serif text-emerald-400 text-[38px] max-md:text-[32px]">
             {HERO.initials}
           </div>
-          <div className="flex-1 pt-0.5 max-md:mt-[18px] max-md:w-full">
+          <div className="flex-1 pt-0.5 max-md:mt-3.5 max-md:w-full">
             <span className="font-mono text-[11px] max-md:text-[10px] tracking-[0.14em] uppercase text-emerald-400">{HERO.overline}</span>
-            <h1 className="font-serif font-normal text-[44px] max-md:text-[34px] leading-[1.05] max-md:leading-[1.1] tracking-[-0.01em] mt-2">{HERO.name}</h1>
-            <div className="text-base max-md:text-[14.5px] text-slate-300/70 mt-[5px]">{HERO.jurisdiction}</div>
-            <div className="mt-[9px] max-md:mt-2"><span className="font-mono text-[10.5px] max-md:text-[9.5px] tracking-[0.14em] uppercase text-emerald-400">{HERO.ordinal}</span></div>
-            <div className="text-[13.5px] max-md:text-[12.5px] text-slate-500 mt-1.5">{HERO.since}</div>
-            <div className="flex items-center gap-4 max-md:gap-3 mt-[22px] max-md:mt-5 w-full">
+            <h1 className="font-serif font-normal text-[31px] max-md:text-[27px] leading-[1.1] tracking-[-0.01em] mt-1">{HERO.name}</h1>
+            <div className="text-[15px] max-md:text-[14px] text-slate-300/70 mt-0.5">{HERO.jurisdiction}</div>
+            <div className="mt-1.5"><span className="font-mono text-[10.5px] max-md:text-[9.5px] tracking-[0.14em] uppercase text-emerald-400">{HERO.ordinal}</span></div>
+            <div className="text-[13px] max-md:text-[12.5px] text-slate-500 mt-1">{HERO.since}</div>
+            <div className="flex items-center gap-4 max-md:gap-3 mt-3.5 max-md:mt-3 w-full">
               <div className="flex-1 h-[5px] rounded-[3px] bg-[oklch(0.22_0.01_160)] overflow-hidden">
                 <div className="h-full rounded-[3px] bg-gradient-to-r from-emerald-900 to-emerald-400" style={{ width: `${HERO.completeness}%` }} />
               </div>
@@ -316,7 +316,7 @@ export function VariantH() {
             </div>
           </div>
         </div>
-        <div className="mt-[26px] pt-[18px] max-md:mt-[22px] max-md:pt-4 border-t border-[oklch(0.28_0.012_160)] max-md:flex max-md:justify-center">
+        <div className="mt-4 pt-4 max-md:mt-3.5 max-md:pt-3.5 border-t border-[oklch(0.28_0.012_160)] max-md:flex max-md:justify-center">
           <ContactPills />
         </div>
         </div>
