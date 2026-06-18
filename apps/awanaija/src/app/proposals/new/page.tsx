@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon,
 import {
   getOfficialById,
   createProposal,
+  claimProposal,
   getParties,
   type Official,
 } from "@/lib/api";
@@ -233,6 +234,8 @@ function EditOfficialContent() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
+  const [proposalId, setProposalId] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     if (!officialId) {
@@ -258,13 +261,15 @@ function EditOfficialContent() {
     setError(null);
 
     try {
-      await createProposal({
+      const result = await createProposal({
         officialId,
         positionId: official?.positions?.[0]?.id,
         targetField,
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
       });
+      setProposalId(result.id);
+      setIsAnonymous(result.trust === "anonymous");
       // Revalidate the official's page cache so it shows this proposal
       fetch("/api/revalidate", {
         method: "POST",
@@ -275,10 +280,7 @@ function EditOfficialContent() {
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       if (e.status === 429) {
-        setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (e.status === 401) {
-        setShowOtp(true);
-        setError(null);
+        setError("You've submitted too many proposals recently. Please try again later.");
       } else {
         setError((e.message as string) || "Failed to submit proposal");
       }
@@ -316,6 +318,29 @@ function EditOfficialContent() {
             >
               Back to {official.name}&apos;s profile
             </Link>
+          )}
+          {isAnonymous && proposalId && !showOtp && (
+            <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => setShowOtp(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {showOtp && proposalId && (
+            <OtpModal
+              onVerified={() => {
+                setShowOtp(false);
+                claimProposal(proposalId).catch(() => {});
+                setIsAnonymous(false);
+              }}
+              onClose={() => setShowOtp(false)}
+            />
           )}
         </div>
       </main>
@@ -497,17 +522,6 @@ function EditOfficialContent() {
           </p>
         </form>
       </div>
-
-      {/* OTP Modal */}
-      {showOtp && (
-        <OtpModal
-          onVerified={() => {
-            setShowOtp(false);
-            handleSubmit();
-          }}
-          onClose={() => setShowOtp(false)}
-        />
-      )}
     </main>
   );
 }
