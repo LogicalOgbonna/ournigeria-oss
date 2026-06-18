@@ -14,7 +14,7 @@ import {
 import {
   useIdentifyForm, ctxFromParams, hasFullContext, roleConfig,
   RoleField, LocationField, LocationChip, NameField, PartyField,
-  OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
+  OptionalDetails, SourceField, SubmitButton, ErrorBox,
 } from "@/components/proposals/identify-form";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -196,13 +196,6 @@ function IdentifyOfficialContent() {
           </>
         )}
       </div>
-
-      {form.showAuth && (
-        <AuthModal
-          onVerified={() => { form.setShowAuth(false); form.submit(); }}
-          onClose={() => form.setShowAuth(false)}
-        />
-      )}
     </main>
   );
 }
