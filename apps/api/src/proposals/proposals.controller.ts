@@ -272,10 +272,9 @@ export class ProposalsController {
     return { userId: cookieId, phone: user.phoneNumber || `user:${cookieId}` };
   }
 
-  /** First hop of x-forwarded-for, else socket IP. */
+  /** Client IP from the trusted proxy chain (Express `trust proxy` is configured in main.ts). */
   private clientIp(req: Request): string | null {
-    const fwd = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim();
-    return fwd || req.ip || null;
+    return req.ip || null;
   }
 
   private async getUserIdentifier(req: Request): Promise<string> {
