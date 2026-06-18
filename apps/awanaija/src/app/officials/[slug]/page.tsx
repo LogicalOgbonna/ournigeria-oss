@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
-import { OfficialProfile } from "./OfficialProfile";
+import { MagazineProfile } from "@/components/official/MagazineProfile";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import type { Official } from "@/lib/api";
@@ -207,7 +207,7 @@ export default async function OfficialPage({
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+    <div className="min-h-screen flex flex-col bg-[oklch(0.10_0.005_160)]">
       <Navbar />
       <script
         type="application/ld+json"
@@ -221,7 +221,9 @@ export default async function OfficialPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJson(faqLd) }}
       />
-      <OfficialProfile official={official} />
+      <main className="flex-grow pt-24">
+        <MagazineProfile official={official} />
+      </main>
       <Footer />
     </div>
   );

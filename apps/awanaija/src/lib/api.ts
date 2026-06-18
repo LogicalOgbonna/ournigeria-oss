@@ -211,10 +211,163 @@ export async function verifyOtp(phoneNumber: string, code: string) {
 }
 
 // Types
+
+/** One evidence source attached to a fact (plan 45 — EvidenceView). */
+export interface Evidence {
+  id: string;
+  url: string;
+  archiveUrl: string | null;
+  publisher: string;
+  snippet: string;
+  format: string;
+  locator: string | null;
+  sourceTier: "canonical" | "official" | "web" | string;
+  confidence: "high" | "medium" | "low" | string;
+  retrievedAt: string;
+  hasSnapshot: boolean;
+  originalAccessible: boolean;
+}
+
+/** Provenance + verification carried by every structured fact row. */
+export interface ProvFields {
+  id: string;
+  confidence: "high" | "medium" | "low" | string;
+  sourceType: string;
+  reviewStatus: "unreviewed" | "reviewed" | "disputed" | string;
+  lastVerifiedAt: string | null;
+  evidence: Evidence[];
+}
+
+export interface EducationRecord extends ProvFields {
+  institution: string;
+  institutionType: string | null;
+  qualification: string | null;
+  field: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  graduated: boolean | null;
+  location: string | null;
+}
+
+export interface CareerRecord extends ProvFields {
+  organization: string;
+  role: string | null;
+  industry: string | null;
+  employmentType: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  description: string | null;
+}
+
+export interface PartyAffiliation extends ProvFields {
+  party: string;
+  partyName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  reason: string | null;
+}
+
+export interface Committee extends ProvFields {
+  committeeName: string;
+  chamber: string;
+  role: string;
+  termName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface SponsoredBill extends ProvFields {
+  title: string;
+  billNumber: string | null;
+  chamber: string;
+  role: string;
+  status: string | null;
+  introducedDate: string | null;
+  statusDate: string | null;
+  summary: string | null;
+}
+
+export interface ElectionRecord extends ProvFields {
+  electionType: string;
+  isPrimary: boolean;
+  year: number;
+  electionDate: string | null;
+  party: string | null;
+  partyName: string | null;
+  state: string | null;
+  constituency: string | null;
+  lga: string | null;
+  ward: string | null;
+  result: string;
+  votes: number | null;
+  votePercentage: number | null;
+  winnerName: string | null;
+  resultedInPositionId: string | null;
+  notes: string | null;
+}
+
+export interface AssetDeclaration extends ProvFields {
+  year: number;
+  declaredTo: string | null;
+  amount: number | null;
+  currency: string;
+  summary: string | null;
+}
+
+export interface Award extends ProvFields {
+  title: string;
+  awardedBy: string | null;
+  year: number | null;
+  category: string | null;
+  description: string | null;
+}
+
+export interface Publication extends ProvFields {
+  title: string;
+  type: string | null;
+  publisher: string | null;
+  year: number | null;
+}
+
+export interface FamilyMember extends ProvFields {
+  relationship: string;
+  name: string | null;
+  isPublicFigure: boolean;
+  notes: string | null;
+  relatedOfficial: { name: string; slug: string | null } | null;
+}
+
+export interface LegalCase extends ProvFields {
+  title: string;
+  caseType: string;
+  status: string;
+  forum: string | null;
+  caseNumber: string | null;
+  filedDate: string | null;
+  resolvedDate: string | null;
+  outcome: string | null;
+  relatedCorruptionCase: { slug: string; title: string; status: string } | null;
+}
+
+export interface OfficialCorruptionCase extends ProvFields {
+  roleInCase: string;
+  outcome: string | null;
+  case: {
+    slug: string;
+    title: string;
+    status: string;
+    caseType: string;
+    forum: string | null;
+    amountInvolved: number | null;
+    currency: string;
+  };
+}
+
 export interface Official {
   id: string;
   slug: string | null;
   name: string;
+  officialType?: string | null;
   imageUrl: string | null;
   dateOfBirth: string | null;
   email: string | null;
@@ -229,6 +382,22 @@ export interface Official {
   positions: Position[];
   proposalCount: number;
   proposals: Proposal[];
+
+  // Plan 45 structured sections (present from getByIdOrSlug; optional so list
+  // responses that omit them still satisfy the type).
+  fieldEvidence?: { biography: Evidence[]; education: Evidence[] };
+  educationRecords?: EducationRecord[];
+  careerRecords?: CareerRecord[];
+  partyHistory?: PartyAffiliation[];
+  committees?: Committee[];
+  sponsoredBills?: SponsoredBill[];
+  elections?: ElectionRecord[];
+  assetDeclarations?: AssetDeclaration[];
+  awards?: Award[];
+  publications?: Publication[];
+  familyMembers?: FamilyMember[];
+  legalCases?: LegalCase[];
+  corruptionCases?: OfficialCorruptionCase[];
 }
 
 export interface Position {
@@ -246,6 +415,9 @@ export interface Position {
   wardCode: string | null;
   startDate: string | null;
   endDate: string | null;
+  endReason?: string | null;
+  status?: string;
+  isCurrent?: boolean;
   termName: string | null;
   termNumber: number | null;
 }
