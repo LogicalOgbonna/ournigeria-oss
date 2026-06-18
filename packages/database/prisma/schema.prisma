@@ -381,7 +381,9 @@ model DataProposal {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   officialId    String    @map("official_id") @db.Uuid
   positionId    String?   @map("position_id") @db.Uuid
-  proposerPhone String    @map("proposer_phone") @db.VarChar(60)
+  proposerPhone String?   @map("proposer_phone") @db.VarChar(60)
+  proposerIp    String?   @map("proposer_ip") @db.VarChar(60)
+  trust         String    @default("verified") @map("trust") @db.VarChar(20)
   targetField   String    @map("target_field") @db.VarChar(50)
   proposedValue Json      @map("proposed_value") @db.JsonB
   sourceUrl     String?   @map("source_url") @db.Text
@@ -401,6 +403,7 @@ model DataProposal {
   @@index([officialId, status], map: "idx_proposals_official_status")
   @@index([status, createdAt(sort: Desc)], map: "idx_proposals_status_date")
   @@index([proposerPhone, createdAt(sort: Desc)], map: "idx_proposals_phone_date")
+  @@index([proposerIp, createdAt(sort: Desc)], map: "idx_proposals_ip_date")
   @@map("data_proposals")
 }
 
