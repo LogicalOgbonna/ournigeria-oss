@@ -111,6 +111,21 @@ export class ProposalsController {
     }
   }
 
+  @Post(":id/claim")
+  async claim(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const result = await this.service.claim(id, userId);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (err: any) {
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("proposal claim error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
   @Public()
   @Post(":id/vote")
   async vote(

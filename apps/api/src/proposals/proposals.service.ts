@@ -792,6 +792,34 @@ export class ProposalsService {
     return { status: "rejected" };
   }
 
+  async claim(proposalId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { phoneNumber: true },
+    });
+    const phone = user?.phoneNumber || `user:${userId}`;
+
+    const proposal = await this.prisma.dataProposal.findUnique({
+      where: { id: proposalId },
+      select: { id: true, trust: true, proposerPhone: true },
+    });
+    if (!proposal) {
+      throw new NotFoundException("Proposal not found");
+    }
+    // Only an unclaimed anonymous proposal can be claimed — prevents hijacking
+    // someone else's verified submission.
+    if (proposal.trust !== "anonymous" || proposal.proposerPhone) {
+      throw new BadRequestException("Proposal cannot be claimed");
+    }
+
+    await this.prisma.dataProposal.update({
+      where: { id: proposalId },
+      data: { proposerPhone: phone, trust: "verified" },
+    });
+
+    return { status: "claimed" };
+  }
+
   async bulkAction(proposalIds: string[], action: "approve" | "reject", adminId: string) {
     // Relational field proposals cannot be bulk-approved
     if (action === "approve") {
