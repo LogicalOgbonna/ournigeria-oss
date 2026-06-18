@@ -24,9 +24,39 @@ const COUNCILORS: EnrichmentProfile = {
   sourceTemplates: [{ publisher: "absiec.org", urlIncludes: "election-results", format: "html" }],
 };
 
+const PARTIES: EnrichmentProfile = {
+  domain: "parties",
+  targetTable: "political_parties",
+  // Must stay a subset of APPLIABLE_FIELDS["political_parties"] in enrichment.constants.ts.
+  targetFields: [
+    "logo_url", "founding_year", "leader_name", "hq_address", "website",
+    "email", "phone_number", "twitter_handle", "facebook_url", "description",
+    "ideology", "slogan", "color", "inec_status",
+  ],
+  sensitiveFields: [], // party data is public; no PII
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  // INEC's registered-parties list is canonical for name/acronym/inec_status.
+  sourceTemplates: [{ publisher: "inecnigeria.org", urlIncludes: "political-parties", format: "html" }],
+};
+
+const PARTY_CHAPTERS: EnrichmentProfile = {
+  domain: "party_chapters",
+  targetTable: "party_state_chapters",
+  targetFields: [
+    "chairman_name", "secretary_name", "hq_address", "phone_number",
+    "email", "website", "twitter_handle",
+  ],
+  sensitiveFields: [],
+  // Party official sites + state news + general gov / INEC. Chapters support changeKind "create".
+  trustedDomains: ["*.gov.ng", "inecnigeria.org", "placng.org"],
+  sourceTemplates: [], // no canonical doc; chapters are sparse
+};
+
 const PROFILES: Record<string, EnrichmentProfile> = {
   officials: OFFICIALS,
   councilors: COUNCILORS,
+  parties: PARTIES,
+  party_chapters: PARTY_CHAPTERS,
 };
 
 export function getProfile(domain: string): EnrichmentProfile {
