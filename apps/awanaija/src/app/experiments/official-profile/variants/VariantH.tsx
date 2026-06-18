@@ -212,15 +212,77 @@ function SecTitle({ s, idPrefix = "h" }: { s: { title: string; count: number; re
   );
 }
 
-function ContactLabels() {
+const CONTACT_ICONS: Record<string, React.ReactNode> = {
+  tel: (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 2.5h2.5l1 3-1.5 1a8.5 8.5 0 0 0 4.5 4.5l1-1.5 3 1V13a1.5 1.5 0 0 1-1.6 1.5C6.5 14 2 9.5 1.5 4.1A1.5 1.5 0 0 1 3 2.5Z" />
+    </svg>
+  ),
+  mail: (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1.5" y="3" width="13" height="10" rx="1.5" /><path d="m2 4 6 5 6-5" />
+    </svg>
+  ),
+  office: (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 14s5-4.4 5-8a5 5 0 0 0-10 0c0 3.6 5 8 5 8Z" /><circle cx="8" cy="6" r="1.8" />
+    </svg>
+  ),
+  x: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M9.3 6.9 14.6 1h-1.3L8.7 6.1 5.1 1H1l5.6 8L1 15h1.3l4.9-5.5L11 15h4.1L9.3 6.9Zm-1.7 2-.6-.8L2.7 2h1.9l3.7 5.2.6.8 4.7 6.7h-1.9L7.6 8.9Z" />
+    </svg>
+  ),
+  facebook: (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M9.1 15V9.2h2l.3-2.3H9.1V5.4c0-.7.2-1.1 1.1-1.1h1.2V2.1C11.2 2 10.5 2 9.8 2 8 2 6.7 3.1 6.7 5.2v1.7h-2v2.3h2V15h2.4Z" />
+    </svg>
+  ),
+  web: (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="6.5" /><path d="M1.5 8h13M8 1.5c1.8 1.8 2.7 4 2.7 6.5S9.8 12.7 8 14.5C6.2 12.7 5.3 10.5 5.3 8S6.2 3.3 8 1.5Z" />
+    </svg>
+  ),
+};
+
+/** Build a clickable href for a channel (office address stays non-linked). */
+function contactHref(kind: string, value: string): string | null {
+  switch (kind) {
+    case "tel":
+      return `tel:${value.replace(/[^+\d]/g, "")}`;
+    case "mail":
+      return `mailto:${value}`;
+    case "x":
+      return `https://x.com/${value.replace(/^@/, "")}`;
+    case "facebook":
+    case "web":
+      return /^https?:\/\//.test(value) ? value : `https://${value}`;
+    default:
+      return null;
+  }
+}
+
+function ContactPills() {
   return (
-    <div className="flex flex-wrap gap-y-1.5 gap-x-[22px] items-baseline max-md:justify-center max-md:gap-x-4">
-      {HERO.contact.map(([k, vv]) => (
-        <span key={k} className="inline-flex gap-1.5 items-baseline whitespace-nowrap">
-          <span className="font-mono text-[9.5px] tracking-[0.14em] uppercase text-slate-500">{k}</span>
-          <span className="font-mono text-[11.5px] text-slate-300/80">{vv}</span>
-        </span>
-      ))}
+    <div className="flex flex-wrap gap-2 max-md:justify-center">
+      {HERO.contact.map(([k, vv]) => {
+        const href = contactHref(k, vv);
+        const inner = (
+          <>
+            <span className="text-emerald-400 shrink-0">{CONTACT_ICONS[k]}</span>
+            <span className="font-mono text-[11px] text-slate-300/80">{vv}</span>
+          </>
+        );
+        const cls =
+          "inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[oklch(0.28_0.012_160)] bg-[oklch(0.155_0.012_160)]/60 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/[0.06]";
+        return href ? (
+          <a key={k} href={href} target={k === "tel" || k === "mail" ? undefined : "_blank"} rel="noopener noreferrer" className={cls}>
+            {inner}
+          </a>
+        ) : (
+          <span key={k} className={cls}>{inner}</span>
+        );
+      })}
     </div>
   );
 }
@@ -255,7 +317,7 @@ export function VariantH() {
           </div>
         </div>
         <div className="mt-[26px] pt-[18px] max-md:mt-[22px] max-md:pt-4 border-t border-[oklch(0.28_0.012_160)] max-md:flex max-md:justify-center">
-          <ContactLabels />
+          <ContactPills />
         </div>
         </div>
       </header>
