@@ -129,7 +129,7 @@ export async function createProposal(data: {
   proposedValue: string;
   sourceUrl?: string;
 }) {
-  return apiFetch<{ id: string; status: string }>("/proposals", {
+  return apiFetch<{ id: string; status: string; trust: "verified" | "anonymous" }>("/proposals", {
     method: "POST",
     credentials: "include",
     body: JSON.stringify(data),
@@ -156,10 +156,17 @@ export async function identifyOfficial(data: {
   wardCode?: string;
   constituencyCode?: string;
 }) {
-  return apiFetch<{ id: string; officialId: string; status: string }>("/proposals/identify", {
+  return apiFetch<{ id: string; officialId: string; status: string; trust: "verified" | "anonymous" }>("/proposals/identify", {
     method: "POST",
     credentials: "include",
     body: JSON.stringify(data),
+  });
+}
+
+export async function claimProposal(proposalId: string) {
+  return apiFetch<{ status: string }>(`/proposals/${proposalId}/claim`, {
+    method: "POST",
+    credentials: "include",
   });
 }
 
