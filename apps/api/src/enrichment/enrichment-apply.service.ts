@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
-import { PrismaService } from "@ournigeria/database";
+import { randomBytes } from "crypto";
+import { PrismaService, slugifyName } from "@ournigeria/database";
 import { isAppliable, OFFICIAL_COMPLETENESS_FIELDS } from "./enrichment.constants";
 import { isCreatableCouncilor } from "./councilor.constants";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
@@ -115,8 +116,13 @@ export class EnrichmentApplyService {
         if (p.length > 0) party = pos.partyAcronym;
       }
 
+      // Generate a unique SEO slug up front (mirrors the citizen create path) so the new
+      // official gets a human-readable /officials/<slug> URL instead of falling back to its UUID.
+      const slug = await this.generateUniqueOfficialSlug(tx, entity.official.name, entity.meta?.state);
+
       const created = await tx.$queryRawUnsafe<{ id: string }[]>(
-        `INSERT INTO nigerian_officials (name) VALUES ($1) RETURNING id`, entity.official.name,
+        `INSERT INTO nigerian_officials (name, slug) VALUES ($1, $2) RETURNING id`,
+        entity.official.name, slug,
       );
       const officialId = created[0].id;
 
@@ -157,5 +163,34 @@ export class EnrichmentApplyService {
        WHERE id = $1::uuid`,
       officialId,
     );
+  }
+
+  /**
+   * Unique, human-readable slug for a new official. Mirrors proposals.service's citizen path:
+   * slugifyName(name); on collision append the state code, then a numeric suffix. Runs inside
+   * the apply tx (enrichment_apply has SELECT on nigerian_officials, so the dup check is allowed).
+   */
+  private async generateUniqueOfficialSlug(
+    tx: { nigerianOfficial: { findMany: (args: any) => Promise<{ slug: string | null }[]> } },
+    name: string,
+    stateCode?: string,
+  ): Promise<string> {
+    let base = slugifyName(name);
+    if (!base) base = `official-${randomBytes(4).toString("hex")}`;
+
+    const rows = await tx.nigerianOfficial.findMany({
+      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      select: { slug: true },
+    });
+    const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
+
+    if (!used.has(base)) return base;
+
+    const stateSuffix = stateCode ? slugifyName(stateCode) : "";
+    if (stateSuffix && !used.has(`${base}-${stateSuffix}`)) return `${base}-${stateSuffix}`;
+
+    let n = 2;
+    while (used.has(`${base}-${n}`)) n++;
+    return `${base}-${n}`;
   }
 }
