@@ -14,7 +14,7 @@ import {
 import {
   useIdentifyForm, ctxFromParams, hasFullContext, roleConfig,
   RoleField, LocationField, LocationChip, NameField, PartyField,
-  OptionalDetails, SourceField, SubmitButton, ErrorBox,
+  OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
 } from "@/components/proposals/identify-form";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -123,6 +123,29 @@ function IdentifyOfficialContent() {
               Back to Representatives
             </Link>
           </div>
+          {form.isAnonymous && form.newProposalId && !form.showAuth && (
+            <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => form.setShowAuth(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {form.showAuth && form.newProposalId && (
+            <AuthModal
+              onVerified={() => {
+                form.setShowAuth(false);
+                claimProposal(form.newProposalId!).catch(() => {});
+                form.setIsAnonymous(false);
+              }}
+              onClose={() => form.setShowAuth(false)}
+            />
+          )}
         </div>
       </main>
     );
