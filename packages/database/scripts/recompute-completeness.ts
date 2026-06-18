@@ -16,7 +16,7 @@ import { PrismaClient } from "@prisma/client";
 import {
   COMPLETENESS_FLAT_FIELDS,
   computeOfficialCompleteness,
-} from "../../shared-types/src/completeness";
+} from "../../shared-types/src/index";
 
 const BATCH = 500;
 
