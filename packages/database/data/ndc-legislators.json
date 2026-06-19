@@ -1,0 +1,33 @@
+{
+  "_about": "National Assembly members who defected to the Nigeria Democratic Congress (NDC) ahead of the 2027 elections, after Peter Obi and Rabiu Kwankwaso joined the party (May 2026). Each entry is matched to an existing official_positions row by (role, constituency_code); seed-ndc-defectors.ts reassigns party_acronym to 'NDC'. Names are cross-confirmed against 5+ Nigerian outlets and match Wikipedia's aggregate NDC counts (3/109 Senate, 17/360 House). Defection-from party varies (PDP/LP/NNPP/ADC) and is irrelevant to the target.",
+  "senators": [
+    { "constituency_code": "sen_bayelsa_west",  "name": "Henry Seriake Dickson", "source": "https://www.vanguardngr.com/2026/03/why-i-defected-to-ndc-seriake-dickson/" },
+    { "constituency_code": "sen_anambra_central", "name": "Victor Umeh",          "source": "https://www.thecable.ng/anambra-senator-victor-umeh-leaves-adc-for-ndc/" },
+    { "constituency_code": "sen_kano_central",    "name": "Rufai Sani Hanga",      "source": "https://www.thecable.ng/anambra-senator-victor-umeh-leaves-adc-for-ndc/" }
+  ],
+  "reps": [
+    { "constituency_code": "fed_kano_kura_madobi_garun_mallam",        "name": "Yusuf Umar Datti",          "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_anambra_idemili_north_idemili_south",  "name": "Uchenna Harrison Okonkwo",  "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_kano_minjibir_ungogo",                 "name": "Sani Adamu Wakili",         "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_lagos_eti_osa",                        "name": "Thaddeus Attah",            "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_anambra_njikoka_dunukofia_anaocha",    "name": "George Ozodinobi",          "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_anambra_awka_north_awka_south",        "name": "Obiageli Lilian Orogbu",    "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_lagos_ojo",                            "name": "Oluwaseyi Sowunmi",         "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_anambra_anambra_east_anambra_west",    "name": "Peter Aniekwe",             "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_kano_tarauni",                         "name": "Mukhtar Umar Zakari",       "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_lagos_amuwo_odofin",                   "name": "George Olawande",           "source": "https://www.icirnigeria.org/17-adc-rep-members-defect-to-ndc/" },
+    { "constituency_code": "fed_edo_egor_ikpoba_okha",                 "name": "Murphy Omoruyi",            "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" },
+    { "constituency_code": "fed_rivers_port_harcourt_i",              "name": "Munachim Umezuruike",       "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" },
+    { "constituency_code": "fed_anambra_onitsha_north_onitsha_south",  "name": "Emeka Idu",                 "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" },
+    { "constituency_code": "fed_lagos_oshodi_isolo_ii",                "name": "Jesse Onuakalusi",          "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" },
+    { "constituency_code": "fed_anambra_ogbaru",                       "name": "Victor Afam Ogene",         "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" },
+    { "constituency_code": "fed_kano_wudil_garko",                     "name": "Abdulhakeem Kamilu Ado",    "source": "https://www.ndr.org.ng/more-defections-hit-adc-as-17-house-of-reps-members-move-to-ndc/" }
+  ],
+  "_unresolved": [
+    {
+      "reported_name": "Ifeanyi (Peter) Uzokwe",
+      "reported_constituency": "fed_anambra_nnewi_north_nnewi_south_ekwusigo (Nnewi North/Nnewi South/Ekwusigo)",
+      "reason": "Reported among the 17 ADC->NDC reps, but the DB occupant of this seat is 'Eleodimmuo Uchenna Clement Nwachukwu' (APGA) — a different person. Not reassigned pending human review. This is the only one of the 17 reps not captured, so NDC currently shows 16 reps + 3 senators = 19 seats here vs the reported 17 + 3 = 20."
+    }
+  ]
+}

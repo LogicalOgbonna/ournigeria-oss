@@ -88,9 +88,22 @@ async function main() {
 
   for (const [acronym, profile] of Object.entries(profiles)) {
     if (!validAcronyms.has(acronym)) {
-      skipped.push(acronym);
-      console.log(`  ⚠ ${acronym}: not in political_parties — skipped`);
-      continue;
+      // Create the base row ONLY if the JSON supplies a name. Insert-only via
+      // ON CONFLICT DO NOTHING — existing rows' names are never touched.
+      const name = typeof profile.name === 'string' ? profile.name.trim() : '';
+      if (!name) {
+        skipped.push(acronym);
+        console.log(`  ⚠ ${acronym}: not in political_parties and no "name" in JSON — skipped`);
+        continue;
+      }
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO political_parties (acronym, name) VALUES ($1, $2)
+         ON CONFLICT (acronym) DO NOTHING`,
+        acronym,
+        name,
+      );
+      validAcronyms.add(acronym);
+      console.log(`  + ${acronym}: created base row ("${name}")`);
     }
 
     // Collect provided, non-null, known columns.

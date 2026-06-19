@@ -156,6 +156,7 @@
     }
   },
   "SDP": {
+    "logo_url": "https://sdpnigeria.org/storage/settings/01KSZ0TZ3KPMQK0G9X0H0HTP2Z.png",
     "founding_year": 2002,
     "leader_name": "Umar Abubakar (Sadiq) Gombe",
     "hq_address": "No 17 Nairobi Street, Wuse II, Abuja",
@@ -169,6 +170,7 @@
     "slogan": "Let's Get Nigeria Working Again",
     "inec_status": "Registered",
     "_sources": {
+      "logo_url": "https://sdpnigeria.org/",
       "founding_year": "https://en.wikipedia.org/wiki/Social_Democratic_Party_(Nigeria)",
       "leader_name": "https://punchng.com/inec-recognises-gombe-as-sdp-chair-drops-gabam/",
       "hq_address": "https://sdpnigeria.org/",
@@ -259,6 +261,9 @@
     "leader_name": "Maxwell Mgbudem",
     "hq_address": "Wuse, Abuja, Nigeria",
     "website": "https://accordnational.com.ng/",
+    "email": "info@accordnational.com.ng",
+    "phone_number": "+2348033141001",
+    "slogan": "Oneness & Progress",
     "description": "Accord (also known as the Accord Party) is a Nigerian political party registered by INEC, headquartered in Abuja. It is a centre-right party with strongholds historically in Oyo State.",
     "ideology": "Centre-right; populism",
     "color": "#008000",
@@ -268,6 +273,9 @@
       "leader_name": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
       "hq_address": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
       "website": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
+      "email": "https://accordnational.com.ng/",
+      "phone_number": "https://accordnational.com.ng/",
+      "slogan": "https://accordnational.com.ng/",
       "description": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
       "ideology": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
       "color": "https://en.wikipedia.org/wiki/Accord_(Nigeria)",
@@ -298,11 +306,25 @@
     }
   },
   "APP": {
+    "hq_address": "Plot 1077, Cadastral Zone B2, Area 3 Junction, Durumi, Abuja",
+    "website": "https://www.actionpeoplesparty.com/",
+    "email": "contact@actionpeoplesparty.com",
+    "phone_number": "08038665895",
+    "facebook_url": "https://www.facebook.com/actionpeoplesparty/",
+    "slogan": "Strong Economy, United Nigeria",
+    "description": "Action Peoples Party (APP) is an INEC-registered Nigerian political party headquartered in Durumi, Abuja, whose acronym is APP. Its most prominent figure is Hon. Ikenga Ugochinyere (National Leader), with Barr. Uchenna Nnadi as National Chairman. It has won local-government seats in Rivers and Jigawa states and is positioning for the 2027 general elections.",
     "inec_status": "Registered",
     "_sources": {
-      "inec_status": "https://en.wikipedia.org/wiki/List_of_political_parties_in_Nigeria"
+      "hq_address": "https://www.actionpeoplesparty.com/",
+      "website": "https://www.actionpeoplesparty.com/",
+      "email": "https://www.actionpeoplesparty.com/",
+      "phone_number": "https://www.actionpeoplesparty.com/",
+      "facebook_url": "https://www.facebook.com/actionpeoplesparty/",
+      "slogan": "https://www.actionpeoplesparty.com/",
+      "description": "https://www.actionpeoplesparty.com/",
+      "inec_status": "https://inecnigeria.org/?poltical_parties=action-peoples-party"
     },
-    "_notes": "NAME DISCREPANCY — UNRESOLVED. The DB row is named 'All Progressives Party', but research found no INEC-registered party with that exact name; the currently INEC-registered party using acronym APP is 'Action Peoples Party' (Chairman Uchenna Nnadi, figurehead Ikenga Ugochinyere, hq Durumi Abuja, actionpeoplesparty.com). To avoid attaching a possibly-different party's logo/website/leader to this row, only inec_status was filled. Confirm the intended party before populating the rest."
+    "_notes": "NAME DISCREPANCY — IDENTITY NOW CONFIRMED, NAME NOT AUTO-CHANGED. INEC's acronym 'APP' maps to 'Action Peoples Party' (self-styled 'Action People's Party'); the DB row's name 'All Progressives Party' does NOT correspond to any INEC-registered party and is incorrect. Per task §1 ('name is never touched'), the seed scripts do NOT change the name — it requires a human decision. Recommended correction (sourced via inecnigeria.org + actionpeoplesparty.com): UPDATE political_parties SET name='Action Peoples Party' WHERE acronym='APP' AND name='All Progressives Party'. Profile fields and officers (Nnadi/Bossan/Ugochinyere) were populated for this confirmed party. Also note: a Federal High Court ordered APP's deregistration ~16 Jun 2026 (with ADC, AA, Accord, ZLP), stayed by the Court of Appeal 17 Jun 2026 — APP remains registered pending appeal."
   },
   "PRP": {
     "founding_year": 1978,
@@ -330,6 +352,29 @@
       "inec_status": "https://www.inecnigeria.org/?poltical_parties=peoples-redemption-party"
     },
     "_notes": "Hakeem Baba-Ahmed elected chairman at 28 Mar 2026 convention and INEC-recognised; a faction has petitioned INEC disputing it."
+  },
+  "NDC": {
+    "name": "Nigeria Democratic Congress",
+    "logo_url": "https://upload.wikimedia.org/wikipedia/commons/0/06/Nigeria_Democratic_Party_Logo.jpg",
+    "founding_year": 2026,
+    "leader_name": "Cleopas Moses Zuwoghe",
+    "hq_address": "No. 4 Odenna Close, Off Libreville Street, Wuse II, Abuja",
+    "website": "https://ndcnigeria.com",
+    "description": "The Nigeria Democratic Congress (NDC) is a Nigerian political party registered by INEC in February 2026 following a court order. It became a major opposition platform ahead of the 2027 elections when 2023 presidential candidates Peter Obi and Rabiu Kwankwaso joined the party in May 2026.",
+    "ideology": "Pan-Africanism; Civic nationalism; Federalism",
+    "inec_status": "Registered",
+    "_sources": {
+      "name": "https://en.wikipedia.org/wiki/Nigeria_Democratic_Congress",
+      "logo_url": "https://en.wikipedia.org/wiki/File:Nigeria_Democratic_Party_Logo.jpg",
+      "founding_year": "https://businessday.ng/news/article/spotted-obi-kwankwasos-new-party-ndc-registered-via-court-order/",
+      "leader_name": "https://punchng.com/things-to-know-about-obi-kwankwasos-new-party-ndc/",
+      "hq_address": "https://en.wikipedia.org/wiki/Nigeria_Democratic_Congress",
+      "website": "https://ndcnigeria.com",
+      "description": "https://en.wikipedia.org/wiki/Nigeria_Democratic_Congress",
+      "ideology": "https://en.wikipedia.org/wiki/Nigeria_Democratic_Congress",
+      "inec_status": "https://allafrica.com/stories/202602050538.html"
+    },
+    "_notes": "Registered Feb 2026 via court order (INEC registration reported 5 Feb 2026; Wikipedia gives 23 Feb 2026). Cleopas Zuwoghe is pro-tem National Chairman pending the inaugural convention. color/email/phone/socials not reliably sourced (official site ndcnigeria.com returns 403 to fetchers); left null. Row did not exist in DB and is created from this entry's `name`."
   },
   "ZLP": {
     "logo_url": "https://zlp.ng/wp-content/uploads/2024/10/zlp-logo-new.png",
