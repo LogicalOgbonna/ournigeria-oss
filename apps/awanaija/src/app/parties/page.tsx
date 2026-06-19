@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import { PartyCard } from "@/components/civic/PartyCard";
+import { PartiesDirectory } from "./PartiesDirectory";
 import { getPartyDirectory, type PartyListItem } from "@/lib/api";
 
 const SITE_URL = "https://ournigeria.ng";
@@ -23,13 +23,12 @@ async function getParties(): Promise<PartyListItem[]> {
 
 export default async function PartiesPage() {
   const parties = await getParties();
-  const active = parties.filter((p) => p.isActive);
 
   return (
     <div className="flex min-h-screen flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
       <Navbar />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-28">
-        <header className="mb-8">
+        <header className="mb-6">
           <h1 className="font-serif text-[34px] leading-tight text-slate-900 dark:text-white">
             Political Parties
           </h1>
@@ -39,16 +38,12 @@ export default async function PartiesPage() {
           </p>
         </header>
 
-        {active.length === 0 ? (
+        {parties.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-400 dark:border-slate-700">
             Party data is loading. Check back shortly.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {active.map((p) => (
-              <PartyCard key={p.acronym} party={p} />
-            ))}
-          </div>
+          <PartiesDirectory parties={parties} />
         )}
       </main>
       <Footer />

@@ -56,6 +56,21 @@ export function PartyCard({ party }: { readonly party: PartyListItem }) {
         </div>
       </div>
 
+      {(party.governorships > 0 || party.ideology) && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {party.governorships > 0 && (
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              Governs {party.governorships}
+            </span>
+          )}
+          {party.ideology && (
+            <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {party.ideology}
+            </span>
+          )}
+        </div>
+      )}
+
       {officers.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           {officers.map((o) => (

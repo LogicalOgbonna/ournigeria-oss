@@ -61,7 +61,7 @@ export class PartiesService {
   async list(params: { activeOnly?: boolean }) {
     const { activeOnly } = params;
 
-    const [parties, seatGroups, officers] = await Promise.all([
+    const [parties, seatGroups, govGroups, officers] = await Promise.all([
       this.prisma.politicalParty.findMany({
         where: activeOnly ? { isActive: true } : {},
         select: {
@@ -69,6 +69,7 @@ export class PartiesService {
           name: true,
           isActive: true,
           logoUrl: true,
+          ideology: true,
           completenessScore: true,
         },
       }),
@@ -76,6 +77,12 @@ export class PartiesService {
       this.prisma.officialPosition.groupBy({
         by: ["partyAcronym"],
         where: { status: "active", partyAcronym: { not: null } },
+        _count: { _all: true },
+      }),
+      // Governorships per party.
+      this.prisma.officialPosition.groupBy({
+        by: ["partyAcronym"],
+        where: { status: "active", role: "governor", partyAcronym: { not: null } },
         _count: { _all: true },
       }),
       // All officers in one query (≤45 rows); grouped per party below (no N+1).
@@ -98,6 +105,13 @@ export class PartiesService {
       }
     }
 
+    const govByParty = new Map<string, number>();
+    for (const g of govGroups) {
+      if (g.partyAcronym) {
+        govByParty.set(g.partyAcronym, g._count._all);
+      }
+    }
+
     const officersByParty = new Map<
       string,
       { role: string; name: string; imageUrl: string | null; officialSlug: string | null }[]
@@ -114,8 +128,10 @@ export class PartiesService {
         name: p.name,
         isActive: p.isActive,
         logoUrl: p.logoUrl,
+        ideology: p.ideology,
         completenessScore: p.completenessScore != null ? Number(p.completenessScore) : null,
         seats: seatsByParty.get(p.acronym) ?? 0,
+        governorships: govByParty.get(p.acronym) ?? 0,
         officers: officersByParty.get(p.acronym) ?? [],
       }))
       .sort((a, b) => b.seats - a.seats || a.name.localeCompare(b.name));

@@ -25,6 +25,15 @@ test.describe('Political parties @web', () => {
     await expect(page.locator(`a[href="/parties/${party.acronym}"]`).first()).toBeVisible();
   });
 
+  test('directory shows the balance-of-power ranking, summary, and search', async ({ page }) => {
+    await page.goto('/parties');
+    await expect(page.getByRole('heading', { name: 'Balance of power' })).toBeVisible();
+    await expect(page.getByText('Active parties')).toBeVisible();
+    // Search filters the grid (no-match shows the empty line).
+    await page.getByLabel('Search parties').fill('zzznotarealparty');
+    await expect(page.getByText(/No parties match/)).toBeVisible();
+  });
+
   test('detail page renders footprint + Organization JSON-LD', async ({ page, request }) => {
     const party = await pickParty(request);
     const resp = await page.goto(`/parties/${party.acronym}`);

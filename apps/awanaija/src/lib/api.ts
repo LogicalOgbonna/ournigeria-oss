@@ -510,8 +510,10 @@ export interface PartyListItem {
   name: string;
   isActive: boolean;
   logoUrl: string | null;
+  ideology: string | null;
   completenessScore: number | null;
   seats: number;
+  governorships: number;
   officers: PartyOfficerView[];
 }
 
