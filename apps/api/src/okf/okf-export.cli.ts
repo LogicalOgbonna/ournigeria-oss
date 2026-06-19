@@ -1,27 +1,24 @@
 #!/usr/bin/env npx tsx
 /**
  * Build the OKF bundle and write it to ./okf-out (+ okf-out.tar.gz).
- *   DATABASE_URL=... npx tsx apps/api/src/okf/okf-export.cli.ts [outDir]
- * Reuses the Nest DI graph via a standalone application context so the
- * export service gets the real OfficialsService/EvidenceService/Prisma.
+ *   DATABASE_URL=... npx tsx --tsconfig apps/api/tsconfig.json apps/api/src/okf/okf-export.cli.ts [outDir]
+ * Services are wired by hand (see okf-bootstrap) so no Nest DI / decorator
+ * metadata is required at runtime.
  */
-import { NestFactory } from "@nestjs/core";
-import { AppModule } from "../app.module";
-import { OkfExportService } from "./okf-export.service";
+import { bootstrapOkf } from "./okf-bootstrap";
 import { writeBundle, tarBundle } from "./okf-bundle";
 
 async function main() {
   const outDir = process.argv[2] ?? "okf-out";
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: ["error", "warn", "log"] });
+  const rt = await bootstrapOkf();
   try {
-    const svc = app.get(OkfExportService);
     const timestamp = new Date().toISOString();
-    const bundle = await svc.buildBundle(timestamp);
+    const bundle = await rt.exporter.buildBundle(timestamp);
     writeBundle(bundle, outDir);
     tarBundle(outDir, `${outDir}.tar.gz`);
     process.stdout.write(`OKF bundle: ${bundle.size} files -> ${outDir}/ (+ ${outDir}.tar.gz)\n`);
   } finally {
-    await app.close();
+    await rt.dispose();
   }
 }
 

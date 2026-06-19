@@ -55,26 +55,30 @@ export class OkfPublishService {
     });
   }
 
-  /** Upload to okf/staging/<runId>/, swap into okf/latest/, then clear staging. */
-  async publishToS3(outDir: string, runId: string): Promise<void> {
+  /**
+   * Upload to okf/staging/<runId>/, swap into okf/latest/, then clear staging.
+   * The bundle dir (markdown + viz.html) plus the standalone tarball ship as
+   * okf/latest/bundle.tar.gz.
+   */
+  async publishToS3(outDir: string, tarPath: string, runId: string): Promise<void> {
     const staging = `okf/staging/${runId}`;
-    const files = collectFiles(outDir);
+    const files = [...collectFiles(outDir).map((rel) => ({ rel, abs: join(outDir, rel) })), { rel: "bundle.tar.gz", abs: tarPath }];
     const cacheFor = (rel: string) =>
       rel.endsWith(".md") || rel.endsWith(".html") ? "public, max-age=300" : "public, max-age=3600";
 
-    for (const rel of files) {
+    for (const { rel, abs } of files) {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: `${staging}/${rel}`,
-          Body: readFileSync(join(outDir, rel)),
+          Body: readFileSync(abs),
           ContentType: contentTypeFor(rel),
           CacheControl: cacheFor(rel),
         }),
       );
     }
     await this.clearPrefix("okf/latest/");
-    for (const rel of files) {
+    for (const { rel } of files) {
       await this.s3.send(
         new CopyObjectCommand({
           Bucket: this.bucket,

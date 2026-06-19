@@ -3,12 +3,9 @@
  * Build + publish the OKF bundle (S3 swap + git mirror).
  *   OKF_PUBLISH_ENABLED=1 DATABASE_URL=... S3_BUCKET=... AWS_*=... \
  *   OKF_GIT_REPO=github.com/ournigeria/ournigeria-knowledge OKF_GIT_TOKEN=... \
- *   npx tsx apps/api/src/okf/okf-publish.cli.ts
+ *   npx tsx --tsconfig apps/api/tsconfig.json apps/api/src/okf/okf-publish.cli.ts
  */
-import { NestFactory } from "@nestjs/core";
-import { AppModule } from "../app.module";
-import { OkfExportService } from "./okf-export.service";
-import { OkfPublishService } from "./okf-publish.service";
+import { bootstrapOkf } from "./okf-bootstrap";
 import { writeBundle, tarBundle } from "./okf-bundle";
 
 async function main() {
@@ -17,19 +14,20 @@ async function main() {
     return;
   }
   const outDir = "okf-out";
-  const app = await NestFactory.createApplicationContext(AppModule, { logger: ["error", "warn", "log"] });
+  const tarPath = "okf-out.tar.gz"; // sibling — ships to S3 only; gzip's timestamp would defeat git no-op-diff
+  const rt = await bootstrapOkf();
   try {
     const iso = new Date().toISOString();
     const date = iso.slice(0, 10);
     const runId = iso.replace(/[:.]/g, "-");
-    const bundle = await app.get(OkfExportService).buildBundle(iso);
+    const bundle = await rt.exporter.buildBundle(iso);
     writeBundle(bundle, outDir);
-    tarBundle(outDir, `${outDir}/bundle.tar.gz`); // ship the tarball inside the bundle too
-    const publish = app.get(OkfPublishService);
-    await publish.publishToS3(outDir, runId);
+    tarBundle(outDir, tarPath);
+    const publish = rt.makePublisher();
+    await publish.publishToS3(outDir, tarPath, runId);
     await publish.publishToGit(outDir, date);
   } finally {
-    await app.close();
+    await rt.dispose();
   }
 }
 
