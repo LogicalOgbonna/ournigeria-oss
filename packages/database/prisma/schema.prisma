@@ -271,6 +271,7 @@ model NigerianOfficial {
   familyMembers     OfficialFamilyMember[]
   relatedAsFamily   OfficialFamilyMember[]     @relation("FamilyRelatedOfficial")
   legalCases        OfficialLegalCase[]
+  enrichmentAttempts EnrichmentAttempt[]
 
   @@map("nigerian_officials")
 }
@@ -934,6 +935,46 @@ model ProposalSource {
 
   @@index([proposalId], map: "idx_proposal_sources_proposal")
   @@map("proposal_sources")
+}
+
+// ============================================================
+// Autonomous enrichment sweeper — OPERATIONAL tables (not live
+// domain data). The sweeper (control plane) reads/writes these to
+// run a durable, deduped, budget-capped gap queue. enrichment_agent
+// is granted INSERT/UPDATE here (migration SQL) — never on domain data.
+// ============================================================
+
+/// One row per (official, category) the sweeper has considered. Durable queue
+/// cursor + dedup + re-check timer + audit trail. `category` matches the agent
+/// category catalog (education/career/election/.../legal_case/corruption/...).
+model EnrichmentAttempt {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  category       String    @db.VarChar(40)
+  status         String    @default("pending") @db.VarChar(20) // pending|filled|nothing_found|error
+  proposalCount  Int       @default(0) @map("proposal_count")
+  note           String?   @db.Text
+  lastAttemptedAt DateTime @default(now()) @map("last_attempted_at") @db.Timestamptz()
+  nextEligibleAt DateTime  @default(now()) @map("next_eligible_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@unique([officialId, category], map: "uq_enrichment_attempt_official_category")
+  @@index([status, nextEligibleAt], map: "idx_enrichment_attempts_status_eligible")
+  @@map("enrichment_attempts")
+}
+
+/// Daily spend ledger — the sweeper's hard budget ceiling lives here (one row
+/// per UTC date). Deterministic cap, enforced by the control plane.
+model EnrichmentBudget {
+  day         DateTime @id @db.Date
+  invocations Int      @default(0)
+  estCostUsd  Decimal  @default(0) @map("est_cost_usd") @db.Decimal(10, 4)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("enrichment_budget")
 }
 
 model User {

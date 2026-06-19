@@ -1,4 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
+import { slugifyName } from "@ournigeria/database";
 
 /**
  * Creatable-entity registry (Plan 45c, Fix #1) — the create-side parallel of
@@ -161,6 +162,117 @@ async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): 
   if (p.length === 0) payload.partyAcronym = null;
 }
 
+/**
+ * Corruption involvement (compound): one corruption_cases row + one
+ * corruption_case_parties row linking the official as an 'official' subject.
+ * Payload: officialId, subjectName, title, caseType, status, role (+ optional
+ * summary/forum/amountInvolved/currency/openedDate/chargeDate/verdictDate/outcome/
+ * sentence/partyType). Slug is generated server-side (unique).
+ */
+function corruptionInvolvementEntity(): CreatableEntity {
+  const CASE_OPTIONAL: ColumnSpec[] = [
+    { key: "summary", column: "summary", type: "string" },
+    { key: "forum", column: "forum", type: "string" },
+    { key: "amountInvolved", column: "amount_involved", type: "number" },
+    { key: "amountRecovered", column: "amount_recovered", type: "number" },
+    { key: "currency", column: "currency", type: "string" },
+    { key: "stateCode", column: "state_code", type: "string" },
+    { key: "sector", column: "sector", type: "string" },
+    { key: "openedDate", column: "opened_date", type: "date" },
+    { key: "chargeDate", column: "charge_date", type: "date" },
+    { key: "verdictDate", column: "verdict_date", type: "date" },
+    { key: "outcome", column: "outcome", type: "string" },
+    { key: "sentence", column: "sentence", type: "string" },
+  ];
+  return {
+    targetTable: "corruption_cases",
+    evidenceEntryType: "corruption_case",
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      const out: Record<string, unknown> = {
+        officialId: coerce({ key: "officialId", column: "official_id", type: "uuid", required: true }, p.officialId),
+        subjectName: coerce({ key: "subjectName", column: "subject_name", type: "string", required: true }, p.subjectName),
+        title: coerce({ key: "title", column: "title", type: "string", required: true }, p.title),
+        caseType: coerce({ key: "caseType", column: "case_type", type: "string", required: true }, p.caseType),
+        status: coerce({ key: "status", column: "status", type: "string", required: true }, p.status),
+        role: coerce({ key: "role", column: "role", type: "string", required: true }, p.role),
+        partyType: coerce({ key: "partyType", column: "party_type", type: "string" }, p.partyType) ?? "person",
+      };
+      for (const spec of CASE_OPTIONAL) out[spec.key] = coerce(spec, p[spec.key]);
+      return out;
+    },
+    async preflight(tx, payload) {
+      const exists = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
+        payload.officialId,
+      );
+      if (exists.length === 0) {
+        throw new BadRequestException(`official ${payload.officialId} does not exist`);
+      }
+    },
+    async insert(tx, payload, ctx) {
+      // Unique slug: {subject}-{title}, suffixed on collision.
+      const base = slugifyName(`${payload.subjectName} ${payload.title}`).slice(0, 140) || "corruption-case";
+      const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM corruption_cases WHERE slug = $1`, base);
+      const slug = clash.length > 0
+        ? `${base}-${Math.abs(hashStr(String(payload.title) + String(payload.officialId))).toString(36).slice(0, 6)}`
+        : base;
+
+      const caseCols = ["slug", "title", "case_type", "status"];
+      const caseVals: unknown[] = [slug, payload.title, payload.caseType, payload.status];
+      const caseCasts: string[] = ["", "", "", ""];
+      for (const spec of CASE_OPTIONAL) {
+        const v = payload[spec.key];
+        if (v === null) continue;
+        caseCols.push(spec.column);
+        caseVals.push(v);
+        caseCasts.push(spec.type === "date" ? "::date" : "");
+      }
+      caseCols.push("confidence", "source_type", "review_status", "reviewed_by", "last_verified_at");
+      caseVals.push(ctx.confidence, "agent", "reviewed", ctx.adminId);
+      caseCasts.push("", "", "", "");
+      const casePlaceholders = caseVals.map((_, i) => `$${i + 1}${caseCasts[i] ?? ""}`);
+      casePlaceholders.push("now()");
+
+      const caseRows = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO corruption_cases (${caseCols.map((c) => `"${c}"`).join(", ")})
+         VALUES (${casePlaceholders.join(", ")}) RETURNING id`,
+        ...caseVals,
+      );
+      const caseId = caseRows[0].id;
+
+      await tx.$executeRawUnsafe(
+        `INSERT INTO corruption_case_parties
+           (case_id, subject_type, subject_id, subject_name, party_type, role,
+            outcome, confidence, source_type, review_status, reviewed_by, last_verified_at)
+         VALUES ($1::uuid, 'official', $2::uuid, $3, $4, $5, $6, $7, 'agent', 'reviewed', $8, now())`,
+        caseId,
+        payload.officialId,
+        payload.subjectName,
+        payload.partyType,
+        payload.role,
+        payload.outcome ?? null,
+        ctx.confidence,
+        ctx.adminId,
+      );
+
+      // Evidence attaches to the case row; officialId returned so the apply
+      // service logs/recomputes (recompute is a no-op for corruption but safe).
+      return { id: caseId, officialId: payload.officialId as string };
+    },
+  };
+}
+
+/** Tiny stable string hash for slug disambiguation (not security-sensitive). */
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
+
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   official_education: officialFactEntity("official_education", "education", [
     { key: "institution", column: "institution", type: "string", required: true },
@@ -280,6 +392,10 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "outcome", column: "outcome", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" },
   ]),
+  // Corruption involvement is a COMPOUND create: a corruption_cases row + a
+  // corruption_case_parties row linking the official (subjectType='official').
+  // Evidence attaches to the case. Bespoke (two-row), like councilors.
+  corruption_cases: corruptionInvolvementEntity(),
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {

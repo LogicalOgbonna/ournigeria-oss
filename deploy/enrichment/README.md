@@ -49,6 +49,32 @@ The agent connects Telegram (locked to `TELEGRAM_ALLOWED_USERS`), reaches `ourni
 docker exec enrichment_agent hermes -z "Enrich office_address for official <id> (<name>) — research with the browser, corroborate, submit one proposal." --skills enrichment -t browser,terminal,file
 ```
 
+## Autonomous structured sweeper
+
+The `sweeper` service (opt-in, `sweeper` compose profile) runs the always-on
+control plane: it finds structured-data gaps (`find-structured-gaps.cjs`), and for
+each `(official, category)` drives the brain per gap via the `enrichment-structured`
+skill, which proposes through `submit-structured-create.cjs`. It enforces pacing, a
+hard daily invocation cap, dedup (the `enrichment_attempts` cursor), idle re-poll,
+and a kill switch — all deterministic, in `apps/api/src/enrichment/sweeper/`.
+
+Enable it (after validating proposals look good):
+```bash
+infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml \
+  --profile sweeper up -d sweeper
+infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml logs -f sweeper
+```
+
+Stop it without removing the container: `SWEEPER_KILL=1` (restart) or
+`docker exec enrichment_sweeper touch /opt/data/enrichment-sweeper.kill`.
+
+Knobs (env, conservative defaults): `SWEEPER_BATCH`, `SWEEPER_PACE_MS`,
+`SWEEPER_IDLE_MS`, `SWEEPER_DAILY_CAP`, `SWEEPER_RECHECK_{FILLED,NOTHING,ERROR}_DAYS`.
+Human approval in the dashboard is still required before anything goes live.
+
+`enrichment_agent` is granted INSERT/UPDATE on only the two operational tables
+(`enrichment_attempts`, `enrichment_budget`) — never on live domain data.
+
 ## Files
 
 - `Dockerfile.agent` (+ `.dockerignore`) — agent image. `Dockerfile.camofox` — headless patch.
