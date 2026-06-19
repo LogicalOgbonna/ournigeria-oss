@@ -100,7 +100,7 @@ export function PartyOfficeholdersAccordion({
             </button>
 
             {isOpen && (
-              <div className="max-h-[360px] space-y-1 overflow-y-auto border-t border-border p-2">
+              <div className="scrollbar-theme max-h-[360px] space-y-1 overflow-y-auto border-t border-border p-2">
                 {!gs || (gs.loading && gs.items.length === 0) ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" /> Loading…
