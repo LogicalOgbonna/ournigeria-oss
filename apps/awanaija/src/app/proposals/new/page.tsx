@@ -243,6 +243,21 @@ function EditOfficialContent() {
   useEffect(() => {
     getParties().then(setParties).catch(() => {});
   }, []);
+
+  // `useSearchParams()` is empty during the prerendered shell, so the initial
+  // `useState(fieldParam || "")` above can miss the URL value and leave the
+  // field on "Select a field". Re-sync on the client — prefer the reactive
+  // param, but fall back to reading the live URL so a `?targetField=`/`?field=`
+  // link auto-selects the field even if the hook hasn't resolved yet.
+  useEffect(() => {
+    if (fieldParam) {
+      setTargetField(fieldParam);
+      return;
+    }
+    const sp = new URLSearchParams(window.location.search);
+    const fromUrl = sp.get("targetField") || sp.get("field");
+    if (fromUrl) setTargetField(fromUrl);
+  }, [fieldParam]);
   const [proposedValue, setProposedValue] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
 
