@@ -76,6 +76,28 @@ test.describe('Political parties @web', () => {
     await expect(page.getByRole('heading', { name: /Flagbearers/ })).toBeVisible();
   });
 
+  test('directory cards surface party officers when present', async ({ page, request }) => {
+    const res = await request.get('/api/parties');
+    const list = (await res.json()) as Array<{ acronym: string; officers: { name: string }[] }>;
+    const withOfficer = list.find((p) => p.officers && p.officers.length > 0);
+    if (!withOfficer) test.skip(true, 'no party officers seeded yet');
+
+    await page.goto('/parties');
+    const card = page.locator(`a[href="/parties/${withOfficer!.acronym}"]`);
+    await expect(card).toContainText(withOfficer!.officers[0].name);
+  });
+
+  test('detail shows the party leadership section when officers exist', async ({ page, request }) => {
+    const res = await request.get('/api/parties');
+    const list = (await res.json()) as Array<{ acronym: string; officers: { name: string }[] }>;
+    const withOfficer = list.find((p) => p.officers && p.officers.length > 0);
+    if (!withOfficer) test.skip(true, 'no party officers seeded yet');
+
+    await page.goto(`/parties/${withOfficer!.acronym}`);
+    await expect(page.getByRole('heading', { name: 'Party leadership' })).toBeVisible();
+    await expect(page.getByText(withOfficer!.officers[0].name).first()).toBeVisible();
+  });
+
   test('lowercase acronym resolves', async ({ page, request }) => {
     const party = await pickParty(request);
     const resp = await page.goto(`/parties/${party.acronym.toLowerCase()}`);

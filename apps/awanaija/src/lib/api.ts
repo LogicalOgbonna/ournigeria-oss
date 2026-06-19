@@ -486,6 +486,12 @@ export interface ActivityEntry {
 }
 
 // Political parties
+export interface PartyOfficerView {
+  role: string;
+  name: string;
+  imageUrl: string | null;
+}
+
 export interface PartyListItem {
   acronym: string;
   name: string;
@@ -493,6 +499,7 @@ export interface PartyListItem {
   logoUrl: string | null;
   completenessScore: number | null;
   seats: number;
+  officers: PartyOfficerView[];
 }
 
 export interface PartyFootprint {
@@ -564,6 +571,7 @@ export interface PartyDetail {
   createdAt: string;
   updatedAt: string;
   chapters: PartyStateChapter[];
+  officers: PartyOfficerView[];
   footprint: PartyFootprint;
   leadership: PartyLeadership;
   candidates: PartyCandidate[];

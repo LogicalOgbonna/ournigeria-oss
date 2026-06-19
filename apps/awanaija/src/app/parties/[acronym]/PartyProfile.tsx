@@ -7,7 +7,7 @@ import { Building2, Globe, Mail, Phone, MapPin, User, ChevronRight } from "lucid
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { partyColor } from "@/lib/partyColors";
 import { stateLabel } from "@/lib/states";
-import type { PartyDetail, PartyOfficialMini } from "@/lib/api";
+import type { PartyDetail, PartyOfficialMini, PartyOfficerView } from "@/lib/api";
 
 // Lazy-load the map (and its geo data) so it stays off the initial bundle — it sits
 // below the fold and only renders client-side.
@@ -20,6 +20,20 @@ const NigeriaChoropleth = dynamic(
     ),
   },
 );
+
+const OFFICER_ROLE_LABELS: Record<string, string> = {
+  national_chairman: "National Chairman",
+  national_secretary: "National Secretary",
+  party_leader: "Party Leader",
+};
+const OFFICER_ORDER = ["national_chairman", "national_secretary", "party_leader"];
+
+function orderedOfficers(officers: PartyOfficerView[]): PartyOfficerView[] {
+  return [...officers].sort(
+    (a, b) =>
+      (OFFICER_ORDER.indexOf(a.role) + 1 || 99) - (OFFICER_ORDER.indexOf(b.role) + 1 || 99),
+  );
+}
 
 const ROLE_TILES = [
   { key: "governor", label: "Governors" },
@@ -36,6 +50,7 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
   // Resilient to a missing block (stale cache / older API response).
   const leadership = party["leadership"] ?? { governors: [], senators: [], otherOffices: [] };
   const candidates = party["candidates"] ?? [];
+  const officers = orderedOfficers(party["officers"] ?? []);
 
   // Always show the big three; show the rest only when they have seats.
   const tiles = ROLE_TILES.filter((t, i) => i < 3 || (fp.byRole[t.key] ?? 0) > 0).map((t) => ({
@@ -63,7 +78,6 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
   const meta = [
     party.foundingYear ? `Founded ${party.foundingYear}` : null,
     party.ideology,
-    party.leaderName ? `Chair: ${party.leaderName}` : null,
   ].filter(Boolean) as string[];
 
   return (
@@ -116,6 +130,39 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
           </p>
         )}
       </header>
+
+      {/* Party leadership */}
+      {officers.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-heading text-xl font-semibold text-slate-900 dark:text-white">
+            Party leadership
+          </h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {officers.map((o) => (
+              <div
+                key={o.role}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <OfficialAvatar
+                    src={o.imageUrl}
+                    alt={o.name}
+                    px={56}
+                    imgClassName="w-14 h-14 rounded-full object-cover"
+                    fallback={<User className="h-6 w-6 text-slate-400" />}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-slate-900 dark:text-white">{o.name}</div>
+                  <div className="text-xs uppercase tracking-wide text-slate-400">
+                    {OFFICER_ROLE_LABELS[o.role] ?? o.role}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Electoral footprint + map */}
       <section className="mt-10">

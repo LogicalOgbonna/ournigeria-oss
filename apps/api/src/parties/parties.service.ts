@@ -45,7 +45,7 @@ export class PartiesService {
   async list(params: { activeOnly?: boolean }) {
     const { activeOnly } = params;
 
-    const [parties, seatGroups] = await Promise.all([
+    const [parties, seatGroups, officers] = await Promise.all([
       this.prisma.politicalParty.findMany({
         where: activeOnly ? { isActive: true } : {},
         select: {
@@ -62,6 +62,11 @@ export class PartiesService {
         where: { status: "active", partyAcronym: { not: null } },
         _count: { _all: true },
       }),
+      // All officers in one query (≤45 rows); grouped per party below (no N+1).
+      this.prisma.partyOfficer.findMany({
+        orderBy: [{ displayOrder: "asc" }, { role: "asc" }],
+        select: { partyAcronym: true, role: true, name: true, imageUrl: true },
+      }),
     ]);
 
     const seatsByParty = new Map<string, number>();
@@ -69,6 +74,13 @@ export class PartiesService {
       if (g.partyAcronym) {
         seatsByParty.set(g.partyAcronym, g._count._all);
       }
+    }
+
+    const officersByParty = new Map<string, { role: string; name: string; imageUrl: string | null }[]>();
+    for (const o of officers) {
+      const list = officersByParty.get(o.partyAcronym) ?? [];
+      list.push({ role: o.role, name: o.name, imageUrl: o.imageUrl });
+      officersByParty.set(o.partyAcronym, list);
     }
 
     return parties
@@ -79,6 +91,7 @@ export class PartiesService {
         logoUrl: p.logoUrl,
         completenessScore: p.completenessScore != null ? Number(p.completenessScore) : null,
         seats: seatsByParty.get(p.acronym) ?? 0,
+        officers: officersByParty.get(p.acronym) ?? [],
       }))
       .sort((a, b) => b.seats - a.seats || a.name.localeCompare(b.name));
   }
@@ -93,6 +106,7 @@ export class PartiesService {
       where: { acronym },
       include: {
         chapters: { orderBy: { stateCode: "asc" } },
+        officers: { orderBy: [{ displayOrder: "asc" }, { role: "asc" }] },
       },
     });
 
@@ -136,6 +150,11 @@ export class PartiesService {
       createdAt: party.createdAt.toISOString(),
       updatedAt: party.updatedAt.toISOString(),
       chapters: party.chapters.map((c) => this.formatChapter(c)),
+      officers: party.officers.map((o) => ({
+        role: o.role,
+        name: o.name,
+        imageUrl: o.imageUrl,
+      })),
       footprint,
       leadership: {
         governors: seniors.governors,

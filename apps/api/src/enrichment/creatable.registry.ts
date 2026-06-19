@@ -266,6 +266,78 @@ function corruptionInvolvementEntity(): CreatableEntity {
   };
 }
 
+/** Known party-officer roles (singular per party). */
+const PARTY_OFFICER_ROLES = new Set(["national_chairman", "national_secretary", "party_leader"]);
+const PARTY_OFFICER_ORDER: Record<string, number> = {
+  national_chairman: 0,
+  national_secretary: 1,
+  party_leader: 2,
+};
+
+/**
+ * Party officer (chairman / secretary / party leader). Party-scoped (not
+ * official-scoped), so it does not use officialFactEntity. Payload:
+ * { partyAcronym, role, name, imageUrl?, sourceUrl? }.
+ */
+function partyOfficerEntity(): CreatableEntity {
+  return {
+    targetTable: "party_officers",
+    evidenceEntryType: "party_officer",
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      const role = coerce({ key: "role", column: "role", type: "string", required: true }, p.role) as string;
+      if (!PARTY_OFFICER_ROLES.has(role)) {
+        throw new BadRequestException(`unknown party officer role: ${role}`);
+      }
+      return {
+        partyAcronym: coerce({ key: "partyAcronym", column: "party_acronym", type: "string", required: true }, p.partyAcronym),
+        role,
+        name: coerce({ key: "name", column: "name", type: "string", required: true }, p.name),
+        imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
+        sourceUrl: coerce({ key: "sourceUrl", column: "source_url", type: "string" }, p.sourceUrl),
+      };
+    },
+    async preflight(tx, payload) {
+      const party = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        payload.partyAcronym,
+      );
+      if (party.length === 0) {
+        throw new BadRequestException(`party ${payload.partyAcronym} does not exist`);
+      }
+      const dup = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM party_officers WHERE party_acronym = $1 AND role = $2`,
+        payload.partyAcronym,
+        payload.role,
+      );
+      if (dup.length > 0) {
+        throw new BadRequestException(`${payload.partyAcronym} already has a ${payload.role}`);
+      }
+    },
+    async insert(tx, payload, ctx) {
+      const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO party_officers
+           (party_acronym, role, name, image_url, source_url, display_order,
+            confidence, source_type, review_status, last_verified_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'agent', 'reviewed', now())
+         RETURNING id`,
+        payload.partyAcronym,
+        payload.role,
+        payload.name,
+        payload.imageUrl ?? null,
+        payload.sourceUrl ?? null,
+        PARTY_OFFICER_ORDER[payload.role as string] ?? 0,
+        ctx.confidence,
+      );
+      // No officialId — party officers aren't official-scoped.
+      return { id: rows[0].id };
+    },
+  };
+}
+
 /** Tiny stable string hash for slug disambiguation (not security-sensitive). */
 function hashStr(s: string): number {
   let h = 0;
@@ -396,6 +468,8 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.
   corruption_cases: corruptionInvolvementEntity(),
+  // Party officers (chairman/secretary/party leader) — party-scoped, no official.
+  party_officers: partyOfficerEntity(),
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {
