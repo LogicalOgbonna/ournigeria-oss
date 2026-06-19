@@ -7,7 +7,6 @@ import { Building2, Globe, Mail, Phone, MapPin, User } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { PartyOfficeholdersAccordion } from "@/components/civic/PartyOfficeholdersAccordion";
 import { partyColor } from "@/lib/partyColors";
-import { stateLabel } from "@/lib/states";
 import type { PartyDetail, PartyOfficialMini, PartyOfficerView } from "@/lib/api";
 
 // Lazy-load the map (+ its geo data) so it stays off the initial bundle.
@@ -219,55 +218,6 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
             )}
           </section>
 
-          {/* 5. State chapters */}
-          <section>
-            <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-white">
-              State chapters
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {party.chapters.length} chapter{party.chapters.length === 1 ? "" : "s"} documented.
-            </p>
-            {party.chapters.length === 0 ? (
-              <p className="mt-4 text-muted-foreground">No chapters documented yet.</p>
-            ) : (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {party.chapters.map((c) => {
-                  const filled =
-                    c.chairmanName || c.secretaryName || c.hqAddress || c.phoneNumber || c.email;
-                  return (
-                    <div key={c.id} className="rounded-[10px] border border-border bg-card p-4">
-                      <div className="font-heading font-semibold text-foreground">
-                        {stateLabel(c.stateCode)}
-                      </div>
-                      {filled ? (
-                        <div className="mt-1.5 space-y-1 text-sm text-muted-foreground">
-                          {c.chairmanName && (
-                            <div>
-                              <span className="text-slate-400">Chairman:</span> {c.chairmanName}
-                            </div>
-                          )}
-                          {c.secretaryName && (
-                            <div>
-                              <span className="text-slate-400">Secretary:</span> {c.secretaryName}
-                            </div>
-                          )}
-                          {c.hqAddress && (
-                            <div className="flex items-start gap-1">
-                              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {c.hqAddress}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-1.5 text-sm text-slate-400">
-                          Chapter documented — leadership pending.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
         </div>
 
         {/* ---------- RIGHT: elected officials by position ---------- */}
