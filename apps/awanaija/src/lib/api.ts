@@ -590,4 +590,34 @@ export interface PartyDetail {
   footprint: PartyFootprint;
   statesGoverned: string[];
   candidates: PartyCandidate[];
+  seatShare: PartySeatShare;
+  budgetGoverned: PartyBudgetGoverned;
+  seatsByZone: PartySeatsByZone;
+  rank: { position: number | null; totalParties: number };
+}
+
+export interface SeatShareItem {
+  held: number;
+  total: number;
+}
+
+export interface PartySeatShare {
+  governorships: SeatShareItem;
+  senate: SeatShareItem;
+  house: SeatShareItem;
+  stateAssembly: SeatShareItem;
+  lga: SeatShareItem;
+}
+
+export interface PartyBudgetGoverned {
+  totalNaira: string | null;
+  totalRaw: number;
+  statesGoverned: number;
+  statesWithData: number;
+  topStates: { stateCode: string; name: string; naira: string; raw: number }[];
+}
+
+export interface PartySeatsByZone {
+  zones: { zoneCode: string; zoneName: string; seats: number }[];
+  strongestZone: string | null;
 }

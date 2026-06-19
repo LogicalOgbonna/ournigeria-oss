@@ -30,6 +30,26 @@ interface CandidateRow {
   scope_label: string | null;
 }
 
+/** Seat-share band: held vs national total per chamber. */
+function buildSeatShare(byRole: Record<string, number>, roleTotals: Record<string, number>) {
+  const mk = (role: string) => ({ held: byRole[role] ?? 0, total: roleTotals[role] ?? 0 });
+  return {
+    governorships: mk("governor"),
+    senate: mk("senator"),
+    house: mk("rep"),
+    stateAssembly: mk("mha"),
+    lga: mk("lga_chairman"),
+  };
+}
+
+/** Compact Naira: ₦1.23T / ₦45.6B / ₦7.8M / ₦12,345. */
+function formatNaira(n: number): string {
+  if (n >= 1e12) return `₦${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `₦${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `₦${(n / 1e6).toFixed(1)}M`;
+  return `₦${Math.round(n).toLocaleString()}`;
+}
+
 @Injectable()
 export class PartiesService {
   constructor(private prisma: PrismaService) {}
@@ -122,11 +142,19 @@ export class PartiesService {
       throw new NotFoundException("Party not found");
     }
 
-    const [footprint, statesGoverned, candidates] = await Promise.all([
+    const [footprint, statesGoverned, candidates, seatTotals] = await Promise.all([
       this.computeFootprint(acronym),
       this.computeStatesGoverned(acronym),
       this.computeCandidates(acronym),
+      this.computeSeatTotalsAndRank(acronym),
     ]);
+
+    const [budgetGoverned, seatsByZone] = await Promise.all([
+      this.computeBudgetGoverned(statesGoverned),
+      this.computeSeatsByZone(footprint.seatsByState),
+    ]);
+
+    const seatShare = buildSeatShare(footprint.byRole, seatTotals.roleTotals);
 
     return {
       acronym: party.acronym,
@@ -160,7 +188,120 @@ export class PartiesService {
       footprint,
       statesGoverned,
       candidates,
+      seatShare,
+      budgetGoverned,
+      seatsByZone,
+      rank: seatTotals.rank,
     };
+  }
+
+  /**
+   * National per-role seat totals (denominators for the seat-share band) + this
+   * party's rank by total active seats among all parties (ties broken by acronym).
+   */
+  private async computeSeatTotalsAndRank(acronym: string) {
+    const [roleGroups, partyGroups] = await Promise.all([
+      this.prisma.officialPosition.groupBy({
+        by: ["role"],
+        where: { status: "active", partyAcronym: { not: null } },
+        _count: { _all: true },
+      }),
+      this.prisma.officialPosition.groupBy({
+        by: ["partyAcronym"],
+        where: { status: "active", partyAcronym: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const roleTotals: Record<string, number> = {};
+    for (const g of roleGroups) roleTotals[g.role] = g._count._all;
+
+    const ranked = partyGroups
+      .map((g) => ({ acronym: g.partyAcronym as string, seats: g._count._all }))
+      .sort((a, b) => b.seats - a.seats || a.acronym.localeCompare(b.acronym));
+    const idx = ranked.findIndex((p) => p.acronym === acronym);
+
+    return {
+      roleTotals,
+      // position is null for a party that holds no seats (badge omitted).
+      rank: { position: idx >= 0 ? idx + 1 : null, totalParties: ranked.length },
+    };
+  }
+
+  /**
+   * Combined approved budget of the states the party governs. For each governed
+   * state's fiscal entity (= state code), take its latest budgeted fiscal year and
+   * SUM(approved_budget). Empty on environments without ingested budget data.
+   */
+  private async computeBudgetGoverned(statesGoverned: string[]) {
+    const empty = {
+      totalNaira: null as string | null,
+      totalRaw: 0,
+      statesGoverned: statesGoverned.length,
+      statesWithData: 0,
+      topStates: [] as { stateCode: string; name: string; naira: string; raw: number }[],
+    };
+    if (statesGoverned.length === 0) return empty;
+
+    const placeholders = statesGoverned.map((_, i) => `$${i + 1}`).join(", ");
+    const rows = await this.prisma.$queryRawUnsafe<{ state_code: string; total: string | null }[]>(
+      `WITH latest AS (
+         SELECT entity_code, max(fiscal_year) AS fy
+         FROM budget_line_items
+         WHERE entity_code IN (${placeholders})
+         GROUP BY entity_code
+       )
+       SELECT b.entity_code AS state_code, SUM(b.approved_budget)::numeric AS total
+       FROM budget_line_items b
+       JOIN latest l ON l.entity_code = b.entity_code AND l.fy = b.fiscal_year
+       GROUP BY b.entity_code`,
+      ...statesGoverned,
+    );
+    if (rows.length === 0) return empty;
+
+    const names = await this.prisma.nigerianState.findMany({
+      where: { code: { in: statesGoverned } },
+      select: { code: true, name: true },
+    });
+    const nameOf = new Map(names.map((n) => [n.code, n.name]));
+
+    const perState = rows
+      .map((r) => ({ stateCode: r.state_code, raw: Number(r.total) || 0 }))
+      .filter((s) => s.raw > 0);
+    const totalRaw = perState.reduce((a, s) => a + s.raw, 0);
+    const topStates = perState
+      .sort((a, b) => b.raw - a.raw)
+      .slice(0, 5)
+      .map((s) => ({ stateCode: s.stateCode, name: nameOf.get(s.stateCode) ?? s.stateCode, naira: formatNaira(s.raw), raw: s.raw }));
+
+    return {
+      totalNaira: totalRaw > 0 ? formatNaira(totalRaw) : null,
+      totalRaw,
+      statesGoverned: statesGoverned.length,
+      statesWithData: perState.length,
+      topStates,
+    };
+  }
+
+  /** Seats per geopolitical zone (regional strongholds), strongest zone first. */
+  private async computeSeatsByZone(seatsByState: Record<string, number>) {
+    const stateZones = await this.prisma.$queryRaw<
+      { state_code: string; zone_code: string; zone_name: string }[]
+    >`
+      SELECT s.code AS state_code, z.code AS zone_code, z.name AS zone_name
+      FROM nigerian_states s
+      JOIN geopolitical_zones z ON z.code = s.zone_code
+    `;
+    const agg = new Map<string, { zoneCode: string; zoneName: string; seats: number }>();
+    for (const sz of stateZones) {
+      const seats = seatsByState[sz.state_code] ?? 0;
+      if (seats <= 0) continue;
+      const cur = agg.get(sz.zone_code) ?? { zoneCode: sz.zone_code, zoneName: sz.zone_name, seats: 0 };
+      cur.seats += seats;
+      agg.set(sz.zone_code, cur);
+    }
+    const zones = Array.from(agg.values()).sort((a, b) => b.seats - a.seats);
+    return { zones, strongestZone: zones[0]?.zoneName ?? null };
   }
 
   /** State codes where the party holds the governorship (active). Drives the map. */

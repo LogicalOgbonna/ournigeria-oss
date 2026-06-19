@@ -7,7 +7,15 @@ import { Building2, Globe, Mail, Phone, MapPin, User } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { PartyOfficeholdersAccordion } from "@/components/civic/PartyOfficeholdersAccordion";
 import { partyColor } from "@/lib/partyColors";
-import type { PartyDetail, PartyOfficialMini, PartyOfficerView } from "@/lib/api";
+import type {
+  PartyDetail,
+  PartyOfficialMini,
+  PartyOfficerView,
+  PartySeatShare,
+  SeatShareItem,
+  PartyBudgetGoverned,
+  PartySeatsByZone,
+} from "@/lib/api";
 
 // Lazy-load the map (+ its geo data) so it stays off the initial bundle.
 const NigeriaChoropleth = dynamic(
@@ -95,6 +103,15 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
                       {party.inecStatus}
                     </span>
                   )}
+                  {party.rank?.position === 1 ? (
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                      Nigeria&apos;s largest party
+                    </span>
+                  ) : party.rank?.position ? (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {ordinal(party.rank.position)}-largest party by seats
+                    </span>
+                  ) : null}
                 </div>
                 {meta.length > 0 && (
                   <p className="mt-2 text-sm text-muted-foreground">{meta.join(" · ")}</p>
@@ -135,6 +152,9 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
             )}
           </section>
 
+          {/* Power at a glance — seat share */}
+          <SeatShareBand share={party.seatShare} />
+
           {/* 2. Party leadership (officers) */}
           {officers.length > 0 && (
             <section>
@@ -149,25 +169,26 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
             </section>
           )}
 
-          {/* 3. States governed */}
+          {/* 3. States governed + spending + regional strongholds */}
           <section>
             <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-white">
               States governed
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {statesGoverned.length > 0
-                ? `Holds the governorship in ${statesGoverned.length} ${statesGoverned.length === 1 ? "state" : "states"}.`
-                : "Holds no governorships."}
-            </p>
-            {statesGoverned.length > 0 && (
-              <div className="mt-4">
-                <NigeriaChoropleth
-                  valuesByState={governedValues}
-                  breakdownByState={party.footprint?.seatsByStateByRole}
-                  color={color}
-                  className="mx-auto max-w-xl"
-                />
-              </div>
+            {statesGoverned.length === 0 ? (
+              <p className="mt-1 text-sm text-muted-foreground">Holds no governorships.</p>
+            ) : (
+              <>
+                <BudgetGoverned budget={party.budgetGoverned} statesGoverned={statesGoverned.length} />
+                <div className="mt-4">
+                  <NigeriaChoropleth
+                    valuesByState={governedValues}
+                    breakdownByState={party.footprint?.seatsByStateByRole}
+                    color={color}
+                    className="mx-auto max-w-xl"
+                  />
+                </div>
+                <ZoneBars data={party.seatsByZone} />
+              </>
             )}
           </section>
 
@@ -218,6 +239,133 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
 
 function prettyElectionType(t: string): string {
   return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+function SeatShareBand({ share }: { readonly share: PartySeatShare }) {
+  if (!share) return null;
+  const main: { label: string; item: SeatShareItem }[] = [
+    { label: "Governorships", item: share.governorships },
+    { label: "Senate", item: share.senate },
+    { label: "House of Reps", item: share.house },
+  ];
+  return (
+    <section>
+      <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-white">
+        Power at a glance
+      </h2>
+      <div className="mt-4 grid gap-5 rounded-[10px] border border-border bg-card p-5 sm:grid-cols-3">
+        {main.map(({ label, item }) => {
+          const pct = item.total > 0 ? Math.round((item.held / item.total) * 100) : 0;
+          return (
+            <div key={label}>
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+                <span className="font-mono text-xs text-muted-foreground">{pct}%</span>
+              </div>
+              <div className="mt-1 font-mono text-2xl font-bold text-slate-900 dark:text-white">
+                {item.held}
+                <span className="text-base font-normal text-muted-foreground"> / {item.total}</span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Also holds {share.stateAssembly.held.toLocaleString()} of{" "}
+        {share.stateAssembly.total.toLocaleString()} state-assembly seats and{" "}
+        {share.lga.held.toLocaleString()} of {share.lga.total.toLocaleString()} LGA chairs.
+      </p>
+    </section>
+  );
+}
+
+function BudgetGoverned({
+  budget,
+  statesGoverned,
+}: {
+  readonly budget: PartyBudgetGoverned;
+  readonly statesGoverned: number;
+}) {
+  if (!budget?.totalNaira) {
+    return (
+      <p className="mt-1 text-sm text-muted-foreground">
+        Holds the governorship in {statesGoverned} {statesGoverned === 1 ? "state" : "states"}.
+      </p>
+    );
+  }
+  const maxRaw = Math.max(...budget.topStates.map((s) => s.raw), 1);
+  return (
+    <div className="mt-2">
+      <p className="text-lg leading-relaxed text-slate-800 dark:text-slate-200">
+        Governs <span className="font-semibold">{statesGoverned}</span> states with{" "}
+        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+          {budget.totalNaira}
+        </span>{" "}
+        in combined approved budgets.
+      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Based on {budget.statesWithData} of {budget.statesGoverned} states with budget data.
+      </p>
+      {budget.topStates.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {budget.topStates.map((s) => (
+            <div key={s.stateCode} className="flex items-center gap-2">
+              <span className="w-24 shrink-0 truncate text-xs text-muted-foreground">{s.name}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${Math.round((s.raw / maxRaw) * 100)}%` }}
+                />
+              </div>
+              <span className="w-16 shrink-0 text-right font-mono text-xs text-slate-700 dark:text-slate-300">
+                {s.naira}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ZoneBars({ data }: { readonly data: PartySeatsByZone }) {
+  if (!data?.zones?.length) return null;
+  const max = Math.max(...data.zones.map((z) => z.seats), 1);
+  return (
+    <div className="mt-6">
+      <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-slate-400">
+        Regional strongholds
+      </h3>
+      <div className="mt-3 space-y-1.5">
+        {data.zones.map((z) => {
+          const strongest = z.zoneName === data.strongestZone;
+          return (
+            <div key={z.zoneCode} className="flex items-center gap-2">
+              <span className="w-28 shrink-0 text-xs text-muted-foreground">{z.zoneName}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full ${strongest ? "bg-emerald-600" : "bg-emerald-400/60"}`}
+                  style={{ width: `${Math.round((z.seats / max) * 100)}%` }}
+                />
+              </div>
+              <span className="w-10 shrink-0 text-right font-mono text-xs text-slate-700 dark:text-slate-300">
+                {z.seats}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function OfficerCard({ officer }: { readonly officer: PartyOfficerView }) {

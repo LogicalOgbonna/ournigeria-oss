@@ -76,6 +76,19 @@ test.describe('Political parties @web', () => {
     await expect(page.getByRole('heading', { name: 'States governed' })).toBeVisible();
   });
 
+  test('detail shows the power-at-a-glance band and rank badge', async ({ page, request }) => {
+    const res = await request.get('/api/parties');
+    const list = (await res.json()) as Array<{ acronym: string; seats: number }>;
+    const top = list.sort((a, b) => b.seats - a.seats)[0];
+    await page.goto(`/parties/${top.acronym}`);
+
+    await expect(page.getByRole('heading', { name: 'Power at a glance' })).toBeVisible();
+    // A chamber seat-share like "64 / 109".
+    await expect(page.getByText(/\d+ \/ \d+/).first()).toBeVisible();
+    // The top party carries the "largest party" rank badge.
+    await expect(page.getByText(/largest party/i).first()).toBeVisible();
+  });
+
   test('detail renders the candidates (flagbearers) section', async ({ page, request }) => {
     const party = await pickParty(request);
     await page.goto(`/parties/${party.acronym}`);
