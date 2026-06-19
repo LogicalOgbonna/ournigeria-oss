@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon,
 import {
   getOfficialById,
   createProposal,
+  claimProposal,
   getParties,
   type Official,
 } from "@/lib/api";
@@ -122,6 +123,29 @@ function IdentifyOfficialContent() {
               Back to Representatives
             </Link>
           </div>
+          {form.isAnonymous && form.newProposalId && !form.showAuth && (
+            <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => form.setShowAuth(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {form.showAuth && form.newProposalId && (
+            <AuthModal
+              onVerified={() => {
+                form.setShowAuth(false);
+                claimProposal(form.newProposalId!).catch(() => {});
+                form.setIsAnonymous(false);
+              }}
+              onClose={() => form.setShowAuth(false)}
+            />
+          )}
         </div>
       </main>
     );
@@ -195,13 +219,6 @@ function IdentifyOfficialContent() {
           </>
         )}
       </div>
-
-      {form.showAuth && (
-        <AuthModal
-          onVerified={() => { form.setShowAuth(false); form.submit(); }}
-          onClose={() => form.setShowAuth(false)}
-        />
-      )}
     </main>
   );
 }
@@ -226,6 +243,21 @@ function EditOfficialContent() {
   useEffect(() => {
     getParties().then(setParties).catch(() => {});
   }, []);
+
+  // `useSearchParams()` is empty during the prerendered shell, so the initial
+  // `useState(fieldParam || "")` above can miss the URL value and leave the
+  // field on "Select a field". Re-sync on the client — prefer the reactive
+  // param, but fall back to reading the live URL so a `?targetField=`/`?field=`
+  // link auto-selects the field even if the hook hasn't resolved yet.
+  useEffect(() => {
+    if (fieldParam) {
+      setTargetField(fieldParam);
+      return;
+    }
+    const sp = new URLSearchParams(window.location.search);
+    const fromUrl = sp.get("targetField") || sp.get("field");
+    if (fromUrl) setTargetField(fromUrl);
+  }, [fieldParam]);
   const [proposedValue, setProposedValue] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
 
@@ -233,6 +265,8 @@ function EditOfficialContent() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
+  const [proposalId, setProposalId] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     if (!officialId) {
@@ -258,13 +292,15 @@ function EditOfficialContent() {
     setError(null);
 
     try {
-      await createProposal({
+      const result = await createProposal({
         officialId,
         positionId: official?.positions?.[0]?.id,
         targetField,
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
       });
+      setProposalId(result.id);
+      setIsAnonymous(result.trust === "anonymous");
       // Revalidate the official's page cache so it shows this proposal
       fetch("/api/revalidate", {
         method: "POST",
@@ -275,10 +311,7 @@ function EditOfficialContent() {
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       if (e.status === 429) {
-        setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (e.status === 401) {
-        setShowOtp(true);
-        setError(null);
+        setError("You've submitted too many proposals recently. Please try again later.");
       } else {
         setError((e.message as string) || "Failed to submit proposal");
       }
@@ -316,6 +349,29 @@ function EditOfficialContent() {
             >
               Back to {official.name}&apos;s profile
             </Link>
+          )}
+          {isAnonymous && proposalId && !showOtp && (
+            <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => setShowOtp(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {showOtp && proposalId && (
+            <OtpModal
+              onVerified={() => {
+                setShowOtp(false);
+                claimProposal(proposalId).catch(() => {});
+                setIsAnonymous(false);
+              }}
+              onClose={() => setShowOtp(false)}
+            />
           )}
         </div>
       </main>
@@ -497,17 +553,6 @@ function EditOfficialContent() {
           </p>
         </form>
       </div>
-
-      {/* OTP Modal */}
-      {showOtp && (
-        <OtpModal
-          onVerified={() => {
-            setShowOtp(false);
-            handleSubmit();
-          }}
-          onClose={() => setShowOtp(false)}
-        />
-      )}
     </main>
   );
 }

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import {
   getParties, getStates, getLgas, getWards, getConstituencies,
-  identifyOfficial,
+  identifyOfficial, claimProposal,
 } from "@/lib/api";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -108,6 +108,8 @@ export function useIdentifyForm(ctx: ProposalContext) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [newOfficialId, setNewOfficialId] = useState<string | null>(null);
+  const [newProposalId, setNewProposalId] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuth, setShowAuth] = useState(false);
 
@@ -153,11 +155,12 @@ export function useIdentifyForm(ctx: ProposalContext) {
         constituencyCode: constituencyCode || undefined,
       });
       setNewOfficialId(result.officialId);
+      setNewProposalId(result.id);
+      setIsAnonymous(result.trust === "anonymous");
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
-      if (e.status === 401) { setShowAuth(true); setError(null); }
-      else if (e.status === 429) setError("Daily limit reached (5 per day). Try again tomorrow.");
+      if (e.status === 429) setError("You've submitted too many recently. Please try again later.");
       else setError((e.message as string) || "Failed to submit");
     } finally {
       setSubmitting(false);
@@ -172,7 +175,8 @@ export function useIdentifyForm(ctx: ProposalContext) {
     constituencyCode, setConstituencyCode, constituencyName, setConstituencyName,
     name, setName, party, setParty, imageUrl, setImageUrl,
     profile, setProfile, sourceUrl, setSourceUrl,
-    parties, submitting, success, newOfficialId, error, showAuth, setShowAuth,
+    parties, submitting, success, newOfficialId, newProposalId, isAnonymous, setIsAnonymous,
+    error, showAuth, setShowAuth,
     depth, locationComplete, coreReady, locationLabel, submit,
   };
 }
@@ -593,6 +597,7 @@ export function SubmitButton({ form, label = "Submit" }: { form: IdentifyForm; l
 }
 
 export function SuccessCard({ form }: { form: IdentifyForm }) {
+  const [showAuth, setShowAuth] = useState(false);
   return (
     <div className="text-center pt-10">
       <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
@@ -604,6 +609,25 @@ export function SuccessCard({ form }: { form: IdentifyForm }) {
         <Link href={`/officials/${form.newOfficialId}`} className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg">
           View Profile
         </Link>
+      )}
+      {form.isAnonymous && form.newProposalId && !showAuth && (
+        <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+          Want to track this contribution?{" "}
+          <button type="button" onClick={() => setShowAuth(true)} className="font-medium text-emerald-600 hover:underline">
+            Log in
+          </button>{" "}
+          and we&apos;ll notify you when it&apos;s reviewed.
+        </p>
+      )}
+      {showAuth && form.newProposalId && (
+        <AuthModal
+          onVerified={() => {
+            setShowAuth(false);
+            claimProposal(form.newProposalId!).catch(() => {});
+            form.setIsAnonymous(false);
+          }}
+          onClose={() => setShowAuth(false)}
+        />
       )}
     </div>
   );
