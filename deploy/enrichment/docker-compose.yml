@@ -48,6 +48,42 @@ services:
     networks: [enrichment, devdb]
     command: ["gateway", "run"]
 
+  # Autonomous structured-data sweeper (control plane). Opt-in via the `sweeper`
+  # compose profile so it never auto-starts until you enable it:
+  #   infisical run --env dev -- docker compose -f deploy/enrichment/docker-compose.yml --profile sweeper up -d sweeper
+  # Reuses the agent image (has node + bundled tools + the hermes binary) but
+  # bypasses the gateway entrypoint to run the sweeper directly. Shares the agent's
+  # seeded Hermes home (skills/config/.env) so its per-gap `hermes -z` calls work.
+  sweeper:
+    image: ournigeria-enrichment-agent
+    container_name: enrichment_sweeper
+    restart: unless-stopped
+    profiles: ["sweeper"]
+    depends_on: [agent, camofox]
+    user: "10000:10000"
+    entrypoint: ["node"]
+    command: ["/opt/enrichment-tools/sweeper.cjs"]
+    environment:
+      HERMES_HOME: "/opt/data"
+      OPENAI_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
+      ENRICHMENT_AGENT_DATABASE_URL: "${ENRICHMENT_AGENT_DATABASE_URL:?set-via-infisical-run}"
+      CAMOFOX_URL: "http://camofox:9377"
+      # Conservative defaults — override per environment.
+      SWEEPER_BATCH: "${SWEEPER_BATCH:-5}"
+      SWEEPER_PACE_MS: "${SWEEPER_PACE_MS:-90000}"
+      SWEEPER_IDLE_MS: "${SWEEPER_IDLE_MS:-900000}"
+      SWEEPER_DAILY_CAP: "${SWEEPER_DAILY_CAP:-100}"
+      SWEEPER_RECHECK_FILLED_DAYS: "${SWEEPER_RECHECK_FILLED_DAYS:-180}"
+      SWEEPER_RECHECK_NOTHING_DAYS: "${SWEEPER_RECHECK_NOTHING_DAYS:-90}"
+      SWEEPER_RECHECK_ERROR_DAYS: "${SWEEPER_RECHECK_ERROR_DAYS:-1}"
+      # Kill switch: set SWEEPER_KILL=1 (or touch the kill file in the volume) to halt.
+      SWEEPER_KILL: "${SWEEPER_KILL:-0}"
+      SWEEPER_KILL_FILE: "/opt/data/enrichment-sweeper.kill"
+    volumes:
+      - enrichment_home:/opt/data   # shared with agent → seeded skills/config/.env
+    networks: [enrichment, devdb]
+
 networks:
   enrichment:
     driver: bridge

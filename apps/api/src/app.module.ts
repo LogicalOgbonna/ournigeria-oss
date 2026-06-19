@@ -24,6 +24,7 @@ import { CompletenessModule } from "./completeness/completeness.module";
 import { ActivityModule } from "./activity/activity.module";
 import { ContactModule } from "./contact/contact.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
+import { CorruptionCasesModule } from "./corruption-cases/corruption-cases.module";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
     ActivityModule,
     ContactModule,
     EnrichmentModule,
+    CorruptionCasesModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [
