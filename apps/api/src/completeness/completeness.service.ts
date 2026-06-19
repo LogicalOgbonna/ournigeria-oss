@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "@ournigeria/database";
 import {
+  PrismaService,
   COMPLETENESS_FLAT_FIELDS,
   computeOfficialCompleteness,
-} from "@ournigeria/shared-types";
+} from "@ournigeria/database";
 
 /**
  * The ONE place official completeness is computed (Plan 45c, Fix #4).

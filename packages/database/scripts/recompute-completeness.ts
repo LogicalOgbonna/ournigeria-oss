@@ -11,12 +11,10 @@
  */
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
-// Relative import: @ournigeria/shared-types is not a dependency of the
-// database package, and this one-off script doesn't justify adding it.
 import {
   COMPLETENESS_FLAT_FIELDS,
   computeOfficialCompleteness,
-} from "../../shared-types/src/index";
+} from "../src/completeness";
 
 const BATCH = 500;
 
