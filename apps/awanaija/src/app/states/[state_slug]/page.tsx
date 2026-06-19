@@ -239,7 +239,11 @@ export default async function StatePage({
                     State Snapshot
                   </p>
                     <span className="font-sans text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-muted text-foreground">
-                      {governor?.party || "N/A"}
+                      {governor?.party ? (
+                        <Link href={`/parties/${governor.party}`} className="hover:text-emerald-600 dark:hover:text-emerald-400">
+                          {governor.party}
+                        </Link>
+                      ) : "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">

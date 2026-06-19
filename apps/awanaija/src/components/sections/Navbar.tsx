@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X } from "lucide-react";
+import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X, Landmark } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGIN_URL } from "@/lib/constants";
 
@@ -83,6 +83,13 @@ export function Navbar() {
                     <div>
                       <div className="text-sm font-medium text-foreground">Contribution Updates</div>
                       <div className="text-xs text-muted-foreground">Recent contributions, you should contribute too</div>
+                    </div>
+                  </Link>
+                  <Link href="/parties" className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors">
+                    <Landmark className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Political Parties</div>
+                      <div className="text-xs text-muted-foreground">Who holds power, by party</div>
                     </div>
                   </Link>
                 </div>

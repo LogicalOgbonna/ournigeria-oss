@@ -24,13 +24,14 @@ export const metadata: Metadata = {
 export default async function OfficialsDirectoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; role?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; role?: string; party?: string; page?: string }>;
 }) {
-  const { search = "", role = "", page = "1" } = await searchParams;
-  
+  const { search = "", role = "", party = "", page = "1" } = await searchParams;
+
   const params: Record<string, string> = { page, limit: "24" };
   if (search) params.search = search;
   if (role) params.role = role;
+  if (party) params.party = party;
   
   const res = await getOfficials(params);
 
