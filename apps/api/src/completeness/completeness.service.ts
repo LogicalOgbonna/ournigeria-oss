@@ -1,35 +1,80 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+import {
+  COMPLETENESS_FLAT_FIELDS,
+  computeOfficialCompleteness,
+} from "@ournigeria/shared-types";
 
-// Must match TRACKED_FIELDS in officials.service.ts
-const COMPLETENESS_SQL = `
-  (
-    CASE WHEN o.name          IS NOT NULL AND o.name          <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.image_url     IS NOT NULL AND o.image_url     <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.email         IS NOT NULL AND o.email         <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.phone_number  IS NOT NULL AND o.phone_number  <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.office_address IS NOT NULL AND o.office_address <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.twitter_handle IS NOT NULL AND o.twitter_handle <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.facebook_url  IS NOT NULL AND o.facebook_url  <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.education     IS NOT NULL AND o.education     <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.biography     IS NOT NULL AND o.biography     <> '' THEN 1 ELSE 0 END +
-    CASE WHEN o.gender        IS NOT NULL AND o.gender        <> '' THEN 1 ELSE 0 END
-  )::decimal / 10
-`;
-
+/**
+ * The ONE place official completeness is computed (Plan 45c, Fix #4).
+ * Definition lives in @ournigeria/shared-types. recompute() persists the
+ * score to nigerian_officials.completeness_score; the ranking queries read
+ * that stored column (AVG) instead of re-deriving their own formula.
+ */
 @Injectable()
 export class CompletenessService {
   constructor(private prisma: PrismaService) {}
 
+  /** Recompute + persist one official's score. Safe to call post-commit. */
+  async recompute(officialId: string): Promise<number | null> {
+    const official = await this.prisma.nigerianOfficial.findUnique({
+      where: { id: officialId },
+      select: {
+        name: true,
+        imageUrl: true,
+        email: true,
+        phoneNumber: true,
+        officeAddress: true,
+        twitterHandle: true,
+        facebookUrl: true,
+        gender: true,
+        biography: true,
+        education: true,
+        officialType: true,
+        _count: {
+          select: {
+            educationRecords: true,
+            careers: true,
+            positions: true,
+            partyAffiliations: true,
+            elections: true,
+          },
+        },
+      },
+    });
+    if (!official) return null;
+
+    const filled = (v: string | null) => v != null && v !== "";
+    const score = computeOfficialCompleteness({
+      officialType: official.officialType,
+      flat: Object.fromEntries(
+        COMPLETENESS_FLAT_FIELDS.map((f) => [f, filled((official as any)[f])]),
+      ) as any,
+      biography: filled(official.biography),
+      education: filled(official.education) || official._count.educationRecords > 0,
+      career: official._count.careers > 0,
+      positions: official._count.positions > 0,
+      partyHistory: official._count.partyAffiliations > 0,
+      elections: official._count.elections > 0,
+    });
+
+    await this.prisma.nigerianOfficial.update({
+      where: { id: officialId },
+      data: { completenessScore: score },
+    });
+    return score;
+  }
+
   async getStateRankings() {
     // Derive each position's state: directly from state_code (governors),
     // via constituency (senators/reps), or via LGA (chairmen).
+    // Rankings average the STORED completeness_score (kept fresh by recompute()).
     const rows: { state_code: string; state_name: string; avg_completeness: number; official_count: bigint }[] =
       await this.prisma.$queryRawUnsafe(`
         SELECT
           s.code   AS state_code,
           s.name   AS state_name,
-          COALESCE(AVG(${COMPLETENESS_SQL}), 0) AS avg_completeness,
+          COALESCE(AVG(o.completeness_score), 0) AS avg_completeness,
           COUNT(DISTINCT o.id) AS official_count
         FROM nigerian_states s
         LEFT JOIN (
@@ -64,7 +109,7 @@ export class CompletenessService {
         SELECT
           l.code   AS lga_code,
           l.name   AS lga_name,
-          COALESCE(AVG(${COMPLETENESS_SQL}), 0) AS avg_completeness,
+          COALESCE(AVG(o.completeness_score), 0) AS avg_completeness,
           COUNT(DISTINCT o.id) AS official_count
         FROM nigerian_lgas l
         LEFT JOIN official_positions p

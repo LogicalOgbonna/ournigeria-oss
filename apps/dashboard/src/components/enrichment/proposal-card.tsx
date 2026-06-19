@@ -12,6 +12,49 @@ import type { ChangeProposal, CouncilorProposedEntity } from "@/app/dashboard/en
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
 
+/** "official_education" → "education record" — human label for a create payload. */
+function tableLabel(targetTable: string): string {
+  return `${targetTable.replace(/^official_/, "").replace(/_/g, " ").replace(/s$/, "")} record`;
+}
+
+/**
+ * Generic renderer for Plan-45 structured create payloads (education, elections,
+ * careers, …): a key/value grid of the proposed row. Unknown/non-object payloads
+ * fall back to raw JSON so the reviewer always sees exactly what will be written.
+ */
+function StructuredCreatePayload({ targetTable, payload }: { targetTable: string; payload: unknown }) {
+  if (payload === null || typeof payload !== "object" || Array.isArray(payload)) {
+    return (
+      <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+        <p className="font-medium">New {tableLabel(targetTable)}</p>
+        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      </div>
+    );
+  }
+  const entries = Object.entries(payload as Record<string, unknown>).filter(
+    ([, v]) => v !== null && v !== undefined && v !== "",
+  );
+  return (
+    <div className="rounded-md border border-blue-200 bg-blue-50/50 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
+      <p className="font-medium">New {tableLabel(targetTable)}</p>
+      <dl className="mt-2 grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1">
+        {entries.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
+              {k.replace(/([A-Z])/g, " $1").toLowerCase()}
+            </dt>
+            <dd className="break-all font-mono text-xs">
+              {typeof v === "object" ? JSON.stringify(v) : String(v)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export function ProposalCard({
   proposal, onApprove, onReject, onRequestMore, busy,
   selectable, selected, onToggleSelect,
@@ -94,7 +137,7 @@ export function ProposalCard({
             {/* WHAT — the field + classification */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs text-muted-foreground">
-                {isCreate ? "new record" : proposal.targetField}
+                {isCreate ? `new · ${proposal.targetTable}` : proposal.targetField}
               </span>
               <Badge className={isCorrection
                 ? "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
@@ -123,6 +166,8 @@ export function ProposalCard({
               Party: {entity.position.partyAcronym ?? "—"} · term start: {entity.position.startDate}
             </p>
           </div>
+        ) : isCreate ? (
+          <StructuredCreatePayload targetTable={proposal.targetTable} payload={proposal.proposedValue} />
         ) : (
           <div className="space-y-1 rounded-md bg-muted/40 p-2 text-sm">
             <div className="flex items-baseline gap-2">
@@ -169,7 +214,9 @@ export function ProposalCard({
         <ConfirmDialog open={approveOpen} onOpenChange={setApproveOpen}
           title={isCreate ? "Create new record?" : "Approve correction?"}
           description={isCreate
-            ? "This CREATES a new official + position in live data."
+            ? entity
+              ? "This CREATES a new official + position in live data."
+              : `This CREATES a new ${tableLabel(proposal.targetTable)} in live data (with its sources as evidence).`
             : "This OVERWRITES an existing value in live data."}
           confirmLabel="Approve" destructive onConfirm={() => onApprove(proposal.id)} />
         <ReviewNoteDialog open={rejectOpen} onOpenChange={setRejectOpen}

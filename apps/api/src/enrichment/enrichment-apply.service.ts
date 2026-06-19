@@ -3,14 +3,17 @@ import { randomBytes } from "crypto";
 import { PrismaService, slugifyName } from "@ournigeria/database";
 import { isAppliable, COMPLETENESS_FIELDS_BY_TABLE, pkClause } from "./enrichment.constants";
 import { isCreatableCouncilor } from "./councilor.constants";
+import { getCreatableEntity } from "./creatable.registry";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
 import { ImageStorageService } from "../images/image-storage.service";
+import { CompletenessService } from "../completeness/completeness.service";
 
 @Injectable()
 export class EnrichmentApplyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly imageStorage: ImageStorageService,
+    private readonly completeness: CompletenessService,
   ) {}
 
   /** Apply an approved proposal to live data, transactionally, as enrichment_apply. */
@@ -61,6 +64,17 @@ export class EnrichmentApplyService {
         targetPk,
       );
 
+      // The approved fact carries its proposal sources forward as live evidence
+      // (Plan 45c): official flat fields key as official_field + field name.
+      if (proposal.targetTable === "nigerian_officials") {
+        await this.copySourcesToEvidence(tx, proposalId, "official_field", targetPk, proposal.targetField);
+      } else if (proposal.targetTable === "official_positions") {
+        await this.copySourcesToEvidence(tx, proposalId, "position", targetPk);
+      }
+
+      // Inline completeness recompute for tables that use it (parties). Officials
+      // are excluded from COMPLETENESS_FIELDS_BY_TABLE — they recompute post-commit
+      // via the category-aware CompletenessService below.
       if (COMPLETENESS_FIELDS_BY_TABLE[proposal.targetTable]) {
         await this.recomputeCompleteness(tx, proposal.targetTable, targetPk);
       }
@@ -79,10 +93,69 @@ export class EnrichmentApplyService {
         },
       });
     });
+
+    // Post-commit by design (Plan 45c Fix #4): a crashed recompute leaves a
+    // stale score that self-heals on the next apply — never a broken apply.
+    if (proposal.targetTable === "nigerian_officials") {
+      await this.completeness.recompute(targetPk).catch(() => {});
+    }
   }
 
-  /** Apply a create proposal: insert a new official + councilor position, as enrichment_apply. */
+  /**
+   * Apply a create proposal as enrichment_apply. Two shapes:
+   *  - councilor (legacy bespoke): nigerian_officials + official_positions pair
+   *  - registry entities (Plan 45c): one structured fact row, dispatched by
+   *    targetTable via CREATABLE_ENTITIES
+   */
   private async applyCreate(
+    proposal: { id: string; targetTable: string; proposedValue: unknown; confidence: string },
+    adminId: string,
+  ): Promise<void> {
+    if (proposal.targetTable === "nigerian_officials") {
+      return this.applyCreateCouncilor(proposal, adminId);
+    }
+
+    const entity = getCreatableEntity(proposal.targetTable);
+    if (!entity) {
+      throw new BadRequestException(`not a creatable entity: ${proposal.targetTable}`);
+    }
+    const payload = entity.validate(proposal.proposedValue);
+
+    let officialId: string | undefined;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
+
+      if (entity.preflight) await entity.preflight(tx, payload);
+      const created = await entity.insert(tx, payload, {
+        adminId,
+        confidence: proposal.confidence ?? "medium",
+      });
+      officialId = created.officialId;
+
+      await this.copySourcesToEvidence(tx, proposal.id, entity.evidenceEntryType, created.id);
+
+      await tx.changeProposal.update({
+        where: { id: proposal.id },
+        data: { status: "approved", reviewedBy: adminId, reviewedAt: new Date(), appliedAt: new Date() },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          eventType: "fact_created",
+          targetType: proposal.targetTable,
+          targetId: created.id,
+          metadata: { proposalId: proposal.id, officialId: created.officialId ?? null },
+        },
+      });
+    });
+
+    if (officialId) {
+      await this.completeness.recompute(officialId).catch(() => {});
+    }
+  }
+
+  /** Legacy councilor create: insert a new official + councilor position. */
+  private async applyCreateCouncilor(
     proposal: { id: string; targetTable: string; proposedValue: unknown },
     adminId: string,
   ): Promise<void> {
@@ -99,6 +172,7 @@ export class EnrichmentApplyService {
     const ward = await this.prisma.nigerianWard.findUnique({ where: { code: pos.wardCode }, select: { code: true } });
     if (!ward) throw new BadRequestException(`ward ${pos.wardCode} does not exist`);
 
+    let officialId: string | undefined;
     await this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
 
@@ -124,17 +198,20 @@ export class EnrichmentApplyService {
         `INSERT INTO nigerian_officials (name, slug) VALUES ($1, $2) RETURNING id`,
         entity.official.name, slug,
       );
-      const officialId = created[0].id;
+      officialId = created[0].id;
 
-      await tx.$executeRawUnsafe(
+      const position = await tx.$queryRawUnsafe<{ id: string }[]>(
         `INSERT INTO official_positions
            (official_id, role, ward_code, appointment_type, status, start_date,
             party_acronym, source_type, confidence, review_status, reviewed_by)
-         VALUES ($1::uuid, 'councilor', $2, 'elected', 'active', $3::date, $4, $5, $6, 'reviewed', $7)`,
+         VALUES ($1::uuid, 'councilor', $2, 'elected', 'active', $3::date, $4, $5, $6, 'reviewed', $7)
+         RETURNING id`,
         officialId, pos.wardCode, pos.startDate, party, pos.sourceType, pos.confidence ?? "medium", adminId,
       );
 
-      await this.recomputeCompleteness(tx, "nigerian_officials", officialId);
+      // The councilor's evidence lands on the position row (the verifiable fact).
+      // Official completeness is recomputed post-commit via CompletenessService.
+      await this.copySourcesToEvidence(tx, proposal.id, "position", position[0].id);
 
       await tx.changeProposal.update({
         where: { id: proposal.id },
@@ -150,12 +227,44 @@ export class EnrichmentApplyService {
         },
       });
     });
+
+    if (officialId) {
+      await this.completeness.recompute(officialId).catch(() => {});
+    }
+  }
+
+  /**
+   * Copy a proposal's sources onto the applied fact as live evidence rows
+   * (Plan 45c). Runs inside the apply tx as enrichment_apply (INSERT granted
+   * in migration 20260612030815). Snapshot capture happens async later (45d) —
+   * rows start at snapshot_status='pending'.
+   */
+  private async copySourcesToEvidence(
+    tx: { $executeRawUnsafe(sql: string, ...params: unknown[]): Promise<number> },
+    proposalId: string,
+    entryType: string,
+    entryId: string,
+    field: string | null = null,
+  ): Promise<void> {
+    await tx.$executeRawUnsafe(
+      `INSERT INTO evidence
+         (entry_type, entry_id, field, url, archive_url, publisher, snippet,
+          format, locator, source_tier, confidence, retrieved_at)
+       SELECT $1, $2::uuid, $3, url, archive_url, publisher, snippet,
+              format, locator, source_tier, confidence, retrieved_at
+       FROM proposal_sources WHERE proposal_id = $4::uuid`,
+      entryType,
+      entryId,
+      field,
+      proposalId,
+    );
   }
 
   /**
    * Recompute completeness = (non-null of the table's completeness fields) / count.
-   * Table-driven via COMPLETENESS_FIELDS_BY_TABLE; mirrors CompletenessService.
-   * The `table` is a static map key (not user input), so it's safe to interpolate.
+   * Table-driven via COMPLETENESS_FIELDS_BY_TABLE (parties only — officials use
+   * the category-aware CompletenessService). `table` is a static map key (not
+   * user input), so it's safe to interpolate.
    */
   private async recomputeCompleteness(tx: any, table: string, rowId: string): Promise<void> {
     const fields = COMPLETENESS_FIELDS_BY_TABLE[table];
