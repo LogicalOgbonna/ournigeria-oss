@@ -273,6 +273,7 @@ model NigerianOfficial {
   relatedAsFamily   OfficialFamilyMember[]     @relation("FamilyRelatedOfficial")
   legalCases        OfficialLegalCase[]
   enrichmentAttempts EnrichmentAttempt[]
+  partyOfficerRoles PartyOfficer[]
 
   @@map("nigerian_officials")
 }
@@ -388,6 +389,9 @@ model PartyOfficer {
   role           String    @db.VarChar(40)
   name           String    @db.VarChar(200)
   imageUrl       String?   @map("image_url") @db.VarChar(500)
+  // Links to the officer's full official record when one exists/was seeded.
+  // name/imageUrl above are kept as a denormalized display fallback.
+  officialId     String?   @map("official_id") @db.Uuid
   displayOrder   Int       @default(0) @map("display_order")
   sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
   sourceUrl      String?   @map("source_url") @db.Text
@@ -397,10 +401,12 @@ model PartyOfficer {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
-  party PoliticalParty @relation(fields: [partyAcronym], references: [acronym])
+  party    PoliticalParty    @relation(fields: [partyAcronym], references: [acronym])
+  official NigerianOfficial? @relation(fields: [officialId], references: [id])
 
   @@unique([partyAcronym, role], map: "uq_party_officer_role")
   @@index([partyAcronym], map: "idx_party_officers_party")
+  @@index([officialId], map: "idx_party_officers_official")
   @@map("party_officers")
 }
 
