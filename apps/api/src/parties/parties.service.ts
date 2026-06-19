@@ -151,7 +151,7 @@ export class PartiesService {
 
     const [budgetGoverned, seatsByZone] = await Promise.all([
       this.computeBudgetGoverned(statesGoverned),
-      this.computeSeatsByZone(footprint.seatsByState),
+      this.computeSeatsByZone(footprint.seatsByStateByRole),
     ]);
 
     const seatShare = buildSeatShare(footprint.byRole, seatTotals.roleTotals);
@@ -283,24 +283,74 @@ export class PartiesService {
     };
   }
 
-  /** Seats per geopolitical zone (regional strongholds), strongest zone first. */
-  private async computeSeatsByZone(seatsByState: Record<string, number>) {
-    const stateZones = await this.prisma.$queryRaw<
-      { state_code: string; zone_code: string; zone_name: string }[]
-    >`
-      SELECT s.code AS state_code, z.code AS zone_code, z.name AS zone_name
-      FROM nigerian_states s
-      JOIN geopolitical_zones z ON z.code = s.zone_code
-    `;
-    const agg = new Map<string, { zoneCode: string; zoneName: string; seats: number }>();
-    for (const sz of stateZones) {
-      const seats = seatsByState[sz.state_code] ?? 0;
-      if (seats <= 0) continue;
-      const cur = agg.get(sz.zone_code) ?? { zoneCode: sz.zone_code, zoneName: sz.zone_name, seats: 0 };
-      cur.seats += seats;
-      agg.set(sz.zone_code, cur);
+  /**
+   * Regional strongholds = dominance per geopolitical zone: the share of each
+   * zone's total elected seats the party holds, with a per-role breakdown
+   * (held vs zone total) so the % is fully explained. Strongest (highest %) first.
+   */
+  private async computeSeatsByZone(partyByStateRole: Record<string, Record<string, number>>) {
+    const [allRows, stateZones] = await Promise.all([
+      // All-party seats per (state, role) via the exclusive arc (zone denominators).
+      this.prisma.$queryRaw<{ role: string; state_code: string | null; n: number }[]>`
+        SELECT p.role,
+          COALESCE(p.state_code, con.state_code, lga.state_code, wlga.state_code) AS state_code,
+          count(*)::int AS n
+        FROM official_positions p
+        LEFT JOIN nigerian_constituencies con ON con.code = p.constituency_code
+        LEFT JOIN nigerian_lgas lga ON lga.code = p.lga_code
+        LEFT JOIN nigerian_wards w ON w.code = p.ward_code
+        LEFT JOIN nigerian_lgas wlga ON wlga.code = w.lga_code
+        WHERE p.status = 'active'
+        GROUP BY p.role, 2
+      `,
+      this.prisma.$queryRaw<{ state_code: string; zone_code: string; zone_name: string }[]>`
+        SELECT s.code AS state_code, z.code AS zone_code, z.name AS zone_name
+        FROM nigerian_states s
+        JOIN geopolitical_zones z ON z.code = s.zone_code
+      `,
+    ]);
+
+    const stateToZone = new Map(stateZones.map((s) => [s.state_code, { code: s.zone_code, name: s.zone_name }]));
+    // zone -> { name, roles: role -> {held,total} }
+    const zoneAgg = new Map<string, { name: string; roles: Record<string, { held: number; total: number }> }>();
+    const zoneOf = (zc: string, zn: string) => {
+      let z = zoneAgg.get(zc);
+      if (!z) { z = { name: zn, roles: {} }; zoneAgg.set(zc, z); }
+      return z;
+    };
+    const roleOf = (z: { roles: Record<string, { held: number; total: number }> }, role: string) => {
+      z.roles[role] ??= { held: 0, total: 0 };
+      return z.roles[role];
+    };
+
+    for (const r of allRows) {
+      if (!r.state_code) continue;
+      const zr = stateToZone.get(r.state_code);
+      if (!zr) continue;
+      roleOf(zoneOf(zr.code, zr.name), r.role).total += r.n;
     }
-    const zones = Array.from(agg.values()).sort((a, b) => b.seats - a.seats);
+    for (const [state, roles] of Object.entries(partyByStateRole)) {
+      const zr = stateToZone.get(state);
+      if (!zr) continue;
+      const z = zoneOf(zr.code, zr.name);
+      for (const [role, n] of Object.entries(roles)) roleOf(z, role).held += n;
+    }
+
+    const ROLE_ORDER = ["governor", "senator", "rep", "mha", "lga_chairman"];
+    const zones = Array.from(zoneAgg.entries())
+      .map(([zoneCode, z]) => {
+        const byRole = ROLE_ORDER.filter((role) => (z.roles[role]?.total ?? 0) > 0).map((role) => ({
+          role,
+          held: z.roles[role]?.held ?? 0,
+          total: z.roles[role]?.total ?? 0,
+        }));
+        const held = byRole.reduce((a, b) => a + b.held, 0);
+        const total = byRole.reduce((a, b) => a + b.total, 0);
+        return { zoneCode, zoneName: z.name, held, total, pct: total > 0 ? Math.round((held / total) * 100) : 0, byRole };
+      })
+      .filter((z) => z.held > 0)
+      .sort((a, b) => b.pct - a.pct);
+
     return { zones, strongestZone: zones[0]?.zoneName ?? null };
   }
 

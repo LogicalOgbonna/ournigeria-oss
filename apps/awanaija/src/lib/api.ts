@@ -617,7 +617,16 @@ export interface PartyBudgetGoverned {
   topStates: { stateCode: string; name: string; naira: string; raw: number }[];
 }
 
+export interface PartyZone {
+  zoneCode: string;
+  zoneName: string;
+  held: number;
+  total: number;
+  pct: number;
+  byRole: { role: string; held: number; total: number }[];
+}
+
 export interface PartySeatsByZone {
-  zones: { zoneCode: string; zoneName: string; seats: number }[];
+  zones: PartyZone[];
   strongestZone: string | null;
 }
