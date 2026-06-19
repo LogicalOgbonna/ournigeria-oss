@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { PartyCard } from "@/components/civic/PartyCard";
-import { PartyPowerRanking } from "@/components/civic/PartyPowerRanking";
 import type { PartyListItem } from "@/lib/api";
 
 type Sort = "seats" | "name" | "governorships" | "completeness";
@@ -38,70 +37,57 @@ export function PartiesDirectory({ parties }: { readonly parties: PartyListItem[
   }, [parties, search, sort, includeInactive]);
 
   return (
-    <div className="flex flex-col gap-10 lg:flex-row">
-      {/* LEFT: stats + controls + card grid */}
-      <div className="min-w-0 flex-1 space-y-6">
-        {/* Summary stats */}
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[10px] border border-border bg-card px-5 py-4">
-          <Stat label="Active parties" value={active.length.toString()} />
-          <Stat label="Seats tracked" value={totalSeats.toLocaleString()} />
-          {largest && <Stat label="Largest" value={largest.acronym} />}
-        </div>
+    <div className="space-y-6">
+      {/* Summary stats */}
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[10px] border border-border bg-card px-5 py-4">
+        <Stat label="Active parties" value={active.length.toString()} />
+        <Stat label="Seats tracked" value={totalSeats.toLocaleString()} />
+        {largest && <Stat label="Largest" value={largest.acronym} />}
+      </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Controls */}
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search parties…"
+          aria-label="Search parties"
+          className="h-9 min-w-[180px] flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-400"
+        />
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as Sort)}
+          aria-label="Sort parties"
+          className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:border-emerald-400"
+        >
+          <option value="seats">Sort: Seats</option>
+          <option value="name">Sort: Name</option>
+          <option value="governorships">Sort: Governorships</option>
+          <option value="completeness">Sort: Completeness</option>
+        </select>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search parties…"
-            aria-label="Search parties"
-            className="h-9 min-w-[180px] flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-emerald-400"
+            type="checkbox"
+            checked={includeInactive}
+            onChange={(e) => setIncludeInactive(e.target.checked)}
+            className="accent-emerald-500"
           />
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
-            aria-label="Sort parties"
-            className="h-9 rounded-lg border border-border bg-background px-2 text-sm outline-none focus:border-emerald-400"
-          >
-            <option value="seats">Sort: Seats</option>
-            <option value="name">Sort: Name</option>
-            <option value="governorships">Sort: Governorships</option>
-            <option value="completeness">Sort: Completeness</option>
-          </select>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={includeInactive}
-              onChange={(e) => setIncludeInactive(e.target.checked)}
-              className="accent-emerald-500"
-            />
-            Include inactive
-          </label>
-        </div>
-
-        {/* Grid */}
-        {visible.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
-            No parties match &ldquo;{search}&rdquo;.
-          </p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {visible.map((p) => (
-              <PartyCard key={p.acronym} party={p} />
-            ))}
-          </div>
-        )}
+          Include inactive
+        </label>
       </div>
 
-      {/* RIGHT: balance of power */}
-      <div className="w-full shrink-0 lg:w-80">
-        <div className="lg:sticky lg:top-24">
-          <h2 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Balance of power
-          </h2>
-          <PartyPowerRanking parties={active} />
+      {/* Grid (already rank-ordered by the active sort) */}
+      {visible.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
+          No parties match &ldquo;{search}&rdquo;.
+        </p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((p) => (
+            <PartyCard key={p.acronym} party={p} />
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
