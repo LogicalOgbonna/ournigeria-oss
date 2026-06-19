@@ -33,6 +33,9 @@ const ROLE_TILES = [
 export function PartyProfile({ party }: { readonly party: PartyDetail }) {
   const color = partyColor(party.acronym, party.color);
   const fp = party.footprint;
+  // Resilient to a missing block (stale cache / older API response).
+  const leadership = party["leadership"] ?? { governors: [], senators: [], otherOffices: [] };
+  const candidates = party["candidates"] ?? [];
 
   // Always show the big three; show the rest only when they have seats.
   const tiles = ROLE_TILES.filter((t, i) => i < 3 || (fp.byRole[t.key] ?? 0) > 0).map((t) => ({
@@ -147,7 +150,7 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:p-6">
+        <div className="mt-6">
           {fp.statesControlled.length > 0 ? (
             <NigeriaChoropleth
               valuesByState={fp.seatsByState}
@@ -163,9 +166,9 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
       </section>
 
       {/* Leadership — officeholders */}
-      {(party.leadership.governors.length > 0 ||
-        party.leadership.senators.length > 0 ||
-        party.leadership.otherOffices.length > 0) && (
+      {(leadership.governors.length > 0 ||
+        leadership.senators.length > 0 ||
+        leadership.otherOffices.length > 0) && (
         <section className="mt-10">
           <h2 className="font-heading text-xl font-semibold text-slate-900 dark:text-white">
             Leadership in office
@@ -174,28 +177,28 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
             Officeholders currently serving under the {party.acronym} banner.
           </p>
 
-          {party.leadership.governors.length > 0 && (
+          {leadership.governors.length > 0 && (
             <OfficeholderGroup
-              title={`Governors (${party.leadership.governors.length})`}
-              people={party.leadership.governors}
+              title={`Governors (${leadership.governors.length})`}
+              people={leadership.governors}
               color={color}
             />
           )}
-          {party.leadership.senators.length > 0 && (
+          {leadership.senators.length > 0 && (
             <OfficeholderGroup
-              title={`Senators (${party.leadership.senators.length})`}
-              people={party.leadership.senators}
+              title={`Senators (${leadership.senators.length})`}
+              people={leadership.senators}
               color={color}
             />
           )}
 
-          {party.leadership.otherOffices.length > 0 && (
+          {leadership.otherOffices.length > 0 && (
             <div className="mt-6">
               <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-slate-400">
                 Also in office
               </h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {party.leadership.otherOffices.map((o) => (
+                {leadership.otherOffices.map((o) => (
                   <Link
                     key={o.role}
                     href={`/officials?party=${party.acronym}&role=${o.role}`}
@@ -228,11 +231,11 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Candidates who won {party.acronym} primaries.
         </p>
-        {party.candidates.length === 0 ? (
+        {candidates.length === 0 ? (
           <p className="mt-4 text-slate-400">No primary winners recorded yet.</p>
         ) : (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {party.candidates.map((c, i) => (
+            {candidates.map((c, i) => (
               <OfficialMiniCard
                 key={`${c.official.id}-${c.electionType}-${c.year}-${i}`}
                 person={{
