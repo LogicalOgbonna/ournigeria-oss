@@ -295,6 +295,7 @@ export class PartiesService {
 
     const byRole: Record<string, number> = {};
     const seatsByState: Record<string, number> = {};
+    const seatsByStateByRole: Record<string, Record<string, number>> = {};
     const states = new Set<string>();
 
     for (const row of rows) {
@@ -302,6 +303,7 @@ export class PartiesService {
       if (row.state_code) {
         states.add(row.state_code);
         seatsByState[row.state_code] = (seatsByState[row.state_code] ?? 0) + row.n;
+        (seatsByStateByRole[row.state_code] ??= {})[row.role] = row.n;
       }
     }
 
@@ -315,6 +317,8 @@ export class PartiesService {
       statesControlled: Array.from(states).sort(),
       // Per-state seat totals — drives the choropleth intensity on the party page.
       seatsByState,
+      // Per-state, per-role counts — drives the map hover tooltip breakdown.
+      seatsByStateByRole,
     };
   }
 

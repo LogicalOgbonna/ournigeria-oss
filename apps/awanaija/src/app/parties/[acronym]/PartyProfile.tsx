@@ -163,6 +163,7 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
               <div className="mt-4">
                 <NigeriaChoropleth
                   valuesByState={governedValues}
+                  breakdownByState={party.footprint?.seatsByStateByRole}
                   color={color}
                   className="mx-auto max-w-xl"
                 />

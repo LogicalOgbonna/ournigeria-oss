@@ -522,6 +522,7 @@ export interface PartyFootprint {
   byRole: Record<string, number>;
   statesControlled: string[];
   seatsByState: Record<string, number>;
+  seatsByStateByRole: Record<string, Record<string, number>>;
 }
 
 export interface PartyOfficialMini {
