@@ -27,7 +27,7 @@ export default async function PartiesPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
       <Navbar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16 pt-28">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-28">
         <header className="mb-6">
           <h1 className="font-serif text-[34px] leading-tight text-slate-900 dark:text-white">
             Political Parties

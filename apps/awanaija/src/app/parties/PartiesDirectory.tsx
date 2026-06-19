@@ -38,25 +38,18 @@ export function PartiesDirectory({ parties }: { readonly parties: PartyListItem[
   }, [parties, search, sort, includeInactive]);
 
   return (
-    <div className="space-y-8">
-      {/* Summary band */}
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 rounded-[10px] border border-border bg-card px-5 py-4">
-        <Stat label="Active parties" value={active.length.toString()} />
-        <Stat label="Seats tracked" value={totalSeats.toLocaleString()} />
-        {largest && <Stat label="Largest" value={largest.acronym} />}
-      </div>
+    <div className="flex flex-col gap-10 lg:flex-row">
+      {/* LEFT: stats + controls + card grid */}
+      <div className="min-w-0 flex-1 space-y-6">
+        {/* Summary stats */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[10px] border border-border bg-card px-5 py-4">
+          <Stat label="Active parties" value={active.length.toString()} />
+          <Stat label="Seats tracked" value={totalSeats.toLocaleString()} />
+          {largest && <Stat label="Largest" value={largest.acronym} />}
+        </div>
 
-      {/* Balance of power — ranking */}
-      <section>
-        <h2 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          Balance of power
-        </h2>
-        <PartyPowerRanking parties={active} />
-      </section>
-
-      {/* Controls + grid */}
-      <section>
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+        {/* Controls */}
+        <div className="flex flex-wrap items-center gap-3">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -86,18 +79,29 @@ export function PartiesDirectory({ parties }: { readonly parties: PartyListItem[
           </label>
         </div>
 
+        {/* Grid */}
         {visible.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
             No parties match &ldquo;{search}&rdquo;.
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((p) => (
               <PartyCard key={p.acronym} party={p} />
             ))}
           </div>
         )}
-      </section>
+      </div>
+
+      {/* RIGHT: balance of power */}
+      <div className="w-full shrink-0 lg:w-80">
+        <div className="lg:sticky lg:top-24">
+          <h2 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Balance of power
+          </h2>
+          <PartyPowerRanking parties={active} />
+        </div>
+      </div>
     </div>
   );
 }
