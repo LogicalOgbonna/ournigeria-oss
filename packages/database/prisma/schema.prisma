@@ -147,6 +147,7 @@ model NigerianState {
   stateProfile      StateProfile?
   officialPositions OfficialPosition[]
   politicalTerms    PoliticalTerm[]
+  partyChapters     PartyStateChapter[]
 
   @@index([zoneCode], map: "idx_states_zone")
   @@map("nigerian_states")
@@ -322,9 +323,56 @@ model PoliticalParty {
   name     String  @db.VarChar(100)
   isActive Boolean @default(true) @map("is_active")
 
+  // Enrichable profile fields (agent-sourced). All nullable.
+  logoUrl       String? @map("logo_url") @db.VarChar(500)
+  foundingYear  Int?    @map("founding_year")
+  leaderName    String? @map("leader_name") @db.VarChar(200)
+  hqAddress     String? @map("hq_address") @db.Text
+  website       String? @db.VarChar(500)
+  email         String? @db.VarChar(255)
+  phoneNumber   String? @map("phone_number") @db.VarChar(30)
+  twitterHandle String? @map("twitter_handle") @db.VarChar(100)
+  facebookUrl   String? @map("facebook_url") @db.VarChar(500)
+  description   String? @db.Text
+  ideology      String? @db.VarChar(100)
+  slogan        String? @db.VarChar(255)
+  color         String? @db.VarChar(20)
+  inecStatus    String? @map("inec_status") @db.VarChar(50)
+
+  completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
   positions OfficialPosition[]
+  chapters  PartyStateChapter[]
 
   @@map("political_parties")
+}
+
+// Per-state party chapter. Seeded for every (party, state) where the party holds
+// an active OfficialPosition; others created on demand via the agent `create` flow.
+model PartyStateChapter {
+  id            String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partyAcronym  String  @map("party_acronym") @db.VarChar(20)
+  stateCode     String  @map("state_code") @db.VarChar(30)
+  chairmanName  String? @map("chairman_name") @db.VarChar(200)
+  secretaryName String? @map("secretary_name") @db.VarChar(200)
+  hqAddress     String? @map("hq_address") @db.Text
+  phoneNumber   String? @map("phone_number") @db.VarChar(30)
+  email         String? @db.VarChar(255)
+  website       String? @db.VarChar(500)
+  twitterHandle String? @map("twitter_handle") @db.VarChar(100)
+
+  completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  party PoliticalParty @relation(fields: [partyAcronym], references: [acronym])
+  state NigerianState  @relation(fields: [stateCode], references: [code])
+
+  @@unique([partyAcronym, stateCode], map: "uq_party_state_chapter")
+  @@index([stateCode], map: "idx_party_chapters_state")
+  @@map("party_state_chapters")
 }
 
 model NigerianWard {

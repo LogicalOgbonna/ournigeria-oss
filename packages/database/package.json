@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "infisical run -- prisma migrate deploy",
     "prisma:migrate:create": "infisical run -- npx tsx scripts/create-migration.ts",
-    "prisma:studio": "infisical run -- prisma studio"
+    "prisma:studio": "infisical run -- prisma studio",
+    "seed:party-chapters": "infisical run -- npx tsx scripts/seed-party-chapters.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "catalog:",

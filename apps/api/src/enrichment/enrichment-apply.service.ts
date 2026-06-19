@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { randomBytes } from "crypto";
 import { PrismaService, slugifyName } from "@ournigeria/database";
-import { isAppliable, OFFICIAL_COMPLETENESS_FIELDS } from "./enrichment.constants";
+import { isAppliable, COMPLETENESS_FIELDS_BY_TABLE, pkClause } from "./enrichment.constants";
 import { isCreatableCouncilor } from "./councilor.constants";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
 import { ImageStorageService } from "../images/image-storage.service";
@@ -56,13 +56,13 @@ export class EnrichmentApplyService {
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
 
       await tx.$executeRawUnsafe(
-        `UPDATE "${proposal.targetTable}" SET "${proposal.targetField}" = $1 WHERE id = $2::uuid`,
+        `UPDATE "${proposal.targetTable}" SET "${proposal.targetField}" = $1 WHERE ${pkClause(proposal.targetTable, 2)}`,
         value,
         targetPk,
       );
 
-      if (proposal.targetTable === "nigerian_officials") {
-        await this.recomputeOfficialCompleteness(tx, targetPk);
+      if (COMPLETENESS_FIELDS_BY_TABLE[proposal.targetTable]) {
+        await this.recomputeCompleteness(tx, proposal.targetTable, targetPk);
       }
 
       await tx.changeProposal.update({
@@ -134,7 +134,7 @@ export class EnrichmentApplyService {
         officialId, pos.wardCode, pos.startDate, party, pos.sourceType, pos.confidence ?? "medium", adminId,
       );
 
-      await this.recomputeOfficialCompleteness(tx, officialId);
+      await this.recomputeCompleteness(tx, "nigerian_officials", officialId);
 
       await tx.changeProposal.update({
         where: { id: proposal.id },
@@ -152,16 +152,22 @@ export class EnrichmentApplyService {
     });
   }
 
-  /** Recompute completeness = (non-null of the 10 fields) / 10. Mirrors CompletenessService. */
-  private async recomputeOfficialCompleteness(tx: any, officialId: string): Promise<void> {
-    const cols = OFFICIAL_COMPLETENESS_FIELDS
+  /**
+   * Recompute completeness = (non-null of the table's completeness fields) / count.
+   * Table-driven via COMPLETENESS_FIELDS_BY_TABLE; mirrors CompletenessService.
+   * The `table` is a static map key (not user input), so it's safe to interpolate.
+   */
+  private async recomputeCompleteness(tx: any, table: string, rowId: string): Promise<void> {
+    const fields = COMPLETENESS_FIELDS_BY_TABLE[table];
+    if (!fields) return; // table has no completeness definition; nothing to do
+    const cols = fields
       .map((f) => `(CASE WHEN "${f}" IS NOT NULL AND "${f}"::text <> '' THEN 1 ELSE 0 END)`)
       .join(" + ");
     await tx.$executeRawUnsafe(
-      `UPDATE "nigerian_officials"
-         SET "completeness_score" = ROUND(((${cols})::numeric / ${OFFICIAL_COMPLETENESS_FIELDS.length}), 2)
-       WHERE id = $1::uuid`,
-      officialId,
+      `UPDATE "${table}"
+         SET "completeness_score" = ROUND(((${cols})::numeric / ${fields.length}), 2)
+       WHERE ${pkClause(table, 1)}`,
+      rowId,
     );
   }
 

@@ -17,6 +17,7 @@ import { HealthModule } from "./health/health.module";
 import { DonationModule } from "./donation/donation.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 import { OfficialsModule } from "./officials/officials.module";
+import { PartiesModule } from "./parties/parties.module";
 import { ProposalsModule } from "./proposals/proposals.module";
 import { GeoModule } from "./geo/geo.module";
 import { CompletenessModule } from "./completeness/completeness.module";
@@ -46,6 +47,7 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
     DonationModule,
     HealthModule,
     OfficialsModule,
+    PartiesModule,
     ProposalsModule,
     GeoModule,
     CompletenessModule,
