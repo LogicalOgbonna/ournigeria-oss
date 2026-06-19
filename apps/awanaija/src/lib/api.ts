@@ -113,6 +113,15 @@ export async function getRegions() {
   return apiFetch<{ code: string; name: string }[]>("/geo/regions");
 }
 
+// Political parties (first-class entities — distinct from the /geo/parties dropdown)
+export async function getPartyDirectory(init?: RequestInit) {
+  return apiFetch<PartyListItem[]>("/parties", init);
+}
+
+export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
+  return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
+}
+
 export async function getConstituencies(stateCode: string, type?: string) {
   const qs = new URLSearchParams({ state: stateCode });
   if (type) qs.set("type", type);
@@ -302,4 +311,64 @@ export interface ActivityEntry {
   targetId: string;
   metadata: unknown;
   createdAt: string;
+}
+
+// Political parties
+export interface PartyListItem {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  completenessScore: number | null;
+  seats: number;
+}
+
+export interface PartyFootprint {
+  governors: number;
+  senators: number;
+  representatives: number;
+  byRole: Record<string, number>;
+  statesControlled: string[];
+  seatsByState: Record<string, number>;
+}
+
+export interface PartyStateChapter {
+  id: string;
+  partyAcronym: string;
+  stateCode: string;
+  chairmanName: string | null;
+  secretaryName: string | null;
+  hqAddress: string | null;
+  phoneNumber: string | null;
+  email: string | null;
+  website: string | null;
+  twitterHandle: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartyDetail {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  foundingYear: number | null;
+  leaderName: string | null;
+  hqAddress: string | null;
+  website: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  twitterHandle: string | null;
+  facebookUrl: string | null;
+  description: string | null;
+  ideology: string | null;
+  slogan: string | null;
+  color: string | null;
+  inecStatus: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+  chapters: PartyStateChapter[];
+  footprint: PartyFootprint;
 }

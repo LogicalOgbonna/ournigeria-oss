@@ -117,7 +117,17 @@ export function OfficialProfile({ official }: { official: Official }) {
               {/* Overline */}
               <div className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-emerald-400 mb-1">
                 {position?.role || "Official"}
-                {position?.party && ` · ${position.party}`}
+                {position?.party && (
+                  <>
+                    {" · "}
+                    <Link
+                      href={`/parties/${position.party}`}
+                      className="hover:text-emerald-300 hover:underline"
+                    >
+                      {position.party}
+                    </Link>
+                  </>
+                )}
               </div>
 
               {/* Name */}
