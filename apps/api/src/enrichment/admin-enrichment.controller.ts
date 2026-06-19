@@ -4,6 +4,18 @@ import { Public } from "../auth/decorators/public";
 import { AdminGuard } from "../admin/admin.guard";
 import { EnrichmentApplyService } from "./enrichment-apply.service";
 import { ChangeProposalService } from "./change-proposal.service";
+import { ENTITY_ROLE_BUCKETS } from "./entity-role";
+
+const ACTION_VALUES = ["fill", "correction", "create"];
+const ENTITY_VALUES = new Set<string>(ENTITY_ROLE_BUCKETS);
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 50;
+
+/** Parse a CSV query param into a deduped list filtered to an allow-list. */
+function parseCsv(value: string | undefined, allowed: (v: string) => boolean): string[] {
+  if (!value) return [];
+  return [...new Set(value.split(",").map((s) => s.trim()).filter((s) => s && allowed(s)))];
+}
 
 @Public()
 @Controller("admin/enrichment/proposals")
@@ -16,8 +28,21 @@ export class AdminEnrichmentController {
   ) {}
 
   @Get()
-  list(@Query("status") status?: string) {
-    return this.query.listByStatus(status ?? "pending");
+  list(
+    @Query("status") status?: string,
+    @Query("action") action?: string,
+    @Query("entity") entity?: string,
+    @Query("cursor") cursor?: string,
+    @Query("limit") limit?: string,
+  ) {
+    const parsedLimit = Math.min(MAX_LIMIT, Math.max(1, Number.parseInt(limit ?? "", 10) || DEFAULT_LIMIT));
+    return this.query.listPaginated({
+      status: status ?? "pending",
+      actions: parseCsv(action, (v) => ACTION_VALUES.includes(v)),
+      entities: parseCsv(entity, (v) => ENTITY_VALUES.has(v)),
+      cursor: cursor || undefined,
+      limit: parsedLimit,
+    });
   }
 
   @Get(":id")

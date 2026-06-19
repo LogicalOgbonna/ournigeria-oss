@@ -8,34 +8,27 @@ import { ProposalsService } from "./proposals.service";
 export class ProposalsController {
   constructor(private service: ProposalsService) {}
 
+  @Public()
   @Post()
   async create(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
-      const userId = (req as any).userId;
-      if (!userId) {
-        return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Authentication required" });
-      }
-
-      // Get user identifier for rate limiting (phone or userId fallback)
-      const identifier = await this.getUserIdentifier(req);
-
+      const { userId, phone } = await this.resolveProposer(req);
       const { officialId, positionId, targetField, proposedValue, sourceUrl } = body;
-
       if (!officialId || !targetField || proposedValue === undefined) {
         return res.status(HttpStatus.BAD_REQUEST).json({
           error: "officialId, targetField, and proposedValue are required",
         });
       }
-
       const result = await this.service.create({
         officialId,
         positionId,
-        proposerPhone: identifier,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
         targetField,
         proposedValue,
         sourceUrl,
       });
-
       return res.status(HttpStatus.CREATED).json(result);
     } catch (err: any) {
       if (err.status === 403) {
@@ -49,15 +42,11 @@ export class ProposalsController {
     }
   }
 
+  @Public()
   @Post("identify")
   async identify(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
-      const userId = (req as any).userId;
-      if (!userId) {
-        return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Authentication required" });
-      }
-
-      const identifier = await this.getUserIdentifier(req);
+      const { userId, phone } = await this.resolveProposer(req);
       const {
         name,
         role,
@@ -86,7 +75,9 @@ export class ProposalsController {
       }
 
       const result = await this.service.identify({
-        proposerPhone: identifier,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
         name,
         role,
         imageUrl,
@@ -116,6 +107,21 @@ export class ProposalsController {
         return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
       }
       console.error("identify error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Post(":id/claim")
+  async claim(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const result = await this.service.claim(id, userId);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (err: any) {
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("proposal claim error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
   }
@@ -264,6 +270,26 @@ export class ProposalsController {
       console.error("admin bulk error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
+  }
+
+  private readonly UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  /** Resolve { userId, phone } from the nb_uid cookie, or nulls if not logged in. */
+  private async resolveProposer(req: Request): Promise<{ userId: string | null; phone: string | null }> {
+    const cookieId = (req as any).cookies?.["nb_uid"];
+    if (!cookieId || !this.UUID_RE.test(cookieId)) return { userId: null, phone: null };
+    const prisma = (this.service as any).prisma;
+    const user = await prisma.user.findUnique({
+      where: { id: cookieId },
+      select: { phoneNumber: true, banned: true },
+    });
+    if (!user || user.banned) return { userId: null, phone: null };
+    return { userId: cookieId, phone: user.phoneNumber || `user:${cookieId}` };
+  }
+
+  /** Client IP from the trusted proxy chain (Express `trust proxy` is configured in main.ts). */
+  private clientIp(req: Request): string | null {
+    return req.ip || null;
   }
 
   private async getUserIdentifier(req: Request): Promise<string> {

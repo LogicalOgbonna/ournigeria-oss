@@ -35,6 +35,7 @@ interface ProposalItem {
   proposedValue: any;
   sourceUrl: string | null;
   proposerPhone: string | null;
+  trust?: "verified" | "anonymous";
   status: string;
   voteScore: number;
   upvoteCount: number;
@@ -393,8 +394,14 @@ export default function ProposalsPage() {
                       <span title={new Date(proposal.createdAt).toLocaleString()}>
                         {relativeTime(proposal.createdAt)}
                       </span>
-                      {proposal.proposerPhone && (
-                        <span className="font-mono truncate max-w-full">by {proposal.proposerPhone}</span>
+                      {proposal.trust === "anonymous" ? (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 font-medium">
+                          Anonymous
+                        </span>
+                      ) : (
+                        proposal.proposerPhone && (
+                          <span className="font-mono truncate max-w-full">by {proposal.proposerPhone}</span>
+                        )
                       )}
                       <span>{proposal.voteCount} votes</span>
                       {proposal.sourceUrl && (
