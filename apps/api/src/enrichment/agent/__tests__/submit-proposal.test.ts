@@ -47,6 +47,13 @@ describe("submitProposal (integration)", () => {
     expect(srcs.rows.every((r) => r.source_tier === "official")).toBe(true);
   });
 
+  it("stamps entity_role on insert (unknown for the all-zeros fixture official)", async () => {
+    const res = await submitProposal(agent, base());
+    ids.push(res.id);
+    const r = await owner.query(`SELECT entity_role FROM change_proposals WHERE id=$1`, [res.id]);
+    expect(r.rows[0].entity_role).toBe("unknown");
+  });
+
   it("rejects (no insert) when below the corroboration bar", async () => {
     await expect(
       submitProposal(agent, base({ sources: [base().sources[0]] })),

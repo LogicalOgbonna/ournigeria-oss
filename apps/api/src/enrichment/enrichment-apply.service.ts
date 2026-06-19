@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
-import { PrismaService } from "@ournigeria/database";
-import { isAppliable, OFFICIAL_COMPLETENESS_FIELDS } from "./enrichment.constants";
+import { randomBytes } from "crypto";
+import { PrismaService, slugifyName } from "@ournigeria/database";
+import { isAppliable, COMPLETENESS_FIELDS_BY_TABLE, pkClause } from "./enrichment.constants";
 import { isCreatableCouncilor } from "./councilor.constants";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
 import { ImageStorageService } from "../images/image-storage.service";
@@ -55,13 +56,13 @@ export class EnrichmentApplyService {
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
 
       await tx.$executeRawUnsafe(
-        `UPDATE "${proposal.targetTable}" SET "${proposal.targetField}" = $1 WHERE id = $2::uuid`,
+        `UPDATE "${proposal.targetTable}" SET "${proposal.targetField}" = $1 WHERE ${pkClause(proposal.targetTable, 2)}`,
         value,
         targetPk,
       );
 
-      if (proposal.targetTable === "nigerian_officials") {
-        await this.recomputeOfficialCompleteness(tx, targetPk);
+      if (COMPLETENESS_FIELDS_BY_TABLE[proposal.targetTable]) {
+        await this.recomputeCompleteness(tx, proposal.targetTable, targetPk);
       }
 
       await tx.changeProposal.update({
@@ -115,8 +116,13 @@ export class EnrichmentApplyService {
         if (p.length > 0) party = pos.partyAcronym;
       }
 
+      // Generate a unique SEO slug up front (mirrors the citizen create path) so the new
+      // official gets a human-readable /officials/<slug> URL instead of falling back to its UUID.
+      const slug = await this.generateUniqueOfficialSlug(tx, entity.official.name, entity.meta?.state);
+
       const created = await tx.$queryRawUnsafe<{ id: string }[]>(
-        `INSERT INTO nigerian_officials (name) VALUES ($1) RETURNING id`, entity.official.name,
+        `INSERT INTO nigerian_officials (name, slug) VALUES ($1, $2) RETURNING id`,
+        entity.official.name, slug,
       );
       const officialId = created[0].id;
 
@@ -128,7 +134,7 @@ export class EnrichmentApplyService {
         officialId, pos.wardCode, pos.startDate, party, pos.sourceType, pos.confidence ?? "medium", adminId,
       );
 
-      await this.recomputeOfficialCompleteness(tx, officialId);
+      await this.recomputeCompleteness(tx, "nigerian_officials", officialId);
 
       await tx.changeProposal.update({
         where: { id: proposal.id },
@@ -146,16 +152,51 @@ export class EnrichmentApplyService {
     });
   }
 
-  /** Recompute completeness = (non-null of the 10 fields) / 10. Mirrors CompletenessService. */
-  private async recomputeOfficialCompleteness(tx: any, officialId: string): Promise<void> {
-    const cols = OFFICIAL_COMPLETENESS_FIELDS
+  /**
+   * Recompute completeness = (non-null of the table's completeness fields) / count.
+   * Table-driven via COMPLETENESS_FIELDS_BY_TABLE; mirrors CompletenessService.
+   * The `table` is a static map key (not user input), so it's safe to interpolate.
+   */
+  private async recomputeCompleteness(tx: any, table: string, rowId: string): Promise<void> {
+    const fields = COMPLETENESS_FIELDS_BY_TABLE[table];
+    if (!fields) return; // table has no completeness definition; nothing to do
+    const cols = fields
       .map((f) => `(CASE WHEN "${f}" IS NOT NULL AND "${f}"::text <> '' THEN 1 ELSE 0 END)`)
       .join(" + ");
     await tx.$executeRawUnsafe(
-      `UPDATE "nigerian_officials"
-         SET "completeness_score" = ROUND(((${cols})::numeric / ${OFFICIAL_COMPLETENESS_FIELDS.length}), 2)
-       WHERE id = $1::uuid`,
-      officialId,
+      `UPDATE "${table}"
+         SET "completeness_score" = ROUND(((${cols})::numeric / ${fields.length}), 2)
+       WHERE ${pkClause(table, 1)}`,
+      rowId,
     );
+  }
+
+  /**
+   * Unique, human-readable slug for a new official. Mirrors proposals.service's citizen path:
+   * slugifyName(name); on collision append the state code, then a numeric suffix. Runs inside
+   * the apply tx (enrichment_apply has SELECT on nigerian_officials, so the dup check is allowed).
+   */
+  private async generateUniqueOfficialSlug(
+    tx: { nigerianOfficial: { findMany: (args: any) => Promise<{ slug: string | null }[]> } },
+    name: string,
+    stateCode?: string,
+  ): Promise<string> {
+    let base = slugifyName(name);
+    if (!base) base = `official-${randomBytes(4).toString("hex")}`;
+
+    const rows = await tx.nigerianOfficial.findMany({
+      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      select: { slug: true },
+    });
+    const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
+
+    if (!used.has(base)) return base;
+
+    const stateSuffix = stateCode ? slugifyName(stateCode) : "";
+    if (stateSuffix && !used.has(`${base}-${stateSuffix}`)) return `${base}-${stateSuffix}`;
+
+    let n = 2;
+    while (used.has(`${base}-${n}`)) n++;
+    return `${base}-${n}`;
   }
 }

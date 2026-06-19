@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useQueryState, parseAsStringEnum, parseAsArrayOf } from "nuqs";
 import { toast } from "sonner";
 import { Check, X, HelpCircle, FilterX, ChevronDown } from "lucide-react";
@@ -104,8 +104,10 @@ function EnrichmentSkeleton() {
   );
 }
 
+const PAGE_SIZE = 20;
+
 function EnrichmentView() {
-  const [proposals, setProposals] = useState<ChangeProposal[]>([]);
+  const [items, setItems] = useState<ChangeProposal[]>([]);
   const [status, setStatus] = useQueryState(
     "status", parseAsStringEnum<Status>([...STATUSES]).withDefault("pending"),
   );
@@ -116,37 +118,71 @@ function EnrichmentView() {
     "entity", parseAsArrayOf(parseAsStringEnum<EntityFilter>([...ENTITY_VALUES])).withDefault([]),
   );
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState(false);
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
 
-  const load = useCallback(async () => {
+  const filtersActive = action.length > 0 || entity.length > 0;
+
+  // status/action/entity are now server filters. Build the query for a given cursor.
+  const buildQuery = useCallback((cur: string | null) => {
+    const params = new URLSearchParams({ status, limit: String(PAGE_SIZE) });
+    if (action.length) params.set("action", action.join(","));
+    if (entity.length) params.set("entity", entity.join(","));
+    if (cur) params.set("cursor", cur);
+    return params.toString();
+  }, [status, action, entity]);
+
+  // Load (or reload) the first page. Re-runs whenever status/action/entity change, which also
+  // clears selection so a bulk action can never touch a row hidden by the current filter.
+  const loadFirst = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
-      setProposals(await enrichmentFetch(`/proposals?status=${status}`));
-      setSelected(new Set());
+      const { items, nextCursor } = await enrichmentFetch(`/proposals?${buildQuery(null)}`);
+      setItems(items);
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load proposals");
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [buildQuery]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadFirst(); }, [loadFirst]);
 
-  // Action/entity narrow the loaded status list client-side (no refetch). Each is a multi-select
-  // OR within itself, ANDed across the two; an empty selection means "all". Clear selection on
-  // filter change so a bulk action can never touch a proposal hidden by the current filter.
-  const filtersActive = action.length > 0 || entity.length > 0;
-  const filtered = useMemo(
-    () => proposals.filter(
-      (p) => (action.length === 0 || action.includes(p.changeKind as ActionFilter)) &&
-             (entity.length === 0 || entity.includes((p.entityRole ?? "unknown") as EntityFilter)),
-    ),
-    [proposals, action, entity],
-  );
-  useEffect(() => { setSelected(new Set()); }, [action, entity]);
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { items: more, nextCursor } = await enrichmentFetch(`/proposals?${buildQuery(cursor)}`);
+      setItems((prev) => [...prev, ...more]);
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load more");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [cursor, loadingMore, buildQuery]);
+
+  // Infinite scroll: pull the next page when the bottom sentinel nears the viewport.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || loading) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0]?.isIntersecting) loadMore(); },
+      { rootMargin: "400px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loading, loadMore]);
 
   function clearFilters() { setAction([]); setEntity([]); }
 
@@ -155,7 +191,7 @@ function EnrichmentView() {
     try {
       await fn();
       toast.success(ok);
-      await load();
+      await loadFirst();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
@@ -180,7 +216,7 @@ function EnrichmentView() {
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === filtered.length ? new Set() : new Set(filtered.map((p) => p.id))));
+    setSelected((prev) => (prev.size === items.length ? new Set() : new Set(items.map((p) => p.id))));
   }
 
   async function runBulk(action: BulkAction, note?: string) {
@@ -203,13 +239,13 @@ function EnrichmentView() {
       toast.error(e instanceof Error ? e.message : "Bulk action failed");
     } finally {
       setActing(false);
-      await load();
+      await loadFirst();
     }
   }
 
   const actions = bulkActionsFor(status);
   const selectable = actions.length > 0;
-  const sel = filtered.filter((p) => selected.has(p.id));
+  const sel = items.filter((p) => selected.has(p.id));
   const corrections = sel.filter((p) => p.changeKind === "correction").length;
   const creates = sel.filter((p) => p.changeKind === "create").length;
 
@@ -242,20 +278,20 @@ function EnrichmentView() {
             <FilterX className="size-4" /> Clear filters
           </Button>
         )}
-        {!loading && filtersActive && (
+        {!loading && items.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            {filtered.length} of {proposals.length}
+            {items.length} loaded{hasMore ? "+" : ""}
           </span>
         )}
       </div>
 
-      {selectable && !loading && filtered.length > 0 && (
+      {selectable && !loading && items.length > 0 && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               className="rounded"
-              checked={selected.size === filtered.length && filtered.length > 0}
+              checked={selected.size === items.length && items.length > 0}
               onChange={toggleAll}
             />
             Select all
@@ -287,18 +323,30 @@ function EnrichmentView() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
         </div>
-      ) : proposals.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No {status} proposals.</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No proposals match these filters.</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {filtersActive ? "No proposals match these filters." : `No ${status} proposals.`}
+        </p>
       ) : (
-        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((p) => (
-            <ProposalCard key={p.id} proposal={p} busy={busy || acting}
-              onApprove={approve} onReject={reject} onRequestMore={requestMore}
-              selectable={selectable} selected={selected.has(p.id)} onToggleSelect={toggleSelect} />
-          ))}
-        </div>
+        <>
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((p) => (
+              <ProposalCard key={p.id} proposal={p} busy={busy || acting}
+                onApprove={approve} onReject={reject} onRequestMore={requestMore}
+                selectable={selectable} selected={selected.has(p.id)} onToggleSelect={toggleSelect} />
+            ))}
+          </div>
+          {/* Infinite-scroll sentinel + loading row */}
+          {hasMore && (
+            <div ref={sentinelRef} className="pt-2">
+              {loadingMore && (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1, 2].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmDialog
