@@ -35,6 +35,26 @@ export class PartiesController {
   }
 
   @Public()
+  @Get(":acronym/officeholders")
+  async getOfficeholders(
+    @Param("acronym") acronym: string,
+    @Query("role") role: string | undefined,
+    @Query("page") page: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.service.listOfficeholders(acronym, role, page);
+      return res.json(result);
+    } catch (err: any) {
+      if (err.status === 400) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
+      }
+      console.error("parties officeholders error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
   @Get(":acronym/chapters")
   async getChapters(@Param("acronym") acronym: string, @Res() res: Response) {
     try {

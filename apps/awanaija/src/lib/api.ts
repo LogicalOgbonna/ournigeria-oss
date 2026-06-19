@@ -122,6 +122,18 @@ export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
   return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
 }
 
+export async function getPartyOfficeholders(
+  acronym: string,
+  role: string,
+  page = 1,
+  init?: RequestInit,
+) {
+  return apiFetch<PartyOfficeholderPage>(
+    `/parties/${encodeURIComponent(acronym)}/officeholders?role=${encodeURIComponent(role)}&page=${page}`,
+    init,
+  );
+}
+
 export async function getConstituencies(stateCode: string, type?: string) {
   const qs = new URLSearchParams({ state: stateCode });
   if (type) qs.set("type", type);
@@ -519,10 +531,11 @@ export interface PartyOfficialMini {
   contextLabel: string | null;
 }
 
-export interface PartyLeadership {
-  governors: PartyOfficialMini[];
-  senators: PartyOfficialMini[];
-  otherOffices: { role: string; label: string; count: number }[];
+export interface PartyOfficeholderPage {
+  data: PartyOfficialMini[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface PartyCandidate {
@@ -573,6 +586,6 @@ export interface PartyDetail {
   chapters: PartyStateChapter[];
   officers: PartyOfficerView[];
   footprint: PartyFootprint;
-  leadership: PartyLeadership;
+  statesGoverned: string[];
   candidates: PartyCandidate[];
 }

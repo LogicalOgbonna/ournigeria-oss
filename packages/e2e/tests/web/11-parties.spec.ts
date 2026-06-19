@@ -47,7 +47,7 @@ test.describe('Political parties @web', () => {
     expect(canonical).toContain(`/parties/${party.acronym}`);
   });
 
-  test('detail shows leadership officeholders linking to officials', async ({ page, request }) => {
+  test('elected-officials accordion lazy-loads officeholders on expand', async ({ page, request }) => {
     // Pick the party with the most seats (top of the directory) — guaranteed officeholders.
     const res = await request.get('/api/parties');
     const list = (await res.json()) as Array<{ acronym: string; seats: number }>;
@@ -55,18 +55,25 @@ test.describe('Political parties @web', () => {
     expect(top?.seats, 'expected a party with officeholders').toBeGreaterThan(0);
 
     await page.goto(`/parties/${top.acronym}`);
-    await expect(page.getByRole('heading', { name: 'Leadership in office' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Elected officials' })).toBeVisible();
 
-    // At least one officeholder card links to a canonical official page.
+    // Expand the Governors group — its officials lazy-load.
+    await page.getByRole('button', { name: /Governors/ }).click();
     const officialLink = page.locator('a[href^="/officials/"]').first();
     await expect(officialLink).toBeVisible();
 
-    // "View all" tiles (when present) target the filtered officials directory.
-    const viewAll = page.locator('a[href^="/officials?party="]');
-    if (await viewAll.count()) {
-      const href = await viewAll.first().getAttribute('href');
-      expect(href).toMatch(/\/officials\?party=.+&role=.+/);
-    }
+    // The "View all" link targets the filtered officials directory.
+    const viewAll = page.locator('a[href^="/officials?party="]').first();
+    await expect(viewAll).toBeVisible();
+    expect(await viewAll.getAttribute('href')).toMatch(/\/officials\?party=.+&role=.+/);
+  });
+
+  test('detail shows the states-governed map', async ({ page, request }) => {
+    const res = await request.get('/api/parties');
+    const list = (await res.json()) as Array<{ acronym: string; seats: number }>;
+    const top = list.sort((a, b) => b.seats - a.seats)[0];
+    await page.goto(`/parties/${top.acronym}`);
+    await expect(page.getByRole('heading', { name: 'States governed' })).toBeVisible();
   });
 
   test('detail renders the candidates (flagbearers) section', async ({ page, request }) => {

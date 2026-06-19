@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+
+const OFFICEHOLDER_ROLES = new Set(["governor", "senator", "rep", "mha", "lga_chairman"]);
+const OFFICEHOLDER_PAGE_SIZE = 20;
 
 interface FootprintRow {
   role: string;
@@ -26,13 +29,6 @@ interface CandidateRow {
   image_url: string | null;
   scope_label: string | null;
 }
-
-// Offices summarized as count tiles (too many to list inline), in display order.
-const OTHER_OFFICE_LABELS: { role: string; label: string }[] = [
-  { role: "rep", label: "Representatives" },
-  { role: "mha", label: "State Assembly" },
-  { role: "lga_chairman", label: "LGA Chairmen" },
-];
 
 @Injectable()
 export class PartiesService {
@@ -114,18 +110,11 @@ export class PartiesService {
       throw new NotFoundException("Party not found");
     }
 
-    const [footprint, seniors, candidates] = await Promise.all([
+    const [footprint, statesGoverned, candidates] = await Promise.all([
       this.computeFootprint(acronym),
-      this.computeSeniorOfficeholders(acronym),
+      this.computeStatesGoverned(acronym),
       this.computeCandidates(acronym),
     ]);
-
-    // Reps/MHA/LGA chairmen are too many to list — summarize as count tiles.
-    const otherOffices = OTHER_OFFICE_LABELS.map((o) => ({
-      role: o.role,
-      label: o.label,
-      count: footprint.byRole[o.role] ?? 0,
-    })).filter((o) => o.count > 0);
 
     return {
       acronym: party.acronym,
@@ -156,44 +145,68 @@ export class PartiesService {
         imageUrl: o.imageUrl,
       })),
       footprint,
-      leadership: {
-        governors: seniors.governors,
-        senators: seniors.senators,
-        otherOffices,
-      },
+      statesGoverned,
       candidates,
     };
   }
 
-  /**
-   * The party's governors + senators, mapped to their official records (photo +
-   * slug for linking). Reps/MHA/LGA are NOT included — they're summarized as
-   * counts (hundreds per party). Context label: state for governors, senatorial
-   * district for senators.
-   */
-  private async computeSeniorOfficeholders(acronym: string) {
-    const rows = await this.prisma.$queryRaw<OfficialMiniRow[]>`
-      SELECT p.role, o.id, o.slug, o.name, o.image_url,
-        COALESCE(st.name, con.name, lga.name) AS context_label
-      FROM official_positions p
-      JOIN nigerian_officials o ON o.id = p.official_id
-      LEFT JOIN nigerian_states st ON st.code = p.state_code
-      LEFT JOIN nigerian_constituencies con ON con.code = p.constituency_code
-      LEFT JOIN nigerian_lgas lga ON lga.code = p.lga_code
-      WHERE p.status = 'active' AND p.party_acronym = ${acronym}
-        AND p.role IN ('governor', 'senator')
-      ORDER BY p.role, context_label NULLS LAST, o.name
+  /** State codes where the party holds the governorship (active). Drives the map. */
+  private async computeStatesGoverned(acronym: string): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ state_code: string }[]>`
+      SELECT DISTINCT state_code
+      FROM official_positions
+      WHERE status = 'active' AND role = 'governor'
+        AND party_acronym = ${acronym} AND state_code IS NOT NULL
+      ORDER BY state_code
     `;
-    const mini = (r: OfficialMiniRow) => ({
-      id: r.id,
-      slug: r.slug,
-      name: r.name,
-      imageUrl: r.image_url,
-      contextLabel: r.context_label,
-    });
+    return rows.map((r) => r.state_code);
+  }
+
+  /**
+   * Paginated officeholders for a party + role, mapped to officials (for the
+   * lazy-loaded accordion on the detail page). Scope label resolved via the
+   * exclusive arc (state / constituency / lga).
+   */
+  async listOfficeholders(acronymParam: string, roleParam?: string, pageParam?: string) {
+    const acronym = acronymParam.toUpperCase();
+    if (!roleParam || !OFFICEHOLDER_ROLES.has(roleParam)) {
+      throw new BadRequestException("invalid or missing role");
+    }
+    const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+    const limit = OFFICEHOLDER_PAGE_SIZE;
+    const offset = (page - 1) * limit;
+
+    const [countRows, rows] = await Promise.all([
+      this.prisma.$queryRaw<{ n: number }[]>`
+        SELECT count(*)::int AS n FROM official_positions
+        WHERE status = 'active' AND party_acronym = ${acronym} AND role = ${roleParam}
+      `,
+      this.prisma.$queryRaw<OfficialMiniRow[]>`
+        SELECT p.role, o.id, o.slug, o.name, o.image_url,
+          COALESCE(st.name, con.name, lga.name) AS context_label
+        FROM official_positions p
+        JOIN nigerian_officials o ON o.id = p.official_id
+        LEFT JOIN nigerian_states st ON st.code = p.state_code
+        LEFT JOIN nigerian_constituencies con ON con.code = p.constituency_code
+        LEFT JOIN nigerian_lgas lga ON lga.code = p.lga_code
+        WHERE p.status = 'active' AND p.party_acronym = ${acronym} AND p.role = ${roleParam}
+        ORDER BY context_label NULLS LAST, o.name
+        LIMIT ${limit} OFFSET ${offset}
+      `,
+    ]);
+
+    const total = countRows[0]?.n ?? 0;
     return {
-      governors: rows.filter((r) => r.role === "governor").map(mini),
-      senators: rows.filter((r) => r.role === "senator").map(mini),
+      data: rows.map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        imageUrl: r.image_url,
+        contextLabel: r.context_label,
+      })),
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
     };
   }
 
