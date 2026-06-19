@@ -9,7 +9,7 @@ export const metadata = {
 const BUNDLE_BASE =
   process.env.NEXT_PUBLIC_OKF_BASE_URL || "https://cdn.ournigeria.ng/okf/latest";
 const GIT_MIRROR =
-  process.env.NEXT_PUBLIC_OKF_GIT_URL || "https://github.com/ournigeria/ournigeria-knowledge";
+  process.env.NEXT_PUBLIC_OKF_GIT_URL || "https://github.com/LogicalOgbonna/ournigeria-knowledge";
 
 export default function OkfPage() {
   return (

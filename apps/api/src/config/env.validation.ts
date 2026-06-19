@@ -27,8 +27,9 @@ export interface EnvConfig {
   /** OKF knowledge-bundle publishing (see apps/api/src/okf). All optional. */
   OKF_SNAPSHOT_BASE_URL?: string; // public base for archived snapshots (defaults to CDN_BASE_URL)
   OKF_WEB_BASE_URL?: string; // canonical site base for `resource` links
-  OKF_GIT_REPO?: string; // e.g. github.com/ournigeria/ournigeria-knowledge
-  OKF_GIT_TOKEN?: string; // fine-grained PAT scoped to the mirror repo
+  OKF_GIT_REPO?: string; // owner/name (SSH) or host/owner/name (token)
+  OKF_GIT_SSH_KEY?: string; // private deploy key (preferred auth)
+  OKF_GIT_TOKEN?: string; // fine-grained PAT scoped to the mirror repo (fallback)
   OKF_PUBLISH_ENABLED?: string; // "1" to allow publishing
   ADMIN_SESSION_SECRET: string;
   LANGFUSE_PUBLIC_KEY?: string;
@@ -121,6 +122,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     OKF_SNAPSHOT_BASE_URL: (config.OKF_SNAPSHOT_BASE_URL as string) || undefined,
     OKF_WEB_BASE_URL: (config.OKF_WEB_BASE_URL as string) || undefined,
     OKF_GIT_REPO: (config.OKF_GIT_REPO as string) || undefined,
+    OKF_GIT_SSH_KEY: (config.OKF_GIT_SSH_KEY as string) || undefined,
     OKF_GIT_TOKEN: (config.OKF_GIT_TOKEN as string) || undefined,
     OKF_PUBLISH_ENABLED: (config.OKF_PUBLISH_ENABLED as string) || undefined,
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
