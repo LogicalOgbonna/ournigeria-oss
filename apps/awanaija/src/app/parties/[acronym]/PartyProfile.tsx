@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { Building2, Globe, Mail, Phone, MapPin, User, Info } from "lucide-react";
+import { Building2, Globe, Mail, Phone, MapPin, User, Info, ArrowLeft } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { PartyOfficeholdersAccordion } from "@/components/civic/PartyOfficeholdersAccordion";
 import { partyColor } from "@/lib/partyColors";
@@ -72,6 +72,14 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
 
   return (
     <main className="container mx-auto max-w-6xl flex-1 px-4 pb-20 pt-24">
+      <Link
+        href="/parties"
+        className="mb-8 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Parties
+      </Link>
+
       <div className="flex flex-col gap-10 lg:flex-row">
         {/* ---------- LEFT: the party's story ---------- */}
         <div className="min-w-0 flex-1 space-y-12">
