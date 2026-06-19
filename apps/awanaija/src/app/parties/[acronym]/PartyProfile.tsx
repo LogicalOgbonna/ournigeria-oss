@@ -143,26 +143,7 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
               </h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {officers.map((o) => (
-                  <div
-                    key={o.role}
-                    className="flex items-center gap-3 rounded-[10px] border border-border bg-card p-4"
-                  >
-                    <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-muted">
-                      <OfficialAvatar
-                        src={o.imageUrl}
-                        alt={o.name}
-                        px={56}
-                        imgClassName="w-14 h-14 rounded-full object-cover"
-                        fallback={<User className="h-6 w-6 text-slate-400" />}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-foreground">{o.name}</div>
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                        {OFFICER_ROLE_LABELS[o.role] ?? o.role}
-                      </div>
-                    </div>
-                  </div>
+                  <OfficerCard key={o.role} officer={o} />
                 ))}
               </div>
             </section>
@@ -236,6 +217,45 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
 
 function prettyElectionType(t: string): string {
   return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function OfficerCard({ officer }: { readonly officer: PartyOfficerView }) {
+  const inner = (
+    <>
+      <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-muted">
+        <OfficialAvatar
+          src={officer.imageUrl}
+          alt={officer.name}
+          px={56}
+          imgClassName="w-14 h-14 rounded-full object-cover"
+          fallback={<User className="h-6 w-6 text-slate-400" />}
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="truncate font-medium text-foreground">{officer.name}</div>
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          {OFFICER_ROLE_LABELS[officer.role] ?? officer.role}
+        </div>
+      </div>
+    </>
+  );
+
+  // Link to the officer's official profile when we have one; otherwise static.
+  if (officer.officialSlug) {
+    return (
+      <Link
+        href={`/officials/${officer.officialSlug}`}
+        className="flex items-center gap-3 rounded-[10px] border border-border bg-card p-4 transition-all hover:border-emerald-400 hover:shadow-sm"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="flex items-center gap-3 rounded-[10px] border border-border bg-card p-4">
+      {inner}
+    </div>
+  );
 }
 
 function OfficialMiniCard({

@@ -61,7 +61,13 @@ export class PartiesService {
       // All officers in one query (≤45 rows); grouped per party below (no N+1).
       this.prisma.partyOfficer.findMany({
         orderBy: [{ displayOrder: "asc" }, { role: "asc" }],
-        select: { partyAcronym: true, role: true, name: true, imageUrl: true },
+        select: {
+          partyAcronym: true,
+          role: true,
+          name: true,
+          imageUrl: true,
+          official: { select: { slug: true } },
+        },
       }),
     ]);
 
@@ -72,10 +78,13 @@ export class PartiesService {
       }
     }
 
-    const officersByParty = new Map<string, { role: string; name: string; imageUrl: string | null }[]>();
+    const officersByParty = new Map<
+      string,
+      { role: string; name: string; imageUrl: string | null; officialSlug: string | null }[]
+    >();
     for (const o of officers) {
       const list = officersByParty.get(o.partyAcronym) ?? [];
-      list.push({ role: o.role, name: o.name, imageUrl: o.imageUrl });
+      list.push({ role: o.role, name: o.name, imageUrl: o.imageUrl, officialSlug: o.official?.slug ?? null });
       officersByParty.set(o.partyAcronym, list);
     }
 
@@ -102,7 +111,10 @@ export class PartiesService {
       where: { acronym },
       include: {
         chapters: { orderBy: { stateCode: "asc" } },
-        officers: { orderBy: [{ displayOrder: "asc" }, { role: "asc" }] },
+        officers: {
+          orderBy: [{ displayOrder: "asc" }, { role: "asc" }],
+          include: { official: { select: { slug: true } } },
+        },
       },
     });
 
@@ -143,6 +155,7 @@ export class PartiesService {
         role: o.role,
         name: o.name,
         imageUrl: o.imageUrl,
+        officialSlug: o.official?.slug ?? null,
       })),
       footprint,
       statesGoverned,

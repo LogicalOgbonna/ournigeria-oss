@@ -94,15 +94,24 @@ test.describe('Political parties @web', () => {
     await expect(card).toContainText(withOfficer!.officers[0].name);
   });
 
-  test('detail shows the party leadership section when officers exist', async ({ page, request }) => {
+  test('detail shows party leadership, linking officers to their official profiles', async ({ page, request }) => {
     const res = await request.get('/api/parties');
-    const list = (await res.json()) as Array<{ acronym: string; officers: { name: string }[] }>;
+    const list = (await res.json()) as Array<{
+      acronym: string;
+      officers: { name: string; officialSlug: string | null }[];
+    }>;
     const withOfficer = list.find((p) => p.officers && p.officers.length > 0);
     if (!withOfficer) test.skip(true, 'no party officers seeded yet');
 
     await page.goto(`/parties/${withOfficer!.acronym}`);
     await expect(page.getByRole('heading', { name: 'Party leadership' })).toBeVisible();
     await expect(page.getByText(withOfficer!.officers[0].name).first()).toBeVisible();
+
+    // A linked officer is clickable through to their official profile.
+    const linked = withOfficer!.officers.find((o) => o.officialSlug);
+    if (linked) {
+      await expect(page.locator(`a[href="/officials/${linked.officialSlug}"]`).first()).toBeVisible();
+    }
   });
 
   test('lowercase acronym resolves', async ({ page, request }) => {

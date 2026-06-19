@@ -502,6 +502,7 @@ export interface PartyOfficerView {
   role: string;
   name: string;
   imageUrl: string | null;
+  officialSlug: string | null;
 }
 
 export interface PartyListItem {
