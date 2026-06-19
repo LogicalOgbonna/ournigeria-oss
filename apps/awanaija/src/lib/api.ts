@@ -504,6 +504,28 @@ export interface PartyFootprint {
   seatsByState: Record<string, number>;
 }
 
+export interface PartyOfficialMini {
+  id: string;
+  slug: string | null;
+  name: string;
+  imageUrl: string | null;
+  contextLabel: string | null;
+}
+
+export interface PartyLeadership {
+  governors: PartyOfficialMini[];
+  senators: PartyOfficialMini[];
+  otherOffices: { role: string; label: string; count: number }[];
+}
+
+export interface PartyCandidate {
+  official: { id: string; slug: string | null; name: string; imageUrl: string | null };
+  electionType: string;
+  year: number;
+  electionDate: string | null;
+  scopeLabel: string;
+}
+
 export interface PartyStateChapter {
   id: string;
   partyAcronym: string;
@@ -543,4 +565,6 @@ export interface PartyDetail {
   updatedAt: string;
   chapters: PartyStateChapter[];
   footprint: PartyFootprint;
+  leadership: PartyLeadership;
+  candidates: PartyCandidate[];
 }

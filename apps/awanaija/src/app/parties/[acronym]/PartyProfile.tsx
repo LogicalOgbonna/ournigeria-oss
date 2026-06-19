@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { Building2, Globe, Mail, Phone, MapPin } from "lucide-react";
+import Link from "next/link";
+import { Building2, Globe, Mail, Phone, MapPin, User, ChevronRight } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import { partyColor } from "@/lib/partyColors";
 import { stateLabel } from "@/lib/states";
-import type { PartyDetail } from "@/lib/api";
+import type { PartyDetail, PartyOfficialMini } from "@/lib/api";
 
 // Lazy-load the map (and its geo data) so it stays off the initial bundle — it sits
 // below the fold and only renders client-side.
@@ -161,6 +162,93 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
         </div>
       </section>
 
+      {/* Leadership — officeholders */}
+      {(party.leadership.governors.length > 0 ||
+        party.leadership.senators.length > 0 ||
+        party.leadership.otherOffices.length > 0) && (
+        <section className="mt-10">
+          <h2 className="font-heading text-xl font-semibold text-slate-900 dark:text-white">
+            Leadership in office
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Officeholders currently serving under the {party.acronym} banner.
+          </p>
+
+          {party.leadership.governors.length > 0 && (
+            <OfficeholderGroup
+              title={`Governors (${party.leadership.governors.length})`}
+              people={party.leadership.governors}
+              color={color}
+            />
+          )}
+          {party.leadership.senators.length > 0 && (
+            <OfficeholderGroup
+              title={`Senators (${party.leadership.senators.length})`}
+              people={party.leadership.senators}
+              color={color}
+            />
+          )}
+
+          {party.leadership.otherOffices.length > 0 && (
+            <div className="mt-6">
+              <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-slate-400">
+                Also in office
+              </h3>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {party.leadership.otherOffices.map((o) => (
+                  <Link
+                    key={o.role}
+                    href={`/officials?party=${party.acronym}&role=${o.role}`}
+                    className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-emerald-400 dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div>
+                      <div className="font-mono text-2xl font-bold leading-none text-slate-900 dark:text-white">
+                        {o.count.toLocaleString()}
+                      </div>
+                      <div className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+                        {o.label}
+                      </div>
+                    </div>
+                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 group-hover:underline dark:text-emerald-400">
+                      View all <ChevronRight className="h-3.5 w-3.5" />
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Candidates — primary winners (flagbearers) */}
+      <section className="mt-10">
+        <h2 className="font-heading text-xl font-semibold text-slate-900 dark:text-white">
+          Flagbearers &amp; primary winners
+        </h2>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Candidates who won {party.acronym} primaries.
+        </p>
+        {party.candidates.length === 0 ? (
+          <p className="mt-4 text-slate-400">No primary winners recorded yet.</p>
+        ) : (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {party.candidates.map((c, i) => (
+              <OfficialMiniCard
+                key={`${c.official.id}-${c.electionType}-${c.year}-${i}`}
+                person={{
+                  id: c.official.id,
+                  slug: c.official.slug,
+                  name: c.official.name,
+                  imageUrl: c.official.imageUrl,
+                  contextLabel: `${prettyElectionType(c.electionType)} · ${c.year}${c.scopeLabel && c.scopeLabel !== "National" ? ` · ${c.scopeLabel}` : c.scopeLabel === "National" ? " · National" : ""}`,
+                }}
+                color={color}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* State chapters */}
       <section className="mt-10">
         <h2 className="font-heading text-xl font-semibold text-slate-900 dark:text-white">
@@ -249,6 +337,69 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
         </p>
       )}
     </main>
+  );
+}
+
+function prettyElectionType(t: string): string {
+  return t
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function OfficeholderGroup({
+  title,
+  people,
+  color,
+}: {
+  readonly title: string;
+  readonly people: PartyOfficialMini[];
+  readonly color: string;
+}) {
+  return (
+    <div className="mt-6">
+      <h3 className="font-heading text-sm font-semibold uppercase tracking-wide text-slate-400">
+        {title}
+      </h3>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {people.map((p) => (
+          <OfficialMiniCard key={p.id} person={p} color={color} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OfficialMiniCard({
+  person,
+  color,
+}: {
+  readonly person: PartyOfficialMini;
+  readonly color: string;
+}) {
+  return (
+    <Link
+      href={`/officials/${person.slug ?? person.id}`}
+      className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-emerald-400 hover:shadow-sm dark:border-slate-800 dark:bg-slate-900"
+      style={{ borderLeftWidth: "3px", borderLeftColor: color }}
+    >
+      <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <OfficialAvatar
+          src={person.imageUrl}
+          alt={person.name}
+          px={44}
+          imgClassName="w-11 h-11 rounded-full object-cover"
+          fallback={<User className="h-5 w-5 text-slate-400" />}
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="truncate font-medium text-slate-900 dark:text-white">{person.name}</div>
+        {person.contextLabel && (
+          <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+            {person.contextLabel}
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }
 
