@@ -152,9 +152,6 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
             )}
           </section>
 
-          {/* Power at a glance — seat share */}
-          <SeatShareBand share={party.seatShare} />
-
           {/* 2. Party leadership (officers) */}
           {officers.length > 0 && (
             <section>
@@ -226,6 +223,7 @@ export function PartyProfile({ party }: { readonly party: PartyDetail }) {
         {/* ---------- RIGHT: elected officials by position ---------- */}
         <div className="w-full shrink-0 lg:w-80">
           <div className="lg:sticky lg:top-24">
+            <SeatShareBand share={party.seatShare} />
             <h2 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Elected officials
             </h2>
@@ -255,36 +253,36 @@ function SeatShareBand({ share }: { readonly share: PartySeatShare }) {
     { label: "House of Reps", item: share.house },
   ];
   return (
-    <section>
-      <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-white">
+    <div className="mb-6">
+      <h2 className="mb-3 font-heading text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Power at a glance
       </h2>
-      <div className="mt-4 grid gap-5 rounded-[10px] border border-border bg-card p-5 sm:grid-cols-3">
+      <div className="space-y-3 rounded-[10px] border border-border bg-card p-4">
         {main.map(({ label, item }) => {
           const pct = item.total > 0 ? Math.round((item.held / item.total) * 100) : 0;
           return (
             <div key={label}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-                <span className="font-mono text-xs text-muted-foreground">{pct}%</span>
+              <div className="flex items-baseline justify-between text-xs">
+                <span className="uppercase tracking-wide text-muted-foreground">{label}</span>
+                <span className="font-mono">
+                  <span className="font-bold text-foreground">{item.held}</span>
+                  <span className="text-muted-foreground">
+                    /{item.total} · {pct}%
+                  </span>
+                </span>
               </div>
-              <div className="mt-1 font-mono text-2xl font-bold text-slate-900 dark:text-white">
-                {item.held}
-                <span className="text-base font-normal text-muted-foreground"> / {item.total}</span>
-              </div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
               </div>
             </div>
           );
         })}
+        <p className="pt-1 text-[11px] text-muted-foreground">
+          +{share.stateAssembly.held.toLocaleString()}/{share.stateAssembly.total.toLocaleString()}{" "}
+          assembly · {share.lga.held.toLocaleString()}/{share.lga.total.toLocaleString()} LGA
+        </p>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Also holds {share.stateAssembly.held.toLocaleString()} of{" "}
-        {share.stateAssembly.total.toLocaleString()} state-assembly seats and{" "}
-        {share.lga.held.toLocaleString()} of {share.lga.total.toLocaleString()} LGA chairs.
-      </p>
-    </section>
+    </div>
   );
 }
 
