@@ -49,18 +49,22 @@ The export is deterministic (stable ordering; the only wall-clock value is the r
 |---|---|---|
 | `OKF_WEB_BASE_URL` | canonical site base for `resource:` links | `https://app.ournigeria.ng` |
 | `OKF_SNAPSHOT_BASE_URL` | public base for archived snapshots | falls back to `CDN_BASE_URL` |
-| `OKF_GIT_REPO` | mirror repo, e.g. `github.com/ournigeria/ournigeria-knowledge` | (skips git if unset) |
-| `OKF_GIT_TOKEN` | fine-grained PAT scoped to the mirror repo | (skips git if unset) |
+| `OKF_GIT_REPO` | mirror repo — `owner/name` (SSH) or `host/owner/name` (token) | (skips git if unset) |
+| `OKF_GIT_SSH_KEY` | private deploy key for the mirror repo (preferred auth) | (falls back to token) |
+| `OKF_GIT_TOKEN` | PAT scoped to the mirror repo (fallback if no SSH key) | — |
 | `OKF_PUBLISH_ENABLED` | must be `"1"` to publish | off |
 
-Publishing also needs `S3_BUCKET` + `AWS_*` (already in API env) and a public-read path for `evidence-snapshots/*` if archived-copy links are to resolve.
+Publishing also needs `S3_BUCKET` + `AWS_*` (already in API env). Archived-copy links resolve via `OKF_SNAPSHOT_BASE_URL`/`CDN_BASE_URL` — `cdn.ournigeria.ng` already fronts the snapshot bucket publicly, so no bucket-policy change is needed. Auth prefers a repo-scoped **write deploy key** (`OKF_GIT_SSH_KEY`) over a PAT; the image therefore needs `git` + `openssh-client` (installed in `apps/api/Dockerfile`).
 
 ## Web
 
 `/okf` (`apps/web/src/app/okf/page.tsx`) embeds `viz.html` from `NEXT_PUBLIC_OKF_BASE_URL` (default `https://cdn.ournigeria.ng/okf/latest`) + download/GitHub links.
 
-## Prerequisites before enabling prod publishing
+## Prod setup (done) + what's left
 
-1. Create the public `ournigeria/ournigeria-knowledge` repo + a fine-grained PAT scoped to it → `OKF_GIT_TOKEN`.
-2. Make `evidence-snapshots/*` (or a CDN alias) publicly readable, set `OKF_SNAPSHOT_BASE_URL`.
-3. Decide the scheduler. The CLIs run from the API image's compiled `dist` (all deps present) — e.g. a nightly host cron `docker exec <api> node dist/.../okf/okf-publish.cli.js`, or a dedicated compose service using the API image. (Not bundled into the Hermes enrichment tools image — it lacks the Nest/Prisma/aws-sdk deps.)
+Done: public repo `LogicalOgbonna/ournigeria-knowledge` created + seeded; a write **deploy key** is registered and the private key + all `OKF_*` are in Infisical **prod** (`NEXT_PUBLIC_OKF_BASE_URL` in the `/web` path); the API image installs `git`/`openssh-client`; `deploy/okf/okf-nightly.sh` execs the publisher in the active blue/green API container.
+
+Left (blocked on deploy — the prod API image must first contain `dist/okf/okf-publish.cli.js`):
+1. Merge this branch and let the API redeploy.
+2. Run `deploy/okf/okf-nightly.sh` once on the box to publish the first **prod-DB** bundle (we deliberately did not publish the dev-DB snapshot to a public repo).
+3. Verify `https://cdn.ournigeria.ng/okf/latest/viz.html` serves, then install the nightly cron (`17 2 * * * .../deploy/okf/okf-nightly.sh`).
