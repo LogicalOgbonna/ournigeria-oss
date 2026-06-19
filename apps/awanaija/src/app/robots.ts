@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         '/api/',
         '/_next/',
         '/login/',
+        '/preview/',
       ],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
