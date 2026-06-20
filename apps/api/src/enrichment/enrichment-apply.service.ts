@@ -8,6 +8,13 @@ import type { CouncilorProposedEntity } from "./agent/profile.types";
 import { ImageStorageService } from "../images/image-storage.service";
 import { CompletenessService } from "../completeness/completeness.service";
 
+/** All-zero uuid, used as a placeholder target_id for non-uuid-keyed tables. */
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(v: string): boolean {
+  return UUID_RE.test(v);
+}
+
 @Injectable()
 export class EnrichmentApplyService {
   constructor(
@@ -84,12 +91,22 @@ export class EnrichmentApplyService {
         data: { status: "approved", reviewedBy: adminId, reviewedAt: new Date(), appliedAt: new Date() },
       });
 
+      // activity_log.target_id is a uuid column. Most appliable tables are uuid-keyed,
+      // but some (e.g. political_parties, keyed by varchar `acronym`) are not — for
+      // those we log the nil uuid and carry the real natural key in metadata so the
+      // whole apply tx doesn't roll back on a uuid cast error.
+      const uuidPk = isUuid(targetPk);
       await tx.activityLog.create({
         data: {
           eventType: "proposal_applied",
           targetType: proposal.targetTable,
-          targetId: targetPk,
-          metadata: { proposalId, field: proposal.targetField, changeKind: proposal.changeKind },
+          targetId: uuidPk ? targetPk : NIL_UUID,
+          metadata: {
+            proposalId,
+            field: proposal.targetField,
+            changeKind: proposal.changeKind,
+            ...(uuidPk ? {} : { targetPk }),
+          },
         },
       });
     });
