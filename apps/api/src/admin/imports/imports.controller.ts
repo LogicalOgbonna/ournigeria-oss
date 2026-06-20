@@ -51,12 +51,14 @@ export class ImportsController {
   /** Each registered importer + its most-recent import_runs row (or null). */
   @Get()
   async list() {
+    // distinct on dataset + newest-first ordering returns exactly the latest run
+    // per dataset (no row cap, so a dataset's latest run is never missed).
     const runs = await this.prisma.importRun.findMany({
       orderBy: { startedAt: "desc" },
-      take: 50,
+      distinct: ["dataset"],
     });
 
-    // findMany is ordered newest-first, so the first row seen per dataset is latest.
+    // newest-first ordering → first row seen per dataset is the latest.
     const latestByDataset = new Map<string, (typeof runs)[number]>();
     for (const run of runs) {
       if (!latestByDataset.has(run.dataset)) {
