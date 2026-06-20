@@ -122,6 +122,37 @@ describe("partyOfficersImporter", () => {
     expect(diff.creates[0].label).toBe("FAKE_PARTY_TEST · national_chairman · Test Chair");
   });
 
+  it("clamps invalid confidence to 'high' and passes valid confidence through", async () => {
+    // Use a synthetic party so neither role exists in the DB.
+    const json = {
+      FAKE_CONFIDENCE_TEST: {
+        national_chairman: {
+          name: "Bogus Confidence Chair",
+          sourceUrl: "https://example.org",
+          confidence: "bogus", // invalid → should be clamped to "high"
+        },
+        national_secretary: {
+          name: "Low Confidence Sec",
+          sourceUrl: "https://example.org",
+          confidence: "low", // valid → should pass through unchanged
+        },
+        party_leader: null,
+      },
+    };
+
+    const diff = await partyOfficersImporter.diff(json, prisma);
+    expect(diff.creates).toHaveLength(2);
+
+    const byRole = Object.fromEntries(
+      diff.creates.map((c) => [(c.proposedValue as Record<string, unknown>).role as string, c]),
+    );
+
+    // "bogus" confidence → clamped to the officer default "high"
+    expect(byRole["national_chairman"].confidence).toBe("high");
+    // "low" is a valid value → passed through unchanged
+    expect(byRole["national_secretary"].confidence).toBe("low");
+  });
+
   it("sample slices correctly and has kind=create", async () => {
     const json = {
       FAKE_SAMPLE_PARTY: {

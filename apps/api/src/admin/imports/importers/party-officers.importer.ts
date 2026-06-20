@@ -4,6 +4,9 @@ import type { DatasetImporter, ImportDiff, ProposalSpec, ProposalSourceInput } f
 const ROLES = ["national_chairman", "national_secretary", "party_leader"] as const;
 type OfficerRole = (typeof ROLES)[number];
 
+/** Valid confidence tokens (chk_evidence_confidence). */
+const VALID_CONFIDENCE = new Set(["high", "medium", "low"]);
+
 interface OfficerEntry {
   name?: string;
   imageUrl?: string | null;
@@ -117,11 +120,17 @@ export const partyOfficersImporter: DatasetImporter = {
           sourceUrl: officer.sourceUrl ?? null,
         };
 
+        // Clamp confidence to the allowed set (chk_evidence_confidence: high|medium|low).
+        // Officers default to "high"; only invalid values are clamped to that default.
+        const confidence = VALID_CONFIDENCE.has(officer.confidence ?? "")
+          ? officer.confidence!
+          : "high";
+
         creates.push({
           targetTable: "party_officers",
           changeKind: "create",
           proposedValue,
-          confidence: officer.confidence ?? "high",
+          confidence,
           sources: [source],
           label: `${acr} · ${role} · ${name}`,
         });
