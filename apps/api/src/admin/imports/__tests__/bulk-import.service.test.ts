@@ -91,6 +91,14 @@ describe("BulkImportService (integration)", () => {
       where: { targetTable: "political_parties", targetPk: ACR, proposedValue: { equals: MARKER } },
     });
     await prisma.importRun.deleteMany({ where: { dataset: FIXTURE_NAME } });
+    // Remove activity_log rows written by the non-uuid-PK fix: only rows that carry
+    // metadata.targetPk = ACR (uuid-keyed tables never set targetPk in metadata).
+    await prisma.$executeRaw`
+      DELETE FROM activity_log
+      WHERE target_type = 'political_parties'
+        AND event_type  = 'proposal_applied'
+        AND metadata->>'targetPk' = ${ACR}
+    `.catch(() => {});
     delete IMPORTERS[FIXTURE_NAME];
     await prisma.onModuleDestroy();
   });
@@ -135,6 +143,23 @@ describe("BulkImportService (integration)", () => {
     expect(run?.updatedCount).toBe(1);
     expect(run?.dataset).toBe(FIXTURE_NAME);
     expect(run?.finishedAt).toBeTruthy();
+
+    // activity_log non-uuid PK fix: political_parties is keyed by varchar `acronym`,
+    // so the apply path must write the NIL uuid into target_id (a uuid column) and
+    // carry the real natural key in metadata.targetPk instead of trying to cast ACR
+    // as a uuid (which would roll back the whole transaction).
+    const activityRow = await prisma.activityLog.findFirst({
+      where: {
+        eventType: "proposal_applied",
+        targetType: "political_parties",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: { path: ["proposalId"], equals: (proposal as any)?.id },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(activityRow).toBeTruthy();
+    expect(activityRow?.targetId).toBe("00000000-0000-0000-0000-000000000000");
+    expect((activityRow?.metadata as Record<string, unknown>)?.targetPk).toBe(ACR);
   });
 
   it("re-running is idempotent: 0 updates, skipped=1, live row unchanged", async () => {
