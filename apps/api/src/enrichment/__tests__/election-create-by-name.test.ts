@@ -19,6 +19,36 @@ describe("official_elections create by officialName", () => {
     await owner.end();
   });
 
+  it("validate() rejects bad exactly-one-of combos; accepts officialId-only path", () => {
+    const entity = getCreatableEntity("official_elections")!;
+    const VALID_UUID = "00000000-0000-0000-0000-000000000000";
+
+    // officialId-only — should succeed and preserve the uuid
+    const out = entity.validate({
+      officialId: VALID_UUID,
+      electionType: "gubernatorial",
+      year: 2027,
+      result: "won",
+    });
+    expect(out.officialId).toBe(VALID_UUID);
+
+    // neither officialId nor officialName — must throw
+    expect(() =>
+      entity.validate({ electionType: "gubernatorial", year: 2027, result: "won" }),
+    ).toThrow();
+
+    // both present — must throw (exactly-one-of)
+    expect(() =>
+      entity.validate({
+        officialId: VALID_UUID,
+        officialName: "X",
+        electionType: "gubernatorial",
+        year: 2027,
+        result: "won",
+      }),
+    ).toThrow();
+  });
+
   it("find-or-creates the official then inserts the election", async () => {
     const entity = getCreatableEntity("official_elections")!;
     const payload = entity.validate({
@@ -36,6 +66,7 @@ describe("official_elections create by officialName", () => {
     };
     await owner.query("BEGIN");
     await owner.query("SET LOCAL ROLE enrichment_apply");
+    await entity.preflight?.(tx as any, payload);
     const res = await entity.insert(tx as any, payload, { adminId: null as any, confidence: "medium" });
     await owner.query("COMMIT");
     elIds.push(res.id);
