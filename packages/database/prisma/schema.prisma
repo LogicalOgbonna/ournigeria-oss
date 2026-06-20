@@ -1023,6 +1023,25 @@ model ProposalSource {
   @@map("proposal_sources")
 }
 
+/// Audit log for curated bulk-import runs. One row per invocation of the
+/// import pipeline (parties, officials, etc.). Tracks counts and outcome.
+model ImportRun {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset       String    @db.VarChar(63)
+  adminId       String?   @map("admin_id") @db.Uuid
+  status        String    @default("running") @db.VarChar(20) // running | done | failed
+  createdCount  Int       @default(0) @map("created_count")
+  updatedCount  Int       @default(0) @map("updated_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  errorCount    Int       @default(0) @map("error_count")
+  notes         String?   @db.Text
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+
+  @@index([dataset, startedAt], map: "idx_import_runs_dataset")
+  @@map("import_runs")
+}
+
 // ============================================================
 // Autonomous enrichment sweeper — OPERATIONAL tables (not live
 // domain data). The sweeper (control plane) reads/writes these to
