@@ -45,6 +45,9 @@ const VALID_RESULTS = new Set([
   "pending",
 ]);
 
+/** Valid confidence tokens (chk_evidence_confidence). */
+const VALID_CONFIDENCE = new Set(["high", "medium", "low"]);
+
 function hostOf(u: string): string {
   try {
     return new URL(u).host;
@@ -83,20 +86,34 @@ export const partyCandidatesImporter: DatasetImporter = {
       return { creates: [], updates: [], unchangedCount: 0, sample: [] };
     }
 
+    // Fix 1: Only process acronyms that actually exist in political_parties.
+    // If an acronym is unknown, softenUnknownParty would NULL the party_acronym on
+    // the election row, making the dedup key diverge and causing duplicates on re-import.
+    const knownParties = await prisma.politicalParty.findMany({
+      where: { acronym: { in: acronyms } },
+      select: { acronym: true },
+    });
+    const known = new Set(knownParties.map((p) => p.acronym));
+    const knownAcronyms = acronyms.filter((a) => known.has(a));
+
+    if (knownAcronyms.length === 0) {
+      return { creates: [], updates: [], unchangedCount: 0, sample: [] };
+    }
+
     // Existing-set: lower(name)|election_type|year|party_acronym for these parties.
     const existingRows = await prisma.$queryRawUnsafe<{ k: string }[]>(
       `SELECT lower(o.name) || '|' || e.election_type || '|' || e.year || '|' || coalesce(e.party_acronym, '') AS k
        FROM official_elections e
        JOIN nigerian_officials o ON o.id = e.official_id
        WHERE e.party_acronym = ANY($1)`,
-      acronyms,
+      knownAcronyms,
     );
     const existingSet = new Set(existingRows.map((r) => r.k));
 
     const creates: ProposalSpec[] = [];
     let unchangedCount = 0;
 
-    for (const acr of acronyms) {
+    for (const acr of knownAcronyms) {
       const candidates = raw[acr];
       if (!Array.isArray(candidates)) continue;
 
@@ -117,6 +134,8 @@ export const partyCandidatesImporter: DatasetImporter = {
         }
 
         const result = c.result && VALID_RESULTS.has(c.result) ? c.result : "won";
+        // Fix 2: clamp confidence to the allowed set (chk_evidence_confidence: high|medium|low).
+        const confidence = VALID_CONFIDENCE.has(c.confidence ?? "") ? c.confidence! : "medium";
 
         const source: ProposalSourceInput = c.sourceUrl
           ? {
@@ -155,7 +174,7 @@ export const partyCandidatesImporter: DatasetImporter = {
           targetTable: "official_elections",
           changeKind: "create",
           proposedValue,
-          confidence: c.confidence ?? "medium",
+          confidence,
           sources: [source],
           label: `${acr} · ${electionType} ${year} · ${name}`,
         });

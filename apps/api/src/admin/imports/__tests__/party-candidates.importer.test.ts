@@ -60,4 +60,61 @@ describe("partyCandidatesImporter", () => {
     expect(pv.partyAcronym).toBe("AAC");
     expect(pv.stateCode).toBe("lagos");
   });
+
+  it("Fix 1: candidate under unknown acronym produces 0 creates (idempotency guard)", async () => {
+    // ZZZX is a clearly-fake acronym that does not exist in political_parties.
+    const json = {
+      ZZZX: [
+        {
+          candidateName: "Zzz Ghost",
+          electionType: "gubernatorial",
+          year: 2099,
+          stateCode: "lagos",
+          sourceUrl: "https://example.org",
+        },
+      ],
+    };
+
+    const diff = await partyCandidatesImporter.diff(json, prisma);
+
+    expect(diff.creates).toHaveLength(0);
+  });
+
+  it("Fix 2: bogus confidence is clamped to 'medium'; valid 'high' is preserved", async () => {
+    // Use AAC (real party) with year 2099 so neither candidate is already in official_elections.
+    const json = {
+      AAC: [
+        {
+          candidateName: "Zzz Bogus Confidence",
+          electionType: "gubernatorial",
+          year: 2099,
+          stateCode: "lagos",
+          sourceUrl: "https://example.org",
+          confidence: "bogus",
+        },
+        {
+          candidateName: "Zzz High Confidence",
+          electionType: "presidential",
+          year: 2099,
+          stateCode: null,
+          sourceUrl: "https://example.org",
+          confidence: "high",
+        },
+      ],
+    };
+
+    const diff = await partyCandidatesImporter.diff(json, prisma);
+
+    expect(diff.creates).toHaveLength(2);
+
+    const bogusCreate = diff.creates.find(
+      (c) => (c.proposedValue as Record<string, unknown>).officialName === "Zzz Bogus Confidence",
+    );
+    const highCreate = diff.creates.find(
+      (c) => (c.proposedValue as Record<string, unknown>).officialName === "Zzz High Confidence",
+    );
+
+    expect(bogusCreate?.confidence).toBe("medium");
+    expect(highCreate?.confidence).toBe("high");
+  });
 });
