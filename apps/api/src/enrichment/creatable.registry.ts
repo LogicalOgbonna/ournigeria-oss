@@ -297,6 +297,11 @@ function partyOfficerEntity(): CreatableEntity {
         role,
         name: coerce({ key: "name", column: "name", type: "string", required: true }, p.name),
         imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
+        bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio),
+        gender: coerce({ key: "gender", column: "gender", type: "string" }, p.gender),
+        dateOfBirth: coerce({ key: "dateOfBirth", column: "date_of_birth", type: "date" }, p.dateOfBirth),
+        twitterHandle: coerce({ key: "twitterHandle", column: "twitter_handle", type: "string" }, p.twitterHandle),
+        facebookUrl: coerce({ key: "facebookUrl", column: "facebook_url", type: "string" }, p.facebookUrl),
         sourceUrl: coerce({ key: "sourceUrl", column: "source_url", type: "string" }, p.sourceUrl),
       };
     },
@@ -318,22 +323,37 @@ function partyOfficerEntity(): CreatableEntity {
       }
     },
     async insert(tx, payload, ctx) {
+      // Find-or-create the linked official, then link party_officers.official_id.
+      // chk_official_type has no 'party_officer' value; officer-only people are
+      // created untyped (null), matching the seed-party-officers.ts precedent.
+      // Matched governors/senators keep their existing type (find branch).
+      const officialId = await findOrCreateOfficial(tx, {
+        name: payload.name as string,
+        imageUrl: payload.imageUrl as string | null,
+        biography: payload.bio as string | null,
+        gender: payload.gender as string | null,
+        dateOfBirth: payload.dateOfBirth as string | null,
+        twitterHandle: payload.twitterHandle as string | null,
+        facebookUrl: payload.facebookUrl as string | null,
+        officialType: null,
+      });
+
       const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
         `INSERT INTO party_officers
-           (party_acronym, role, name, image_url, source_url, display_order,
+           (party_acronym, role, name, image_url, official_id, source_url, display_order,
             confidence, source_type, review_status, last_verified_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'agent', 'reviewed', now())
+         VALUES ($1, $2, $3, $4, $5::uuid, $6, $7, $8, 'agent', 'reviewed', now())
          RETURNING id`,
         payload.partyAcronym,
         payload.role,
         payload.name,
         payload.imageUrl ?? null,
+        officialId,
         payload.sourceUrl ?? null,
         PARTY_OFFICER_ORDER[payload.role as string] ?? 0,
         ctx.confidence,
       );
-      // No officialId — party officers aren't official-scoped.
-      return { id: rows[0].id };
+      return { id: rows[0].id, officialId };
     },
   };
 }
@@ -343,6 +363,55 @@ function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return h;
+}
+
+/**
+ * Find (by case-insensitive exact name) or create a nigerian_officials row.
+ * On create, generates a unique slug (slugifyName + hash fallback/disambiguation)
+ * and stamps official_type + optional bio/image/gender/dob/social fields.
+ * Returns the official's id. Runs inside the apply tx (enrichment_apply has
+ * SELECT + INSERT on nigerian_officials).
+ */
+async function findOrCreateOfficial(
+  tx: RawTx,
+  o: {
+    name: string;
+    imageUrl?: string | null;
+    biography?: string | null;
+    gender?: string | null;
+    dateOfBirth?: string | null;
+    twitterHandle?: string | null;
+    facebookUrl?: string | null;
+    officialType: string | null;
+  },
+): Promise<string> {
+  const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
+    `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
+    o.name,
+  );
+  if (existing.length > 0) return existing[0].id;
+
+  let slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
+  const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
+  if (clash.length > 0) {
+    slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+  }
+
+  const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+    `INSERT INTO nigerian_officials
+       (name, slug, official_type, image_url, biography, gender, date_of_birth, twitter_handle, facebook_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8, $9) RETURNING id`,
+    o.name,
+    slug,
+    o.officialType,
+    o.imageUrl ?? null,
+    o.biography ?? null,
+    o.gender ?? null,
+    o.dateOfBirth ?? null,
+    o.twitterHandle ?? null,
+    o.facebookUrl ?? null,
+  );
+  return rows[0].id;
 }
 
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
