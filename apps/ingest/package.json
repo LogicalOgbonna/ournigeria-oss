@@ -7,7 +7,8 @@
     "build": "nest build",
     "start": "infisical run --env dev -- nest start",
     "start:prod": "infisical run --env dev -- node dist/main",
-    "upload-to-s3": "tsx src/scripts/upload-to-s3.ts"
+    "upload-to-s3": "tsx src/scripts/upload-to-s3.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "catalog:",
@@ -45,6 +46,7 @@
     "ts-loader": "catalog:",
     "ts-node": "catalog:",
     "tsconfig-paths": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
