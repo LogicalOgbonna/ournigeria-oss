@@ -1638,6 +1638,7 @@ model SocialsXOauthTokens {
   id           Int      @id @default(1) // single-row table, always id=1
   accessToken  String   @map("access_token") @db.Text
   refreshToken String   @map("refresh_token") @db.Text
+  username     String?  @map("username") @db.Text // X handle of the connected account (nullable for pre-existing rows)
   rotatedAt    DateTime @default(now()) @map("rotated_at") @db.Timestamptz()
 
   @@map("socials_x_oauth_tokens")
