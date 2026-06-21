@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import JSZip from "jszip";
 import type { CatalogResource } from "./nbs-catalog-scraper";
+import { fetchWithRetry } from "./http";
 
 export interface ExtractedXlsx {
   /** Absolute path to a FAAC xlsx on disk. */
@@ -16,10 +17,7 @@ export async function downloadResource(
   resource: CatalogResource,
 ): Promise<ExtractedXlsx[]> {
   const dir = await mkdtemp(join(tmpdir(), "faac-"));
-  const resp = await fetch(resource.url, {
-    headers: { "User-Agent": "Mozilla/5.0 (Macintosh)" },
-    signal: AbortSignal.timeout(180_000),
-  });
+  const resp = await fetchWithRetry(resource.url, { timeoutMs: 180_000 });
   if (!resp.ok) throw new Error(`download failed: HTTP ${resp.status} for ${resource.url}`);
   const buf = Buffer.from(await resp.arrayBuffer());
 

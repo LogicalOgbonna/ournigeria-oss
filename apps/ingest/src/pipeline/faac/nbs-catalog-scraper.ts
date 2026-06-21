@@ -1,4 +1,5 @@
 import { parseFaacFilename } from "./filename-parser";
+import { fetchWithRetry } from "./http";
 
 export const CATALOG_156_URL =
   "https://microdata.nigerianstat.gov.ng/index.php/catalog/156";
@@ -41,10 +42,7 @@ export function parseCatalogHtml(html: string): CatalogResource[] {
 export async function fetchCatalogResources(
   url: string = CATALOG_156_URL,
 ): Promise<CatalogResource[]> {
-  const resp = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0 (Macintosh)" },
-    signal: AbortSignal.timeout(60_000),
-  });
+  const resp = await fetchWithRetry(url);
   if (!resp.ok) throw new Error(`catalog fetch failed: HTTP ${resp.status}`);
   return parseCatalogHtml(await resp.text());
 }
