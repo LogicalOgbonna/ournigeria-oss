@@ -277,7 +277,7 @@ function resolveLgaCode(lgaLookup: Map<string, string>, stateCode: string, lgaNa
 
 // ── Ensure source Document exists ─────────────────────────────
 async function ensureDocument(
-  prisma: PrismaClient,
+  prisma: PrismaClient | Prisma.TransactionClient,
   absolutePath: string,
   year: string,
   month: string,
@@ -844,15 +844,18 @@ function extractLgaFromHalf(
 
 // ── Get sheet by fuzzy name match ─────────────────────────────
 function getSheet(wb: XLSX.WorkBook, ...patterns: string[]): XLSX.WorkSheet | null {
+  // Collapse any run of internal whitespace to a single space so sheet names
+  // like "LGCs  Details" (double space) still match the "lgcs details" pattern.
+  const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ');
   for (const pattern of patterns) {
-    const p = pattern.toLowerCase();
-    const name = wb.SheetNames.find(n => n.toLowerCase().trim() === p);
+    const p = norm(pattern);
+    const name = wb.SheetNames.find(n => norm(n) === p);
     if (name) return wb.Sheets[name];
   }
   // Partial match fallback
   for (const pattern of patterns) {
-    const p = pattern.toLowerCase();
-    const name = wb.SheetNames.find(n => n.toLowerCase().trim().includes(p));
+    const p = norm(pattern);
+    const name = wb.SheetNames.find(n => norm(n).includes(p));
     if (name) return wb.Sheets[name];
   }
   return null;
@@ -863,7 +866,10 @@ function getSheet(wb: XLSX.WorkBook, ...patterns: string[]): XLSX.WorkSheet | nu
  * The parsing/counting happens identically; we just abort the commit.
  */
 class DryRunRollback extends Error {
-  constructor(public counts: { fgnCount: number; stateCount: number; lgaCount: number }) {
+  constructor(
+    public counts: { fgnCount: number; stateCount: number; lgaCount: number },
+    public documentId: string,
+  ) {
     super('dry-run rollback');
     this.name = 'DryRunRollback';
   }
@@ -965,9 +971,11 @@ export async function seedFaacFromFile(
   // Validate entity_codes against the loaded lookup before inserting
   const validLgaCodes = new Set(lgaLookup.values());
 
-  // Document provenance row. Created outside the seeding transaction (as in the
-  // original script) for real runs. On a dry run we skip it entirely so nothing
-  // is committed — the original never reached ensureDocument on a dry run either.
+  // Document provenance row. For real runs it is created outside the seeding
+  // transaction (as in the original script) so it persists even if the seeding
+  // tx is retried. For dry runs it is created *inside* the transaction below so
+  // the FaacDisbursement insert gets a real UUID to validate against, then rolls
+  // back together with everything else — a faithful rehearsal of the real path.
   let documentId = '';
   if (!dryRun) {
     documentId = await ensureDocument(prisma, filePath, year, month);
@@ -977,6 +985,12 @@ export async function seedFaacFromFile(
 
   try {
     counts = await prisma.$transaction(async (tx) => {
+      // On dry run, create the Document inside the tx so sourceDocumentId is a
+      // valid UUID (the row rolls back with the rest of the transaction).
+      if (dryRun) {
+        documentId = await ensureDocument(tx, filePath, year, month);
+      }
+
       // 1. Create FaacDisbursement
       const disbursement = await tx.faacDisbursement.create({
         data: {
@@ -1101,7 +1115,7 @@ export async function seedFaacFromFile(
 
       // Dry run: throw to roll back the transaction (nothing committed).
       if (dryRun) {
-        throw new DryRunRollback(result);
+        throw new DryRunRollback(result, documentId);
       }
 
       return result;
@@ -1109,8 +1123,10 @@ export async function seedFaacFromFile(
   } catch (err) {
     if (err instanceof DryRunRollback) {
       counts = err.counts;
-      // documentId may have been set inside the (now rolled-back) tx; keep it
-      // for the returned result so guards can inspect a fully-populated object.
+      // The Document was created inside the (now rolled-back) tx; surface its
+      // UUID in the result so callers see a fully-populated object even though
+      // nothing was committed.
+      documentId = err.documentId;
     } else {
       throw err;
     }
