@@ -6,6 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "prisma generate && tsc",
+    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "infisical run -- prisma migrate deploy",
     "prisma:migrate:create": "infisical run -- npx tsx scripts/create-migration.ts",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "prisma": "catalog:",
     "typescript": "catalog:",
-    "@types/pg": "catalog:"
+    "@types/pg": "catalog:",
+    "vitest": "catalog:"
   }
 }
