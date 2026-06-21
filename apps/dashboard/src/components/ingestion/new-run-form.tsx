@@ -14,8 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Rocket, Loader2, X } from "lucide-react";
+import { Rocket, Loader2, X, Database } from "lucide-react";
 import { ingestFetch } from "@/lib/api";
+
+// Pipelines that read straight from the database (no S3 files to select).
+const DB_DRIVEN = new Set(["faac"]);
 
 export function NewRunForm({
   selectedFiles,
@@ -27,10 +30,14 @@ export function NewRunForm({
   const [pipeline, setPipeline] = useState("budget");
   const [concurrency, setConcurrency] = useState("5");
   const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  const needsFiles = !DB_DRIVEN.has(pipeline);
 
   async function handleStart() {
     setStarting(true);
+    setError(null);
     try {
       const res = await ingestFetch("/run", {
         method: "POST",
@@ -41,7 +48,12 @@ export function NewRunForm({
         }),
       });
       router.push(`/dashboard/ingestion/${res.runId || res.id}`);
-    } catch {
+    } catch (e) {
+      // Surface the failure instead of silently resetting — otherwise a down
+      // ingest service or a backend error looks like "the button does nothing".
+      setError(
+        e instanceof Error ? e.message : "Failed to start the pipeline.",
+      );
       setStarting(false);
     }
   }
@@ -63,7 +75,6 @@ export function NewRunForm({
               <SelectItem value="corruption">Corruption</SelectItem>
               <SelectItem value="govspend">Govspend</SelectItem>
               <SelectItem value="faac">FAAC</SelectItem>
-              <SelectItem value="impact">Impact</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -79,13 +90,22 @@ export function NewRunForm({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Selected Files ({selectedFiles.length})</Label>
-          {selectedFiles.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Select files from the S3 browser on the left
-            </p>
-          ) : (
+        {!needsFiles ? (
+          <div className="flex items-start gap-2 rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground">
+            <Database className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              This pipeline reads directly from the database — no files needed.
+              It rebuilds the vector index from the source tables.
+            </span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>Selected Files ({selectedFiles.length})</Label>
+            {selectedFiles.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Select files from the S3 browser on the left
+              </p>
+            ) : (
             <div className="max-h-[200px] overflow-y-auto space-y-1 custom-scrollbar">
               {selectedFiles.map((f) => {
                 const name = f.split("/").pop() || f;
@@ -105,13 +125,14 @@ export function NewRunForm({
                 );
               })}
             </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <Button
           className="w-full"
           onClick={handleStart}
-          disabled={starting || selectedFiles.length === 0}
+          disabled={starting || (needsFiles && selectedFiles.length === 0)}
         >
           {starting ? (
             <>
@@ -125,6 +146,10 @@ export function NewRunForm({
             </>
           )}
         </Button>
+
+        {error && (
+          <p className="text-xs text-destructive break-words">{error}</p>
+        )}
       </CardContent>
     </Card>
   );
