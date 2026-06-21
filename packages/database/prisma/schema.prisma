@@ -273,6 +273,7 @@ model NigerianOfficial {
   relatedAsFamily   OfficialFamilyMember[]     @relation("FamilyRelatedOfficial")
   legalCases        OfficialLegalCase[]
   enrichmentAttempts EnrichmentAttempt[]
+  partyOfficerRoles PartyOfficer[]
 
   @@map("nigerian_officials")
 }
@@ -374,8 +375,39 @@ model PoliticalParty {
   chapters     PartyStateChapter[]
   affiliations OfficialPartyAffiliation[]
   elections    OfficialElection[]
+  officers     PartyOfficer[]
 
   @@map("political_parties")
+}
+
+// National leadership of a party (chairman / secretary / party leader). Source of
+// truth for party officers; `leaderName` above is deprecated, backfilled into a
+// `national_chairman` row here. Enrichable via the plan-45 pipeline.
+model PartyOfficer {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  partyAcronym   String    @map("party_acronym") @db.VarChar(20)
+  role           String    @db.VarChar(40)
+  name           String    @db.VarChar(200)
+  imageUrl       String?   @map("image_url") @db.VarChar(500)
+  // Links to the officer's full official record when one exists/was seeded.
+  // name/imageUrl above are kept as a denormalized display fallback.
+  officialId     String?   @map("official_id") @db.Uuid
+  displayOrder   Int       @default(0) @map("display_order")
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl      String?   @map("source_url") @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  party    PoliticalParty    @relation(fields: [partyAcronym], references: [acronym])
+  official NigerianOfficial? @relation(fields: [officialId], references: [id])
+
+  @@unique([partyAcronym, role], map: "uq_party_officer_role")
+  @@index([partyAcronym], map: "idx_party_officers_party")
+  @@index([officialId], map: "idx_party_officers_official")
+  @@map("party_officers")
 }
 
 // Per-state party chapter. Seeded for every (party, state) where the party holds
@@ -989,6 +1021,25 @@ model ProposalSource {
 
   @@index([proposalId], map: "idx_proposal_sources_proposal")
   @@map("proposal_sources")
+}
+
+/// Audit log for curated bulk-import runs. One row per invocation of the
+/// import pipeline (parties, officials, etc.). Tracks counts and outcome.
+model ImportRun {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset       String    @db.VarChar(63)
+  adminId       String?   @map("admin_id") @db.Uuid
+  status        String    @default("running") @db.VarChar(20) // running | done | failed
+  createdCount  Int       @default(0) @map("created_count")
+  updatedCount  Int       @default(0) @map("updated_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  errorCount    Int       @default(0) @map("error_count")
+  notes         String?   @db.Text
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+
+  @@index([dataset, startedAt], map: "idx_import_runs_dataset")
+  @@map("import_runs")
 }
 
 // ============================================================
@@ -1638,6 +1689,7 @@ model SocialsXOauthTokens {
   id           Int      @id @default(1) // single-row table, always id=1
   accessToken  String   @map("access_token") @db.Text
   refreshToken String   @map("refresh_token") @db.Text
+  username     String?  @map("username") @db.Text // X handle of the connected account (nullable for pre-existing rows)
   rotatedAt    DateTime @default(now()) @map("rotated_at") @db.Timestamptz()
 
   @@map("socials_x_oauth_tokens")

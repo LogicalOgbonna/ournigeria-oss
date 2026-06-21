@@ -1,5 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "@ournigeria/database";
 import type { PrismaClient } from "@prisma/client";
+import { VectorService } from "../vector/vector.service";
+import { ExtractorRegistry } from "../extractors/extractor.registry";
+import { S3Service } from "../s3/s3.service";
 import { PipelineBase } from "./pipeline.base";
 import {
   DiscoveredFile,
@@ -23,6 +28,20 @@ import { buildAllFaacChunks, type FaacChunk } from "./faac-db-chunk-builder";
 @Injectable()
 export class FaacPipeline extends PipelineBase {
   protected readonly logger = new Logger(FaacPipeline.name);
+
+  // Explicit constructor is REQUIRED: a NestJS @Injectable subclass that relies
+  // on the inherited constructor gets no `design:paramtypes` metadata, so Nest
+  // instantiates it with zero args and every dependency (vector, prisma, …) is
+  // undefined. Declaring it here forces DI to inject and forward to super().
+  constructor(
+    config: ConfigService,
+    prisma: PrismaService,
+    vector: VectorService,
+    extractors: ExtractorRegistry,
+    s3: S3Service,
+  ) {
+    super(config, prisma, vector, extractors, s3);
+  }
 
   get pipelineType(): string {
     return "faac";

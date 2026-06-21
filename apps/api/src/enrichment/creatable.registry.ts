@@ -266,11 +266,259 @@ function corruptionInvolvementEntity(): CreatableEntity {
   };
 }
 
+/** Known party-officer roles (singular per party). */
+const PARTY_OFFICER_ROLES = new Set(["national_chairman", "national_secretary", "party_leader"]);
+const PARTY_OFFICER_ORDER: Record<string, number> = {
+  national_chairman: 0,
+  national_secretary: 1,
+  party_leader: 2,
+};
+
+/**
+ * Party officer (chairman / secretary / party leader). Party-scoped (not
+ * official-scoped), so it does not use officialFactEntity. Payload:
+ * { partyAcronym, role, name, imageUrl?, sourceUrl? }.
+ */
+function partyOfficerEntity(): CreatableEntity {
+  return {
+    targetTable: "party_officers",
+    evidenceEntryType: "party_officer",
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      const role = coerce({ key: "role", column: "role", type: "string", required: true }, p.role) as string;
+      if (!PARTY_OFFICER_ROLES.has(role)) {
+        throw new BadRequestException(`unknown party officer role: ${role}`);
+      }
+      return {
+        partyAcronym: coerce({ key: "partyAcronym", column: "party_acronym", type: "string", required: true }, p.partyAcronym),
+        role,
+        name: coerce({ key: "name", column: "name", type: "string", required: true }, p.name),
+        imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
+        bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio),
+        gender: coerce({ key: "gender", column: "gender", type: "string" }, p.gender),
+        dateOfBirth: coerce({ key: "dateOfBirth", column: "date_of_birth", type: "date" }, p.dateOfBirth),
+        twitterHandle: coerce({ key: "twitterHandle", column: "twitter_handle", type: "string" }, p.twitterHandle),
+        facebookUrl: coerce({ key: "facebookUrl", column: "facebook_url", type: "string" }, p.facebookUrl),
+        sourceUrl: coerce({ key: "sourceUrl", column: "source_url", type: "string" }, p.sourceUrl),
+      };
+    },
+    async preflight(tx, payload) {
+      const party = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        payload.partyAcronym,
+      );
+      if (party.length === 0) {
+        throw new BadRequestException(`party ${payload.partyAcronym} does not exist`);
+      }
+      const dup = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM party_officers WHERE party_acronym = $1 AND role = $2`,
+        payload.partyAcronym,
+        payload.role,
+      );
+      if (dup.length > 0) {
+        throw new BadRequestException(`${payload.partyAcronym} already has a ${payload.role}`);
+      }
+    },
+    async insert(tx, payload, ctx) {
+      // Find-or-create the linked official, then link party_officers.official_id.
+      // chk_official_type has no 'party_officer' value; officer-only people are
+      // created untyped (null), matching the seed-party-officers.ts precedent.
+      // Matched governors/senators keep their existing type (find branch).
+      const officialId = await findOrCreateOfficial(tx, {
+        name: payload.name as string,
+        imageUrl: payload.imageUrl as string | null,
+        biography: payload.bio as string | null,
+        gender: payload.gender as string | null,
+        dateOfBirth: payload.dateOfBirth as string | null,
+        twitterHandle: payload.twitterHandle as string | null,
+        facebookUrl: payload.facebookUrl as string | null,
+        officialType: null,
+      });
+
+      const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO party_officers
+           (party_acronym, role, name, image_url, official_id, source_url, display_order,
+            confidence, source_type, review_status, last_verified_at)
+         VALUES ($1, $2, $3, $4, $5::uuid, $6, $7, $8, 'agent', 'reviewed', now())
+         RETURNING id`,
+        payload.partyAcronym,
+        payload.role,
+        payload.name,
+        payload.imageUrl ?? null,
+        officialId,
+        payload.sourceUrl ?? null,
+        PARTY_OFFICER_ORDER[payload.role as string] ?? 0,
+        ctx.confidence,
+      );
+      return { id: rows[0].id, officialId };
+    },
+  };
+}
+
+/** official_elections columns (same set the generic officialFactEntity used). */
+const ELECTION_COLUMNS: ColumnSpec[] = [
+  { key: "electionType", column: "election_type", type: "string", required: true },
+  { key: "isPrimary", column: "is_primary", type: "boolean" },
+  { key: "year", column: "year", type: "int", required: true },
+  { key: "electionDate", column: "election_date", type: "date" },
+  { key: "partyAcronym", column: "party_acronym", type: "string" },
+  { key: "stateCode", column: "state_code", type: "string" },
+  { key: "constituencyCode", column: "constituency_code", type: "string" },
+  { key: "lgaCode", column: "lga_code", type: "string" },
+  { key: "wardCode", column: "ward_code", type: "string" },
+  { key: "result", column: "result", type: "string", required: true },
+  { key: "votes", column: "votes", type: "int" },
+  { key: "votePercentage", column: "vote_percentage", type: "number" },
+  { key: "winnerName", column: "winner_name", type: "string" },
+  { key: "resultedInPositionId", column: "resulted_in_position_id", type: "uuid" },
+  { key: "notes", column: "notes", type: "string" },
+];
+
+/**
+ * official_elections create. Accepts EITHER `officialId` (agent path — find the
+ * official) OR `officialName` (curated import path — find-or-create the official),
+ * exactly one required. `imageUrl`/`bio` are optional and used only when creating
+ * a new official. All other columns match the prior officialFactEntity registration,
+ * and the insert stamps the same audit columns (confidence, source_type='agent',
+ * review_status='reviewed', reviewed_by, last_verified_at) — so the officialId
+ * branch is byte-for-byte identical to the old behavior.
+ */
+function electionEntity(): CreatableEntity {
+  return {
+    targetTable: "official_elections",
+    evidenceEntryType: "election",
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      const hasId = p.officialId !== undefined && p.officialId !== null;
+      const hasName = p.officialName !== undefined && p.officialName !== null;
+      if (hasId === hasName) {
+        throw new BadRequestException("exactly one of officialId or officialName is required");
+      }
+      const out: Record<string, unknown> = {
+        officialId: hasId
+          ? coerce({ key: "officialId", column: "official_id", type: "uuid", required: true }, p.officialId)
+          : null,
+        officialName: hasName
+          ? coerce({ key: "officialName", column: "name", type: "string", required: true }, p.officialName)
+          : null,
+        imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
+        bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio),
+      };
+      for (const spec of ELECTION_COLUMNS) out[spec.key] = coerce(spec, p[spec.key]);
+      return out;
+    },
+    async preflight(tx, payload) {
+      await softenUnknownParty(tx, payload);
+      if (payload.officialId) {
+        const exists = await tx.$queryRawUnsafe<unknown[]>(
+          `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
+          payload.officialId,
+        );
+        if (exists.length === 0) {
+          throw new BadRequestException(`official ${payload.officialId} does not exist`);
+        }
+      }
+    },
+    async insert(tx, payload, ctx) {
+      const officialId =
+        (payload.officialId as string | null) ??
+        (await findOrCreateOfficial(tx, {
+          name: payload.officialName as string,
+          imageUrl: (payload.imageUrl as string | null) ?? null,
+          biography: (payload.bio as string | null) ?? null,
+          gender: null,
+          dateOfBirth: null,
+          twitterHandle: null,
+          facebookUrl: null,
+          officialType: "elected",
+        }));
+
+      const cols = ["official_id"];
+      const values: unknown[] = [officialId];
+      const casts: string[] = ["::uuid"];
+      for (const spec of ELECTION_COLUMNS) {
+        const v = payload[spec.key];
+        if (v === null || v === undefined) continue; // let column defaults apply
+        cols.push(spec.column);
+        values.push(v);
+        casts.push(spec.type === "date" ? "::date" : spec.type === "uuid" ? "::uuid" : "");
+      }
+      cols.push("confidence", "source_type", "review_status", "reviewed_by", "last_verified_at");
+      values.push(ctx.confidence, "agent", "reviewed", ctx.adminId);
+      casts.push("", "", "", "");
+      const placeholders = values.map((_, i) => `$${i + 1}${casts[i] ?? ""}`);
+      placeholders.push("now()");
+
+      const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO official_elections (${cols.map((c) => `"${c}"`).join(", ")})
+         VALUES (${placeholders.join(", ")}) RETURNING id`,
+        ...values,
+      );
+      return { id: rows[0].id, officialId };
+    },
+  };
+}
+
 /** Tiny stable string hash for slug disambiguation (not security-sensitive). */
 function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return h;
+}
+
+/**
+ * Find (by case-insensitive exact name) or create a nigerian_officials row.
+ * On create, generates a unique slug (slugifyName + hash fallback/disambiguation)
+ * and stamps official_type + optional bio/image/gender/dob/social fields.
+ * Returns the official's id. Runs inside the apply tx (enrichment_apply has
+ * SELECT + INSERT on nigerian_officials).
+ */
+async function findOrCreateOfficial(
+  tx: RawTx,
+  o: {
+    name: string;
+    imageUrl?: string | null;
+    biography?: string | null;
+    gender?: string | null;
+    dateOfBirth?: string | null;
+    twitterHandle?: string | null;
+    facebookUrl?: string | null;
+    officialType: string | null;
+  },
+): Promise<string> {
+  const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
+    `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
+    o.name,
+  );
+  if (existing.length > 0) return existing[0].id;
+
+  let slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
+  const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
+  if (clash.length > 0) {
+    slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+  }
+
+  const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+    `INSERT INTO nigerian_officials
+       (name, slug, official_type, image_url, biography, gender, date_of_birth, twitter_handle, facebook_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8, $9) RETURNING id`,
+    o.name,
+    slug,
+    o.officialType,
+    o.imageUrl ?? null,
+    o.biography ?? null,
+    o.gender ?? null,
+    o.dateOfBirth ?? null,
+    o.twitterHandle ?? null,
+    o.facebookUrl ?? null,
+  );
+  return rows[0].id;
 }
 
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
@@ -332,28 +580,10 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "statusDate", column: "status_date", type: "date" },
     { key: "summary", column: "summary", type: "string" },
   ]),
-  official_elections: officialFactEntity(
-    "official_elections",
-    "election",
-    [
-      { key: "electionType", column: "election_type", type: "string", required: true },
-      { key: "isPrimary", column: "is_primary", type: "boolean" },
-      { key: "year", column: "year", type: "int", required: true },
-      { key: "electionDate", column: "election_date", type: "date" },
-      { key: "partyAcronym", column: "party_acronym", type: "string" },
-      { key: "stateCode", column: "state_code", type: "string" },
-      { key: "constituencyCode", column: "constituency_code", type: "string" },
-      { key: "lgaCode", column: "lga_code", type: "string" },
-      { key: "wardCode", column: "ward_code", type: "string" },
-      { key: "result", column: "result", type: "string", required: true },
-      { key: "votes", column: "votes", type: "int" },
-      { key: "votePercentage", column: "vote_percentage", type: "number" },
-      { key: "winnerName", column: "winner_name", type: "string" },
-      { key: "resultedInPositionId", column: "resulted_in_position_id", type: "uuid" },
-      { key: "notes", column: "notes", type: "string" },
-    ],
-    softenUnknownParty,
-  ),
+  // Elections accept EITHER officialId (agent path) OR officialName (curated
+  // import — find-or-create). Bespoke entity; behavior with officialId present
+  // is identical to the prior officialFactEntity registration.
+  official_elections: electionEntity(),
   official_asset_declarations: officialFactEntity("official_asset_declarations", "asset", [
     { key: "year", column: "year", type: "int", required: true },
     { key: "declaredTo", column: "declared_to", type: "string" },
@@ -396,6 +626,8 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.
   corruption_cases: corruptionInvolvementEntity(),
+  // Party officers (chairman/secretary/party leader) — party-scoped, no official.
+  party_officers: partyOfficerEntity(),
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {

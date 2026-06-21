@@ -47,6 +47,7 @@ export const APPLIABLE_FIELDS: Record<string, readonly string[]> = {
     "chairman_name", "secretary_name", "hq_address", "phone_number",
     "email", "website", "twitter_handle",
   ],
+  party_officers: ["name", "image_url", "source_url"],
   // Financial domains (filled in their own later plans; listed so grants + apply agree)
   faac_disbursements: [],
   budget_metadata: [],

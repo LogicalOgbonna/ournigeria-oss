@@ -1,0 +1,197 @@
+{
+  "_meta": {
+    "description": "Confirmed party primary WINNERS (flagbearers) for the 2027 general cycle and the 2025-2026 off-cycle governorship races, researched against 2025-2026 sources. Consumed by scripts/seed-party-candidates.ts, which find-or-creates a nigerian_officials row per candidate and inserts an official_elections row (is_primary=true, result='won').",
+    "asOf": "2026-06-19",
+    "electionType": "Codebase convention: 'gubernatorial' for state governor races, 'presidential' for the presidency, 'senatorial' for senate. (Matches existing official_elections rows + enrichment POC.)",
+    "stateCode": "lowercase nigerian_states.code; null for presidential. electionDate is the PRIMARY date where known (null where only the general-election date is sourced). votes = the candidate's primary vote tally where reported."
+  },
+  "APC": [
+    {
+      "candidateName": "Biodun Oyebanji",
+      "electionType": "gubernatorial",
+      "stateCode": "ekiti",
+      "year": 2026,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "incumbent Governor of Ekiti State",
+      "sourceUrl": "https://guardian.ng/politics/oyebanji-emerges-apcs-candidate-for-ekiti-guber-polls/"
+    },
+    {
+      "candidateName": "Bola Oyebamiji",
+      "electionType": "gubernatorial",
+      "stateCode": "osun",
+      "year": 2026,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "former Managing Director of the National Inland Waterways Authority (NIWA)",
+      "sourceUrl": "https://www.premiumtimesng.com/news/top-news/842759-osun-2026-oyebamiji-clinches-apc-ticket-for-governorship-race.html"
+    },
+    {
+      "candidateName": "Nicholas Ukachukwu",
+      "electionType": "gubernatorial",
+      "stateCode": "anambra",
+      "year": 2025,
+      "electionDate": null,
+      "votes": 1455,
+      "confidence": "high",
+      "priorOffice": "businessman",
+      "sourceUrl": "https://punchng.com/anambra-2025-ukachukwu-emerges-apc-gov-candidate/"
+    }
+  ],
+  "PDP": [
+    {
+      "candidateName": "Wole Oluyede",
+      "electionType": "gubernatorial",
+      "stateCode": "ekiti",
+      "year": 2026,
+      "electionDate": null,
+      "votes": 279,
+      "confidence": "medium",
+      "priorOffice": null,
+      "sourceUrl": "https://www.lawyard.org/news/court-orders-inec-to-list-oluyede-as-pdp-candidate-for-ekiti-2026-governorship-election/"
+    }
+  ],
+  "LP": [
+    {
+      "candidateName": "Chibuzo Okereke",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "medium",
+      "priorOffice": "lecturer, Miva Open University",
+      "sourceUrl": "https://guardian.ng/news/lp-unveils-dr-chibuzo-okereke-as-2027-presidential-candidate/"
+    }
+  ],
+  "APGA": [
+    {
+      "candidateName": "Charles Chukwuma Soludo",
+      "electionType": "gubernatorial",
+      "stateCode": "anambra",
+      "year": 2025,
+      "electionDate": "2025-04-05",
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "Governor of Anambra State",
+      "sourceUrl": "https://punchng.com/updated-anambra-2025-soludo-wins-apga-primary-election-unopposed/"
+    }
+  ],
+  "ADC": [
+    {
+      "candidateName": "Atiku Abubakar",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": "2026-05-27",
+      "votes": 1846370,
+      "confidence": "high",
+      "priorOffice": "former Vice President of Nigeria",
+      "sourceUrl": "https://guardian.ng/news/atiku-abubakar-emerges-adc-presidential-candidate/"
+    }
+  ],
+  "SDP": [
+    {
+      "candidateName": "Adewole Adebayo",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "SDP 2023 presidential candidate",
+      "sourceUrl": "https://guardian.ng/politics/sdp-writes-inec-confirms-adebayo-as-presidential-candidate/"
+    }
+  ],
+  "YPP": [
+    {
+      "candidateName": "Anita Zugwai-Chukwu",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "YPP National Women Leader",
+      "sourceUrl": "https://punchng.com/ypp-unveils-female-presidential-flagbearer/"
+    },
+    {
+      "candidateName": "Paul Chukwuma",
+      "electionType": "gubernatorial",
+      "stateCode": "anambra",
+      "year": 2025,
+      "electionDate": "2025-04-10",
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "businessman; ex-APC governorship aspirant",
+      "sourceUrl": "https://thesun.ng/anambra-guber-ex-apc-aspirant-paul-chukwuma-picks-ypp-ticket/"
+    }
+  ],
+  "AA": [
+    {
+      "candidateName": "Adekunle Rufai Omoaje",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": "2026-05-30",
+      "votes": null,
+      "confidence": "medium",
+      "priorOffice": "Action Alliance National Chairman",
+      "sourceUrl": "https://blueprint.ng/action-alliance-picks-omoaje-as-presidential-candidate-for-2027-election/"
+    }
+  ],
+  "AAC": [
+    {
+      "candidateName": "Omoyele Sowore",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": "2026-05-26",
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "AAC founder; 2019 & 2023 presidential candidate; publisher of Sahara Reporters",
+      "sourceUrl": "https://www.channelstv.com/2026/05/27/2027-sowore-emerges-as-aac-presidential-candidate-steps-down-as-party-chair/"
+    }
+  ],
+  "Accord": [
+    {
+      "candidateName": "Ademola Adeleke",
+      "electionType": "gubernatorial",
+      "stateCode": "osun",
+      "year": 2026,
+      "electionDate": null,
+      "votes": 145,
+      "confidence": "high",
+      "priorOffice": "Governor of Osun State",
+      "sourceUrl": "https://www.premiumtimesng.com/regional/ssouth-west/842036-osun-2026-governor-adeleke-emerges-accords-governorship-candidate.html"
+    }
+  ],
+  "PRP": [
+    {
+      "candidateName": "Olaniyi Ayodele",
+      "electionType": "gubernatorial",
+      "stateCode": "ekiti",
+      "year": 2026,
+      "electionDate": null,
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.premiumtimesng.com/news/top-news/850685-ekiti-2026-again-pdp-sdp-missing-as-inec-releases-final-list-of-candidates-deputies.html"
+    }
+  ],
+  "ZLP": [
+    {
+      "candidateName": "Dan Nwanyanwu",
+      "electionType": "presidential",
+      "stateCode": null,
+      "year": 2027,
+      "electionDate": "2026-05-30",
+      "votes": null,
+      "confidence": "high",
+      "priorOffice": "National Chairman of the Zenith Labour Party",
+      "sourceUrl": "https://www.premiumtimesng.com/news/more-news/884057-2027-zlp-gets-presidential-candidate.html"
+    }
+  ]
+}
