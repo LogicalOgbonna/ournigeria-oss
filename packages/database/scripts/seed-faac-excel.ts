@@ -87,11 +87,13 @@ async function main() {
           totalFgn += result.fgnCount;
         }
       } catch (err) {
-        // A real (non-dry-run) insert into an already-seeded month hits the
-        // unique constraint on (disbursementYear, disbursementMonth). Treat
-        // that as a skip, matching the original script's "already exists" path.
+        // Inserting into an already-seeded month hits the unique constraint on
+        // (disbursementYear, disbursementMonth). Treat that as a skip in both
+        // real and dry-run modes, matching the original script's "already
+        // exists" path (a dry-run over existing data should preview a skip,
+        // not report a spurious error).
         const msg = err instanceof Error ? err.message : String(err);
-        if (!dryRun && /Unique constraint|disbursementYear_disbursementMonth/i.test(msg)) {
+        if (/Unique constraint|disbursementYear_disbursementMonth/i.test(msg)) {
           console.log(`  ⏭  ${year}/${month} already exists, skipping`);
           totalSkipped++;
           continue;

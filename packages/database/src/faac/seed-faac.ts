@@ -268,7 +268,7 @@ function resolveLgaCode(lgaLookup: Map<string, string>, stateCode: string, lgaNa
   }
 
   // 7. Check aliases across all states
-  for (const [st, map] of Object.entries(LGA_ALIASES)) {
+  for (const map of Object.values(LGA_ALIASES)) {
     if (map[nameUpper]) return map[nameUpper];
   }
 
