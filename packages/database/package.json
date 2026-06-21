@@ -21,7 +21,8 @@
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "@nestjs/common": "catalog:",
-    "pg": "catalog:"
+    "pg": "catalog:",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "prisma": "catalog:",
