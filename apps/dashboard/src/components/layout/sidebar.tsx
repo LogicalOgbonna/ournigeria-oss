@@ -35,6 +35,7 @@ import {
   Activity,
   Filter,
   Sparkles,
+  Upload,
   ChevronRight,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
@@ -83,6 +84,7 @@ const knowledgeNav = [
   { title: "Documents", href: "/dashboard/documents", icon: FolderOpen },
   { title: "Coverage", href: "/dashboard/documents/coverage", icon: Map },
   { title: "Enrichment", href: "/dashboard/enrichment", icon: Sparkles },
+  { title: "Imports", href: "/dashboard/imports", icon: Upload },
   { title: "Pipelines", href: "/dashboard/ingestion", icon: Database },
   { title: "S3 Files", href: "/dashboard/ingestion/files", icon: FolderOpen },
   { title: "New Run", href: "/dashboard/ingestion/new", icon: Plus },

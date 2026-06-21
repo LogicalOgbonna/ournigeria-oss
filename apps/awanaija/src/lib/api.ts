@@ -113,6 +113,27 @@ export async function getRegions() {
   return apiFetch<{ code: string; name: string }[]>("/geo/regions");
 }
 
+// Political parties (first-class entities — distinct from the /geo/parties dropdown)
+export async function getPartyDirectory(init?: RequestInit) {
+  return apiFetch<PartyListItem[]>("/parties", init);
+}
+
+export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
+  return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
+}
+
+export async function getPartyOfficeholders(
+  acronym: string,
+  role: string,
+  page = 1,
+  init?: RequestInit,
+) {
+  return apiFetch<PartyOfficeholderPage>(
+    `/parties/${encodeURIComponent(acronym)}/officeholders?role=${encodeURIComponent(role)}&page=${page}`,
+    init,
+  );
+}
+
 export async function getConstituencies(stateCode: string, type?: string) {
   const qs = new URLSearchParams({ state: stateCode });
   if (type) qs.set("type", type);
@@ -474,4 +495,140 @@ export interface ActivityEntry {
   targetId: string;
   metadata: unknown;
   createdAt: string;
+}
+
+// Political parties
+export interface PartyOfficerView {
+  role: string;
+  name: string;
+  imageUrl: string | null;
+  officialSlug: string | null;
+}
+
+export interface PartyListItem {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  ideology: string | null;
+  completenessScore: number | null;
+  seats: number;
+  governorships: number;
+  officers: PartyOfficerView[];
+}
+
+export interface PartyFootprint {
+  governors: number;
+  senators: number;
+  representatives: number;
+  byRole: Record<string, number>;
+  statesControlled: string[];
+  seatsByState: Record<string, number>;
+  seatsByStateByRole: Record<string, Record<string, number>>;
+}
+
+export interface PartyOfficialMini {
+  id: string;
+  slug: string | null;
+  name: string;
+  imageUrl: string | null;
+  contextLabel: string | null;
+}
+
+export interface PartyOfficeholderPage {
+  data: PartyOfficialMini[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface PartyCandidate {
+  official: { id: string; slug: string | null; name: string; imageUrl: string | null };
+  electionType: string;
+  year: number;
+  electionDate: string | null;
+  scopeLabel: string;
+}
+
+export interface PartyStateChapter {
+  id: string;
+  partyAcronym: string;
+  stateCode: string;
+  chairmanName: string | null;
+  secretaryName: string | null;
+  hqAddress: string | null;
+  phoneNumber: string | null;
+  email: string | null;
+  website: string | null;
+  twitterHandle: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartyDetail {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  foundingYear: number | null;
+  leaderName: string | null;
+  hqAddress: string | null;
+  website: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  twitterHandle: string | null;
+  facebookUrl: string | null;
+  description: string | null;
+  ideology: string | null;
+  slogan: string | null;
+  color: string | null;
+  inecStatus: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+  chapters: PartyStateChapter[];
+  officers: PartyOfficerView[];
+  footprint: PartyFootprint;
+  statesGoverned: string[];
+  candidates: PartyCandidate[];
+  seatShare: PartySeatShare;
+  budgetGoverned: PartyBudgetGoverned;
+  seatsByZone: PartySeatsByZone;
+  rank: { position: number | null; totalParties: number };
+}
+
+export interface SeatShareItem {
+  held: number;
+  total: number;
+}
+
+export interface PartySeatShare {
+  governorships: SeatShareItem;
+  senate: SeatShareItem;
+  house: SeatShareItem;
+  stateAssembly: SeatShareItem;
+  lga: SeatShareItem;
+}
+
+export interface PartyBudgetGoverned {
+  totalNaira: string | null;
+  totalRaw: number;
+  statesGoverned: number;
+  statesWithData: number;
+  topStates: { stateCode: string; name: string; naira: string; raw: number }[];
+}
+
+export interface PartyZone {
+  zoneCode: string;
+  zoneName: string;
+  held: number;
+  total: number;
+  pct: number;
+  byRole: { role: string; held: number; total: number }[];
+}
+
+export interface PartySeatsByZone {
+  zones: PartyZone[];
+  strongestZone: string | null;
 }
