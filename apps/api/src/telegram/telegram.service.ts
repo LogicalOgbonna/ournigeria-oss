@@ -72,10 +72,14 @@ export class TelegramService {
     }
 
     if (isNew) {
-      await this.telegramApi.sendMessage(
-        chatId,
-        `Welcome to OurNigeria! Your account has been created.\n\nYou can also access your chat history on the web at ${this.appUrl} — just click "Login with Telegram".\n\nNow, ask me anything about Nigerian budgets or corruption cases.`,
-      );
+      // Non-fatal: a failed welcome send must not abort the rest of the update
+      // (e.g. a deep-link `/start <token>` login that follows).
+      await this.telegramApi
+        .sendMessage(
+          chatId,
+          `Welcome to OurNigeria! Your account has been created.\n\nYou can also access your chat history on the web at ${this.appUrl} — just click "Login with Telegram".\n\nNow, ask me anything about Nigerian budgets or corruption cases.`,
+        )
+        .catch((err) => this.logger.error("Failed to send welcome message:", err));
     }
 
     // Update lastSeenAt
