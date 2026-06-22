@@ -14,6 +14,11 @@ export interface SocialsEnvConfig {
   X_OAUTH2_CLIENT_SECRET: string;
   X_OAUTH2_ACCESS_TOKEN?: string;
   X_OAUTH2_REFRESH_TOKEN?: string;
+  // Dashboard "Connect X account" OAuth flow. REDIRECT_URI must be registered
+  // in the X app (the socials callback). DASHBOARD_URL is where the callback
+  // bounces the browser back to. Defaults are local-dev; prod MUST override.
+  X_OAUTH2_REDIRECT_URI: string;
+  SOCIALS_DASHBOARD_URL: string;
   // Roamer extension auth
   ROAMER_INGEST_KEY: string;
   // Admin cookie HMAC (shared with apps/dashboard)
@@ -106,6 +111,12 @@ export function validateEnv(
     X_OAUTH2_CLIENT_SECRET: config.X_OAUTH2_CLIENT_SECRET as string,
     X_OAUTH2_ACCESS_TOKEN: (config.X_OAUTH2_ACCESS_TOKEN as string) || undefined,
     X_OAUTH2_REFRESH_TOKEN: (config.X_OAUTH2_REFRESH_TOKEN as string) || undefined,
+    X_OAUTH2_REDIRECT_URI:
+      (config.X_OAUTH2_REDIRECT_URI as string) ||
+      "http://localhost:3005/v1/x-oauth/callback",
+    SOCIALS_DASHBOARD_URL:
+      (config.SOCIALS_DASHBOARD_URL as string) ||
+      "http://localhost:3004/dashboard/social",
     ROAMER_INGEST_KEY: config.ROAMER_INGEST_KEY as string,
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
     TELEGRAM_BOT_TOKEN: (config.TELEGRAM_BOT_TOKEN as string) || undefined,

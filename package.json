@@ -17,6 +17,8 @@
     "api:dev": "nx run api:dev",
     "api:build": "nx run api:build",
     "api:start": "nx run api:start",
+    "okf:export": "infisical run --env dev -- npx tsx --tsconfig apps/api/tsconfig.json apps/api/src/okf/okf-export.cli.ts",
+    "okf:publish": "infisical run --env dev -- npx tsx --tsconfig apps/api/tsconfig.json apps/api/src/okf/okf-publish.cli.ts",
     "db:build": "nx run database:build",
     "ingest:dev": "nx run ingest:dev",
     "ingest:build": "nx run ingest:build",

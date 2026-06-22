@@ -25,6 +25,7 @@ import { ActivityModule } from "./activity/activity.module";
 import { ContactModule } from "./contact/contact.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
 import { CorruptionCasesModule } from "./corruption-cases/corruption-cases.module";
+import { OkfModule } from "./okf/okf.module";
 import { ImportsModule } from "./admin/imports/imports.module";
 
 @Module({
@@ -57,6 +58,7 @@ import { ImportsModule } from "./admin/imports/imports.module";
     ContactModule,
     EnrichmentModule,
     CorruptionCasesModule,
+    OkfModule,
     ImportsModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],

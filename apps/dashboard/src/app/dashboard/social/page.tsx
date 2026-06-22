@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Clock, CheckCircle2, XCircle, Send } from "lucide-react";
 import { socialsFetch } from "@/lib/api";
 import { DraftCard } from "@/components/socials/draft-card";
+import { XConnectionCard } from "@/components/socials/x-connection-card";
 import type {
   DraftListResponse,
   DraftRow,
@@ -103,6 +104,8 @@ export default function SocialQueuePage() {
           </Link>
         </div>
       </div>
+
+      <XConnectionCard />
 
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

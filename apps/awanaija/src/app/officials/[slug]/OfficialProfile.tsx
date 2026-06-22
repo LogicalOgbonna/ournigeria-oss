@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Proposal } from "@/lib/api";
-import { voteOnProposal } from "@/lib/api";
+import { voteOnProposal, formatOfficialLocation } from "@/lib/api";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -135,10 +135,11 @@ export function OfficialProfile({ official }: { official: Official }) {
                 {official.name}
               </h1>
 
-              {/* Constituency */}
+              {/* Location — ward/LGA/state for councilors, constituency for
+                  legislators, state for governors */}
               {position && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">
-                  {position.constituency || position.state || "Nigeria"}
+                  {formatOfficialLocation(position)}
                 </p>
               )}
 

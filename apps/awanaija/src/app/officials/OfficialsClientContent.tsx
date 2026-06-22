@@ -34,7 +34,7 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
   const position = official.positions?.[0];
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
-  const location = position?.constituency || position?.lga || position?.state || "";
+  const location = position?.ward || position?.constituency || position?.lga || position?.state || "";
   const showImage = official.imageUrl && !imgError;
 
   return (
