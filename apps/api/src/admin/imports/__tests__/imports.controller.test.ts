@@ -4,11 +4,16 @@ import { listImporters } from "../importer.registry";
 import { ImportsController } from "../imports.controller";
 
 describe("imports registry wiring", () => {
-  it("registers the three party importers", () => {
+  it("registers the party importers and the state-assembly reconciliation importer", () => {
     const names = listImporters()
       .map((i) => i.name)
       .sort();
-    expect(names).toEqual(["party-candidates", "party-officers", "party-profiles"]);
+    expect(names).toEqual([
+      "party-candidates",
+      "party-officers",
+      "party-profiles",
+      "state-assembly-reconciliation",
+    ]);
   });
 });
 
