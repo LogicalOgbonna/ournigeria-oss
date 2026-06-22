@@ -1,9 +1,11 @@
 /**
  * FAAC seeder core — extracted from scripts/seed-faac-excel.ts.
  *
- * Parses an NBS FAAC disbursement Excel file (Tables I/II/III/IV) and upserts
+ * Parses an NBS FAAC disbursement Excel file (Tables I/II/III/IV) and inserts
  * the FaacDisbursement / FaacFgnDetail / FaacStateAllocation / FaacLgaAllocation
- * rows for a single month inside one transaction.
+ * rows for a single month inside one transaction. It does NOT upsert: re-seeding
+ * a month already in the DB raises the @@unique([disbursementYear,
+ * disbursementMonth]) violation (the CLI treats that as a skip).
  *
  * This is a behavior-preserving extraction of the CLI script's `seedMonth` core.
  * The CLI (scripts/seed-faac-excel.ts) is now a thin wrapper around
