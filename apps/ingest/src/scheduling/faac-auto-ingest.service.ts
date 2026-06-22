@@ -71,12 +71,12 @@ export class FaacAutoIngestService {
           f.path, String(mm.year), monthName, { dryRun: true },
         );
         if (probe.titleYear !== mm.year || probe.titleMonth !== mm.month) continue;
+        // Guards run INSIDE the seed transaction; a failure throws
+        // FaacGuardFailure and rolls back so a bad parse never commits.
         const committed = await seedFaacFromFile(
           this.prisma as unknown as Parameters<typeof seedFaacFromFile>[0],
-          f.path, String(mm.year), monthName, { dryRun: false },
+          f.path, String(mm.year), monthName, { dryRun: false, guard: faacLoadGuards },
         );
-        const guard = faacLoadGuards(committed);
-        if (!guard.ok) throw new Error(`guards failed: ${guard.failures.join("; ")}`);
         await reindexFaac({
           databaseUrl: this.config.getOrThrow<string>("DATABASE_URL"),
           indexName: this.config.getOrThrow<string>("VECTOR_INDEX_FAAC"),

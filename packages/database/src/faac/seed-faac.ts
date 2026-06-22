@@ -68,6 +68,22 @@ export interface FaacSeedResult {
 
 export interface SeedOptions {
   dryRun?: boolean;
+  /** Optional validator run INSIDE the transaction, just before commit.
+   *  If it returns ok:false the transaction is rolled back and seedFaacFromFile
+   *  throws FaacGuardFailure — nothing is committed. */
+  guard?: (result: FaacSeedResult) => { ok: boolean; failures: string[] };
+}
+
+/**
+ * Thrown by seedFaacFromFile when an in-transaction guard rejects the parsed
+ * result. Because it is thrown inside the seed transaction, the throw rolls
+ * back every insert — a bad parse never commits.
+ */
+export class FaacGuardFailure extends Error {
+  constructor(public readonly failures: string[]) {
+    super(`FAAC load guards failed: ${failures.join('; ')}`);
+    this.name = 'FaacGuardFailure';
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -1116,6 +1132,27 @@ export async function seedFaacFromFile(
       // Dry run: throw to roll back the transaction (nothing committed).
       if (dryRun) {
         throw new DryRunRollback(result, documentId);
+      }
+
+      // Real run: run the guard INSIDE the transaction so a failure rolls
+      // everything back before commit. A bad parse never commits.
+      if (opts.guard) {
+        const assembled: FaacSeedResult = {
+          year: parseInt(year),
+          month: MONTH_NAMES[month.toUpperCase()] ?? dates.disbursementMonth,
+          monthName: MONTHS[(MONTH_NAMES[month.toUpperCase()] ?? dates.disbursementMonth) - 1],
+          grandTotal,
+          stateCount,
+          lgaCount,
+          fgnCount,
+          documentId,
+          titleYear: dates.disbursementYear,
+          titleMonth: dates.disbursementMonth,
+        };
+        const guard = opts.guard(assembled);
+        if (!guard.ok) {
+          throw new FaacGuardFailure(guard.failures);
+        }
       }
 
       return result;
