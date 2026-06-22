@@ -3,11 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { TelegramController } from './telegram.controller';
 import { TelegramService } from './telegram.service';
 import { TelegramApiService } from './telegram-api.service';
+import { TelegramLoginService } from './telegram-login.service';
 
 @Module({
   controllers: [TelegramController],
-  providers: [TelegramService, TelegramApiService],
-  exports: [TelegramApiService],
+  providers: [TelegramService, TelegramApiService, TelegramLoginService],
+  exports: [TelegramApiService, TelegramLoginService],
 })
 export class TelegramModule implements OnModuleInit {
   private readonly logger = new Logger(TelegramModule.name);

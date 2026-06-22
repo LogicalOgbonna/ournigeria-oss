@@ -6,13 +6,15 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Response } from "express";
+import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { TelegramApiService } from "../telegram/telegram-api.service";
+import { TelegramLoginService } from "../telegram/telegram-login.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user";
 import { Public } from "./decorators/public";
@@ -162,7 +164,66 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly telegramApi: TelegramApiService,
+    private readonly telegramLogin: TelegramLoginService,
   ) {}
+
+  @Public()
+  @Post("telegram/start")
+  @ApiOperation({ summary: "Begin Telegram deep-link login; returns startParam + pollKey" })
+  async telegramStart(
+    @Body() body: { intent?: string },
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (await this.telegramLogin.hitRateLimit(`start:${ip}`, 20, 60_000)) {
+      return res
+        .status(HttpStatus.TOO_MANY_REQUESTS)
+        .json({ error: "Too many login attempts. Please wait." });
+    }
+
+    const intent = body?.intent === "link" ? "link" : "login";
+    let userId: string | undefined;
+    if (intent === "link") {
+      const cookie = req.cookies?.[USER_COOKIE];
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!cookie || !UUID.test(cookie)) {
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: "Sign in before linking Telegram." });
+      }
+      userId = cookie;
+    }
+
+    const { startParam, pollKey } = await this.telegramLogin.createLoginRequest(intent, userId);
+    return res.json({ startParam, pollKey });
+  }
+
+  @Public()
+  @Get("telegram/poll")
+  @ApiOperation({ summary: "Poll a Telegram deep-link login; sets session cookie on success" })
+  async telegramPoll(
+    @Query("pollKey") pollKey: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (await this.telegramLogin.hitRateLimit(`poll:${ip}`, 300, 60_000)) {
+      return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests." });
+    }
+    if (!pollKey) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: "pollKey is required" });
+    }
+
+    const result = await this.telegramLogin.pollByKey(pollKey);
+    if (result.status === "authenticated") {
+      res.cookie(USER_COOKIE, result.userId, buildUserCookieOptions());
+      return res.json({ status: "authenticated", success: true, userId: result.userId });
+    }
+    return res.json({ status: result.status });
+  }
 
   @Public()
   @Post("send-otp")
