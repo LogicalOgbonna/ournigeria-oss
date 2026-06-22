@@ -19,3 +19,4 @@ export type {
   CompletenessCategory,
   CompletenessInput,
 } from './completeness';
+export * from './faac';

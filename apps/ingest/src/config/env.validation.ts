@@ -17,6 +17,9 @@ export interface EnvConfig {
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
   SQS_QUEUE_URL?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_DEPLOY_CHAT_ID?: string;
+  FAAC_AUTOINGEST_DISABLED?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -73,5 +76,8 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
     S3_BUCKET: config.S3_BUCKET as string,
     SQS_QUEUE_URL: (config.SQS_QUEUE_URL as string) || undefined,
+    TELEGRAM_BOT_TOKEN: (config.TELEGRAM_BOT_TOKEN as string) || undefined,
+    TELEGRAM_DEPLOY_CHAT_ID: (config.TELEGRAM_DEPLOY_CHAT_ID as string) || undefined,
+    FAAC_AUTOINGEST_DISABLED: (config.FAAC_AUTOINGEST_DISABLED as string) || undefined,
   };
 }
