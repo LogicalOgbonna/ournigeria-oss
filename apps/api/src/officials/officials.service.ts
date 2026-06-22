@@ -64,7 +64,16 @@ export class OfficialsService {
         include: {
           positions: {
             where: { status: "active" },
-            include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
+            include: {
+              party: true,
+              state: true,
+              lga: true,
+              constituency: true,
+              // Resolve ward → LGA → state so ward-scoped offices (councilors)
+              // can express their LGA and state, which aren't on the position row.
+              ward: { include: { lga: { include: { state: true } } } },
+              term: true,
+            },
           },
           _count: { select: { proposals: true } },
         },
@@ -91,7 +100,16 @@ export class OfficialsService {
         // first so existing positions[0] consumers keep seeing the current office.
         positions: {
           orderBy: [{ endDate: { sort: "desc", nulls: "first" } }, { startDate: "desc" }],
-          include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
+          include: {
+            party: true,
+            state: true,
+            lga: true,
+            constituency: true,
+            // Resolve ward → LGA → state so ward-scoped offices (councilors)
+            // can express their LGA and state, which aren't on the position row.
+            ward: { include: { lga: { include: { state: true } } } },
+            term: true,
+          },
         },
         proposals: {
           where: { status: { in: ["submitted", "under_review"] } },
@@ -643,10 +661,12 @@ export class OfficialsService {
           p.status === "active" && (!p.endDate || p.endDate.getTime() > Date.now()),
         party: p.party?.acronym ?? p.partyAcronym ?? null,
         partyName: p.party?.name ?? null,
-        state: p.state?.name ?? null,
-        stateCode: p.stateCode,
-        lga: p.lga?.name ?? null,
-        lgaCode: p.lgaCode,
+        // Ward-scoped offices (councilors) only store ward_code; derive the
+        // LGA and state from the ward's parent relations when absent.
+        state: p.state?.name ?? p.ward?.lga?.state?.name ?? null,
+        stateCode: p.stateCode ?? p.ward?.lga?.stateCode ?? null,
+        lga: p.lga?.name ?? p.ward?.lga?.name ?? null,
+        lgaCode: p.lgaCode ?? p.ward?.lgaCode ?? null,
         constituency: p.constituency?.name ?? null,
         constituencyCode: p.constituencyCode,
         ward: p.ward?.name ?? null,

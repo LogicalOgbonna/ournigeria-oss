@@ -450,6 +450,29 @@ export interface Position {
   termNumber: number | null;
 }
 
+/**
+ * Human-readable location for an official's position, expressed at the right
+ * granularity for the office. Ward-scoped offices (councilors) read ward → LGA
+ * → state; constituency-scoped offices (senators, reps, MHAs) show the
+ * constituency; state-scoped offices (governors) show the state. Falls back to
+ * "Nigeria" when nothing is set.
+ */
+export function formatOfficialLocation(
+  position:
+    | Pick<Position, "ward" | "lga" | "constituency" | "state">
+    | null
+    | undefined,
+): string {
+  if (!position) return "Nigeria";
+  const parts = [
+    position.ward,
+    position.lga,
+    position.constituency,
+    position.state,
+  ].filter((p): p is string => Boolean(p));
+  return parts.length ? parts.join(", ") : "Nigeria";
+}
+
 export interface ChainEntry {
   role: string;
   scope: Record<string, string>;
