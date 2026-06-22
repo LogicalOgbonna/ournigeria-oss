@@ -1,6 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService, seedFaacFromFile, faacLoadGuards, MONTHS } from "@ournigeria/database";
+import { PrismaService } from "@ournigeria/database";
+// FAAC seeding is imported from the subpath (not the main barrel): it loads `xlsx`,
+// which the API image prunes. The ingest image keeps xlsx, so it loads it here.
+import { seedFaacFromFile, faacLoadGuards, MONTHS } from "@ournigeria/database/dist/faac";
 import { fetchCatalogResources, type CatalogResource } from "../pipeline/faac/nbs-catalog-scraper";
 import { downloadResource } from "../pipeline/faac/downloader";
 import { reindexFaac } from "../pipeline/faac/reindex";
