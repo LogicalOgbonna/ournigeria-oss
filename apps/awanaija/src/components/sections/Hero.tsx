@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { LOGIN_URL } from "@/lib/constants";
+import posthog from "posthog-js";
 
 export function Hero() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -117,7 +118,10 @@ export function Hero() {
                 onMouseLeave={() => setIsDropdownOpen(false)}
               >
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen);
+                    posthog.capture("hero_cta_clicked");
+                  }}
                   className="hero-cta btn-magnetic inline-flex h-13 items-center gap-2.5 rounded-[1.5rem] bg-emerald-600 px-8 text-base font-semibold text-white opacity-0 animate-fade-in-up shadow-xl shadow-emerald-600/20 dark:bg-emerald-500 cursor-pointer"
                   style={{ animationDelay: "1.0s" }}
                 >
@@ -135,6 +139,7 @@ export function Hero() {
                     <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
                     <a
                         href={LOGIN_URL}
+                        onClick={() => posthog.capture("hero_platform_selected", { platform: "web" })}
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                       >
                         <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -144,6 +149,7 @@ export function Hero() {
                         href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => posthog.capture("hero_platform_selected", { platform: "telegram" })}
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                       >
                         <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -151,6 +157,7 @@ export function Hero() {
                       </a>
                       <button
                         onClick={() => {
+                          posthog.capture("hero_platform_selected", { platform: "whatsapp" });
                           setIsModalOpen(true);
                           setIsDropdownOpen(false);
                         }}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import posthog from "posthog-js";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import {
@@ -67,6 +68,10 @@ export default function DonatePage() {
     setCustomAmount("");
   };
 
+  useEffect(() => {
+    posthog.capture("donate_page_viewed");
+  }, []);
+
   const handleCopyAddress = useCallback(async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
@@ -82,6 +87,7 @@ export default function DonatePage() {
       setCopiedAddress(address);
       setTimeout(() => setCopiedAddress(null), 2000);
     }
+    posthog.capture("donation_crypto_address_copied", { network: CRYPTO_WALLETS.find(w => w.address === address)?.network });
   }, []);
 
   const handleDonate = async (provider: PaymentProvider) => {
@@ -348,6 +354,7 @@ export default function DonatePage() {
                 href="https://giveth.io/project/our-nigeria"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => posthog.capture("donate_giveth_clicked")}
                 className="mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 font-medium text-slate-900 dark:text-white transition-all hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Donate via Giveth
