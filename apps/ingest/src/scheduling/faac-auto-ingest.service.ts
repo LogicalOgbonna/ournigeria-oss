@@ -31,9 +31,12 @@ export class FaacAutoIngestService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
+    // Reuse the same bot + chat the deploy pipeline notifies (deploy/deploy.sh
+    // uses TELEGRAM_BOT_TOKEN + TELEGRAM_DEPLOY_CHAT_ID) so FAAC alerts land in
+    // the existing deployment-status channel.
     this.notifier = new IngestNotifier(
       config.get<string>("TELEGRAM_BOT_TOKEN"),
-      config.get<string>("FAAC_ALERT_CHAT_ID"),
+      config.get<string>("TELEGRAM_DEPLOY_CHAT_ID"),
     );
   }
 

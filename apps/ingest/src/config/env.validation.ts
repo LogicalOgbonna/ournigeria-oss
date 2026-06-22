@@ -18,7 +18,7 @@ export interface EnvConfig {
   S3_BUCKET: string;
   SQS_QUEUE_URL?: string;
   TELEGRAM_BOT_TOKEN?: string;
-  FAAC_ALERT_CHAT_ID?: string;
+  TELEGRAM_DEPLOY_CHAT_ID?: string;
   FAAC_AUTOINGEST_DISABLED?: string;
 }
 
@@ -77,7 +77,7 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     S3_BUCKET: config.S3_BUCKET as string,
     SQS_QUEUE_URL: (config.SQS_QUEUE_URL as string) || undefined,
     TELEGRAM_BOT_TOKEN: (config.TELEGRAM_BOT_TOKEN as string) || undefined,
-    FAAC_ALERT_CHAT_ID: (config.FAAC_ALERT_CHAT_ID as string) || undefined,
+    TELEGRAM_DEPLOY_CHAT_ID: (config.TELEGRAM_DEPLOY_CHAT_ID as string) || undefined,
     FAAC_AUTOINGEST_DISABLED: (config.FAAC_AUTOINGEST_DISABLED as string) || undefined,
   };
 }
