@@ -4,7 +4,7 @@ import { PrismaService } from "@ournigeria/database";
 import { cache } from "@ournigeria/cache";
 
 const TOKEN_BYTES = 24; // 24 bytes → 32 base64url chars (well under Telegram's 64-char start-param limit)
-const TTL_MS = 5 * 60 * 1000; // login request valid for 5 minutes
+const TTL_MS = 20 * 60 * 1000; // login request valid for 20 minutes (room to linger in the Telegram app)
 
 export type LoginIntent = "login" | "link";
 

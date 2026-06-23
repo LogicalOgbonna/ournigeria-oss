@@ -9,7 +9,7 @@ import { apiUrl } from "@/lib/api";
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "";
 const POLL_MS = 2000;
-const MAX_POLL_MS = 5 * 60 * 1000;
+const MAX_POLL_MS = 20 * 60 * 1000; // matches the server-side login request TTL
 // Per-tab so a reloaded/OS-discarded tab (common on mobile while the user is in
 // Telegram) can resume polling the same login instead of losing the pollKey.
 const STORAGE_KEY = "tg_login";
