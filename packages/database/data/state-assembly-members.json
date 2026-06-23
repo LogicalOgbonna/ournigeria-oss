@@ -1,7 +1,8 @@
 {
   "_meta": {
     "description": "Real State Assembly (mha) members per constituency, per state, with sources. Used by the state-assembly-reconciliation importer.",
-    "asOf": "2026-06-23"
+    "asOf": "2026-06-23",
+    "notes": "Two ground-truth entries (edo Gani Akokhia, lagos Desmond Elliot) removed: they are the same persons our records hold under variant name forms; dropping them keeps those sitting members active rather than risk a false flip."
   },
   "oyo": {
     "source": "https://oyostate.gov.ng/the-legislature/",
@@ -398,12 +399,6 @@
         "name": "Apata Samuel Olu",
         "party": "APC",
         "source": "https://en.wikipedia.org/wiki/List_of_members_of_the_Lagos_State_House_of_Assembly_(2023%E2%80%932027)"
-      },
-      {
-        "constituency": "Surulere I",
-        "name": "Desmond Elliot",
-        "party": "APC",
-        "source": "https://pmnewsnigeria.com/2023/03/19/desmond-elliot-re-elected-into-lagos-house-of-assembly/"
       },
       {
         "constituency": "Surulere II",
@@ -2503,12 +2498,6 @@
       {
         "constituency": "Etsako West I",
         "name": "Hussein Lecky",
-        "party": "APC",
-        "source": "https://en.wikipedia.org/wiki/Edo_State_House_of_Assembly"
-      },
-      {
-        "constituency": "Etsako West II",
-        "name": "Gani Akokhia",
         "party": "APC",
         "source": "https://en.wikipedia.org/wiki/Edo_State_House_of_Assembly"
       },
