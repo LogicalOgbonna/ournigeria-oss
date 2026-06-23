@@ -27,6 +27,7 @@ export function TelegramDeepLinkLogin({ intent = "login" }: { intent?: "login" |
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const [deepLink, setDeepLink] = useState<string | null>(null);
+  const [appLink, setAppLink] = useState<string | null>(null);
   const [mobile, setMobile] = useState(false);
   const pollKeyRef = useRef<string | null>(null);
   const startedAtRef = useRef<number>(0);
@@ -88,8 +89,18 @@ export function TelegramDeepLinkLogin({ intent = "login" }: { intent?: "login" |
       const { startParam, pollKey } = await res.json();
       pollKeyRef.current = pollKey;
       startedAtRef.current = Date.now();
-      setDeepLink(`https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(startParam)}`);
+      const param = encodeURIComponent(startParam);
+      const tgApp = `tg://resolve?domain=${BOT_USERNAME}&start=${param}`;
+      setDeepLink(`https://t.me/${BOT_USERNAME}?start=${param}`);
+      setAppLink(tgApp);
       timerRef.current = setTimeout(poll, POLL_MS);
+      if (isMobile()) {
+        // Launch the Telegram app right away via its custom scheme. Unlike an
+        // https://t.me navigation, tg:// does NOT unload this page, so polling
+        // keeps running here. The visible button below is the fallback if the
+        // browser doesn't honour the auto-launch.
+        window.location.href = tgApp;
+      }
     } catch {
       setPhase("error");
     }
@@ -135,12 +146,12 @@ export function TelegramDeepLinkLogin({ intent = "login" }: { intent?: "login" |
       {mobile ? (
         <>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Tap below, then press <b>Start</b> in Telegram and come back here.
+            Opening Telegram… press <b>Start</b>, then come back here.
           </p>
-          {deepLink && (
-            <a href={deepLink} target="_blank" rel="noopener noreferrer" className="w-full">
-              <Button size="lg" className="w-full">
-                <Send className="mr-2 h-4 w-4" /> Open Telegram
+          {(appLink || deepLink) && (
+            <a href={appLink ?? deepLink ?? "#"} className="w-full">
+              <Button size="lg" variant="outline" className="w-full">
+                <Send className="mr-2 h-4 w-4" /> Didn&apos;t open? Tap to open Telegram
               </Button>
             </a>
           )}
