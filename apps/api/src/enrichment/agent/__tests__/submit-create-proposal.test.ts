@@ -44,10 +44,11 @@ describe("submitCreateProposal (integration)", () => {
   it("files a create proposal with the entity in proposed_value", async () => {
     const res = await submitCreateProposal(agent, base());
     ids.push(res.id);
-    const p = await owner.query(`SELECT target_pk, target_field, change_kind, status, proposed_value FROM change_proposals WHERE id=$1`, [res.id]);
+    const p = await owner.query(`SELECT target_pk, target_field, change_kind, status, entity_role, proposed_value FROM change_proposals WHERE id=$1`, [res.id]);
     expect(p.rows[0].target_pk).toBeNull();
     expect(p.rows[0].change_kind).toBe("create");
     expect(p.rows[0].status).toBe("pending");
+    expect(p.rows[0].entity_role).toBe("councilor"); // creates are always councilors
     const entity = p.rows[0].proposed_value;
     expect(entity.official.name).toBe("Test Councilor One");
     expect(entity.position.wardCode).toBe(WARD);

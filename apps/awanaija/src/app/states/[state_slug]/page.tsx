@@ -7,6 +7,7 @@ import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { StateOfficialsAccordion } from "@/components/civic/StateOfficialsAccordion";
 import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
+import { ReportDataIssueButton } from "@/components/civic/ReportDataIssueButton";
 import { notFound } from "next/navigation";
 import { getStateDetails } from "@/lib/api";
 
@@ -238,7 +239,11 @@ export default async function StatePage({
                     State Snapshot
                   </p>
                     <span className="font-sans text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded bg-muted text-foreground">
-                      {governor?.party || "N/A"}
+                      {governor?.party ? (
+                        <Link href={`/parties/${governor.party}`} className="hover:text-emerald-600 dark:hover:text-emerald-400">
+                          {governor.party}
+                        </Link>
+                      ) : "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
@@ -463,25 +468,12 @@ export default async function StatePage({
                 Latest Updates
               </h2>
               
-              <div className="relative overflow-hidden rounded-[10px] border border-border bg-card">
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
-                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-                </div>
-                
-                <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-                    <Construction className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  
-                  <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
-                    State Updates Coming Soon
-                  </h3>
-                  
-                  <p className="text-muted-foreground max-w-md mx-auto font-sans leading-relaxed">
-                    We are currently aggregating and verifying news, project updates, and civic reports for {state.name}. Keep an eye on the site banners for updates on when this feature goes live.
-                  </p>
-                </div>
+              <div className="rounded-[10px] border border-border bg-muted/30 px-5 py-4 flex items-center gap-3">
+                <Construction className="w-5 h-5 text-muted-foreground shrink-0" />
+                <p className="font-sans text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">Coming soon.</span>{" "}
+                  We&apos;re aggregating and verifying news, project updates, and civic reports for {state.name}.
+                </p>
               </div>
             </section>
           </div>
@@ -690,9 +682,7 @@ export default async function StatePage({
               <p className="font-sans text-sm text-emerald-800/80 dark:text-emerald-200/80 leading-relaxed">
                 We rely on public records and citizen reports. If you have verified data about projects or spending in {state.name}, help us update the records.
               </p>
-              <button className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-medium text-sm transition-colors mt-2">
-                Submit Information
-              </button>
+              <ReportDataIssueButton />
             </div>
           </div>
         </div>

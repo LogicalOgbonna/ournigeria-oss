@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Proposal } from "@/lib/api";
-import { voteOnProposal } from "@/lib/api";
+import { voteOnProposal, formatOfficialLocation } from "@/lib/api";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -117,7 +117,17 @@ export function OfficialProfile({ official }: { official: Official }) {
               {/* Overline */}
               <div className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-emerald-400 mb-1">
                 {position?.role || "Official"}
-                {position?.party && ` · ${position.party}`}
+                {position?.party && (
+                  <>
+                    {" · "}
+                    <Link
+                      href={`/parties/${position.party}`}
+                      className="hover:text-emerald-300 hover:underline"
+                    >
+                      {position.party}
+                    </Link>
+                  </>
+                )}
               </div>
 
               {/* Name */}
@@ -125,10 +135,11 @@ export function OfficialProfile({ official }: { official: Official }) {
                 {official.name}
               </h1>
 
-              {/* Constituency */}
+              {/* Location — ward/LGA/state for councilors, constituency for
+                  legislators, state for governors */}
               {position && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">
-                  {position.constituency || position.state || "Nigeria"}
+                  {formatOfficialLocation(position)}
                 </p>
               )}
 
@@ -267,7 +278,7 @@ export function OfficialProfile({ official }: { official: Official }) {
               {missingFields.map((field) => (
                 <Link
                   key={field}
-                  href={`/proposals/new?officialId=${official.id}&field=${field}`}
+                  href={`/proposals/new?officialId=${official.id}&targetField=${field}`}
                   className="flex items-center gap-2.5 border border-dashed border-emerald-400/40 rounded-xl px-4 py-4 transition-all hover:bg-emerald-400/[0.06] hover:border-emerald-400/70 group"
                 >
                   <Plus className="w-[18px] h-[18px] text-emerald-400 shrink-0" />
@@ -332,7 +343,7 @@ function ChallengeButton({
             {fields.map((field) => (
               <Link
                 key={field}
-                href={`/proposals/new?officialId=${officialId}&field=${field}`}
+                href={`/proposals/new?officialId=${officialId}&targetField=${field}`}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-slate-700 dark:text-slate-300 transition-colors hover:bg-red-400/[0.08] hover:text-red-600 dark:hover:text-red-400"
                 onClick={() => setOpen(false)}
               >

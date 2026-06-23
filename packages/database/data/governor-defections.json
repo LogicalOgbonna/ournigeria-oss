@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "description": "Sitting state governors who changed party mid-term (2024-2026) and whose active official_positions row still carries their old party. Consumed by scripts/seed-governor-defections.ts, which flips party_acronym on the ACTIVE governor position (state_code arc) and stamps provenance. Each governor won their 2023 seat under from_party; the election history stays in official_elections — only current affiliation moves.",
+    "asOf": "2026-06-19",
+    "context": "These 10 PDP/NNPP -> APC moves bring sitting APC governors from 21 to 31 (of 36), matching apc.com.ng's governor directory and the BusinessDay/Guardian/Pulse consensus. Osun's Adeleke left PDP for Accord (not APC)."
+  },
+  "defections": [
+    { "state_code": "delta",     "name": "Sheriff Oborevwori",      "from_party": "PDP",  "to_party": "APC",    "defection_date": "2025-04-23", "source": "https://www.vanguardngr.com/2025/04/breaking-delta-governor-oborevwori-dumps-pdp-for-apc/" },
+    { "state_code": "akwa_ibom",  "name": "Umo Eno",                 "from_party": "PDP",  "to_party": "APC",    "defection_date": "2025-06-06", "source": "https://www.thecable.ng/just-in-akwa-ibom-governor-umo-eno-defects-from-pdp-to-apc/" },
+    { "state_code": "enugu",      "name": "Peter Mbah",              "from_party": "PDP",  "to_party": "APC",    "defection_date": "2025-10-14", "source": "https://www.vanguardngr.com/2025/10/disquiet-in-pdp-over-mbah-diris-planned-defection-to-apc/" },
+    { "state_code": "bayelsa",    "name": "Douye Diri",              "from_party": "PDP",  "to_party": "APC",    "defection_date": "2025-11-03", "source": "https://www.legit.ng/politics/1681515-just-bayelas-governor-diri-finally-defects-apc-pdp/" },
+    { "state_code": "rivers",     "name": "Siminalayi Fubara",       "from_party": "PDP",  "to_party": "APC",    "defection_date": "2025-12-10", "source": "https://punchng.com/fubara-adeleke-other-govs-who-left-pdp-since-2023/" },
+    { "state_code": "kano",       "name": "Abba Kabir Yusuf",        "from_party": "NNPP", "to_party": "APC",    "defection_date": "2026-01-26", "source": "https://guardian.ng/politics/yusuf-rejoins-apc-flags-off-partys-e-registration/" },
+    { "state_code": "taraba",     "name": "Agbu Kefas",              "from_party": "PDP",  "to_party": "APC",    "defection_date": "2026-01-15", "source": "https://punchng.com/hurricane-tinubu-taraba-plateau-adamawa-govs-face-defection-dilemma/" },
+    { "state_code": "plateau",    "name": "Caleb Manasseh Mutfwang", "from_party": "PDP",  "to_party": "APC",    "defection_date": "2026-01-15", "source": "https://blueprint.ng/finally-mutfwang-dumps-pdp-defects-to-apc/" },
+    { "state_code": "adamawa",    "name": "Ahmadu Umaru Fintiri",    "from_party": "PDP",  "to_party": "APC",    "defection_date": "2026-02-27", "source": "https://pmnewsnigeria.com/2026/02/27/adamawa-governor-fintiri-dumps-pdp-for-apc-hands-ruling-party-30-state-stronghold/" },
+    { "state_code": "zamfara",    "name": "Dauda Lawal",             "from_party": "PDP",  "to_party": "APC",    "defection_date": "2026-03-09", "source": "https://businessday.ng/politics/article/pdp-depletes-apc-governors-rise-to-31-as-lawal-joins-fold/" },
+    { "state_code": "osun",       "name": "Ademola Adeleke",         "from_party": "PDP",  "to_party": "Accord", "defection_date": "2025-12-02", "source": "https://punchng.com/fubara-adeleke-other-govs-who-left-pdp-since-2023/" }
+  ]
+}

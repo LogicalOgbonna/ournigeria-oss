@@ -1,6 +1,12 @@
 export type { ChartPoint, ChartConfig, ChartBlock, ChartType } from "./charts";
 import type { ChartBlock } from "./charts";
 
+// NOTE: @ournigeria/shared-types ships raw .ts as its `main` and is therefore
+// safe ONLY for type-only imports (erased at compile). Do NOT add runtime values
+// (functions/consts) here — the production API compiles to JS and would `require`
+// a .ts file at runtime and crash on boot. Official completeness scoring (a
+// runtime value) lives in @ournigeria/database, a built package. (Plan 45c.)
+
 export interface BudgetData {
   state: string;
   year: number;

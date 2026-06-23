@@ -85,3 +85,9 @@ packages/plans/
 
 # lighthouse
 .lighthouseci/
+
+# gstack local scratch
+.superpowers/
+
+# playwright mcp scratch (screenshots, snapshots, console logs)
+.playwright-mcp/

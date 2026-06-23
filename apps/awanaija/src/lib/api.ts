@@ -113,6 +113,27 @@ export async function getRegions() {
   return apiFetch<{ code: string; name: string }[]>("/geo/regions");
 }
 
+// Political parties (first-class entities — distinct from the /geo/parties dropdown)
+export async function getPartyDirectory(init?: RequestInit) {
+  return apiFetch<PartyListItem[]>("/parties", init);
+}
+
+export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
+  return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
+}
+
+export async function getPartyOfficeholders(
+  acronym: string,
+  role: string,
+  page = 1,
+  init?: RequestInit,
+) {
+  return apiFetch<PartyOfficeholderPage>(
+    `/parties/${encodeURIComponent(acronym)}/officeholders?role=${encodeURIComponent(role)}&page=${page}`,
+    init,
+  );
+}
+
 export async function getConstituencies(stateCode: string, type?: string) {
   const qs = new URLSearchParams({ state: stateCode });
   if (type) qs.set("type", type);
@@ -129,7 +150,7 @@ export async function createProposal(data: {
   proposedValue: string;
   sourceUrl?: string;
 }) {
-  return apiFetch<{ id: string; status: string }>("/proposals", {
+  return apiFetch<{ id: string; status: string; trust: "verified" | "anonymous" }>("/proposals", {
     method: "POST",
     credentials: "include",
     body: JSON.stringify(data),
@@ -156,10 +177,17 @@ export async function identifyOfficial(data: {
   wardCode?: string;
   constituencyCode?: string;
 }) {
-  return apiFetch<{ id: string; officialId: string; status: string }>("/proposals/identify", {
+  return apiFetch<{ id: string; officialId: string; status: string; trust: "verified" | "anonymous" }>("/proposals/identify", {
     method: "POST",
     credentials: "include",
     body: JSON.stringify(data),
+  });
+}
+
+export async function claimProposal(proposalId: string) {
+  return apiFetch<{ status: string }>(`/proposals/${proposalId}/claim`, {
+    method: "POST",
+    credentials: "include",
   });
 }
 
@@ -211,10 +239,163 @@ export async function verifyOtp(phoneNumber: string, code: string) {
 }
 
 // Types
+
+/** One evidence source attached to a fact (plan 45 — EvidenceView). */
+export interface Evidence {
+  id: string;
+  url: string;
+  archiveUrl: string | null;
+  publisher: string;
+  snippet: string;
+  format: string;
+  locator: string | null;
+  sourceTier: "canonical" | "official" | "web" | string;
+  confidence: "high" | "medium" | "low" | string;
+  retrievedAt: string;
+  hasSnapshot: boolean;
+  originalAccessible: boolean;
+}
+
+/** Provenance + verification carried by every structured fact row. */
+export interface ProvFields {
+  id: string;
+  confidence: "high" | "medium" | "low" | string;
+  sourceType: string;
+  reviewStatus: "unreviewed" | "reviewed" | "disputed" | string;
+  lastVerifiedAt: string | null;
+  evidence: Evidence[];
+}
+
+export interface EducationRecord extends ProvFields {
+  institution: string;
+  institutionType: string | null;
+  qualification: string | null;
+  field: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  graduated: boolean | null;
+  location: string | null;
+}
+
+export interface CareerRecord extends ProvFields {
+  organization: string;
+  role: string | null;
+  industry: string | null;
+  employmentType: string | null;
+  startYear: number | null;
+  endYear: number | null;
+  description: string | null;
+}
+
+export interface PartyAffiliation extends ProvFields {
+  party: string;
+  partyName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  reason: string | null;
+}
+
+export interface Committee extends ProvFields {
+  committeeName: string;
+  chamber: string;
+  role: string;
+  termName: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface SponsoredBill extends ProvFields {
+  title: string;
+  billNumber: string | null;
+  chamber: string;
+  role: string;
+  status: string | null;
+  introducedDate: string | null;
+  statusDate: string | null;
+  summary: string | null;
+}
+
+export interface ElectionRecord extends ProvFields {
+  electionType: string;
+  isPrimary: boolean;
+  year: number;
+  electionDate: string | null;
+  party: string | null;
+  partyName: string | null;
+  state: string | null;
+  constituency: string | null;
+  lga: string | null;
+  ward: string | null;
+  result: string;
+  votes: number | null;
+  votePercentage: number | null;
+  winnerName: string | null;
+  resultedInPositionId: string | null;
+  notes: string | null;
+}
+
+export interface AssetDeclaration extends ProvFields {
+  year: number;
+  declaredTo: string | null;
+  amount: number | null;
+  currency: string;
+  summary: string | null;
+}
+
+export interface Award extends ProvFields {
+  title: string;
+  awardedBy: string | null;
+  year: number | null;
+  category: string | null;
+  description: string | null;
+}
+
+export interface Publication extends ProvFields {
+  title: string;
+  type: string | null;
+  publisher: string | null;
+  year: number | null;
+}
+
+export interface FamilyMember extends ProvFields {
+  relationship: string;
+  name: string | null;
+  isPublicFigure: boolean;
+  notes: string | null;
+  relatedOfficial: { name: string; slug: string | null } | null;
+}
+
+export interface LegalCase extends ProvFields {
+  title: string;
+  caseType: string;
+  status: string;
+  forum: string | null;
+  caseNumber: string | null;
+  filedDate: string | null;
+  resolvedDate: string | null;
+  outcome: string | null;
+  relatedCorruptionCase: { slug: string; title: string; status: string } | null;
+}
+
+export interface OfficialCorruptionCase extends ProvFields {
+  roleInCase: string;
+  outcome: string | null;
+  case: {
+    slug: string;
+    title: string;
+    status: string;
+    caseType: string;
+    forum: string | null;
+    amountInvolved: number | null;
+    currency: string;
+  };
+}
+
 export interface Official {
   id: string;
   slug: string | null;
   name: string;
+  officialType?: string | null;
   imageUrl: string | null;
   dateOfBirth: string | null;
   email: string | null;
@@ -229,6 +410,22 @@ export interface Official {
   positions: Position[];
   proposalCount: number;
   proposals: Proposal[];
+
+  // Plan 45 structured sections (present from getByIdOrSlug; optional so list
+  // responses that omit them still satisfy the type).
+  fieldEvidence?: { biography: Evidence[]; education: Evidence[] };
+  educationRecords?: EducationRecord[];
+  careerRecords?: CareerRecord[];
+  partyHistory?: PartyAffiliation[];
+  committees?: Committee[];
+  sponsoredBills?: SponsoredBill[];
+  elections?: ElectionRecord[];
+  assetDeclarations?: AssetDeclaration[];
+  awards?: Award[];
+  publications?: Publication[];
+  familyMembers?: FamilyMember[];
+  legalCases?: LegalCase[];
+  corruptionCases?: OfficialCorruptionCase[];
 }
 
 export interface Position {
@@ -246,8 +443,34 @@ export interface Position {
   wardCode: string | null;
   startDate: string | null;
   endDate: string | null;
+  endReason?: string | null;
+  status?: string;
+  isCurrent?: boolean;
   termName: string | null;
   termNumber: number | null;
+}
+
+/**
+ * Human-readable location for an official's position, expressed at the right
+ * granularity for the office. Ward-scoped offices (councilors) read ward → LGA
+ * → state; constituency-scoped offices (senators, reps, MHAs) show the
+ * constituency; state-scoped offices (governors) show the state. Falls back to
+ * "Nigeria" when nothing is set.
+ */
+export function formatOfficialLocation(
+  position:
+    | Pick<Position, "ward" | "lga" | "constituency" | "state">
+    | null
+    | undefined,
+): string {
+  if (!position) return "Nigeria";
+  const parts = [
+    position.ward,
+    position.lga,
+    position.constituency,
+    position.state,
+  ].filter((p): p is string => Boolean(p));
+  return parts.length ? parts.join(", ") : "Nigeria";
 }
 
 export interface ChainEntry {
@@ -295,4 +518,140 @@ export interface ActivityEntry {
   targetId: string;
   metadata: unknown;
   createdAt: string;
+}
+
+// Political parties
+export interface PartyOfficerView {
+  role: string;
+  name: string;
+  imageUrl: string | null;
+  officialSlug: string | null;
+}
+
+export interface PartyListItem {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  ideology: string | null;
+  completenessScore: number | null;
+  seats: number;
+  governorships: number;
+  officers: PartyOfficerView[];
+}
+
+export interface PartyFootprint {
+  governors: number;
+  senators: number;
+  representatives: number;
+  byRole: Record<string, number>;
+  statesControlled: string[];
+  seatsByState: Record<string, number>;
+  seatsByStateByRole: Record<string, Record<string, number>>;
+}
+
+export interface PartyOfficialMini {
+  id: string;
+  slug: string | null;
+  name: string;
+  imageUrl: string | null;
+  contextLabel: string | null;
+}
+
+export interface PartyOfficeholderPage {
+  data: PartyOfficialMini[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface PartyCandidate {
+  official: { id: string; slug: string | null; name: string; imageUrl: string | null };
+  electionType: string;
+  year: number;
+  electionDate: string | null;
+  scopeLabel: string;
+}
+
+export interface PartyStateChapter {
+  id: string;
+  partyAcronym: string;
+  stateCode: string;
+  chairmanName: string | null;
+  secretaryName: string | null;
+  hqAddress: string | null;
+  phoneNumber: string | null;
+  email: string | null;
+  website: string | null;
+  twitterHandle: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PartyDetail {
+  acronym: string;
+  name: string;
+  isActive: boolean;
+  logoUrl: string | null;
+  foundingYear: number | null;
+  leaderName: string | null;
+  hqAddress: string | null;
+  website: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  twitterHandle: string | null;
+  facebookUrl: string | null;
+  description: string | null;
+  ideology: string | null;
+  slogan: string | null;
+  color: string | null;
+  inecStatus: string | null;
+  completenessScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+  chapters: PartyStateChapter[];
+  officers: PartyOfficerView[];
+  footprint: PartyFootprint;
+  statesGoverned: string[];
+  candidates: PartyCandidate[];
+  seatShare: PartySeatShare;
+  budgetGoverned: PartyBudgetGoverned;
+  seatsByZone: PartySeatsByZone;
+  rank: { position: number | null; totalParties: number };
+}
+
+export interface SeatShareItem {
+  held: number;
+  total: number;
+}
+
+export interface PartySeatShare {
+  governorships: SeatShareItem;
+  senate: SeatShareItem;
+  house: SeatShareItem;
+  stateAssembly: SeatShareItem;
+  lga: SeatShareItem;
+}
+
+export interface PartyBudgetGoverned {
+  totalNaira: string | null;
+  totalRaw: number;
+  statesGoverned: number;
+  statesWithData: number;
+  topStates: { stateCode: string; name: string; naira: string; raw: number }[];
+}
+
+export interface PartyZone {
+  zoneCode: string;
+  zoneName: string;
+  held: number;
+  total: number;
+  pct: number;
+  byRole: { role: string; held: number; total: number }[];
+}
+
+export interface PartySeatsByZone {
+  zones: PartyZone[];
+  strongestZone: string | null;
 }

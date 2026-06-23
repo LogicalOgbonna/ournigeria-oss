@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronDown, User } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { cdnAvatar } from "@/lib/img";
 import type { Official } from "@/lib/api";
 
 const ROLES = [
@@ -33,7 +34,7 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
   const position = official.positions?.[0];
   const partyColor = position?.party ? PARTY_COLORS[position.party] || "#94a3b8" : "#94a3b8";
   const completeness = Math.round(official.completenessScore * 100);
-  const location = position?.constituency || position?.lga || position?.state || "";
+  const location = position?.ward || position?.constituency || position?.lga || position?.state || "";
   const showImage = official.imageUrl && !imgError;
 
   return (
@@ -45,7 +46,7 @@ function OfficialDirectoryCard({ official }: { official: Official }) {
       {/* Photo */}
       <div className="shrink-0">
         {showImage ? (
-          <SmartImage src={official.imageUrl!} alt={official.name} px={56} className="w-14 h-14 rounded-lg object-cover" onError={() => setImgError(true)} />
+          <SmartImage src={cdnAvatar(official.imageUrl) ?? official.imageUrl!} alt={official.name} px={56} className="w-14 h-14 rounded-lg object-cover" onError={() => setImgError(true)} />
         ) : (
           <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
             <User className="w-6 h-6 text-slate-300 dark:text-slate-600" />

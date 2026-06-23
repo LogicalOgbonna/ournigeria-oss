@@ -4,6 +4,7 @@ import { OfficialProfile } from "./OfficialProfile";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import type { Official } from "@/lib/api";
+import { formatOfficialLocation } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
 const SITE_URL = "https://ournigeria.ng";
@@ -64,7 +65,7 @@ export async function generateMetadata({
 
   const position = official.positions?.[0];
   const role = roleLabel(position?.role);
-  const location = position?.state || "Nigeria";
+  const location = formatOfficialLocation(position);
   const party = position?.partyName || position?.party || null;
   const canonicalSlug = official.slug || slug;
   const canonical = `${SITE_URL}/officials/${canonicalSlug}`;
@@ -111,7 +112,7 @@ export default async function OfficialPage({
 
   const position = official.positions?.[0];
   const role = roleLabel(position?.role);
-  const location = position?.state || "Nigeria";
+  const location = formatOfficialLocation(position);
   const party = position?.partyName || position?.party || null;
   const canonicalSlug = official.slug || slug;
   const url = `${SITE_URL}/officials/${canonicalSlug}`;

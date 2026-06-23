@@ -46,6 +46,7 @@
     "pdf-parse": "2.4.5",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "sharp": "^0.34.5",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "catalog:"
   },

@@ -57,8 +57,6 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
     node_modules/react-dom \
     node_modules/@next \
     node_modules/@swc \
-    node_modules/sharp \
-    node_modules/@img \
     node_modules/@napi-rs \
     node_modules/lightningcss \
     node_modules/esbuild \
@@ -87,7 +85,9 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
 # ── Stage 4: Production runner ──
 FROM node:22.14.0-slim AS runner
 
-RUN apt-get update && apt-get install -y openssl curl bash gnupg \
+# git + openssh-client: required by the OKF knowledge-bundle publisher (dist/okf/okf-publish.cli.js)
+# to clone/push the public mirror over an SSH deploy key. tar (for the bundle tarball) ships in the base.
+RUN apt-get update && apt-get install -y openssl curl bash gnupg git openssh-client \
  && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
  && apt-get update && apt-get install -y infisical \
  && rm -rf /var/lib/apt/lists/*

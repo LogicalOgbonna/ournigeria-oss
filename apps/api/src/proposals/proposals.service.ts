@@ -1,8 +1,7 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { PrismaService, slugifyName } from "@ournigeria/database";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
+import { ImageStorageService } from "../images/image-storage.service";
 import { OfficialsService } from "../officials/officials.service";
 import { ProposalNotifierService } from "./proposal-notifier.service";
 import { validateSourceUrl, validateImageUrl, validateFacebookUrl } from "../lib/url-validation";
@@ -28,40 +27,31 @@ const VALID_TARGET_FIELDS = [
 const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
 
 const MAX_PROPOSALS_PER_DAY = 30;
+const MAX_ANON_PROPOSALS_PER_HOUR = 5;
 const MAX_VOTES_PER_DAY = 20;
 
 /** Mask a proposer phone for admin display: +2348012345678 -> +234•••5678 */
-function maskPhone(phone: string): string {
-  if (!phone) return phone;
+function maskPhone(phone: string | null): string | null {
+  if (!phone) return null;
   if (phone.length <= 8) return phone;
   return `${phone.slice(0, 4)}•••${phone.slice(-4)}`;
 }
 
 @Injectable()
 export class ProposalsService {
-  private readonly s3: S3Client;
-  private readonly bucket: string;
-
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
+    private imageStorage: ImageStorageService,
     private officialsService: OfficialsService,
     private notifier: ProposalNotifierService,
-  ) {
-    this.bucket = this.config.getOrThrow<string>("S3_BUCKET");
-    this.s3 = new S3Client({
-      region: this.config.getOrThrow<string>("AWS_REGION"),
-      credentials: {
-        accessKeyId: this.config.getOrThrow<string>("AWS_ACCESS_KEY_ID"),
-        secretAccessKey: this.config.getOrThrow<string>("AWS_SECRET_ACCESS_KEY"),
-      },
-    });
-  }
+  ) {}
 
   async create(data: {
     officialId: string;
     positionId?: string;
-    proposerPhone: string;
+    proposerPhone: string | null;
+    proposerIp?: string | null;
+    trust: "verified" | "anonymous";
     targetField: string;
     proposedValue: any;
     sourceUrl?: string;
@@ -108,14 +98,20 @@ export class ProposalsService {
       throw new NotFoundException("Official not found");
     }
 
-    // Rate limit check
-    await this.checkProposalRateLimit(data.proposerPhone);
+    // Rate limit: verified submits by phone (30/day), anonymous by IP (5/hour).
+    if (data.trust === "anonymous") {
+      await this.checkAnonymousIpRateLimit(data.proposerIp);
+    } else {
+      await this.checkProposalRateLimit(data.proposerPhone!);
+    }
 
     const proposal = await this.prisma.dataProposal.create({
       data: {
         officialId: data.officialId,
         positionId: data.positionId ?? null,
         proposerPhone: data.proposerPhone,
+        proposerIp: data.proposerIp ?? null,
+        trust: data.trust,
         targetField: data.targetField,
         proposedValue: { value: data.proposedValue },
         sourceUrl: data.sourceUrl ?? null,
@@ -148,11 +144,13 @@ export class ProposalsService {
       })
       .catch(() => {}); // Don't fail proposal creation if notification fails
 
-    return { id: proposal.id, status: "submitted" };
+    return { id: proposal.id, status: "submitted", trust: data.trust };
   }
 
   async identify(data: {
-    proposerPhone: string;
+    proposerPhone: string | null;
+    proposerIp?: string | null;
+    trust: "verified" | "anonymous";
     name: string;
     role: string;
     imageUrl?: string;
@@ -198,8 +196,12 @@ export class ProposalsService {
       data.facebookUrl = r.url;
     }
 
-    // Rate limit check
-    await this.checkProposalRateLimit(data.proposerPhone);
+    // Rate limit: verified submits by phone (30/day), anonymous by IP (5/hour).
+    if (data.trust === "anonymous") {
+      await this.checkAnonymousIpRateLimit(data.proposerIp);
+    } else {
+      await this.checkProposalRateLimit(data.proposerPhone!);
+    }
 
     // Determine the correct geographic scope for the position
     const positionScope: Record<string, string> = {};
@@ -277,6 +279,8 @@ export class ProposalsService {
           officialId: official.id,
           positionId: position.id,
           proposerPhone: data.proposerPhone,
+          proposerIp: data.proposerIp ?? null,
+          trust: data.trust,
           targetField: "name",
           proposedValue: identifyProposalValue,
           sourceUrl: data.sourceUrl || null,
@@ -315,7 +319,7 @@ export class ProposalsService {
       })
       .catch(() => {});
 
-    return { id: result.proposalId, officialId: result.officialId, status: "submitted" };
+    return { id: result.proposalId, officialId: result.officialId, status: "submitted", trust: data.trust };
   }
 
   private normalizeIdentifyImage(imageUrl?: string) {
@@ -671,6 +675,7 @@ export class ProposalsService {
           proposedValue: p.proposedValue,
           sourceUrl: p.sourceUrl,
           proposerPhone: maskPhone(p.proposerPhone),
+          trust: p.trust,
           status: p.status,
           voteScore: p.voteScore,
           upvoteCount: p.upvoteCount,
@@ -703,9 +708,15 @@ export class ProposalsService {
 
     let value = (proposal.proposedValue as any)?.value;
 
-    // If approving a photo with a data URL, upload to S3 first
-    if (proposal.targetField === "imageUrl" && typeof value === "string" && value.startsWith("data:")) {
-      value = await this.uploadDataUrlToS3(value, proposal.officialId);
+    // If approving a photo (data URL or remote URL), normalize it into our own
+    // storage (resized webp on S3/CDN) rather than persisting a foreign URL.
+    if (
+      proposal.targetField === "imageUrl" &&
+      typeof value === "string" &&
+      (value.startsWith("data:") || /^https?:\/\//i.test(value)) &&
+      !this.imageStorage.isStoredUrl(value)
+    ) {
+      value = (await this.imageStorage.storeOfficialImage(value, proposal.officialId)).url;
     }
 
     // Apply the change based on target field
@@ -729,12 +740,13 @@ export class ProposalsService {
       proposedValue?.type === "identify" &&
       !proposal.official.imageUrl &&
       typeof proposedValue?.imageUrl === "string" &&
-      proposedValue.imageUrl.startsWith("data:")
+      (proposedValue.imageUrl.startsWith("data:") || /^https?:\/\//i.test(proposedValue.imageUrl)) &&
+      !this.imageStorage.isStoredUrl(proposedValue.imageUrl)
     ) {
-      const s3Url = await this.uploadDataUrlToS3(proposedValue.imageUrl, proposal.officialId);
+      const storedUrl = (await this.imageStorage.storeOfficialImage(proposedValue.imageUrl, proposal.officialId)).url;
       await this.prisma.nigerianOfficial.update({
         where: { id: proposal.officialId },
-        data: { imageUrl: s3Url },
+        data: { imageUrl: storedUrl },
       });
     }
 
@@ -780,6 +792,34 @@ export class ProposalsService {
     return { status: "rejected" };
   }
 
+  async claim(proposalId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { phoneNumber: true },
+    });
+    const phone = user?.phoneNumber || `user:${userId}`;
+
+    const proposal = await this.prisma.dataProposal.findUnique({
+      where: { id: proposalId },
+      select: { id: true, trust: true, proposerPhone: true },
+    });
+    if (!proposal) {
+      throw new NotFoundException("Proposal not found");
+    }
+    // Only an unclaimed anonymous proposal can be claimed — prevents hijacking
+    // someone else's verified submission.
+    if (proposal.trust !== "anonymous" || proposal.proposerPhone) {
+      throw new BadRequestException("Proposal cannot be claimed");
+    }
+
+    await this.prisma.dataProposal.update({
+      where: { id: proposalId },
+      data: { proposerPhone: phone, trust: "verified" },
+    });
+
+    return { status: "claimed" };
+  }
+
   async bulkAction(proposalIds: string[], action: "approve" | "reject", adminId: string) {
     // Relational field proposals cannot be bulk-approved
     if (action === "approve") {
@@ -808,33 +848,6 @@ export class ProposalsService {
     return { results };
   }
 
-  private async uploadDataUrlToS3(dataUrl: string, officialId: string): Promise<string> {
-    // Parse data URL: data:image/jpeg;base64,/9j/4AAQ...
-    const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-    if (!match) {
-      throw new BadRequestException("Invalid image data URL");
-    }
-
-    const contentType = match[1];
-    const ext = contentType.split("/")[1] === "jpeg" ? "jpg" : contentType.split("/")[1];
-    const buffer = Buffer.from(match[2], "base64");
-    const hash = randomBytes(6).toString("hex");
-    const s3Key = `officials/${officialId}/${hash}.${ext}`;
-
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: s3Key,
-        Body: buffer,
-        ContentType: contentType,
-      }),
-    );
-
-    // Return a public URL (assumes bucket has public read or CloudFront)
-    const region = this.config.getOrThrow<string>("AWS_REGION");
-    return `https://${this.bucket}.s3.${region}.amazonaws.com/${s3Key}`;
-  }
-
   private async checkProposalRateLimit(phone: string) {
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const count = await this.prisma.dataProposal.count({
@@ -842,6 +855,20 @@ export class ProposalsService {
     });
     if (count >= MAX_PROPOSALS_PER_DAY) {
       throw new ForbiddenException("Daily proposal limit reached (5 per day). Try again tomorrow.");
+    }
+  }
+
+  private async checkAnonymousIpRateLimit(ip?: string | null) {
+    // No resolvable IP → fail closed so anonymous floods can't bypass the limit.
+    if (!ip) {
+      throw new ForbiddenException("Could not verify request origin. Try again later.");
+    }
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const count = await this.prisma.dataProposal.count({
+      where: { proposerIp: ip, createdAt: { gte: hourAgo } },
+    });
+    if (count >= MAX_ANON_PROPOSALS_PER_HOUR) {
+      throw new ForbiddenException("Too many submissions from this network. Try again in an hour.");
     }
   }
 

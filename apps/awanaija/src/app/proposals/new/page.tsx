@@ -3,21 +3,19 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon, X, User, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon, X } from "lucide-react";
 import {
   getOfficialById,
   createProposal,
-  identifyOfficial,
-  sendOtp,
-  verifyOtp,
+  claimProposal,
   getParties,
-  getStates,
-  getLgas,
-  getWards,
-  getConstituencies,
   type Official,
 } from "@/lib/api";
-import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
+import {
+  useIdentifyForm, ctxFromParams, hasFullContext, roleConfig,
+  RoleField, LocationField, LocationChip, NameField, PartyField,
+  OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
+} from "@/components/proposals/identify-form";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -51,40 +49,6 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
 
 const TEXTAREA_FIELDS = new Set(["biography", "officeAddress", "education"]);
 const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
-const IDENTIFY_PROFILE_FIELDS = [
-  "email",
-  "phoneNumber",
-  "officeAddress",
-  "twitterHandle",
-  "facebookUrl",
-  "education",
-  "biography",
-  "gender",
-  "dateOfBirth",
-] as const;
-
-type IdentifyProfileField = (typeof IDENTIFY_PROFILE_FIELDS)[number];
-
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State House Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Ward Councilor",
-};
-
-const ROLE_DESCRIPTIONS: Record<string, string> = {
-  councilor: "The elected representative for this ward in the local government legislative council.",
-  lga_chairman: "The elected executive head of this Local Government Area.",
-  mha: "The elected member representing this constituency in the State House of Assembly.",
-  representative: "The elected member representing this constituency in the Federal House of Representatives.",
-  rep: "The elected member representing this constituency in the Federal House of Representatives.",
-  senator: "The elected senator representing this senatorial district in the Nigerian Senate.",
-  governor: "The elected executive governor of this state.",
-};
 
 export default function NewProposalPage() {
   return (
@@ -98,242 +62,37 @@ function NewProposalContent() {
   const searchParams = useSearchParams();
 
   const officialId = searchParams.get("officialId");
-  const roleParam = searchParams.get("role");
 
-  // If there's no officialId but there IS a role, show the identify flow
-  if (!officialId && roleParam) {
-    return <IdentifyOfficialContent />;
+  // Existing official → propose a field change. Otherwise → identify a new official
+  // (handles both deep-links with role/location context and cold no-context visits).
+  if (officialId) {
+    return <EditOfficialContent />;
   }
 
-  return <EditOfficialContent />;
+  return <IdentifyOfficialContent />;
 }
 
-// ─── IDENTIFY MODE ──────────────────────────────────────────────────────────
+// ─── IDENTIFY MODE (Variant C: location gate → minimal form) ────────────────
 
 function IdentifyOfficialContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const ctx = ctxFromParams(new URLSearchParams(searchParams.toString()));
+  const locked = hasFullContext(ctx);
+  const form = useIdentifyForm(ctx);
+  const [passedGate, setPassedGate] = useState(locked);
 
-  const role = searchParams.get("role") || "";
-  const stateCode = searchParams.get("stateCode") || "";
-  const lgaCode = searchParams.get("lgaCode") || "";
-  const wardCode = searchParams.get("wardCode") || "";
-  const constituencyCode = searchParams.get("constituencyCode") || "";
-  const stateName = searchParams.get("stateName") || "";
-  const lgaName = searchParams.get("lgaName") || "";
-  const wardName = searchParams.get("wardName") || "";
-  const constituencyName = searchParams.get("constituencyName") || "";
-
-  const [name, setName] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [partyAcronym, setPartyAcronym] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
-  const [profileFields, setProfileFields] = useState<Record<IdentifyProfileField, string>>({
-    email: "",
-    phoneNumber: "",
-    officeAddress: "",
-    twitterHandle: "",
-    facebookUrl: "",
-    education: "",
-    biography: "",
-    gender: "",
-    dateOfBirth: "",
-  });
-
-  // Geographic selectors (for when scope is missing)
-  const [selectedState, setSelectedState] = useState(stateCode);
-  const [selectedLga, setSelectedLga] = useState(lgaCode);
-  const [selectedWard, setSelectedWard] = useState(wardCode);
-  const [selectedConstituency, setSelectedConstituency] = useState(constituencyCode);
-
-  // Dropdown data
-  const [parties, setParties] = useState<{ acronym: string; name: string }[]>([]);
-  const [states, setStates] = useState<{ code: string; name: string }[]>([]);
-  const [lgas, setLgas] = useState<{ code: string; name: string }[]>([]);
-  const [wards, setWards] = useState<{ code: string; name: string }[]>([]);
-  const [constituencies, setConstituencies] = useState<{ code: string; name: string; type: string }[]>([]);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [newOfficialId, setNewOfficialId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [showOtp, setShowOtp] = useState(false);
-
-  // Load parties on mount
+  // Revalidate the newly-created official's page so it shows the proposal.
   useEffect(() => {
-    getParties().then(setParties).catch(() => {});
-  }, []);
-
-  // Load geographic data based on role needs
-  useEffect(() => {
-    if (needsStateSelector() && states.length === 0) {
-      getStates().then(setStates).catch(() => {});
+    if (form.success && form.newOfficialId) {
+      fetch("/api/revalidate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: `/officials/${form.newOfficialId}` }),
+      }).catch(() => {});
     }
-  }, [role]);
+  }, [form.success, form.newOfficialId]);
 
-  useEffect(() => {
-    const state = selectedState || stateCode;
-    if (state && needsLgaSelector()) {
-      getLgas(state).then(setLgas).catch(() => {});
-    }
-  }, [selectedState, stateCode]);
-
-  useEffect(() => {
-    const lga = selectedLga || lgaCode;
-    if (lga && needsWardSelector()) {
-      getWards(lga).then(setWards).catch(() => {});
-    }
-  }, [selectedLga, lgaCode]);
-
-  useEffect(() => {
-    const state = selectedState || stateCode;
-    if (state && needsConstituencySelector()) {
-      const type = role === "mha" ? "state" : role === "senator" ? "senatorial" : "federal";
-      getConstituencies(state, type).then(setConstituencies).catch(() => {});
-    }
-  }, [selectedState, stateCode, role]);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (role) params.set("role", role);
-
-    const resolvedStateCode = stateCode || selectedState;
-    const resolvedLgaCode = lgaCode || selectedLga;
-    const resolvedWardCode = wardCode || selectedWard;
-    const resolvedConstituencyCode = constituencyCode || selectedConstituency;
-
-    const resolvedStateName =
-      stateName || states.find((state) => state.code === selectedState)?.name || "";
-    const resolvedLgaName =
-      lgaName || lgas.find((lga) => lga.code === selectedLga)?.name || "";
-    const resolvedWardName =
-      wardName || wards.find((ward) => ward.code === selectedWard)?.name || "";
-    const resolvedConstituencyName =
-      constituencyName || constituencies.find((c) => c.code === selectedConstituency)?.name || "";
-
-    if (resolvedStateCode) params.set("stateCode", resolvedStateCode);
-    if (resolvedLgaCode) params.set("lgaCode", resolvedLgaCode);
-    if (resolvedWardCode) params.set("wardCode", resolvedWardCode);
-    if (resolvedConstituencyCode) params.set("constituencyCode", resolvedConstituencyCode);
-
-    if (resolvedStateName) params.set("stateName", resolvedStateName);
-    if (resolvedLgaName) params.set("lgaName", resolvedLgaName);
-    if (resolvedWardName) params.set("wardName", resolvedWardName);
-    if (resolvedConstituencyName) params.set("constituencyName", resolvedConstituencyName);
-
-    router.replace(`/proposals/new?${params.toString()}`, { scroll: false });
-  }, [
-    role,
-    router,
-    stateCode,
-    lgaCode,
-    wardCode,
-    constituencyCode,
-    stateName,
-    lgaName,
-    wardName,
-    constituencyName,
-    selectedState,
-    selectedLga,
-    selectedWard,
-    selectedConstituency,
-    states,
-    lgas,
-    wards,
-    constituencies,
-  ]);
-
-  function needsStateSelector() {
-    return !stateCode && ["governor", "mha", "representative", "rep", "senator", "lga_chairman", "councilor"].includes(role);
-  }
-
-  function needsLgaSelector() {
-    return !lgaCode && ["lga_chairman", "councilor"].includes(role);
-  }
-
-  function needsWardSelector() {
-    return !wardCode && role === "councilor";
-  }
-
-  function needsConstituencySelector() {
-    return !constituencyCode && ["mha", "representative", "rep", "senator"].includes(role);
-  }
-
-  function getLocationBreadcrumb() {
-    const parts = [];
-    if (stateName || stateCode) parts.push(stateName || stateCode);
-    if (lgaName || lgaCode) parts.push(lgaName || lgaCode);
-    if (wardName || wardCode) parts.push(wardName || wardCode);
-    if (constituencyName) parts.push(constituencyName);
-    return parts.join(" > ");
-  }
-
-  function isFormValid() {
-    if (!name.trim()) return false;
-
-    // Validate geographic scope based on role
-    if (role === "councilor" && !wardCode && !selectedWard) return false;
-    if (role === "lga_chairman" && !lgaCode && !selectedLga) return false;
-    if (["mha", "representative", "rep", "senator"].includes(role) && !constituencyCode && !selectedConstituency) return false;
-    if (role === "governor" && !stateCode && !selectedState) return false;
-
-    return true;
-  }
-
-  async function handleSubmit(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    if (!isFormValid()) return;
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const result = await identifyOfficial({
-        name: name.trim(),
-        role,
-        imageUrl: imageUrl.trim() || undefined,
-        partyAcronym: partyAcronym || undefined,
-        email: profileFields.email.trim() || undefined,
-        phoneNumber: profileFields.phoneNumber.trim() || undefined,
-        officeAddress: profileFields.officeAddress.trim() || undefined,
-        twitterHandle: profileFields.twitterHandle.trim() || undefined,
-        facebookUrl: profileFields.facebookUrl.trim() || undefined,
-        gender: profileFields.gender.trim() || undefined,
-        education: profileFields.education.trim() || undefined,
-        biography: profileFields.biography.trim() || undefined,
-        dateOfBirth: profileFields.dateOfBirth || undefined,
-        sourceUrl: sourceUrl.trim() || undefined,
-        stateCode: stateCode || selectedState || undefined,
-        lgaCode: lgaCode || selectedLga || undefined,
-        wardCode: wardCode || selectedWard || undefined,
-        constituencyCode: constituencyCode || selectedConstituency || undefined,
-      });
-      setNewOfficialId(result.officialId);
-      // Revalidate the new official's page cache so it shows this proposal
-      if (result.officialId) {
-        fetch("/api/revalidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: `/officials/${result.officialId}` }),
-        }).catch(() => {});
-      }
-      setSuccess(true);
-    } catch (err: unknown) {
-      const e = err as Record<string, unknown>;
-      if (e.status === 429) {
-        setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (e.status === 401) {
-        setShowOtp(true);
-        setError(null);
-      } else {
-        setError((e.message as string) || "Failed to submit");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (success) {
+  if (form.success) {
     return (
       <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
         <div className="max-w-lg mx-auto px-4 pt-20 text-center">
@@ -342,16 +101,16 @@ function IdentifyOfficialContent() {
             Official Identified!
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mb-2">
-            <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span> has been
-            submitted as the <span className="font-medium">{ROLE_LABELS[role] || role}</span>.
+            <span className="font-medium text-slate-800 dark:text-slate-200">{form.name}</span> has been
+            submitted as the <span className="font-medium">{roleConfig(form.role)?.label || form.role}</span>.
           </p>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
             Your identification is under review. Other citizens can upvote to help verify it.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {newOfficialId && (
+            {form.newOfficialId && (
               <Link
-                href={`/officials/${newOfficialId}`}
+                href={`/officials/${form.newOfficialId}`}
                 className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors"
               >
                 View Profile
@@ -364,6 +123,29 @@ function IdentifyOfficialContent() {
               Back to Representatives
             </Link>
           </div>
+          {form.isAnonymous && form.newProposalId && !form.showAuth && (
+            <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => form.setShowAuth(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {form.showAuth && form.newProposalId && (
+            <AuthModal
+              onVerified={() => {
+                form.setShowAuth(false);
+                claimProposal(form.newProposalId!).catch(() => {});
+                form.setIsAnonymous(false);
+              }}
+              onClose={() => form.setShowAuth(false)}
+            />
+          )}
         </div>
       </main>
     );
@@ -380,279 +162,63 @@ function IdentifyOfficialContent() {
           Back to Representatives
         </Link>
 
-        {/* Role context header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-              <User className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
+        {!passedGate ? (
+          <>
+            <div className="mb-6">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
-                Identify {ROLE_LABELS[role] || role}
+                Identify an official
               </h1>
-              {getLocationBreadcrumb() && (
-                <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {getLocationBreadcrumb()}
-                </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Tell us the seat, then the person who holds it.
+              </p>
+            </div>
+            <div className="space-y-4">
+              <RoleField form={form} />
+              {form.role && <LocationField form={form} />}
+              <button
+                type="button"
+                disabled={!form.role || !form.locationComplete}
+                onClick={() => setPassedGate(true)}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continue
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-6">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
+                Identify {roleConfig(form.role)?.label || "official"}
+              </h1>
+              {form.locationLabel() && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{form.locationLabel()}</p>
               )}
             </div>
-          </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-            {ROLE_DESCRIPTIONS[role] || "Help identify the person holding this position."}
-          </p>
-        </div>
-
-        {/* Info banner */}
-        <div className="flex items-start gap-2.5 p-3 mb-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-          <AlertCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-          <p className="text-sm text-emerald-800 dark:text-emerald-300">
-            Know who holds this position? Fill in their details below. Your submission will be reviewed before being published.
-          </p>
-        </div>
-
-        {error && (
-          <div className="flex items-start gap-2 p-3 mb-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-            <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-          </div>
+            <div className="space-y-5">
+              <LocationChip form={form} />
+              {!locked && (
+                <button
+                  type="button"
+                  onClick={() => setPassedGate(false)}
+                  className="text-xs text-emerald-600 hover:underline"
+                >
+                  ← Change position / location
+                </button>
+              )}
+              <NameField form={form} />
+              <PartyField form={form} />
+              <OptionalDetails form={form} />
+              <SourceField form={form} />
+              <ErrorBox message={form.error} />
+              <SubmitButton form={form} label="Submit Identification" />
+              <p className="text-xs text-slate-400 text-center">
+                Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
+              </p>
+            </div>
+          </>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Name (required) */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. John Okafor"
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              autoFocus
-            />
-          </div>
-
-          {/* Photo */}
-          <PhotoInput value={imageUrl} onChange={setImageUrl} />
-
-          {/* Political Party */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Political Party
-            </label>
-            <select
-              value={partyAcronym}
-              onChange={(e) => setPartyAcronym(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">Select party (optional)</option>
-              {parties.map((p) => (
-                <option key={p.acronym} value={p.acronym}>
-                  {p.acronym} — {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Additional profile fields */}
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Additional Profile Details
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                Fill any details you know so the proposal includes the full profile, not just the person’s name.
-              </p>
-            </div>
-
-            {IDENTIFY_PROFILE_FIELDS.map((field) => (
-              <div key={field}>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                  {FIELD_LABELS[field]}
-                </label>
-                {TEXTAREA_FIELDS.has(field) ? (
-                  <textarea
-                    value={profileFields[field]}
-                    onChange={(e) => setProfileFields((current) => ({ ...current, [field]: e.target.value }))}
-                    placeholder={FIELD_PLACEHOLDERS[field]}
-                    rows={field === "biography" ? 4 : 3}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y"
-                  />
-                ) : field === "gender" ? (
-                  <select
-                    value={profileFields[field]}
-                    onChange={(e) => setProfileFields((current) => ({ ...current, [field]: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                ) : (
-                  <input
-                    type={field === "email" ? "email" : field === "dateOfBirth" ? "date" : "text"}
-                    value={profileFields[field]}
-                    onChange={(e) => setProfileFields((current) => ({ ...current, [field]: e.target.value }))}
-                    placeholder={field === "dateOfBirth" ? undefined : FIELD_PLACEHOLDERS[field]}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Geographic scope selectors (only shown when not pre-filled from URL) */}
-          {needsStateSelector() && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                State <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedState}
-                onChange={(e) => {
-                  setSelectedState(e.target.value);
-                  setSelectedLga("");
-                  setSelectedWard("");
-                  setSelectedConstituency("");
-                }}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="">Select state</option>
-                {states.map((s) => (
-                  <option key={s.code} value={s.code}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {needsConstituencySelector() && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                {role === "mha" ? "State Constituency" : role === "senator" ? "Senatorial District" : "Federal Constituency"}
-                <span className="text-red-500 ml-1">*</span>
-              </label>
-              <select
-                value={selectedConstituency}
-                onChange={(e) => setSelectedConstituency(e.target.value)}
-                disabled={!selectedState && !stateCode}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                <option value="">
-                  {!selectedState && !stateCode ? "Select state first" : "Select constituency"}
-                </option>
-                {constituencies.map((c) => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {needsLgaSelector() && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                LGA <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedLga}
-                onChange={(e) => {
-                  setSelectedLga(e.target.value);
-                  setSelectedWard("");
-                }}
-                disabled={!selectedState && !stateCode}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                <option value="">
-                  {!selectedState && !stateCode ? "Select state first" : "Select LGA"}
-                </option>
-                {lgas.map((l) => (
-                  <option key={l.code} value={l.code}>{l.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {needsWardSelector() && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                Ward <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedWard}
-                onChange={(e) => setSelectedWard(e.target.value)}
-                disabled={!selectedLga && !lgaCode}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              >
-                <option value="">
-                  {!selectedLga && !lgaCode ? "Select LGA first" : "Select ward"}
-                </option>
-                {wards.map((w) => (
-                  <option key={w.code} value={w.code}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Pre-filled scope display (read-only when scope is from URL) */}
-          {!needsStateSelector() && !needsLgaSelector() && !needsWardSelector() && !needsConstituencySelector() && getLocationBreadcrumb() && (
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-              <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-              <div>
-                <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Location</p>
-                <p className="text-sm text-slate-700 dark:text-slate-300">{getLocationBreadcrumb()}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Source URL */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Source URL <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <input
-              type="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="e.g. https://dailytrust.ng/article..."
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <p className="text-xs text-slate-400 mt-1">
-              Link to a news article, official website, or social media post that confirms this person&apos;s identity.
-            </p>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={submitting || !isFormValid()}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Identification"
-            )}
-          </button>
-
-          <p className="text-xs text-slate-400 text-center">
-            Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
-          </p>
-        </form>
       </div>
-
-      {showOtp && (
-        <OtpModal
-          onVerified={() => {
-            setShowOtp(false);
-            handleSubmit();
-          }}
-          onClose={() => setShowOtp(false)}
-        />
-      )}
     </main>
   );
 }
@@ -664,7 +230,9 @@ function EditOfficialContent() {
   const router = useRouter();
 
   const officialId = searchParams.get("officialId");
-  const fieldParam = searchParams.get("field");
+  // Canonical param is `targetField` (matches the API payload + dashboard). Fall back to the
+  // legacy `field` name still emitted by some links (e.g. OfficialProfile) so both work.
+  const fieldParam = searchParams.get("targetField") || searchParams.get("field");
 
   const [official, setOfficial] = useState<Official | null>(null);
   const [loading, setLoading] = useState(true);
@@ -675,6 +243,21 @@ function EditOfficialContent() {
   useEffect(() => {
     getParties().then(setParties).catch(() => {});
   }, []);
+
+  // `useSearchParams()` is empty during the prerendered shell, so the initial
+  // `useState(fieldParam || "")` above can miss the URL value and leave the
+  // field on "Select a field". Re-sync on the client — prefer the reactive
+  // param, but fall back to reading the live URL so a `?targetField=`/`?field=`
+  // link auto-selects the field even if the hook hasn't resolved yet.
+  useEffect(() => {
+    if (fieldParam) {
+      setTargetField(fieldParam);
+      return;
+    }
+    const sp = new URLSearchParams(window.location.search);
+    const fromUrl = sp.get("targetField") || sp.get("field");
+    if (fromUrl) setTargetField(fromUrl);
+  }, [fieldParam]);
   const [proposedValue, setProposedValue] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
 
@@ -682,6 +265,8 @@ function EditOfficialContent() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOtp, setShowOtp] = useState(false);
+  const [proposalId, setProposalId] = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     if (!officialId) {
@@ -707,13 +292,15 @@ function EditOfficialContent() {
     setError(null);
 
     try {
-      await createProposal({
+      const result = await createProposal({
         officialId,
         positionId: official?.positions?.[0]?.id,
         targetField,
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
       });
+      setProposalId(result.id);
+      setIsAnonymous(result.trust === "anonymous");
       // Revalidate the official's page cache so it shows this proposal
       fetch("/api/revalidate", {
         method: "POST",
@@ -724,10 +311,7 @@ function EditOfficialContent() {
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;
       if (e.status === 429) {
-        setError("Daily proposal limit reached (5 per day). Try again tomorrow.");
-      } else if (e.status === 401) {
-        setShowOtp(true);
-        setError(null);
+        setError("You've submitted too many proposals recently. Please try again later.");
       } else {
         setError((e.message as string) || "Failed to submit proposal");
       }
@@ -765,6 +349,29 @@ function EditOfficialContent() {
             >
               Back to {official.name}&apos;s profile
             </Link>
+          )}
+          {isAnonymous && proposalId && !showOtp && (
+            <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+              Want to track this contribution?{" "}
+              <button
+                type="button"
+                onClick={() => setShowOtp(true)}
+                className="font-medium text-emerald-600 hover:underline"
+              >
+                Log in
+              </button>{" "}
+              and we&apos;ll notify you when it&apos;s reviewed.
+            </p>
+          )}
+          {showOtp && proposalId && (
+            <OtpModal
+              onVerified={() => {
+                setShowOtp(false);
+                claimProposal(proposalId).catch(() => {});
+                setIsAnonymous(false);
+              }}
+              onClose={() => setShowOtp(false)}
+            />
           )}
         </div>
       </main>
@@ -946,17 +553,6 @@ function EditOfficialContent() {
           </p>
         </form>
       </div>
-
-      {/* OTP Modal */}
-      {showOtp && (
-        <OtpModal
-          onVerified={() => {
-            setShowOtp(false);
-            handleSubmit();
-          }}
-          onClose={() => setShowOtp(false)}
-        />
-      )}
     </main>
   );
 }

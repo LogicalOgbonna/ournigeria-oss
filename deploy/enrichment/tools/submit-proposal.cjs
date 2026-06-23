@@ -25,8 +25,136 @@ var OFFICIALS = {
   sourceTemplates: []
   // officials have no single canonical document
 };
+var COUNCILORS = {
+  domain: "councilors",
+  targetTable: "nigerian_officials",
+  targetFields: [],
+  // create-only: no field-level enrichment via this profile
+  sensitiveFields: [],
+  // SIEC domains (per-state, run LG elections) + general gov + civic. Expand as states roll out.
+  trustedDomains: ["absiec.org", "*.gov.ng", "placng.org", "inecnigeria.org"],
+  // The ABSIEC results page is the canonical councilor source for Abia.
+  sourceTemplates: [{ publisher: "absiec.org", urlIncludes: "election-results", format: "html" }]
+};
+var EDUCATION = {
+  domain: "education",
+  targetTable: "official_education",
+  targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
+  sensitiveFields: ["qualification", "institution"],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng"],
+  sourceTemplates: []
+  // no single canonical registry of Nigerian alumni
+};
+var ELECTIONS = {
+  domain: "elections",
+  targetTable: "official_elections",
+  targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
+  sensitiveFields: ["result", "votes"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  sourceTemplates: [
+    // INEC declared-results pages are the canonical election source.
+    { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
+    { publisher: "inecnigeria.org", urlIncludes: "elections", format: "pdf" }
+  ]
+};
+var CAREERS = {
+  domain: "careers",
+  targetTable: "official_careers",
+  targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
+  sensitiveFields: [],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng"],
+  sourceTemplates: []
+};
+var PARTY_AFFILIATIONS = {
+  domain: "party_affiliations",
+  targetTable: "official_party_affiliations",
+  targetFields: ["start_date", "end_date", "reason"],
+  sensitiveFields: ["start_date", "end_date"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  sourceTemplates: []
+};
+var COMMITTEES = {
+  domain: "committees",
+  targetTable: "official_committees",
+  targetFields: ["committee_name", "chamber", "role", "start_date", "end_date"],
+  sensitiveFields: [],
+  trustedDomains: ["nass.gov.ng", "placng.org", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "nass.gov.ng", urlIncludes: "committees", format: "html" }]
+};
+var BILLS = {
+  domain: "bills",
+  targetTable: "official_sponsored_bills",
+  targetFields: ["title", "bill_number", "status", "status_date", "summary"],
+  sensitiveFields: [],
+  trustedDomains: ["nass.gov.ng", "placng.org", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "placng.org", urlIncludes: "bills", format: "html" }]
+};
+var ASSETS = {
+  domain: "assets",
+  targetTable: "official_asset_declarations",
+  targetFields: ["year", "declared_to", "amount", "currency", "summary"],
+  sensitiveFields: ["amount"],
+  trustedDomains: ["ccb.gov.ng", "*.gov.ng"],
+  sourceTemplates: [{ publisher: "ccb.gov.ng", urlIncludes: "declaration", format: "pdf" }]
+};
+var AWARDS = {
+  domain: "awards",
+  targetTable: "official_awards",
+  targetFields: ["title", "awarded_by", "year", "category", "description"],
+  sensitiveFields: [],
+  trustedDomains: ["*.gov.ng"],
+  sourceTemplates: []
+};
+var PUBLICATIONS = {
+  domain: "publications",
+  targetTable: "official_publications",
+  targetFields: ["title", "type", "publisher", "year"],
+  sensitiveFields: [],
+  trustedDomains: [],
+  sourceTemplates: []
+};
+var FAMILY = {
+  domain: "family",
+  targetTable: "official_family_members",
+  targetFields: ["relationship", "name", "is_public_figure", "notes"],
+  sensitiveFields: ["name", "relationship"],
+  trustedDomains: ["*.gov.ng"],
+  sourceTemplates: []
+};
+var LEGAL_CASES = {
+  domain: "legal_cases",
+  targetTable: "official_legal_cases",
+  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
+  sensitiveFields: ["status", "outcome", "case_type"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org"],
+  sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }]
+};
+var CORRUPTION_CASES = {
+  domain: "corruption",
+  targetTable: "corruption_cases",
+  targetFields: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
+  sensitiveFields: ["status", "outcome", "amount_involved", "amount_recovered", "sentence"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng"],
+  sourceTemplates: [
+    { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
+    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" }
+  ]
+};
 var PROFILES = {
-  officials: OFFICIALS
+  officials: OFFICIALS,
+  councilors: COUNCILORS,
+  education: EDUCATION,
+  elections: ELECTIONS,
+  careers: CAREERS,
+  party_affiliations: PARTY_AFFILIATIONS,
+  committees: COMMITTEES,
+  bills: BILLS,
+  assets: ASSETS,
+  awards: AWARDS,
+  publications: PUBLICATIONS,
+  family: FAMILY,
+  legal_cases: LEGAL_CASES,
+  corruption: CORRUPTION_CASES
 };
 function getProfile(domain) {
   const p = PROFILES[domain];
@@ -70,6 +198,12 @@ function validateCorroboration(input, profile) {
   const effective = input.changeKind === "correction" || sensitive ? "correction" : "fill";
   const independent = distinctPublishers(input.sources);
   const canonical = input.sources.filter((s) => s.tier === "canonical").length;
+  if (input.changeKind === "create") {
+    const authoritative = input.sources.filter((s) => s.tier === "canonical" || s.tier === "official").length;
+    if (authoritative >= 1) return { ok: true, reason: "authoritative source satisfies create" };
+    if (independent >= 2) return { ok: true, reason: `${independent} independent web sources satisfy create` };
+    return { ok: false, reason: `create needs >=1 authoritative or >=2 independent sources, have ${authoritative} authoritative / ${independent} independent` };
+  }
   if (canonical >= 1) {
     if (effective === "fill") return { ok: true, reason: "canonical source satisfies fill" };
     if (canonical >= 2) return { ok: true, reason: "two canonical sources satisfy correction" };

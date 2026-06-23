@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService, UUID_RE } from "@ournigeria/database";
+import { EvidenceService, EvidenceView } from "../evidence/evidence.service";
+import { CompletenessService } from "../completeness/completeness.service";
 
 const TRACKED_FIELDS = [
   "name",
@@ -14,9 +16,16 @@ const TRACKED_FIELDS = [
   "gender",
 ] as const;
 
+const dateOnly = (d: Date | null | undefined): string | null =>
+  d ? d.toISOString().split("T")[0] : null;
+
 @Injectable()
 export class OfficialsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private evidence: EvidenceService,
+    private completenessService: CompletenessService,
+  ) {}
 
   async list(params: {
     stateCode?: string;
@@ -55,7 +64,16 @@ export class OfficialsService {
         include: {
           positions: {
             where: { status: "active" },
-            include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
+            include: {
+              party: true,
+              state: true,
+              lga: true,
+              constituency: true,
+              // Resolve ward → LGA → state so ward-scoped offices (councilors)
+              // can express their LGA and state, which aren't on the position row.
+              ward: { include: { lga: { include: { state: true } } } },
+              term: true,
+            },
           },
           _count: { select: { proposals: true } },
         },
@@ -78,15 +96,43 @@ export class OfficialsService {
     const official = await this.prisma.nigerianOfficial.findUnique({
       where,
       include: {
+        // Full career history (Plan 45) — ongoing positions (endDate null) sort
+        // first so existing positions[0] consumers keep seeing the current office.
         positions: {
-          where: { status: "active" },
-          include: { party: true, state: true, lga: true, constituency: true, ward: true, term: true },
+          orderBy: [{ endDate: { sort: "desc", nulls: "first" } }, { startDate: "desc" }],
+          include: {
+            party: true,
+            state: true,
+            lga: true,
+            constituency: true,
+            // Resolve ward → LGA → state so ward-scoped offices (councilors)
+            // can express their LGA and state, which aren't on the position row.
+            ward: { include: { lga: { include: { state: true } } } },
+            term: true,
+          },
         },
         proposals: {
           where: { status: { in: ["submitted", "under_review"] } },
           orderBy: { voteScore: "desc" },
           take: 20,
           include: { _count: { select: { votes: true } } },
+        },
+        educationRecords: { orderBy: [{ endYear: "desc" }, { startYear: "desc" }] },
+        careers: { orderBy: [{ endYear: "desc" }, { startYear: "desc" }] },
+        partyAffiliations: { orderBy: { startDate: "desc" }, include: { party: true } },
+        committees: { orderBy: { startDate: "desc" }, include: { term: true } },
+        sponsoredBills: { orderBy: { introducedDate: "desc" } },
+        elections: {
+          orderBy: [{ year: "desc" }, { electionDate: "desc" }],
+          include: { party: true, state: true, constituency: true, lga: true, ward: true },
+        },
+        assetDeclarations: { orderBy: { year: "desc" } },
+        awards: { orderBy: { year: "desc" } },
+        publications: { orderBy: { year: "desc" } },
+        familyMembers: { include: { relatedOfficial: { select: { name: true, slug: true } } } },
+        legalCases: {
+          orderBy: { filedDate: "desc" },
+          include: { relatedCorruptionCase: { select: { slug: true, title: true, status: true } } },
         },
       },
     });
@@ -95,7 +141,181 @@ export class OfficialsService {
       throw new NotFoundException("Official not found");
     }
 
-    return this.formatOfficial(official);
+    // Corruption involvement — independent domain, joined via polymorphic subject.
+    const caseParties = await this.prisma.corruptionCaseParty.findMany({
+      where: { subjectType: "official", subjectId: official.id },
+      include: { case: { select: { id: true, slug: true, title: true, status: true, caseType: true, forum: true, amountInvolved: true, currency: true } } },
+    });
+
+    // ONE batched evidence query for every fact on the profile (no N+1).
+    const entryIds = [
+      official.id, // official_field evidence (biography, legacy education)
+      ...official.positions.map((p) => p.id),
+      ...official.educationRecords.map((r) => r.id),
+      ...official.careers.map((r) => r.id),
+      ...official.partyAffiliations.map((r) => r.id),
+      ...official.committees.map((r) => r.id),
+      ...official.sponsoredBills.map((r) => r.id),
+      ...official.elections.map((r) => r.id),
+      ...official.assetDeclarations.map((r) => r.id),
+      ...official.awards.map((r) => r.id),
+      ...official.publications.map((r) => r.id),
+      ...official.familyMembers.map((r) => r.id),
+      ...official.legalCases.map((r) => r.id),
+      ...caseParties.map((p) => p.id),
+    ];
+    const evidence = await this.evidence.loadForEntries(entryIds);
+    const ev = (id: string): EvidenceView[] => evidence.get(id) ?? [];
+    const prov = (r: {
+      id: string;
+      confidence: string;
+      sourceType: string;
+      reviewStatus: string;
+      lastVerifiedAt: Date | null;
+    }) => ({
+      id: r.id,
+      confidence: r.confidence,
+      sourceType: r.sourceType,
+      reviewStatus: r.reviewStatus,
+      lastVerifiedAt: r.lastVerifiedAt?.toISOString() ?? null,
+      evidence: ev(r.id),
+    });
+
+    return {
+      ...this.formatOfficial(official),
+      officialType: official.officialType ?? null,
+      fieldEvidence: {
+        biography: evidence.get(EvidenceService.key(official.id, "biography")) ?? [],
+        education: evidence.get(EvidenceService.key(official.id, "education")) ?? [],
+      },
+      educationRecords: official.educationRecords.map((r) => ({
+        ...prov(r),
+        institution: r.institution,
+        institutionType: r.institutionType,
+        qualification: r.qualification,
+        field: r.field,
+        startYear: r.startYear,
+        endYear: r.endYear,
+        graduated: r.graduated,
+        location: r.location,
+      })),
+      careerRecords: official.careers.map((r) => ({
+        ...prov(r),
+        organization: r.organization,
+        role: r.role,
+        industry: r.industry,
+        employmentType: r.employmentType,
+        startYear: r.startYear,
+        endYear: r.endYear,
+        description: r.description,
+      })),
+      partyHistory: official.partyAffiliations.map((r) => ({
+        ...prov(r),
+        party: r.partyAcronym,
+        partyName: r.party?.name ?? null,
+        startDate: dateOnly(r.startDate),
+        endDate: dateOnly(r.endDate),
+        reason: r.reason,
+      })),
+      committees: official.committees.map((r) => ({
+        ...prov(r),
+        committeeName: r.committeeName,
+        chamber: r.chamber,
+        role: r.role,
+        termName: r.term?.name ?? null,
+        startDate: dateOnly(r.startDate),
+        endDate: dateOnly(r.endDate),
+      })),
+      sponsoredBills: official.sponsoredBills.map((r) => ({
+        ...prov(r),
+        title: r.title,
+        billNumber: r.billNumber,
+        chamber: r.chamber,
+        role: r.role,
+        status: r.status,
+        introducedDate: dateOnly(r.introducedDate),
+        statusDate: dateOnly(r.statusDate),
+        summary: r.summary,
+      })),
+      elections: official.elections.map((r) => ({
+        ...prov(r),
+        electionType: r.electionType,
+        isPrimary: r.isPrimary,
+        year: r.year,
+        electionDate: dateOnly(r.electionDate),
+        party: r.partyAcronym,
+        partyName: r.party?.name ?? null,
+        state: r.state?.name ?? null,
+        constituency: r.constituency?.name ?? null,
+        lga: r.lga?.name ?? null,
+        ward: r.ward?.name ?? null,
+        result: r.result,
+        votes: r.votes,
+        votePercentage: r.votePercentage ? Number(r.votePercentage) : null,
+        winnerName: r.winnerName,
+        resultedInPositionId: r.resultedInPositionId,
+        notes: r.notes,
+      })),
+      assetDeclarations: official.assetDeclarations.map((r) => ({
+        ...prov(r),
+        year: r.year,
+        declaredTo: r.declaredTo,
+        amount: r.amount ? Number(r.amount) : null,
+        currency: r.currency,
+        summary: r.summary,
+      })),
+      awards: official.awards.map((r) => ({
+        ...prov(r),
+        title: r.title,
+        awardedBy: r.awardedBy,
+        year: r.year,
+        category: r.category,
+        description: r.description,
+      })),
+      publications: official.publications.map((r) => ({
+        ...prov(r),
+        title: r.title,
+        type: r.type,
+        publisher: r.publisher,
+        year: r.year,
+      })),
+      familyMembers: official.familyMembers.map((r) => ({
+        ...prov(r),
+        relationship: r.relationship,
+        name: r.name,
+        isPublicFigure: r.isPublicFigure,
+        notes: r.notes,
+        relatedOfficial: r.relatedOfficial
+          ? { name: r.relatedOfficial.name, slug: r.relatedOfficial.slug }
+          : null,
+      })),
+      legalCases: official.legalCases.map((r) => ({
+        ...prov(r),
+        title: r.title,
+        caseType: r.caseType,
+        status: r.status,
+        forum: r.forum,
+        caseNumber: r.caseNumber,
+        filedDate: dateOnly(r.filedDate),
+        resolvedDate: dateOnly(r.resolvedDate),
+        outcome: r.outcome,
+        relatedCorruptionCase: r.relatedCorruptionCase ?? null,
+      })),
+      corruptionCases: caseParties.map((p) => ({
+        ...prov(p),
+        roleInCase: p.role,
+        outcome: p.outcome,
+        case: {
+          slug: p.case.slug,
+          title: p.case.title,
+          status: p.case.status,
+          caseType: p.case.caseType,
+          forum: p.case.forum,
+          amountInvolved: p.case.amountInvolved ? Number(p.case.amountInvolved) : null,
+          currency: p.case.currency,
+        },
+      })),
+    };
   }
 
   async getByLocation(stateCode: string, lgaCode?: string, wardCode?: string) {
@@ -436,18 +656,24 @@ export class OfficialsService {
       positions: official.positions?.map((p: any) => ({
         id: p.id,
         role: p.role,
+        status: p.status,
+        isCurrent:
+          p.status === "active" && (!p.endDate || p.endDate.getTime() > Date.now()),
         party: p.party?.acronym ?? p.partyAcronym ?? null,
         partyName: p.party?.name ?? null,
-        state: p.state?.name ?? null,
-        stateCode: p.stateCode,
-        lga: p.lga?.name ?? null,
-        lgaCode: p.lgaCode,
+        // Ward-scoped offices (councilors) only store ward_code; derive the
+        // LGA and state from the ward's parent relations when absent.
+        state: p.state?.name ?? p.ward?.lga?.state?.name ?? null,
+        stateCode: p.stateCode ?? p.ward?.lga?.stateCode ?? null,
+        lga: p.lga?.name ?? p.ward?.lga?.name ?? null,
+        lgaCode: p.lgaCode ?? p.ward?.lgaCode ?? null,
         constituency: p.constituency?.name ?? null,
         constituencyCode: p.constituencyCode,
         ward: p.ward?.name ?? null,
         wardCode: p.wardCode,
         startDate: p.startDate?.toISOString().split("T")[0] ?? null,
         endDate: p.endDate?.toISOString().split("T")[0] ?? null,
+        endReason: p.endReason ?? null,
         termName: p.term?.name ?? null,
         termNumber: p.term?.termNumber ?? null,
       })) ?? [],
@@ -467,6 +693,11 @@ export class OfficialsService {
     };
   }
 
+  /**
+   * @deprecated Legacy flat-field fallback, used only when completeness_score
+   * is null (pre-backfill rows). The real definition lives in
+   * @ournigeria/shared-types and is computed by CompletenessService (Plan 45c).
+   */
   computeCompleteness(official: any): number {
     let filled = 0;
     for (const field of TRACKED_FIELDS) {
@@ -477,17 +708,9 @@ export class OfficialsService {
     return Number((filled / TRACKED_FIELDS.length).toFixed(2));
   }
 
+  /** Delegates to the single category-aware implementation (Plan 45c, Fix #4). */
   async recomputeCompleteness(officialId: string) {
-    const official = await this.prisma.nigerianOfficial.findUnique({
-      where: { id: officialId },
-    });
-    if (!official) return;
-
-    const score = this.computeCompleteness(official);
-    await this.prisma.nigerianOfficial.update({
-      where: { id: officialId },
-      data: { completenessScore: score },
-    });
+    await this.completenessService.recompute(officialId);
   }
 }
 

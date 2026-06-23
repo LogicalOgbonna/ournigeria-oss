@@ -17,12 +17,16 @@ import { HealthModule } from "./health/health.module";
 import { DonationModule } from "./donation/donation.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 import { OfficialsModule } from "./officials/officials.module";
+import { PartiesModule } from "./parties/parties.module";
 import { ProposalsModule } from "./proposals/proposals.module";
 import { GeoModule } from "./geo/geo.module";
 import { CompletenessModule } from "./completeness/completeness.module";
 import { ActivityModule } from "./activity/activity.module";
 import { ContactModule } from "./contact/contact.module";
 import { EnrichmentModule } from "./enrichment/enrichment.module";
+import { CorruptionCasesModule } from "./corruption-cases/corruption-cases.module";
+import { OkfModule } from "./okf/okf.module";
+import { ImportsModule } from "./admin/imports/imports.module";
 
 @Module({
   imports: [
@@ -46,12 +50,16 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
     DonationModule,
     HealthModule,
     OfficialsModule,
+    PartiesModule,
     ProposalsModule,
     GeoModule,
     CompletenessModule,
     ActivityModule,
     ContactModule,
     EnrichmentModule,
+    CorruptionCasesModule,
+    OkfModule,
+    ImportsModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [

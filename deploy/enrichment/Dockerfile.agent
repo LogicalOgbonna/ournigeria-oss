@@ -12,6 +12,7 @@ COPY docs/enrichment/officials-agent-profile.md /opt/seed/SOUL.md
 COPY deploy/enrichment/config.yaml               /opt/seed/config.yaml
 COPY deploy/enrichment/skill/SKILL.md            /opt/seed/skills/enrichment/SKILL.md
 COPY deploy/enrichment/skill-councilor/SKILL.md  /opt/seed/skills/councilor-enrichment/SKILL.md
+COPY deploy/enrichment/skill-structured/SKILL.md /opt/seed/skills/enrichment-structured/SKILL.md
 COPY deploy/enrichment/seed-and-run.sh           /opt/enrichment/seed-and-run.sh
 RUN chmod +x /opt/enrichment/seed-and-run.sh
 

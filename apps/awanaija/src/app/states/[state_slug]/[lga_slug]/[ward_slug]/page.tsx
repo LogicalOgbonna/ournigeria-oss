@@ -209,7 +209,10 @@ export default async function WardPage({
               </Link>
             </div>
           ) : (
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4">
+            <Link
+              href={`/proposals/new?mode=identify&role=councilor&stateCode=${stateCode || ""}&lgaCode=${lgaCode || ""}&wardCode=${wardCode || ""}&wardName=${encodeURIComponent(wardName)}&lgaName=${encodeURIComponent(lgaName)}&stateName=${encodeURIComponent(stateName)}`}
+              className="group bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-[14px] p-6 flex flex-col sm:flex-row items-start gap-4 hover:border-amber-400 dark:hover:border-amber-700 transition-colors"
+            >
               <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
                 <User className="w-8 h-8 text-amber-500" />
               </div>
@@ -225,14 +228,11 @@ export default async function WardPage({
                     We don&apos;t have information on who represents {wardName} Ward in the local council yet. If you know the councilor for this ward, help us identify them so citizens can hold their representatives accountable.
                   </p>
                 </div>
-                <Link
-                  href={`/proposals/new?mode=identify&role=councilor&stateCode=${stateCode || ""}&lgaCode=${lgaCode || ""}&wardCode=${wardCode || ""}&wardName=${encodeURIComponent(wardName)}&lgaName=${encodeURIComponent(lgaName)}&stateName=${encodeURIComponent(stateName)}`}
-                  className="inline-block px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-medium text-sm transition-colors"
-                >
-                  Identify Your Councilor
-                </Link>
+                <span className="inline-block px-4 py-2 bg-amber-600 group-hover:bg-amber-700 text-white rounded-md font-medium text-sm transition-colors">
+                  Identify Your Councilor →
+                </span>
               </div>
-            </div>
+            </Link>
           )}
         </section>
 
@@ -244,25 +244,12 @@ export default async function WardPage({
             </h2>
           </div>
           
-          <div className="relative overflow-hidden rounded-[10px] border border-border bg-card">
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
-                 style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}>
-            </div>
-            
-            <div className="relative p-8 md:p-12 flex flex-col items-center text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-                <Construction className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              
-              <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
-                Project Tracking Coming Soon
-              </h3>
-              
-              <p className="text-muted-foreground max-w-md mx-auto font-sans leading-relaxed">
-                We are currently aggregating and verifying contract data, project locations, and implementation statuses for {wardName}. Keep an eye on the site banners for updates on when this feature goes live.
-              </p>
-            </div>
+          <div className="rounded-[10px] border border-border bg-muted/30 px-5 py-4 flex items-center gap-3">
+            <Construction className="w-5 h-5 text-muted-foreground shrink-0" />
+            <p className="font-sans text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Coming soon.</span>{" "}
+              We&apos;re aggregating and verifying contract data, project locations, and implementation statuses for {wardName}.
+            </p>
           </div>
         </section>
 

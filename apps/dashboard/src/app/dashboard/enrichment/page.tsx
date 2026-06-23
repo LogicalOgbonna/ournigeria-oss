@@ -1,9 +1,14 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useQueryState, parseAsStringEnum, parseAsArrayOf } from "nuqs";
 import { toast } from "sonner";
-import { Check, X, HelpCircle } from "lucide-react";
+import { Check, X, HelpCircle, FilterX, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 import { ProposalCard } from "@/components/enrichment/proposal-card";
 import { ConfirmDialog } from "@/components/enrichment/confirm-dialog";
 import { ReviewNoteDialog } from "@/components/enrichment/review-note-dialog";
@@ -11,8 +16,65 @@ import { enrichmentFetch } from "./lib";
 import type { ChangeProposal } from "./types";
 
 const STATUSES = ["pending", "needs_human", "needs_more_sources", "approved", "rejected"] as const;
+type Status = (typeof STATUSES)[number];
+
+// Action-type filter — mirrors ChangeProposal.changeKind. Multi-select; empty = all.
+const ACTION_VALUES = ["fill", "correction", "create"] as const;
+type ActionFilter = (typeof ACTION_VALUES)[number];
+const ACTION_LABELS: Record<ActionFilter, string> = {
+  fill: "Fill", correction: "Correction", create: "Create",
+};
+
+// Entity filter — fixed bucket set, matches the backend's normalized entityRole. Multi-select; empty = all.
+const ENTITY_VALUES = [
+  "governor", "senator", "representative", "mha", "lga_chairman", "councilor", "unknown",
+] as const;
+type EntityFilter = (typeof ENTITY_VALUES)[number];
+const ENTITY_LABELS: Record<EntityFilter, string> = {
+  governor: "Governor", senator: "Senator", representative: "Representative",
+  mha: "MHA", lga_chairman: "LGA Chairman", councilor: "Councilor", unknown: "Unknown",
+};
 
 type BulkAction = "approve" | "reject" | "request-more";
+
+/** A compact checkbox dropdown for multi-selecting filter values. Empty selection = "all". */
+function MultiSelectFilter<T extends string>({
+  allLabel, values, labels, selected, onChange,
+}: {
+  allLabel: string;
+  values: readonly T[];
+  labels: Record<T, string>;
+  selected: T[];
+  onChange: (next: T[]) => void;
+}) {
+  const toggle = (v: T) =>
+    onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          {allLabel}
+          {selected.length > 0 && (
+            <Badge variant="secondary" className="px-1.5 py-0 text-xs">{selected.length}</Badge>
+          )}
+          <ChevronDown className="size-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-44">
+        {values.map((v) => (
+          <DropdownMenuCheckboxItem
+            key={v}
+            checked={selected.includes(v)}
+            onCheckedChange={() => toggle(v)}
+            onSelect={(e) => e.preventDefault()}
+          >
+            {labels[v]}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 /** Which bulk actions a tab permits. Approve only where the backend can apply. */
 function bulkActionsFor(status: string): BulkAction[] {
@@ -22,34 +84,114 @@ function bulkActionsFor(status: string): BulkAction[] {
 }
 
 export default function EnrichmentPage() {
-  const [proposals, setProposals] = useState<ChangeProposal[]>([]);
-  const [status, setStatus] = useState<string>("pending");
+  // nuqs' useQueryState reads useSearchParams(), which Next requires under a Suspense
+  // boundary or static prerender of this page fails (CSR bailout).
+  return (
+    <Suspense fallback={<EnrichmentSkeleton />}>
+      <EnrichmentView />
+    </Suspense>
+  );
+}
+
+function EnrichmentSkeleton() {
+  return (
+    <div className="space-y-6 p-6">
+      <Skeleton className="h-8 w-64" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
+      </div>
+    </div>
+  );
+}
+
+const PAGE_SIZE = 20;
+
+function EnrichmentView() {
+  const [items, setItems] = useState<ChangeProposal[]>([]);
+  const [status, setStatus] = useQueryState(
+    "status", parseAsStringEnum<Status>([...STATUSES]).withDefault("pending"),
+  );
+  const [action, setAction] = useQueryState(
+    "action", parseAsArrayOf(parseAsStringEnum<ActionFilter>([...ACTION_VALUES])).withDefault([]),
+  );
+  const [entity, setEntity] = useQueryState(
+    "entity", parseAsArrayOf(parseAsStringEnum<EntityFilter>([...ENTITY_VALUES])).withDefault([]),
+  );
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState(false);
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
 
-  const load = useCallback(async () => {
+  const filtersActive = action.length > 0 || entity.length > 0;
+
+  // status/action/entity are now server filters. Build the query for a given cursor.
+  const buildQuery = useCallback((cur: string | null) => {
+    const params = new URLSearchParams({ status, limit: String(PAGE_SIZE) });
+    if (action.length) params.set("action", action.join(","));
+    if (entity.length) params.set("entity", entity.join(","));
+    if (cur) params.set("cursor", cur);
+    return params.toString();
+  }, [status, action, entity]);
+
+  // Load (or reload) the first page. Re-runs whenever status/action/entity change, which also
+  // clears selection so a bulk action can never touch a row hidden by the current filter.
+  const loadFirst = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
-      setProposals(await enrichmentFetch(`/proposals?status=${status}`));
-      setSelected(new Set());
+      const { items, nextCursor } = await enrichmentFetch(`/proposals?${buildQuery(null)}`);
+      setItems(items);
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load proposals");
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [buildQuery]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadFirst(); }, [loadFirst]);
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { items: more, nextCursor } = await enrichmentFetch(`/proposals?${buildQuery(cursor)}`);
+      setItems((prev) => [...prev, ...more]);
+      setCursor(nextCursor);
+      setHasMore(!!nextCursor);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to load more");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [cursor, loadingMore, buildQuery]);
+
+  // Infinite scroll: pull the next page when the bottom sentinel nears the viewport.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || loading) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0]?.isIntersecting) loadMore(); },
+      { rootMargin: "400px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loading, loadMore]);
+
+  function clearFilters() { setAction([]); setEntity([]); }
 
   async function act(fn: () => Promise<void>, ok: string) {
     setBusy(true);
     try {
       await fn();
       toast.success(ok);
-      await load();
+      await loadFirst();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
@@ -74,7 +216,7 @@ export default function EnrichmentPage() {
   }
 
   function toggleAll() {
-    setSelected((prev) => (prev.size === proposals.length ? new Set() : new Set(proposals.map((p) => p.id))));
+    setSelected((prev) => (prev.size === items.length ? new Set() : new Set(items.map((p) => p.id))));
   }
 
   async function runBulk(action: BulkAction, note?: string) {
@@ -97,13 +239,13 @@ export default function EnrichmentPage() {
       toast.error(e instanceof Error ? e.message : "Bulk action failed");
     } finally {
       setActing(false);
-      await load();
+      await loadFirst();
     }
   }
 
   const actions = bulkActionsFor(status);
   const selectable = actions.length > 0;
-  const sel = proposals.filter((p) => selected.has(p.id));
+  const sel = items.filter((p) => selected.has(p.id));
   const corrections = sel.filter((p) => p.changeKind === "correction").length;
   const creates = sel.filter((p) => p.changeKind === "create").length;
 
@@ -122,13 +264,34 @@ export default function EnrichmentPage() {
         ))}
       </div>
 
-      {selectable && !loading && proposals.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2">
+        <MultiSelectFilter
+          allLabel="Actions" values={ACTION_VALUES} labels={ACTION_LABELS}
+          selected={action} onChange={setAction}
+        />
+        <MultiSelectFilter
+          allLabel="Entities" values={ENTITY_VALUES} labels={ENTITY_LABELS}
+          selected={entity} onChange={setEntity}
+        />
+        {filtersActive && (
+          <Button size="sm" variant="ghost" onClick={clearFilters}>
+            <FilterX className="size-4" /> Clear filters
+          </Button>
+        )}
+        {!loading && items.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {items.length} loaded{hasMore ? "+" : ""}
+          </span>
+        )}
+      </div>
+
+      {selectable && !loading && items.length > 0 && (
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               className="rounded"
-              checked={selected.size === proposals.length && proposals.length > 0}
+              checked={selected.size === items.length && items.length > 0}
               onChange={toggleAll}
             />
             Select all
@@ -160,16 +323,30 @@ export default function EnrichmentPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
         </div>
-      ) : proposals.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No {status} proposals.</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {filtersActive ? "No proposals match these filters." : `No ${status} proposals.`}
+        </p>
       ) : (
-        <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {proposals.map((p) => (
-            <ProposalCard key={p.id} proposal={p} busy={busy || acting}
-              onApprove={approve} onReject={reject} onRequestMore={requestMore}
-              selectable={selectable} selected={selected.has(p.id)} onToggleSelect={toggleSelect} />
-          ))}
-        </div>
+        <>
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((p) => (
+              <ProposalCard key={p.id} proposal={p} busy={busy || acting}
+                onApprove={approve} onReject={reject} onRequestMore={requestMore}
+                selectable={selectable} selected={selected.has(p.id)} onToggleSelect={toggleSelect} />
+            ))}
+          </div>
+          {/* Infinite-scroll sentinel + loading row */}
+          {hasMore && (
+            <div ref={sentinelRef} className="pt-2">
+              {loadingMore && (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1, 2].map((i) => <Skeleton key={i} className="h-64 w-full" />)}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       <ConfirmDialog
