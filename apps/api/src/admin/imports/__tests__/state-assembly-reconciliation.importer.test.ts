@@ -95,7 +95,13 @@ describe("state-assembly-reconciliation importer diff", () => {
     expect(diff.updates.find((u) => u.targetPk === positionId)).toBeFalsy();
   });
 
-  it("does not flip when state coverage is not full (coverage gate)", async () => {
+  it("does not flip when state coverage is 'unavailable' (no reliable list)", async () => {
+    const gt = { oyo: { source: SRC, coverage: "unavailable", members: [] } };
+    const diff = await imp.diff(gt, prismaLike);
+    expect(diff.updates.find((u) => u.targetPk === positionId)).toBeFalsy();
+  });
+
+  it("DOES flip a sourced seat when coverage is 'partial' (per-seat reliability)", async () => {
     const gt = {
       oyo: {
         source: SRC,
@@ -104,7 +110,9 @@ describe("state-assembly-reconciliation importer diff", () => {
       },
     };
     const diff = await imp.diff(gt, prismaLike);
-    expect(diff.updates.find((u) => u.targetPk === positionId)).toBeFalsy();
+    const flip = diff.updates.find((u) => u.targetPk === positionId);
+    expect(flip).toBeTruthy();
+    expect(flip!.proposedValue).toBe("contested");
   });
 });
 
