@@ -8,6 +8,9 @@ const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "";
 const API_BASE = "/api";
 const POLL_MS = 2000;
 const MAX_POLL_MS = 5 * 60 * 1000;
+// Per-tab so a reloaded/OS-discarded tab (common on mobile while the user is in
+// Telegram) can resume polling the same login instead of losing the pollKey.
+const STORAGE_KEY = "tg_login";
 
 type Phase = "idle" | "waiting" | "expired" | "error";
 
@@ -48,6 +51,7 @@ export function TelegramDeepLinkLogin({
     const pollKey = pollKeyRef.current;
     if (!pollKey) return;
     if (Date.now() - startedAtRef.current > MAX_POLL_MS) {
+      sessionStorage.removeItem(STORAGE_KEY);
       setPhase("expired");
       return;
     }
@@ -59,10 +63,12 @@ export function TelegramDeepLinkLogin({
       const data = await res.json();
       if (data.status === "authenticated") {
         clearTimer();
+        sessionStorage.removeItem(STORAGE_KEY);
         await onAuthenticated();
         return;
       }
       if (data.status === "expired") {
+        sessionStorage.removeItem(STORAGE_KEY);
         setPhase("expired");
         return;
       }
@@ -92,6 +98,10 @@ export function TelegramDeepLinkLogin({
       const { startParam, pollKey } = await res.json();
       pollKeyRef.current = pollKey;
       startedAtRef.current = Date.now();
+      sessionStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ startParam, pollKey, startedAt: startedAtRef.current }),
+      );
       const param = encodeURIComponent(startParam);
       const tgApp = `tg://resolve?domain=${BOT_USERNAME}&start=${param}`;
       setDeepLink(`https://t.me/${BOT_USERNAME}?start=${param}`);
@@ -107,6 +117,40 @@ export function TelegramDeepLinkLogin({
       setPhase("error");
     }
   }, [poll]);
+
+  // Resume a pending login if this tab was reloaded or restored by the OS while
+  // the user was in Telegram — otherwise the in-memory pollKey would be lost.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        startParam?: string;
+        pollKey?: string;
+        startedAt?: number;
+      };
+      if (
+        saved.pollKey &&
+        saved.startParam &&
+        typeof saved.startedAt === "number" &&
+        Date.now() - saved.startedAt < MAX_POLL_MS
+      ) {
+        pollKeyRef.current = saved.pollKey;
+        startedAtRef.current = saved.startedAt;
+        const param = encodeURIComponent(saved.startParam);
+        setDeepLink(`https://t.me/${BOT_USERNAME}?start=${param}`);
+        setAppLink(`tg://resolve?domain=${BOT_USERNAME}&start=${param}`);
+        setPhase("waiting");
+        timerRef.current = setTimeout(poll, POLL_MS);
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+    // run once on mount; poll is stable across renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => () => clearTimer(), []);
 
