@@ -218,9 +218,9 @@ export function LandingLoginForm() {
             </div>
 
             {/* Fixed-height panel region so switching tabs doesn't shift layout */}
-            <div className="min-h-[292px]">
+            <div className="flex min-h-[292px] flex-col">
             {activeTab === "telegram" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-600 dark:text-sky-400">
                   <Send className="h-4 w-4" />
@@ -252,7 +252,7 @@ export function LandingLoginForm() {
                 )}
               </div>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+              <div className="mt-auto flex items-start gap-3 rounded-xl bg-muted p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
                   You&apos;ll confirm by tapping Start in Telegram. We only receive your Telegram ID.
@@ -262,7 +262,7 @@ export function LandingLoginForm() {
           )}
 
           {activeTab === "whatsapp" && step === "phone" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   <MessageCircleCheck className="h-4 w-4" />
@@ -299,7 +299,7 @@ export function LandingLoginForm() {
                 <ArrowRight className="h-5 w-5" />
               </button>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+              <div className="mt-auto flex items-start gap-3 rounded-xl bg-muted p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
                   We&apos;ll send a 6-digit code to your WhatsApp. No password needed.
@@ -309,7 +309,7 @@ export function LandingLoginForm() {
           )}
 
           {activeTab === "whatsapp" && step === "otp" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex items-center justify-between">
                 <button
                   type="button"
