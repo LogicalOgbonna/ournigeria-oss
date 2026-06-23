@@ -1139,9 +1139,6 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
                   Sign in via Telegram
                 </span>
               </div>
-              <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                Sign in with the Telegram app — works even when Telegram&apos;s website is blocked on your network.
-              </p>
               <div className="flex min-h-[40px] items-center justify-center">
                 <TelegramDeepLinkLogin
                   onAuthenticated={async () => {

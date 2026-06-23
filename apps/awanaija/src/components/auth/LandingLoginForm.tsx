@@ -226,11 +226,7 @@ export function LandingLoginForm() {
                 </div>
               </div>
 
-              <p className="mb-8 text-center text-muted-foreground">
-                Sign in with the Telegram app — works even when Telegram&apos;s website is blocked on your network.
-              </p>
-
-              <div className="flex flex-col items-center justify-center">
+              <div className="mt-2 flex flex-col items-center justify-center">
                 {isCheckingSession ? (
                   <div className="flex h-[48px] items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />

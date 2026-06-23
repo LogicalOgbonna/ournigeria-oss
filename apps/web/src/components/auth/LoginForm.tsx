@@ -220,11 +220,6 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
             </div>
           </div>
 
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            Sign in with the Telegram app — works even when Telegram&apos;s
-            website is blocked on your network.
-          </p>
-
           <TelegramDeepLinkLogin intent="login" />
 
           <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
