@@ -12,26 +12,6 @@ interface VerifyResult {
   error?: string;
 }
 
-export interface TelegramUser {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: string;
-}
-
-interface TelegramVerifyResult {
-  valid: true;
-  telegramUser: TelegramUser;
-}
-
-interface TelegramVerifyError {
-  valid: false;
-  error: string;
-}
-
-const MAX_AUTH_AGE_SECONDS = 300; // 5 minutes
 
 @Injectable()
 export class AuthService {
@@ -204,76 +184,6 @@ export class AuthService {
     }
   }
 
-  // ─── Telegram ──────────────────────────────────────────
-
-  verifyTelegramAuth(
-    params: Record<string, string>,
-  ): TelegramVerifyResult | TelegramVerifyError {
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
-      return { valid: false, error: "TELEGRAM_BOT_TOKEN is not configured" };
-    }
-
-    const hash = params.hash;
-    if (!hash) {
-      return { valid: false, error: "Missing hash parameter" };
-    }
-
-    if (!params.id || !params.auth_date) {
-      return { valid: false, error: "Missing required parameters" };
-    }
-
-    if (!/^\d{1,19}$/.test(params.id)) {
-      return { valid: false, error: "Invalid Telegram ID format" };
-    }
-
-    const dataCheckString = Object.keys(params)
-      .filter((key) => key !== "hash")
-      .sort()
-      .map((key) => `${key}=${params[key]}`)
-      .join("\n");
-
-    const secret = crypto.createHash("sha256").update(botToken).digest();
-    const computed = crypto
-      .createHmac("sha256", secret)
-      .update(dataCheckString)
-      .digest("hex");
-
-    const hashBuffer = Buffer.from(hash, "hex");
-    const computedBuffer = Buffer.from(computed, "hex");
-
-    if (
-      hashBuffer.length !== computedBuffer.length ||
-      !crypto.timingSafeEqual(hashBuffer, computedBuffer)
-    ) {
-      return { valid: false, error: "Invalid hash" };
-    }
-
-    const authDate = parseInt(params.auth_date, 10);
-    if (isNaN(authDate)) {
-      return { valid: false, error: "Invalid auth_date" };
-    }
-    const now = Math.floor(Date.now() / 1000);
-    if (authDate > now) {
-      return { valid: false, error: "Invalid auth_date" };
-    }
-    if (now - authDate > MAX_AUTH_AGE_SECONDS) {
-      return { valid: false, error: "Auth data has expired" };
-    }
-
-    return {
-      valid: true,
-      telegramUser: {
-        id: params.id,
-        first_name: params.first_name,
-        last_name: params.last_name,
-        username: params.username,
-        photo_url: params.photo_url,
-        auth_date: params.auth_date,
-      },
-    };
-  }
-
   // ─── User upsert ──────────────────────────────────────
 
   async upsertUserByPhone(phoneNumber: string) {
@@ -281,45 +191,6 @@ export class AuthService {
       where: { phoneNumber },
       update: { lastSeenAt: new Date() },
       create: { phoneNumber },
-    });
-  }
-
-  async telegramUserExists(telegramId: string): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { telegramId },
-      select: { id: true },
-    });
-    return !!user;
-  }
-
-  async upsertUserByTelegram(telegramId: string) {
-    return this.prisma.user.upsert({
-      where: { telegramId },
-      update: { lastSeenAt: new Date() },
-      create: { telegramId },
-    });
-  }
-
-  async linkTelegramAccount(userId: string, telegramId: string) {
-    const existing = await this.prisma.user.findUnique({
-      where: { telegramId },
-    });
-
-    // Use a transaction to ensure atomic unlinking and linking
-    return this.prisma.$transaction(async (tx) => {
-      if (existing && existing.id !== userId) {
-        // If telegram account is linked to another user, unlink it first
-        // to avoid unique constraint violation.
-        await tx.user.update({
-          where: { id: existing.id },
-          data: { telegramId: null },
-        });
-      }
-
-      return tx.user.update({
-        where: { id: userId },
-        data: { telegramId, lastSeenAt: new Date() },
-      });
     });
   }
 

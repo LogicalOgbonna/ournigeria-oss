@@ -13,7 +13,7 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react";
-import { TelegramLoginButton } from "@/components/auth/TelegramLoginButton";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 import { apiUrl } from "@/lib/api";
 
 type Step = "phone" | "otp";
@@ -221,16 +221,17 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
           </div>
 
           <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            Click the button below to sign in with your Telegram account.
+            Sign in with the Telegram app — works even when Telegram&apos;s
+            website is blocked on your network.
           </p>
 
-          <TelegramLoginButton />
+          <TelegramDeepLinkLogin intent="login" />
 
           <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
             <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-              You&apos;ll confirm in Telegram&apos;s secure popup. We only
-              receive your Telegram ID.
+              You&apos;ll confirm by tapping Start in Telegram. We only receive
+              your Telegram ID.
             </p>
           </div>
         </div>

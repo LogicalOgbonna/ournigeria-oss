@@ -4,14 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, MessageCircleCheck, Send, ShieldCheck, type LucideIcon } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 import { toast } from "sonner";
 
-declare global {
-  var onTelegramAuth: (user: Record<string, string | number>) => void;
-}
-
-const TELEGRAM_WIDGET_URL = "https://telegram.org/js/telegram-widget.js?22";
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 const API_BASE = "/api";
 
 const AUTH_TABS: { id: "telegram" | "whatsapp"; label: string; icon: LucideIcon }[] = [
@@ -64,8 +59,6 @@ export function LandingLoginForm() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const telegramRef = useRef<HTMLDivElement>(null);
-  const telegramLoaded = useRef(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -113,73 +106,6 @@ export function LandingLoginForm() {
     const timeout = setTimeout(() => otpRefs.current[0]?.focus(), 100);
     return () => clearTimeout(timeout);
   }, [step]);
-
-  useEffect(() => {
-    if (activeTab === "telegram") return;
-    telegramLoaded.current = false;
-    if (telegramRef.current) {
-      telegramRef.current.innerHTML = "";
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (
-      activeTab !== "telegram" ||
-      isCheckingSession ||
-      !BOT_USERNAME ||
-      !telegramRef.current ||
-      telegramLoaded.current
-    ) {
-      return;
-    }
-
-    const container = telegramRef.current;
-    telegramLoaded.current = true;
-    container.innerHTML = "";
-
-    globalThis.onTelegramAuth = function (user: Record<string, string | number>) {
-      void (async () => {
-        const stringifiedUser = Object.fromEntries(
-          Object.entries(user).map(([k, v]) => [k, String(v)]),
-        );
-
-        setIsSubmitting(true);
-
-        try {
-          const res = await fetch(`${API_BASE}/auth/telegram/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(stringifiedUser),
-          });
-
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({
-              error: "Telegram login failed. Please try again.",
-            }));
-            toast.error(data.error || "Telegram login failed. Please try again.");
-            return;
-          }
-
-          const data = await res.json();
-          globalThis.location.replace(buildAppRedirectUrl(redirectTarget, data.authToken));
-        } catch {
-          toast.error("Network error during Telegram login. Please try again.");
-        } finally {
-          setIsSubmitting(false);
-        }
-      })();
-    };
-
-    const script = document.createElement("script");
-    script.src = TELEGRAM_WIDGET_URL;
-    script.async = true;
-    script.dataset.telegramLogin = BOT_USERNAME;
-    script.dataset.size = "large";
-    script.dataset.onauth = "onTelegramAuth(user)";
-    script.dataset.requestAccess = "write";
-    container.appendChild(script);
-  }, [activeTab, isCheckingSession, redirectTarget]);
 
   const otpCode = otpDigits.join("");
 
@@ -301,7 +227,7 @@ export function LandingLoginForm() {
               </div>
 
               <p className="mb-8 text-center text-muted-foreground">
-                Click the button below to sign in with your Telegram account.
+                Sign in with the Telegram app — works even when Telegram&apos;s website is blocked on your network.
               </p>
 
               <div className="flex flex-col items-center justify-center">
@@ -310,14 +236,28 @@ export function LandingLoginForm() {
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div ref={telegramRef} className="flex min-h-[48px] items-center justify-center" />
+                  <TelegramDeepLinkLogin
+                    onAuthenticated={async () => {
+                      try {
+                        const tokenRes = await fetch(`${API_BASE}/auth/session-token`, {
+                          credentials: "include",
+                        });
+                        const { authToken } = await tokenRes.json();
+                        globalThis.location.replace(
+                          buildAppRedirectUrl(redirectTarget, authToken),
+                        );
+                      } catch {
+                        globalThis.location.replace(redirectTarget);
+                      }
+                    }}
+                  />
                 )}
               </div>
 
               <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  You&apos;ll confirm in Telegram&apos;s secure popup. We only receive your Telegram ID.
+                  You&apos;ll confirm by tapping Start in Telegram. We only receive your Telegram ID.
                 </p>
               </div>
             </div>
