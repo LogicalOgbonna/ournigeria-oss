@@ -129,9 +129,13 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
+    // NOTE: behind the Next.js /api rewrite + infra proxy this `ip` collapses to a
+    // shared upstream address, so this is effectively a global cap on login-start
+    // volume (anti-spam for the request rows), not a true per-user limit. Keep it
+    // generous so legitimate peak login traffic isn't blocked.
     const ip =
       (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
-    if (await this.telegramLogin.hitRateLimit(`start:${ip}`, 20, 60_000)) {
+    if (await this.telegramLogin.hitRateLimit(`start:${ip}`, 60, 60_000)) {
       return res
         .status(HttpStatus.TOO_MANY_REQUESTS)
         .json({ error: "Too many login attempts. Please wait." });
@@ -159,16 +163,19 @@ export class AuthController {
   @ApiOperation({ summary: "Poll a Telegram deep-link login; sets session cookie on success" })
   async telegramPoll(
     @Query("pollKey") pollKey: string,
-    @Req() req: Request,
     @Res() res: Response,
   ) {
-    const ip =
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
-    if (await this.telegramLogin.hitRateLimit(`poll:${ip}`, 300, 60_000)) {
-      return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests." });
-    }
     if (!pollKey) {
       return res.status(HttpStatus.BAD_REQUEST).json({ error: "pollKey is required" });
+    }
+    // Rate-limit per pollKey, NOT per IP. Behind the Next.js /api rewrite + infra
+    // proxy, every user's poll reaches the API from one shared upstream IP, so an
+    // IP bucket collapses all users together and saturates under normal 2s polling
+    // → 429 for everyone → login never completes. The pollKey is unique per attempt
+    // and unguessable (192-bit random, never sent to Telegram), so keying on it
+    // isolates each attempt. One client polls ~30/min; 120/min gives ample headroom.
+    if (await this.telegramLogin.hitRateLimit(`poll:${pollKey}`, 120, 60_000)) {
+      return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests." });
     }
 
     const result = await this.telegramLogin.pollByKey(pollKey);
