@@ -217,6 +217,8 @@ export function LandingLoginForm() {
               ))}
             </div>
 
+            {/* Fixed-height panel region so switching tabs doesn't shift layout */}
+            <div className="min-h-[292px]">
             {activeTab === "telegram" && (
             <div className="flex flex-col">
               <div className="mb-6 flex justify-center">
@@ -367,6 +369,7 @@ export function LandingLoginForm() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">

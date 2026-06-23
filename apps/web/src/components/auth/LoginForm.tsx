@@ -421,8 +421,10 @@ export function LoginForm({ error: externalError }: LoginFormProps) {
         })}
       </div>
 
-      {/* Active provider content */}
-      {providers.find((p) => p.id === activeTab)?.content}
+      {/* Active provider content — fixed min-height so switching tabs doesn't shift layout */}
+      <div className="min-h-[268px]">
+        {providers.find((p) => p.id === activeTab)?.content}
+      </div>
 
       {/* Error display */}
       {error && (
