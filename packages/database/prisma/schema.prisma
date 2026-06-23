@@ -2328,3 +2328,21 @@ model FaacLgaAllocation {
   @@index([entityCode], map: "idx_faac_lga_entity")
   @@map("faac_lga_allocations")
 }
+
+/// Short-lived single-use record backing the Telegram deep-link login flow.
+/// `startParam` travels into Telegram via the t.me deep link (matched by the webhook);
+/// `pollKey` stays in the browser (matched by the poll endpoint). See .agent/plans/46*.
+model TelegramLoginRequest {
+  id         String   @id @default(uuid()) @db.Uuid
+  startParam String   @unique @map("start_param") @db.VarChar(64)
+  pollKey    String   @unique @map("poll_key") @db.VarChar(64)
+  status     String   @default("pending") @db.VarChar(20) // pending | authenticated | consumed
+  intent     String   @default("login") @db.VarChar(10) // login | link
+  telegramId String?  @map("telegram_id") @db.VarChar(20)
+  userId     String?  @map("user_id") @db.Uuid
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz()
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([expiresAt])
+  @@map("telegram_login_requests")
+}

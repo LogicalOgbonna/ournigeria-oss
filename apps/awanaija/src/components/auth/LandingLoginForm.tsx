@@ -4,14 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, MessageCircleCheck, Send, ShieldCheck, type LucideIcon } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 import { toast } from "sonner";
 
-declare global {
-  var onTelegramAuth: (user: Record<string, string | number>) => void;
-}
-
-const TELEGRAM_WIDGET_URL = "https://telegram.org/js/telegram-widget.js?22";
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 const API_BASE = "/api";
 
 const AUTH_TABS: { id: "telegram" | "whatsapp"; label: string; icon: LucideIcon }[] = [
@@ -64,8 +59,6 @@ export function LandingLoginForm() {
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const telegramRef = useRef<HTMLDivElement>(null);
-  const telegramLoaded = useRef(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -113,73 +106,6 @@ export function LandingLoginForm() {
     const timeout = setTimeout(() => otpRefs.current[0]?.focus(), 100);
     return () => clearTimeout(timeout);
   }, [step]);
-
-  useEffect(() => {
-    if (activeTab === "telegram") return;
-    telegramLoaded.current = false;
-    if (telegramRef.current) {
-      telegramRef.current.innerHTML = "";
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (
-      activeTab !== "telegram" ||
-      isCheckingSession ||
-      !BOT_USERNAME ||
-      !telegramRef.current ||
-      telegramLoaded.current
-    ) {
-      return;
-    }
-
-    const container = telegramRef.current;
-    telegramLoaded.current = true;
-    container.innerHTML = "";
-
-    globalThis.onTelegramAuth = function (user: Record<string, string | number>) {
-      void (async () => {
-        const stringifiedUser = Object.fromEntries(
-          Object.entries(user).map(([k, v]) => [k, String(v)]),
-        );
-
-        setIsSubmitting(true);
-
-        try {
-          const res = await fetch(`${API_BASE}/auth/telegram/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify(stringifiedUser),
-          });
-
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({
-              error: "Telegram login failed. Please try again.",
-            }));
-            toast.error(data.error || "Telegram login failed. Please try again.");
-            return;
-          }
-
-          const data = await res.json();
-          globalThis.location.replace(buildAppRedirectUrl(redirectTarget, data.authToken));
-        } catch {
-          toast.error("Network error during Telegram login. Please try again.");
-        } finally {
-          setIsSubmitting(false);
-        }
-      })();
-    };
-
-    const script = document.createElement("script");
-    script.src = TELEGRAM_WIDGET_URL;
-    script.async = true;
-    script.dataset.telegramLogin = BOT_USERNAME;
-    script.dataset.size = "large";
-    script.dataset.onauth = "onTelegramAuth(user)";
-    script.dataset.requestAccess = "write";
-    container.appendChild(script);
-  }, [activeTab, isCheckingSession, redirectTarget]);
 
   const otpCode = otpDigits.join("");
 
@@ -291,8 +217,10 @@ export function LandingLoginForm() {
               ))}
             </div>
 
+            {/* Fixed-height panel region so switching tabs doesn't shift layout */}
+            <div className="flex min-h-[292px] flex-col">
             {activeTab === "telegram" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-600 dark:text-sky-400">
                   <Send className="h-4 w-4" />
@@ -300,31 +228,41 @@ export function LandingLoginForm() {
                 </div>
               </div>
 
-              <p className="mb-8 text-center text-muted-foreground">
-                Click the button below to sign in with your Telegram account.
-              </p>
-
-              <div className="flex flex-col items-center justify-center">
+              <div className="mt-2 flex flex-col items-center justify-center">
                 {isCheckingSession ? (
                   <div className="flex h-[48px] items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div ref={telegramRef} className="flex min-h-[48px] items-center justify-center" />
+                  <TelegramDeepLinkLogin
+                    onAuthenticated={async () => {
+                      try {
+                        const tokenRes = await fetch(`${API_BASE}/auth/session-token`, {
+                          credentials: "include",
+                        });
+                        const { authToken } = await tokenRes.json();
+                        globalThis.location.replace(
+                          buildAppRedirectUrl(redirectTarget, authToken),
+                        );
+                      } catch {
+                        globalThis.location.replace(redirectTarget);
+                      }
+                    }}
+                  />
                 )}
               </div>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+              <div className="mt-auto flex items-start gap-3 rounded-xl bg-muted p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  You&apos;ll confirm in Telegram&apos;s secure popup. We only receive your Telegram ID.
+                  You&apos;ll confirm by tapping Start in Telegram. We only receive your Telegram ID.
                 </p>
               </div>
             </div>
           )}
 
           {activeTab === "whatsapp" && step === "phone" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   <MessageCircleCheck className="h-4 w-4" />
@@ -361,7 +299,7 @@ export function LandingLoginForm() {
                 <ArrowRight className="h-5 w-5" />
               </button>
 
-              <div className="mt-8 flex items-start gap-3 rounded-xl bg-muted p-4">
+              <div className="mt-auto flex items-start gap-3 rounded-xl bg-muted p-4">
                 <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
                   We&apos;ll send a 6-digit code to your WhatsApp. No password needed.
@@ -371,7 +309,7 @@ export function LandingLoginForm() {
           )}
 
           {activeTab === "whatsapp" && step === "otp" && (
-            <div className="flex flex-col">
+            <div className="flex flex-1 flex-col">
               <div className="mb-6 flex items-center justify-between">
                 <button
                   type="button"
@@ -431,6 +369,7 @@ export function LandingLoginForm() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">

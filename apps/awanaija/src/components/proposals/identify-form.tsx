@@ -16,6 +16,7 @@ import {
   getParties, getStates, getLgas, getWards, getConstituencies,
   identifyOfficial, claimProposal,
 } from "@/lib/api";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -643,9 +644,6 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const tgRef = useRef<HTMLDivElement>(null);
-  const tgLoaded = useRef(false);
-  const BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   async function waitForSession() {
     for (let i = 0; i < 6; i++) {
@@ -656,25 +654,6 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
   }
 
   useEffect(() => { if (countdown <= 0) return; const t = setTimeout(() => setCountdown((c) => c - 1), 1000); return () => clearTimeout(t); }, [countdown]);
-
-  useEffect(() => {
-    if (!BOT || !tgRef.current || tgLoaded.current) return;
-    tgLoaded.current = true;
-    (window as unknown as Record<string, unknown>).onTelegramAuth = async function (user: Record<string, string | number>) {
-      const u = Object.fromEntries(Object.entries(user).map(([k, v]) => [k, String(v)]));
-      setLoading(true); setErr(null);
-      try {
-        const r = await fetch("/api/auth/telegram/login", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(u) });
-        if (!r.ok) { setErr("Telegram login failed."); return; }
-        (await waitForSession()) ? onVerified() : setErr("Login didn't finish. Try again.");
-      } catch { setErr("Network error."); } finally { setLoading(false); }
-    };
-    const s = document.createElement("script");
-    s.src = "https://telegram.org/js/telegram-widget.js?22";
-    s.async = true; s.dataset.telegramLogin = BOT; s.dataset.size = "large";
-    s.dataset.onauth = "onTelegramAuth(user)"; s.dataset.requestAccess = "write";
-    tgRef.current.appendChild(s);
-  }, [BOT, onVerified]);
 
   async function sendOtp() {
     const full = phone.startsWith("+") ? phone : `+234${phone.replace(/^0/, "")}`;
@@ -723,8 +702,14 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
           {tab === "telegram" ? (
             <div className="space-y-3 pt-1">
               <p className="text-center text-sm text-slate-500">Sign in with your Telegram account.</p>
-              <div className="flex min-h-[40px] items-center justify-center"><div ref={tgRef} /></div>
-              {!BOT && <p className="text-center text-xs text-slate-400">Telegram login not configured.</p>}
+              <div className="flex min-h-[40px] items-center justify-center">
+                <TelegramDeepLinkLogin
+                  onAuthenticated={async () => {
+                    setErr(null);
+                    (await waitForSession()) ? onVerified() : setErr("Login didn't finish. Try again.");
+                  }}
+                />
+              </div>
             </div>
           ) : step === "phone" ? (
             <div className="space-y-3 pt-1">

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon, X } from "lucide-react";
@@ -16,6 +16,7 @@ import {
   RoleField, LocationField, LocationChip, NameField, PartyField,
   OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
 } from "@/components/proposals/identify-form";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -567,11 +568,8 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const telegramRef = useRef<HTMLDivElement>(null);
-  const telegramLoaded = useRef(false);
 
   const API_BASE = "/api";
-  const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
 
   async function waitForSession() {
     for (let attempt = 0; attempt < 6; attempt++) {
@@ -594,58 +592,6 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [countdown]);
-
-  // Load Telegram widget
-  useEffect(() => {
-    if (!BOT_USERNAME || !telegramRef.current || telegramLoaded.current) return;
-    telegramLoaded.current = true;
-
-    (window as unknown as Record<string, unknown>).onTelegramAuth = async function (user: Record<string, string | number>) {
-      const stringifiedUser = Object.fromEntries(
-        Object.entries(user).map(([k, v]) => [k, String(v)]),
-      );
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const res = await fetch(`${API_BASE}/auth/telegram/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(stringifiedUser),
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({
-            error: "Telegram login failed. Please try again.",
-          }));
-          setError(data.error || "Telegram login failed. Please try again.");
-          return;
-        }
-
-        const hasSession = await waitForSession();
-        if (hasSession) {
-          onVerified();
-        } else {
-          setError("Telegram login did not finish correctly. Please try again.");
-        }
-      } catch {
-        setError("Network error during Telegram login. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.dataset.telegramLogin = BOT_USERNAME;
-    script.dataset.size = "large";
-    script.dataset.onauth = "onTelegramAuth(user)";
-    script.dataset.requestAccess = "write";
-    telegramRef.current.appendChild(script);
-  }, [BOT_USERNAME, onVerified]);
 
   async function handleSendOtp() {
     const fullPhone = phone.startsWith("+") ? phone : `+234${phone.replace(/^0/, "")}`;
@@ -790,21 +736,23 @@ function OtpModal({ onVerified, onClose }: { onVerified: () => void; onClose: ()
                   Sign in via Telegram
                 </span>
               </div>
-              <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                Click the button below to sign in with your Telegram account.
-              </p>
               <div className="flex min-h-[40px] items-center justify-center">
-                <div ref={telegramRef} className="flex items-center justify-center" />
+                <TelegramDeepLinkLogin
+                  onAuthenticated={async () => {
+                    setError(null);
+                    const ok = await waitForSession();
+                    if (ok) {
+                      onVerified();
+                    } else {
+                      setError("Telegram login did not finish correctly. Please try again.");
+                    }
+                  }}
+                />
               </div>
-              {!BOT_USERNAME && (
-                <p className="text-center text-xs text-slate-400">
-                  Telegram login is not configured.
-                </p>
-              )}
               <div className="flex items-start gap-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                 <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  You&apos;ll confirm in Telegram&apos;s secure popup. We only receive your Telegram ID.
+                  You&apos;ll confirm by tapping Start in Telegram. We only receive your Telegram ID.
                 </p>
               </div>
             </div>

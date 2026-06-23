@@ -6,13 +6,14 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Response } from "express";
+import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { z } from "zod";
-import { TelegramApiService } from "../telegram/telegram-api.service";
+import { TelegramLoginService } from "../telegram/telegram-login.service";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./decorators/current-user";
 import { Public } from "./decorators/public";
@@ -33,50 +34,6 @@ function buildUserCookieOptions() {
     maxAge: COOKIE_MAX_AGE * 1000,
     domain: getCookieDomain(),
   };
-}
-
-function getAllowedRedirectOrigins(): string[] {
-  const origins = new Set<string>();
-  const appUrl = process.env.APP_URL;
-  const corsOrigins = process.env.CORS_ORIGINS;
-
-  if (appUrl) {
-    try {
-      origins.add(new URL(appUrl).origin);
-    } catch {}
-  }
-
-  if (corsOrigins) {
-    for (const rawOrigin of corsOrigins.split(",")) {
-      const origin = rawOrigin.trim();
-      if (!origin) continue;
-      try {
-        origins.add(new URL(origin).origin);
-      } catch {}
-    }
-  }
-
-  return [...origins];
-}
-
-function resolveTelegramRedirectTarget(returnTo?: string): string {
-  const fallback = process.env.APP_URL!;
-  if (!returnTo) return fallback;
-
-  try {
-    const target = new URL(returnTo);
-    if (getAllowedRedirectOrigins().includes(target.origin)) {
-      return `${target.origin}${target.pathname}${target.search}${target.hash}`;
-    }
-  } catch {}
-
-  return fallback;
-}
-
-function appendQueryParam(urlString: string, key: string, value: string): string {
-  const url = new URL(urlString);
-  url.searchParams.set(key, value);
-  return url.toString();
 }
 
 /** Sign a user ID for the nb_auth callback so the web proxy can verify it wasn't forged. */
@@ -161,8 +118,66 @@ const verifyAuthTokenSchema = z.object({
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly telegramApi: TelegramApiService,
+    private readonly telegramLogin: TelegramLoginService,
   ) {}
+
+  @Public()
+  @Post("telegram/start")
+  @ApiOperation({ summary: "Begin Telegram deep-link login; returns startParam + pollKey" })
+  async telegramStart(
+    @Body() body: { intent?: string },
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (await this.telegramLogin.hitRateLimit(`start:${ip}`, 20, 60_000)) {
+      return res
+        .status(HttpStatus.TOO_MANY_REQUESTS)
+        .json({ error: "Too many login attempts. Please wait." });
+    }
+
+    const intent = body?.intent === "link" ? "link" : "login";
+    let userId: string | undefined;
+    if (intent === "link") {
+      const cookie = req.cookies?.[USER_COOKIE];
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!cookie || !UUID.test(cookie)) {
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: "Sign in before linking Telegram." });
+      }
+      userId = cookie;
+    }
+
+    const { startParam, pollKey } = await this.telegramLogin.createLoginRequest(intent, userId);
+    return res.json({ startParam, pollKey });
+  }
+
+  @Public()
+  @Get("telegram/poll")
+  @ApiOperation({ summary: "Poll a Telegram deep-link login; sets session cookie on success" })
+  async telegramPoll(
+    @Query("pollKey") pollKey: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (await this.telegramLogin.hitRateLimit(`poll:${ip}`, 300, 60_000)) {
+      return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests." });
+    }
+    if (!pollKey) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: "pollKey is required" });
+    }
+
+    const result = await this.telegramLogin.pollByKey(pollKey);
+    if (result.status === "authenticated") {
+      res.cookie(USER_COOKIE, result.userId, buildUserCookieOptions());
+      return res.json({ status: "authenticated", success: true, userId: result.userId });
+    }
+    return res.json({ status: result.status });
+  }
 
   @Public()
   @Post("send-otp")
@@ -379,137 +394,5 @@ export class AuthController {
     }
 
     return res.json({ success: true, userId });
-  }
-
-  private async completeTelegramLogin(
-    telegramAuthPayload: Record<string, string>,
-    res: Response,
-  ) {
-    const result = this.authService.verifyTelegramAuth(telegramAuthPayload);
-    if (!result.valid) {
-      return { ok: false as const, error: result.error || "Invalid Telegram auth data" };
-    }
-
-    const { telegramUser } = result;
-    const isNewUser = !(await this.authService.telegramUserExists(telegramUser.id));
-    const user = await this.authService.upsertUserByTelegram(telegramUser.id);
-
-    const banStatus = await this.authService.checkBanStatus(user.id);
-    if (banStatus.banned) {
-      return {
-        ok: false as const,
-        banned: true as const,
-        reason: banStatus.reason || "Your account has been suspended.",
-      };
-    }
-
-    res.cookie(USER_COOKIE, user.id, buildUserCookieOptions());
-
-    if (isNewUser) {
-      const chatId = Number(telegramUser.id);
-      const name = telegramUser.first_name || "there";
-      this.telegramApi
-        .sendMessage(
-          chatId,
-          `Welcome to OurNigeria, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian budgets, government spending, and EFCC corruption cases.\n\nSend /help to see available commands.`,
-        )
-        .catch((err) =>
-          console.error("Failed to send Telegram welcome:", err),
-        );
-    }
-
-    return { ok: true as const, userId: user.id };
-  }
-
-  @Public()
-  @Get("telegram")
-  @ApiOperation({ summary: "Telegram login callback" })
-  async telegramAuth(
-    @Query() query: Record<string, string>,
-    @Res() res: Response,
-  ) {
-    const { returnTo, ...telegramPayload } = query;
-    const baseUrl = resolveTelegramRedirectTarget(returnTo);
-
-    try {
-      const loginResult = await this.completeTelegramLogin(telegramPayload, res);
-      if (!loginResult.ok) {
-        if ("banned" in loginResult && loginResult.banned) {
-          return res.redirect(`${new URL(baseUrl).origin}/banned`);
-        }
-        console.error("Telegram auth failed:", loginResult.error);
-        return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
-      }
-
-      // Pass signed auth token via query param so the web app can verify + set cookie
-      return res.redirect(
-        appendQueryParam(baseUrl, "nb_auth", signAuthToken(loginResult.userId)),
-      );
-    } catch (err) {
-      console.error("Telegram auth error:", err);
-      return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
-    }
-  }
-
-  @Public()
-  @Post("telegram/login")
-  @ApiOperation({ summary: "Login with Telegram widget payload" })
-  async telegramLogin(
-    @Body() body: Record<string, string>,
-    @Res() res: Response,
-  ) {
-    try {
-      const loginResult = await this.completeTelegramLogin(body, res);
-      if (!loginResult.ok) {
-        if ("banned" in loginResult && loginResult.banned) {
-          return res.status(HttpStatus.FORBIDDEN).json({
-            error: "banned",
-            reason: loginResult.reason,
-          });
-        }
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ error: loginResult.error });
-      }
-
-      return res.json({
-        success: true,
-        userId: loginResult.userId,
-        authToken: signAuthToken(loginResult.userId),
-      });
-    } catch (err) {
-      console.error("Telegram login error:", err);
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Internal server error" });
-    }
-  }
-
-  @Post("telegram/link")
-  @ApiOperation({ summary: "Link Telegram account to active session" })
-  async linkTelegram(
-    @CurrentUser() userId: string,
-    @Body() body: Record<string, string>,
-    @Res() res: Response,
-  ) {
-    try {
-      const result = this.authService.verifyTelegramAuth(body);
-      if (!result.valid) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ error: "Invalid Telegram auth data" });
-      }
-
-      await this.authService.linkTelegramAccount(
-        userId,
-        result.telegramUser.id,
-      );
-      return res.json({ success: true });
-    } catch (err) {
-      console.error("Telegram link error:", err);
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Internal server error" });
-    }
   }
 }

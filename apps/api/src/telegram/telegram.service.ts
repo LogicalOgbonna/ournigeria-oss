@@ -6,6 +6,7 @@ import {
   type MessageRole,
 } from "@ournigeria/database";
 import { TelegramApiService } from "./telegram-api.service";
+import { TelegramLoginService } from "./telegram-login.service";
 import { formatForTelegram } from "./telegram-formatter";
 import { routeToAgent, inferTool } from "../mastra/router";
 import { ChartService } from "../chart/chart.service";
@@ -19,6 +20,7 @@ export class TelegramService {
   constructor(
     private prisma: PrismaService,
     private telegramApi: TelegramApiService,
+    private telegramLogin: TelegramLoginService,
     private chartService: ChartService,
     private config: ConfigService,
   ) {
@@ -70,10 +72,14 @@ export class TelegramService {
     }
 
     if (isNew) {
-      await this.telegramApi.sendMessage(
-        chatId,
-        `Welcome to OurNigeria! Your account has been created.\n\nYou can also access your chat history on the web at ${this.appUrl} — just click "Login with Telegram".\n\nNow, ask me anything about Nigerian budgets or corruption cases.`,
-      );
+      // Non-fatal: a failed welcome send must not abort the rest of the update
+      // (e.g. a deep-link `/start <token>` login that follows).
+      await this.telegramApi
+        .sendMessage(
+          chatId,
+          `Welcome to OurNigeria! Your account has been created.\n\nYou can also access your chat history on the web at ${this.appUrl} — just click "Login with Telegram".\n\nNow, ask me anything about Nigerian budgets or corruption cases.`,
+        )
+        .catch((err) => this.logger.error("Failed to send welcome message:", err));
     }
 
     // Update lastSeenAt
@@ -86,7 +92,7 @@ export class TelegramService {
       const parts = text.split(/\s+/);
       const command = parts[0].toLowerCase().replace(/@\w+$/, ""); // strip @botname
       const args = parts.slice(1).join(" ");
-      await this.handleCommand(command, args, chatId, user.id);
+      await this.handleCommand(command, args, chatId, user.id, from);
       return;
     }
 
@@ -98,9 +104,37 @@ export class TelegramService {
     args: string,
     chatId: number,
     userId: string,
+    from: Record<string, unknown>,
   ): Promise<void> {
     switch (command) {
       case "/start":
+        if (args) {
+          // Deep-link login: `/start <startParam>` issued by the web login page.
+          const result = await this.telegramLogin.resolveStartParam(String(args).trim(), {
+            id: (from?.id as number | string | undefined) ?? chatId,
+            first_name: from?.first_name as string | undefined,
+            last_name: from?.last_name as string | undefined,
+          });
+          if (result.ok) {
+            await this.telegramApi.sendMessage(
+              chatId,
+              "✅ You're logged in! Head back to your browser — it'll continue automatically.",
+            );
+            return;
+          }
+          if (result.reason === "banned") {
+            await this.telegramApi.sendMessage(chatId, "Your account has been suspended.");
+            return;
+          }
+          if (result.reason === "expired" || result.reason === "already_used") {
+            await this.telegramApi.sendMessage(
+              chatId,
+              "That login link has expired. Please return to the site and start again.",
+            );
+            return;
+          }
+          // reason "unknown" / "no_bound_user": not a login deep link — fall through to welcome.
+        }
         await this.telegramApi.sendMessage(
           chatId,
           "Welcome to OurNigeria! I can help you explore Nigerian budgets, government spending, and EFCC corruption cases.\n\nJust send me a question, or use:\n/budget <query> — Budget analysis\n/corruption <query> — Corruption case lookup\n/pidgin — Switch to Pidgin English\n/english — Switch to English\n/new — Start a fresh conversation\n/help — Show available commands",
