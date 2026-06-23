@@ -16,6 +16,7 @@ import {
   RoleField, LocationField, LocationChip, NameField, PartyField,
   OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
 } from "@/components/proposals/identify-form";
+import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
