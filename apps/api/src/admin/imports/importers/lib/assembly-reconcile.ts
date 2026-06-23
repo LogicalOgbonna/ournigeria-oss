@@ -57,14 +57,63 @@ function nameTokens(name: string): string[] {
     .filter((t) => !TITLES.has(t) && t.length > 1);
 }
 
-/** Jaccard token overlap of two person names (0..1), title- and order-invariant. */
+/** Classic DP Levenshtein edit distance. Pure, no deps. */
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = new Array<number>(n + 1);
+  let curr = new Array<number>(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+/**
+ * Two name tokens count as "the same token modulo transliteration/inflection" when
+ * (both already lowercased, length > 1):
+ *  - exact equal; OR
+ *  - one is a prefix of the other AND the shorter has length ≥ 4 (e.g. yusuf⊂yusufu); OR
+ *  - Levenshtein distance ≤ (min(len) ≤ 4 ? 1 : 2)  (e.g. ahmed/ahmad=1, mohammed/muhammad=2).
+ */
+function tokensSimilar(t1: string, t2: string): boolean {
+  if (t1 === t2) return true;
+  const shorter = t1.length <= t2.length ? t1 : t2;
+  const longer = t1.length <= t2.length ? t2 : t1;
+  if (shorter.length >= 4 && longer.startsWith(shorter)) return true;
+  const threshold = shorter.length <= 4 ? 1 : 2;
+  return levenshtein(t1, t2) <= threshold;
+}
+
+/**
+ * Fuzzy Jaccard token overlap of two person names (0..1), title- and order-invariant.
+ * Tokens match modulo Nigerian transliteration/inflection variants (see tokensSimilar).
+ * `inter` = how many of A's tokens have a fuzzy match in B (each B token consumed once).
+ */
 export function nameMatchScore(a: string, b: string): number {
-  const A = new Set(nameTokens(a));
-  const B = new Set(nameTokens(b));
-  if (A.size === 0 || B.size === 0) return 0;
+  const A = nameTokens(a);
+  const B = nameTokens(b);
+  if (A.length === 0 || B.length === 0) return 0;
+  const usedB = new Array<boolean>(B.length).fill(false);
   let inter = 0;
-  for (const t of A) if (B.has(t)) inter++;
-  return inter / (A.size + B.size - inter);
+  for (const ta of A) {
+    for (let j = 0; j < B.length; j++) {
+      if (!usedB[j] && tokensSimilar(ta, B[j])) {
+        usedB[j] = true;
+        inter++;
+        break;
+      }
+    }
+  }
+  return inter / (A.length + B.length - inter);
 }
 
 /** Reconciliation verdict thresholds. */

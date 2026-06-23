@@ -40,6 +40,18 @@ describe("nameMatchScore", () => {
   it("≈0 for different people (FLIP band) — the Adewale case", () => {
     expect(nameMatchScore("Adebayo Abraham Adewale", "Ogundare Abideen Adeoye")).toBeLessThanOrEqual(0.34);
   });
+  it("fuzzy: keeps same person with reordered + transliteration-variant tokens", () => {
+    expect(nameMatchScore("Mugu Yusufu", "Yusuf Mugu")).toBeGreaterThanOrEqual(0.6);            // Yusufu/Yusuf
+    expect(nameMatchScore("Idaiye Yekini Oisayemoje", "Yekini Idiaye")).toBeGreaterThanOrEqual(0.6); // Idaiye/Idiaye + extra middle
+    expect(nameMatchScore("Ahmed Amiru", "Amiru Ahmad Keta")).toBeGreaterThanOrEqual(0.6);      // Ahmed/Ahmad + extra
+    expect(nameMatchScore("Mohammed Salisu Ibrahim", "Salisu Ibrahim Muhammad")).toBeGreaterThanOrEqual(0.6); // Mohammed/Muhammad reorder
+    expect(nameMatchScore("Bassey Bassey Pius", "Bassey Bassey")).toBeGreaterThanOrEqual(0.6);
+  });
+  it("fuzzy: still flips genuinely different people", () => {
+    expect(nameMatchScore("Adebayo Abraham Adewale", "Ogundare Abideen Adeoye")).toBeLessThanOrEqual(0.34); // the headline loser
+    expect(nameMatchScore("Jamo Luka Pam", "Yusuf Dickson Chollom")).toBeLessThanOrEqual(0.34);
+    expect(nameMatchScore("Mohammed Sani", "Mohammed Audu")).toBeLessThanOrEqual(0.34); // share only one token → different
+  });
 });
 
 const DATASET = {
