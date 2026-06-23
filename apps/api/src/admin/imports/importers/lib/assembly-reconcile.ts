@@ -105,8 +105,11 @@ export function reconcilePosition(
   const parsed = parseConstituency(pos.constituency_code);
   if (!parsed) return { verdict: "unknown", score: 0, member: null };
   const stateBlock = gt.get(parsed.state);
-  // Only trust states we fully sourced; partial/unavailable coverage never flips.
-  if (!stateBlock || stateBlock.coverage !== "full") return { verdict: "unknown", score: 0, member: null };
+  // Skip whole states only when no reliable list exists ("unavailable"). "partial" and
+  // "full" both flip PER-SEAT: a seat present in byKey carries its own source, so it is
+  // trustworthy even if other seats in the state were not found. (Reliability is per-seat,
+  // not per-state — a partial state must still be able to flip the seats it did source.)
+  if (!stateBlock || stateBlock.coverage === "unavailable") return { verdict: "unknown", score: 0, member: null };
   const member = stateBlock.byKey.get(parsed.key) ?? null;
   if (!member) return { verdict: "unknown", score: 0, member: null };
   const score = nameMatchScore(pos.name, member.name);

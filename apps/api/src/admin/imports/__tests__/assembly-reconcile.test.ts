@@ -69,8 +69,18 @@ describe("reconcilePosition", () => {
     const v = reconcilePosition(gt, { constituency_code: "state_lagos_ikeja_i", name: "Someone" });
     expect(v.verdict).toBe("unknown");
   });
-  it("UNKNOWN: state coverage not full → never flip", () => {
+  it("UNKNOWN: 'unavailable' state coverage → never flip (no reliable list)", () => {
     const partial = buildGroundTruth({ kano: { source: "x", coverage: "unavailable", members: [] } });
     expect(reconcilePosition(partial, { constituency_code: "state_kano_fagge", name: "X" }).verdict).toBe("unknown");
+  });
+  it("PARTIAL coverage still flips a sourced seat (per-seat reliability)", () => {
+    // A 'partial' state must still flip the seats it DID source — each member carries its own source.
+    const partial = buildGroundTruth({
+      oyo: { source: "https://oyostate.gov.ng/the-legislature/", coverage: "partial",
+        members: [{ constituency: "Ogo-Oluwa/Surulere", name: "Ogundare Abideen Adeoye", party: "PDP", source: "https://oyostate.gov.ng/the-legislature/" }] },
+    });
+    expect(reconcilePosition(partial, { constituency_code: "state_oyo_ogo_oluwa_and_surulere", name: "Adebayo Abraham Adewale" }).verdict).toBe("flip");
+    // a seat NOT in the partial list stays unknown (we don't have its member)
+    expect(reconcilePosition(partial, { constituency_code: "state_oyo_oluyole", name: "Someone" }).verdict).toBe("unknown");
   });
 });
