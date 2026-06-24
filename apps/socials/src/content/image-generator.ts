@@ -30,7 +30,7 @@ export class ImageGeneratorService {
     year: number,
   ): Promise<FaacImageResult | null> {
     try {
-      // 1. Get structured FAAC data from Neo4j
+      // 1. Get structured FAAC data
       const faacData = await this.queryFaacData(
         lgaName,
         stateName,
