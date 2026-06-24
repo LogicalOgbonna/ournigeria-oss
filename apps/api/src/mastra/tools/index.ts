@@ -5,8 +5,6 @@ import { faacSearchTool } from "./faac-search";
 import { webSearchTool } from "./web-search";
 import { impactCalculatorTool } from "./impact-calculator";
 import { contextualImpactTool } from "./contextual-impact";
-import { graphSearchTool } from "./graph-search";
-import { traverseGraphTool } from "./traverse-graph";
 
 /**
  * Shared tools registry — every specialist agent gets access to all search
@@ -20,6 +18,4 @@ export const sharedTools = {
   webSearchTool,
   impactCalculatorTool,
   contextualImpactTool,
-  graphSearchTool,
-  traverseGraphTool,
 };

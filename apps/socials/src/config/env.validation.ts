@@ -53,9 +53,6 @@ export interface SocialsEnvConfig {
   SOCIAL_POLL_INTERVAL_MS: number;
   SOCIAL_MAX_POSTS_DAY: number;
   SOCIAL_MAX_REPLIES_DAY: number;
-  NEO4J_URI?: string;
-  NEO4J_USER?: string;
-  NEO4J_PASSWORD?: string;
   // RAG pipeline config (shared with API for search tools)
   EMBEDDING_PROVIDER?: string;
   EMBEDDING_API_KEY?: string;
@@ -145,9 +142,6 @@ export function validateEnv(
     SOCIAL_POLL_INTERVAL_MS: num("SOCIAL_POLL_INTERVAL_MS", 1_200_000)!,
     SOCIAL_MAX_POSTS_DAY: num("SOCIAL_MAX_POSTS_DAY", 5)!,
     SOCIAL_MAX_REPLIES_DAY: num("SOCIAL_MAX_REPLIES_DAY", 10)!,
-    NEO4J_URI: (config.NEO4J_URI as string) || undefined,
-    NEO4J_USER: (config.NEO4J_USER as string) || undefined,
-    NEO4J_PASSWORD: (config.NEO4J_PASSWORD as string) || undefined,
     EMBEDDING_PROVIDER: (config.EMBEDDING_PROVIDER as string) || undefined,
     EMBEDDING_API_KEY: (config.EMBEDDING_API_KEY as string) || undefined,
     EMBEDDING_MODEL: (config.EMBEDDING_MODEL as string) || undefined,

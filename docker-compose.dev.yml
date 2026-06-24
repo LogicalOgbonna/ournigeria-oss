@@ -15,7 +15,3 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
-volumes:
-  neo4j_dev_data:
-  neo4j_dev_logs:
