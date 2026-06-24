@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "https://spending-api.arinze.online";
+      process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
     return [
       {
         source: "/api/:path*",
