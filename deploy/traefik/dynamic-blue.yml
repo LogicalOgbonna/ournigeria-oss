@@ -5,22 +5,28 @@
 http:
   routers:
     api:
-      rule: "Host(`api.example.invalid`)"
+      rule: "Host(`api.ournigeria.ng`)"
       service: api
       entryPoints:
-        - web
+        - websecure
+      tls:
+        certResolver: le
 
     ingest:
-      rule: "Host(`ingest.example.invalid`)"
+      rule: "Host(`ingest.ournigeria.ng`)"
       service: ingest
       entryPoints:
-        - web
+        - websecure
+      tls:
+        certResolver: le
 
     socials:
-      rule: "Host(`ournigeria-socials.example.invalid`)"
+      rule: "Host(`socials.ournigeria.ng`)"
       service: socials
       entryPoints:
-        - web
+        - websecure
+      tls:
+        certResolver: le
 
   services:
     api:
