@@ -1,5 +1,30 @@
 import { describe, it, expect, vi } from "vitest";
 import { buildPgDumpArgs, AdminBackupService } from "../admin-backup.service";
+import { EventEmitter } from "node:events";
+import { Readable } from "node:stream";
+
+vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
+vi.mock("@aws-sdk/lib-storage", () => ({
+  Upload: vi.fn().mockImplementation(function () {
+    return { done: vi.fn().mockResolvedValue({}) };
+  }),
+}));
+
+import { spawn } from "node:child_process";
+import { Upload } from "@aws-sdk/lib-storage";
+
+/** Fake child process: stdout stream, stderr emitter, controllable exit. */
+function fakeChild() {
+  const child = new EventEmitter() as EventEmitter & {
+    stdout: Readable;
+    stderr: EventEmitter;
+    kill: () => void;
+  };
+  child.stdout = Readable.from(Buffer.from("PGDMP-bytes"));
+  child.stderr = new EventEmitter();
+  child.kill = vi.fn();
+  return child;
+}
 
 function makeService(overrides: Partial<Record<string, unknown>> = {}) {
   const prisma = {
@@ -80,5 +105,49 @@ describe("AdminBackupService.reapOrphaned", () => {
       where: { status: { in: ["PENDING", "RUNNING"] } },
       data: { status: "FAILED", error: "Interrupted by API restart", finishedAt: expect.any(Date) },
     });
+  });
+});
+
+describe("AdminBackupService.runBackup", () => {
+  it("marks COMPLETED on exit code 0 and records s3 key + size", async () => {
+    const { svc, prisma } = makeService();
+    (svc.runBackup as unknown as { mockRestore?: () => void }).mockRestore?.(); // un-stub
+    prisma.backupJob.findUnique.mockResolvedValue({ id: "job-1", type: "FULL" });
+    const child = fakeChild();
+    (spawn as unknown as ReturnType<typeof vi.fn>).mockReturnValue(child);
+    // Upload.done resolves; HeadObject size comes from the head mock below.
+    vi.spyOn(svc as unknown as { headSize: () => Promise<number> }, "headSize").mockResolvedValue(123);
+
+    const p = svc.runBackup("job-1");
+    // Emit after the awaited DB calls have resolved and the close listener is attached.
+    setTimeout(() => child.emit("close", 0), 0);
+    await p;
+
+    const calls = prisma.backupJob.update.mock.calls.map((c) => c[0].data.status);
+    expect(calls).toContain("RUNNING");
+    const final = prisma.backupJob.update.mock.calls.at(-1)![0];
+    expect(final.data.status).toBe("COMPLETED");
+    expect(final.data.s3Key).toBe("db-backups/job-1.dump");
+    expect(final.data.sizeBytes).toBe(123n);
+    expect(Upload).toHaveBeenCalled();
+  });
+
+  it("marks FAILED on non-zero exit with stderr tail", async () => {
+    const { svc, prisma } = makeService();
+    (svc.runBackup as unknown as { mockRestore?: () => void }).mockRestore?.();
+    prisma.backupJob.findUnique.mockResolvedValue({ id: "job-2", type: "FULL" });
+    const child = fakeChild();
+    (spawn as unknown as ReturnType<typeof vi.fn>).mockReturnValue(child);
+
+    const p = svc.runBackup("job-2");
+    setTimeout(() => {
+      child.stderr.emit("data", Buffer.from("pg_dump: error: boom"));
+      child.emit("close", 1);
+    }, 0);
+    await p;
+
+    const final = prisma.backupJob.update.mock.calls.at(-1)![0];
+    expect(final.data.status).toBe("FAILED");
+    expect(final.data.error).toMatch(/boom/);
   });
 });

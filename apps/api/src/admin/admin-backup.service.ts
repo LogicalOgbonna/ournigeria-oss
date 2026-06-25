@@ -86,7 +86,107 @@ export class AdminBackupService implements OnModuleInit {
     return job;
   }
 
-  async runBackup(_jobId: string): Promise<void> {
-    // Implemented in Task 4.
+  async runBackup(jobId: string): Promise<void> {
+    const job = await this.prisma.backupJob.findUnique({ where: { id: jobId } });
+    if (!job) return;
+    const key = `${this.prefix}/${jobId}.dump`;
+    await this.prisma.backupJob.update({
+      where: { id: jobId },
+      data: { status: "RUNNING", startedAt: new Date() },
+    });
+
+    const databaseUrl = this.config.getOrThrow<string>("DATABASE_URL");
+    const args = buildPgDumpArgs(job.type as BackupTypeInput, databaseUrl);
+    const child = spawn("pg_dump", args);
+
+    let stderrTail = "";
+    child.stderr.on("data", (d: Buffer) => {
+      stderrTail = (stderrTail + d.toString()).slice(-STDERR_TAIL_BYTES);
+    });
+
+    try {
+      const upload = new Upload({
+        client: this.s3,
+        params: { Bucket: this.bucket, Key: key, Body: child.stdout },
+      });
+
+      const exitCode: number = await new Promise((resolve, reject) => {
+        child.on("error", reject); // e.g. pg_dump binary missing
+        child.on("close", resolve);
+      });
+
+      if (exitCode !== 0) {
+        child.stdout.destroy(); // stop the upload stream
+        await upload.done().catch(() => undefined);
+        await this.deleteObjectQuiet(key);
+        throw new Error(stderrTail.trim() || `pg_dump exited with code ${exitCode}`);
+      }
+
+      await upload.done();
+      const sizeBytes = await this.headSize(key);
+      await this.prisma.backupJob.update({
+        where: { id: jobId },
+        data: {
+          status: "COMPLETED",
+          finishedAt: new Date(),
+          s3Bucket: this.bucket,
+          s3Key: key,
+          sizeBytes: BigInt(sizeBytes),
+        },
+      });
+    } catch (err) {
+      await this.deleteObjectQuiet(key);
+      await this.prisma.backupJob.update({
+        where: { id: jobId },
+        data: {
+          status: "FAILED",
+          finishedAt: new Date(),
+          error: (err as Error).message?.slice(0, STDERR_TAIL_BYTES) ?? "Unknown error",
+        },
+      });
+    }
+  }
+
+  /** Object size in bytes (own method so tests can stub it). */
+  private async headSize(key: string): Promise<number> {
+    const { HeadObjectCommand } = await import("@aws-sdk/client-s3");
+    const res = await this.s3.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+    return res.ContentLength ?? 0;
+  }
+
+  private async deleteObjectQuiet(key: string): Promise<void> {
+    await this.s3
+      .send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
+      .catch(() => undefined);
+  }
+
+  async list() {
+    return this.prisma.backupJob.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async get(id: string) {
+    return this.prisma.backupJob.findUnique({ where: { id } });
+  }
+
+  async getDownloadUrl(id: string): Promise<string> {
+    const job = await this.prisma.backupJob.findUnique({ where: { id } });
+    if (!job || job.deletedAt || job.status !== "COMPLETED" || !job.s3Key) {
+      throw new Error("Backup not available for download");
+    }
+    return getSignedUrl(
+      this.s3,
+      new GetObjectCommand({ Bucket: job.s3Bucket ?? this.bucket, Key: job.s3Key }),
+      { expiresIn: DOWNLOAD_URL_TTL_SECONDS },
+    );
+  }
+
+  async deleteBackup(id: string): Promise<void> {
+    const job = await this.prisma.backupJob.findUnique({ where: { id } });
+    if (!job || job.deletedAt) return;
+    if (job.s3Key) await this.deleteObjectQuiet(job.s3Key);
+    await this.prisma.backupJob.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }
