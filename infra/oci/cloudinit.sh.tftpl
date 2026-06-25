@@ -42,12 +42,16 @@ TG_BOT="$(geta TELEGRAM_BOT_TOKEN)"; TG_CHAT="$(geta TELEGRAM_DEPLOY_CHAT_ID)"
 tailscale up --authkey="$TS_KEY" --ssh --hostname='ournigeria-prod'
 
 # --- Mount the Postgres data volume (idempotent) ---
+# Mount point MUST match the compose Postgres bind mount (./postgres_data, i.e.
+# /opt/ournigeria/postgres_data) so the DB lives on the durable block volume,
+# not the boot disk.
 DEV=/dev/oracleoci/oraclevdb
+PGVOL=/opt/ournigeria/postgres_data
 for i in $(seq 1 30); do [ -b "$DEV" ] && break; sleep 2; done
 [ -b "$DEV" ] || { echo "ERROR: $DEV did not appear after 60s — aborting"; exit 1; }
 if ! blkid "$DEV"; then mkfs.ext4 -F "$DEV"; fi
-mkdir -p /opt/ournigeria/pgdata
-grep -q "$DEV" /etc/fstab || echo "$DEV /opt/ournigeria/pgdata ext4 defaults,_netdev,nofail 0 2" >> /etc/fstab
+mkdir -p "$PGVOL"
+grep -q "$DEV" /etc/fstab || echo "$DEV $PGVOL ext4 defaults,_netdev,nofail 0 2" >> /etc/fstab
 mount -a
 
 # --- Fetch deploy files + bootstrap the stack ---
