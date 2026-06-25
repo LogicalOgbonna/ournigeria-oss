@@ -37,7 +37,15 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 - [ ] Run `pnpm install` from the workspace root to install `posthog-js` (sandbox restrictions prevented automatic installation — it has been added to `apps/awanaija/package.json`).
 - [ ] Run a full production build (`pnpm awanaija:build`) and fix any lint or type errors introduced by the generated code.
 - [ ] Run the test suite — call sites that were rewritten or instrumented may need updated mocks or fixtures.
-- [ ] Add `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` and `NEXT_PUBLIC_POSTHOG_HOST` to `.env.example` and any CI/bootstrap scripts so collaborators know what to set.
+- [x] Add `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` to the deployment build environment so it is inlined at build time.
+
+> [!IMPORTANT]
+> `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` is a **build-time** value — Next.js inlines `NEXT_PUBLIC_*`
+> vars into the client bundle during `next build`, not at runtime. On Vercel it must be set as a
+> Production env var **and the project rebuilt from scratch**. A dashboard "Redeploy" that reuses the
+> existing build cache will *not* pick up a newly added var — trigger a fresh build (redeploy with
+> build cache disabled, or push a commit). If the token is missing at build time, `posthog.init()`
+> runs with `undefined` and the SDK no-ops with: "PostHog was initialized without a token."
 - [ ] Wire source-map upload (`posthog-cli sourcemap` or your bundler's upload step) into CI so production stack traces de-minify.
 - [ ] Confirm the returning-visitor path also calls `identify` — the Telegram login handler identifies the user, but any session-restore path (e.g. checking an existing cookie on load) should also call `posthog.identify()` with the known user ID to keep returning sessions attributed correctly.
 
