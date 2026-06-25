@@ -8,8 +8,9 @@ import { Footer } from "@/components/sections/Footer";
 import { LgaOfficialsAccordion } from "@/components/civic/LgaOfficialsAccordion";
 import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
 import { ReportDataIssueButton } from "@/components/civic/ReportDataIssueButton";
-import { notFound } from "next/navigation";
-import { getLgaDetails, getFaacPeriods } from "@/lib/api";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getLgaDetails, getFaacPeriods, ApiError } from "@/lib/api";
+import { ldJson, breadcrumbLd } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ state_slug: string; lga_slug: string }>;
@@ -57,20 +58,22 @@ export default async function LgaPage({
     console.error("Failed to load FAAC periods:", err);
   }
   
-  let lga;
+  let lga = null;
   try {
     lga = await getLgaDetails(resolvedParams.state_slug, resolvedParams.lga_slug, year, month);
-    if (lga.error) {
-      console.error("Error fetching LGA details:", lga.error);
+  } catch (error) {
+    // 404 = LGA orphaned by the resync → fall through to the state redirect below. Other
+    // errors (5xx / network) keep the prior not-found behavior.
+    if (!(error instanceof ApiError && error.status === 404)) {
+      console.error("Exception fetching LGA details:", error);
       notFound();
     }
-  } catch (error) {
-    console.error("Exception fetching LGA details:", error);
-    notFound();
   }
 
-  if (!lga) {
-    notFound();
+  // LGA missing / not found → 308 to the parent state page. permanentRedirect MUST be
+  // outside the try/catch (it throws, which the catch would swallow).
+  if (!lga || lga.error) {
+    permanentRedirect(`/states/${resolvedParams.state_slug}`);
   }
 
   const { stateName, name: lgaName, chairman, senator, houseMembers, stateAssemblyMembers, councilors, stats, wards } = lga;
@@ -211,6 +214,13 @@ export default async function LgaPage({
     } : {})
   };
 
+  const breadcrumbJsonLd = breadcrumbLd([
+    { name: "Home", item: "https://ournigeria.ng" },
+    { name: "States", item: "https://ournigeria.ng/states" },
+    { name: `${stateName} State`, item: `https://ournigeria.ng/states/${resolvedParams.state_slug}` },
+    { name: `${lgaName} LGA`, item: `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}` },
+  ]);
+
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -254,12 +264,16 @@ export default async function LgaPage({
     <div className="min-h-screen bg-background flex flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: ldJson(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }}
       />
       {faqJsonLd.mainEntity.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: ldJson(faqJsonLd) }}
         />
       )}
       <Navbar />

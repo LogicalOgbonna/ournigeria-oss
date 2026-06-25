@@ -8,8 +8,9 @@ import { Footer } from "@/components/sections/Footer";
 import { StateOfficialsAccordion } from "@/components/civic/StateOfficialsAccordion";
 import { StateEconomyFilter } from "@/components/civic/StateEconomyFilter";
 import { ReportDataIssueButton } from "@/components/civic/ReportDataIssueButton";
-import { notFound } from "next/navigation";
-import { getStateDetails } from "@/lib/api";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getStateDetails, ApiError } from "@/lib/api";
+import { ldJson, breadcrumbLd } from "@/lib/seo";
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -52,20 +53,22 @@ export default async function StatePage({
   const year = typeof resolvedSearchParams.year === 'string' ? resolvedSearchParams.year : undefined;
   const month = typeof resolvedSearchParams.month === 'string' ? resolvedSearchParams.month : undefined;
 
-  let state;
+  let state = null;
   try {
     state = await getStateDetails(state_slug, year, month);
-    if (state.error) {
-      console.error("Error fetching state details:", state.error);
+  } catch (error) {
+    // 404 = unknown state slug → fall through to the /states redirect below. Other errors
+    // (5xx / network) keep the prior not-found behavior.
+    if (!(error instanceof ApiError && error.status === 404)) {
+      console.error("Exception fetching state details:", error);
       notFound();
     }
-  } catch (error) {
-    console.error("Exception fetching state details:", error);
-    notFound();
   }
 
-  if (!state) {
-    notFound();
+  // Unknown / missing state → 308 to the states index. permanentRedirect MUST be outside the
+  // try/catch (it throws, which the catch would swallow).
+  if (!state || state.error) {
+    permanentRedirect(`/states`);
   }
 
   const { governor, stats, economy, lgas } = state;
@@ -155,6 +158,12 @@ export default async function StatePage({
     } : {})
   };
 
+  const breadcrumbJsonLd = breadcrumbLd([
+    { name: "Home", item: "https://ournigeria.ng" },
+    { name: "States", item: "https://ournigeria.ng/states" },
+    { name: `${state.name} State`, item: `https://ournigeria.ng/states/${state_slug}` },
+  ]);
+
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -209,12 +218,16 @@ export default async function StatePage({
     <div className="min-h-screen bg-background flex flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: ldJson(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }}
       />
       {faqJsonLd.mainEntity.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: ldJson(faqJsonLd) }}
         />
       )}
       <Navbar />
