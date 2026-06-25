@@ -33,3 +33,9 @@ test("null name (unsourced seat) → review", () => {
   const d = decideSeat(member({ name: null }), null);
   expect(d.action).toBe("review");
 });
+
+test("medium confidence with a different live holder → install + downgrade (not gated to review)", () => {
+  const d = decideSeat(member({ confidence: "medium" }), { id: "pos-2", official_id: "off-2", name: "Wrong Person" });
+  expect(d.action).toBe("install");
+  expect(d.downgradePositionId).toBe("pos-2");
+});

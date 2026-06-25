@@ -1,12 +1,25 @@
 import { nameMatchScore, KEEP_THRESHOLD } from "./assembly-reconcile";
 
 export interface DatasetMember {
-  constituency_code: string; name: string | null; party: string | null;
-  gender?: string | null; leadership_role?: string | null; returning?: boolean;
-  image_url?: string | null; confidence: "high" | "medium" | "low";
-  sources: string[]; note?: string; profile?: Record<string, unknown> | null;
+  constituency_code: string;
+  name: string | null;
+  party: string | null;
+  gender?: string | null;
+  leadership_role?: string | null;
+  returning?: boolean;
+  image_url?: string | null;
+  confidence: "high" | "medium" | "low";
+  sources: string[];
+  note?: string;
+  profile?: Record<string, unknown> | null;
 }
-export interface LiveHolder { id: string; official_id: string; name: string }
+
+export interface LiveHolder {
+  id: string;
+  official_id: string;
+  name: string;
+}
+
 export interface SeatDecision {
   action: "install" | "unchanged" | "review";
   downgradePositionId: string | null;
