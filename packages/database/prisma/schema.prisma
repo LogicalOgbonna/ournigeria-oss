@@ -104,6 +104,18 @@ enum DonationStatus {
   @@map("donation_status")
 }
 
+enum BackupStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum BackupType {
+  FULL
+  RELATIONAL
+}
+
 // ============================================================
 // Models
 // ============================================================
@@ -2345,4 +2357,23 @@ model TelegramLoginRequest {
 
   @@index([expiresAt])
   @@map("telegram_login_requests")
+}
+
+model BackupJob {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status           BackupStatus @default(PENDING)
+  type             BackupType
+  s3Bucket         String?      @map("s3_bucket") @db.VarChar(255)
+  s3Key            String?      @map("s3_key") @db.VarChar(512)
+  sizeBytes        BigInt?      @map("size_bytes")
+  error            String?      @db.Text
+  createdByAdminId String?      @map("created_by_admin_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  startedAt        DateTime?    @map("started_at") @db.Timestamptz()
+  finishedAt       DateTime?    @map("finished_at") @db.Timestamptz()
+  deletedAt        DateTime?    @map("deleted_at") @db.Timestamptz()
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("backup_jobs")
 }
