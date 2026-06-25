@@ -85,7 +85,14 @@ export default function BackupsPage() {
   async function download(id: string) {
     setError(null);
     try {
-      const { url } = await adminFetch(`/backups/${id}/download`);
+      const res = await fetch(`/api/admin/backups/${id}/download`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+      const { url } = await res.json();
       window.location.href = url; // presigned S3 URL, direct download
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -96,7 +103,14 @@ export default function BackupsPage() {
     if (!confirm("Delete this backup? The S3 file will be removed.")) return;
     setError(null);
     try {
-      await adminFetch(`/backups/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/backups/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
