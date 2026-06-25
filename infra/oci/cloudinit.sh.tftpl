@@ -54,9 +54,10 @@ mount -a
 # Private repo: authenticate the clone with the GHCR PAT (it has repo read scope).
 # set +x is active above, so the token is never written to the cloud-init log.
 git clone --branch '${repo_ref}' --depth 1 "https://$GHCR_USER:$GHCR_TOKEN@$(echo '${repo_url}' | sed 's#https://##')" /opt/ournigeria-src
-cp -r /opt/ournigeria-src/deploy/* /opt/ournigeria/
-rm -rf /opt/ournigeria-src   # drop the clone (its .git/config embeds the token)
-cd /opt/ournigeria
+
+# bootstrap.sh must run FROM the repo's deploy/ dir: it copies ../docker-compose.yml
+# and deploy/* into /opt/ournigeria itself (relative to its own location).
+cd /opt/ournigeria-src/deploy
 bash bootstrap.sh \
   --webhook-secret "$WEBHOOK_SECRET" \
   --status-token "$STATUS_TOKEN" \
@@ -70,4 +71,5 @@ bash bootstrap.sh \
 cd /opt/ournigeria
 docker compose up -d
 
+rm -rf /opt/ournigeria-src   # drop the clone (its .git/config embeds the token)
 echo "cloud-init provisioning complete"
