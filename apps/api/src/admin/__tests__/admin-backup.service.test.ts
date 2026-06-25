@@ -9,14 +9,26 @@ vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
 // failure path. Without draining, the OS pipe would fill and pg_dump would stall;
 // this mock lets the test catch the deadlock if the close-before-done ordering
 // ever returns.
+// When set, the NEXT Upload instance's done() will REJECT once the body stream
+// emits "error" — models an S3 network/throttle failure mid-upload. Reset after
+// each consuming test.
+let nextUploadDoneRejects = false;
 vi.mock("@aws-sdk/lib-storage", () => ({
   Upload: vi.fn().mockImplementation(function (opts: { params: { Body: NodeJS.ReadableStream } }) {
     const body = opts.params.Body;
+    const rejectThis = nextUploadDoneRejects;
+    nextUploadDoneRejects = false;
     return {
       done: () =>
-        new Promise((resolve) => {
+        new Promise((resolve, reject) => {
           body.on("data", () => {});
-          body.on("end", () => resolve({}));
+          if (rejectThis) {
+            // Reject when the body stream errors (real-ish ordering: the source
+            // stream fails → the in-flight upload fails).
+            body.on("error", () => reject(new Error("S3 upload failed: throttled")));
+          } else {
+            body.on("end", () => resolve({}));
+          }
         }),
       abort: vi.fn().mockResolvedValue(undefined),
     };
@@ -196,5 +208,42 @@ describe("AdminBackupService.runBackup", () => {
     expect(final.data.error).toMatch(/ENOENT/);
     // Still-running child must be reaped in finally.
     expect(child.kill).toHaveBeenCalled();
+  });
+
+  it("does NOT crash with an unhandled rejection when the child errors AND upload.done() rejects late", async () => {
+    const { svc, prisma } = makeService();
+    (svc.runBackup as unknown as { mockRestore?: () => void }).mockRestore?.();
+    prisma.backupJob.findUnique.mockResolvedValue({ id: "job-4", type: "FULL" });
+    const child = fakeChild();
+    (spawn as unknown as ReturnType<typeof vi.fn>).mockReturnValue(child);
+    // This Upload instance's done() will reject when the body stream errors —
+    // modeling an S3 failure mid-stream. With the old code (no `void
+    // uploadPromise.catch()`), the child "error" sends control to catch, no one
+    // awaits uploadPromise, and its late rejection floats → process crash.
+    nextUploadDoneRejects = true;
+
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    try {
+      const p = svc.runBackup("job-4");
+      // The child errors (closed rejects → jump to catch), and the body stream
+      // errors so upload.done() rejects AFTER no one is awaiting it.
+      setTimeout(() => {
+        child.emit("error", new Error("spawn pg_dump ENOENT"));
+        child.stdout.emit("error", new Error("stream broke"));
+      }, 0);
+      await p;
+
+      // Let any floating rejection surface (it would be reported on a later tick).
+      await new Promise((r) => setTimeout(r, 10));
+      await Promise.resolve();
+
+      const final = prisma.backupJob.update.mock.calls.at(-1)![0];
+      expect(final.data.status).toBe("FAILED");
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", unhandled);
+      nextUploadDoneRejects = false;
+    }
   });
 });

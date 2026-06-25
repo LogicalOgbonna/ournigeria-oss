@@ -133,6 +133,14 @@ export class AdminBackupService implements OnModuleInit {
       // the Body stream when .done() is called, so the OS pipe fills and pg_dump
       // stalls — "close" never fires.
       const uploadPromise = upload.done();
+      // Never let this float as an unhandled rejection. If `closed` rejects (a
+      // child "error" event) or anything throws before the success-path
+      // `await uploadPromise`, control jumps to catch and no one awaits this
+      // promise — a late upload.done() rejection (S3 throttle / body stream
+      // error on a multi-GB stream) would then crash the API (no global
+      // unhandledRejection handler). The explicit awaits below still observe
+      // success/failure; this no-op catch only covers the unwatched path.
+      void uploadPromise.catch(() => undefined);
       const exitCode = await closed;
 
       if (exitCode !== 0) {
