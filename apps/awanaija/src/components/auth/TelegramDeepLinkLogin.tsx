@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, RefreshCw, Send } from "lucide-react";
+import posthog from "posthog-js";
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "";
 const API_BASE = "/api";
@@ -64,6 +65,9 @@ export function TelegramDeepLinkLogin({
       if (data.status === "authenticated") {
         clearTimer();
         sessionStorage.removeItem(STORAGE_KEY);
+        // Capture before onAuthenticated() — it usually redirects, and we don't
+        // want the event dropped on navigation.
+        posthog.capture("login_completed", { method: "telegram" });
         await onAuthenticated();
         return;
       }

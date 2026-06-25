@@ -2,6 +2,7 @@
 
 import { ArrowRight, Heart } from "lucide-react";
 import { LOGIN_URL } from "@/lib/constants";
+import posthog from "posthog-js";
 
 export function CallToAction() {
   return (
@@ -41,6 +42,7 @@ export function CallToAction() {
         <div className="mt-12">
           <a
             href={LOGIN_URL}
+            onClick={() => posthog.capture("cta_explore_clicked")}
             className="btn-magnetic inline-flex h-16 items-center gap-3 rounded-[2rem] bg-white px-12 text-lg font-semibold text-emerald-800 shadow-2xl shadow-black/20"
           >
             <span className="btn-slide bg-emerald-50" />

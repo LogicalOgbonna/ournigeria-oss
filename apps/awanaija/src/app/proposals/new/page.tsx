@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { ArrowLeft, Loader2, CheckCircle, AlertCircle, Upload, Link2, ImageIcon, X } from "lucide-react";
 import {
   getOfficialById,
@@ -85,6 +86,11 @@ function IdentifyOfficialContent() {
   // Revalidate the newly-created official's page so it shows the proposal.
   useEffect(() => {
     if (form.success && form.newOfficialId) {
+      posthog.capture("official_identified", {
+        role: form.role,
+        official_id: form.newOfficialId,
+        location: form.locationLabel(),
+      });
       fetch("/api/revalidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,7 +185,13 @@ function IdentifyOfficialContent() {
               <button
                 type="button"
                 disabled={!form.role || !form.locationComplete}
-                onClick={() => setPassedGate(true)}
+                onClick={() => {
+                  posthog.capture("proposal_location_confirmed", {
+                    role: form.role,
+                    location: form.locationLabel(),
+                  });
+                  setPassedGate(true);
+                }}
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
@@ -302,6 +314,11 @@ function EditOfficialContent() {
       });
       setProposalId(result.id);
       setIsAnonymous(result.trust === "anonymous");
+      posthog.capture("official_proposal_submitted", {
+        official_id: officialId,
+        target_field: targetField,
+        has_source: !!sourceUrl.trim(),
+      });
       // Revalidate the official's page cache so it shows this proposal
       fetch("/api/revalidate", {
         method: "POST",

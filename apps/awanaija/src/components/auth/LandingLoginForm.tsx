@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Loader2, MessageCircleCheck, Send, ShieldCheck, 
 import { APP_URL } from "@/lib/constants";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 import { toast } from "sonner";
+import posthog from "posthog-js";
 
 const API_BASE = "/api";
 
@@ -138,6 +139,7 @@ export function LandingLoginForm() {
         toast.error(data.error || "Failed to send OTP");
         return;
       }
+      posthog.capture("otp_requested", { method: "whatsapp" });
       setStep("otp");
       setOtpDigits(["", "", "", "", "", ""]);
       setResendCooldown(60);
@@ -168,6 +170,10 @@ export function LandingLoginForm() {
         return;
       }
 
+      if (data.user?.id) {
+        posthog.identify(String(data.user.id));
+      }
+      posthog.capture("login_completed", { method: "whatsapp" });
       globalThis.location.replace(buildAppRedirectUrl(redirectTarget, data.authToken));
     } catch {
       toast.error("Network error. Please try again.");
@@ -204,6 +210,7 @@ export function LandingLoginForm() {
                   type="button"
                   onClick={() => {
                     setActiveTab(tab.id);
+                    posthog.capture("login_method_selected", { method: tab.id });
                   }}
                   className={`flex flex-1 items-center justify-center gap-2 pb-4 text-sm font-medium transition-all ${
                     activeTab === tab.id

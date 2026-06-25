@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import posthog from "posthog-js";
 
 // ─── tokens ───────────────────────────────────────────────────
 const PALETTE = {
@@ -411,6 +412,7 @@ function ActionPane({ idx, onClose }: { idx: number; onClose: () => void }) {
         {helper}
       </p>
       <Btn variant="dark" icon={<PinIcon color="#fff" size={16}/>} className="h-12 mb-2.5 w-full" onClick={() => {
+        posthog.capture("welcome_modal_location_action", { action: "enable_location" });
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("request-location"));
         }
@@ -418,6 +420,7 @@ function ActionPane({ idx, onClose }: { idx: number; onClose: () => void }) {
         Turn on location
       </Btn>
       <Btn variant="ghost" className="h-11 w-full" onClick={() => {
+        posthog.capture("welcome_modal_location_action", { action: "pick_manually" });
         onClose();
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("open-location-selector"));
@@ -444,6 +447,12 @@ function ActionPane({ idx, onClose }: { idx: number; onClose: () => void }) {
 export function WelcomeModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [idx, setIdx] = useState(0);
   const [direction, setDirection] = useState(1);
+
+  useEffect(() => {
+    if (isOpen) {
+      posthog.capture("welcome_modal_opened");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
