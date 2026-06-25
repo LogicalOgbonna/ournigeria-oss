@@ -4,9 +4,22 @@ import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 
 vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
+// Realistic Upload mock: done() ACTUALLY DRAINS the Body stream to completion
+// before resolving — modeling pg_dump backpressure. abort() is exposed for the
+// failure path. Without draining, the OS pipe would fill and pg_dump would stall;
+// this mock lets the test catch the deadlock if the close-before-done ordering
+// ever returns.
 vi.mock("@aws-sdk/lib-storage", () => ({
-  Upload: vi.fn().mockImplementation(function () {
-    return { done: vi.fn().mockResolvedValue({}) };
+  Upload: vi.fn().mockImplementation(function (opts: { params: { Body: NodeJS.ReadableStream } }) {
+    const body = opts.params.Body;
+    return {
+      done: () =>
+        new Promise((resolve) => {
+          body.on("data", () => {});
+          body.on("end", () => resolve({}));
+        }),
+      abort: vi.fn().mockResolvedValue(undefined),
+    };
   }),
 }));
 
@@ -23,6 +36,10 @@ function fakeChild() {
   child.stdout = Readable.from(Buffer.from("PGDMP-bytes"));
   child.stderr = new EventEmitter();
   child.kill = vi.fn();
+  // Real ChildProcess exposes these; the service reads them in finally to decide
+  // whether to reap. null means "still running" until the child exits.
+  (child as unknown as { exitCode: number | null }).exitCode = null;
+  (child as unknown as { signalCode: string | null }).signalCode = null;
   return child;
 }
 
@@ -118,9 +135,16 @@ describe("AdminBackupService.runBackup", () => {
     // Upload.done resolves; HeadObject size comes from the head mock below.
     vi.spyOn(svc as unknown as { headSize: () => Promise<number> }, "headSize").mockResolvedValue(123);
 
+    // Emit "close" only AFTER stdout is fully drained (modeling real ordering:
+    // pg_dump finishes writing → pipe drains → process exits). With the OLD buggy
+    // ordering (await close BEFORE upload.done), nothing drains the stream, "end"
+    // never fires, and this test would hang/timeout — proving the fix.
+    child.stdout.on("end", () => {
+      (child as unknown as { exitCode: number }).exitCode = 0;
+      child.emit("close", 0);
+    });
+
     const p = svc.runBackup("job-1");
-    // Emit after the awaited DB calls have resolved and the close listener is attached.
-    setTimeout(() => child.emit("close", 0), 0);
     await p;
 
     const calls = prisma.backupJob.update.mock.calls.map((c) => c[0].data.status);
@@ -132,7 +156,7 @@ describe("AdminBackupService.runBackup", () => {
     expect(Upload).toHaveBeenCalled();
   });
 
-  it("marks FAILED on non-zero exit with stderr tail", async () => {
+  it("marks FAILED on non-zero exit with stderr tail and aborts the multipart upload", async () => {
     const { svc, prisma } = makeService();
     (svc.runBackup as unknown as { mockRestore?: () => void }).mockRestore?.();
     prisma.backupJob.findUnique.mockResolvedValue({ id: "job-2", type: "FULL" });
@@ -142,6 +166,7 @@ describe("AdminBackupService.runBackup", () => {
     const p = svc.runBackup("job-2");
     setTimeout(() => {
       child.stderr.emit("data", Buffer.from("pg_dump: error: boom"));
+      (child as unknown as { exitCode: number }).exitCode = 1;
       child.emit("close", 1);
     }, 0);
     await p;
@@ -149,5 +174,27 @@ describe("AdminBackupService.runBackup", () => {
     const final = prisma.backupJob.update.mock.calls.at(-1)![0];
     expect(final.data.status).toBe("FAILED");
     expect(final.data.error).toMatch(/boom/);
+    // The in-progress multipart upload must be aborted (orphaned parts otherwise linger + cost money).
+    const uploadInstance = (Upload as unknown as ReturnType<typeof vi.fn>).mock.results.at(-1)!
+      .value as { abort: ReturnType<typeof vi.fn> };
+    expect(uploadInstance.abort).toHaveBeenCalled();
+  });
+
+  it("marks FAILED when the child emits 'error' (e.g. pg_dump binary missing)", async () => {
+    const { svc, prisma } = makeService();
+    (svc.runBackup as unknown as { mockRestore?: () => void }).mockRestore?.();
+    prisma.backupJob.findUnique.mockResolvedValue({ id: "job-3", type: "FULL" });
+    const child = fakeChild();
+    (spawn as unknown as ReturnType<typeof vi.fn>).mockReturnValue(child);
+
+    const p = svc.runBackup("job-3");
+    setTimeout(() => child.emit("error", new Error("spawn pg_dump ENOENT")), 0);
+    await p;
+
+    const final = prisma.backupJob.update.mock.calls.at(-1)![0];
+    expect(final.data.status).toBe("FAILED");
+    expect(final.data.error).toMatch(/ENOENT/);
+    // Still-running child must be reaped in finally.
+    expect(child.kill).toHaveBeenCalled();
   });
 });
