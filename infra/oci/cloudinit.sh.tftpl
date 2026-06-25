@@ -21,6 +21,7 @@ apt-get install -y infisical
 # --- Tailscale ---
 curl -fsSL https://tailscale.com/install.sh | sh
 
+set +x   # stop tracing — secrets below must not hit the log
 # --- Authenticate Infisical (Universal Auth) ---
 export INFISICAL_CLIENT_ID='${infisical_client_id}'
 export INFISICAL_CLIENT_SECRET='${infisical_client_secret}'
@@ -42,6 +43,7 @@ tailscale up --authkey="$TS_KEY" --ssh --hostname='ournigeria-prod'
 # --- Mount the Postgres data volume (idempotent) ---
 DEV=/dev/oracleoci/oraclevdb
 for i in $(seq 1 30); do [ -b "$DEV" ] && break; sleep 2; done
+[ -b "$DEV" ] || { echo "ERROR: $DEV did not appear after 60s — aborting"; exit 1; }
 if ! blkid "$DEV"; then mkfs.ext4 -F "$DEV"; fi
 mkdir -p /opt/ournigeria/pgdata
 grep -q "$DEV" /etc/fstab || echo "$DEV /opt/ournigeria/pgdata ext4 defaults,_netdev,nofail 0 2" >> /etc/fstab
