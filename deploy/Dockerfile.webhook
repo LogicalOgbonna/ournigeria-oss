@@ -3,10 +3,12 @@ FROM alpine:3.21
 # Install Docker CLI + tools
 RUN apk add --no-cache docker-cli docker-cli-compose curl jq bash
 
-# Install webhook from official release (Alpine package has broken HMAC validation)
+# Install webhook from official release (Alpine package has broken HMAC validation).
+# TARGETARCH (amd64/arm64) is auto-provided by BuildKit so the binary matches the platform.
 ARG WEBHOOK_VERSION=2.8.2
+ARG TARGETARCH
 RUN wget -qO /tmp/webhook.tar.gz \
-      "https://github.com/adnanh/webhook/releases/download/${WEBHOOK_VERSION}/webhook-linux-amd64.tar.gz" && \
+      "https://github.com/adnanh/webhook/releases/download/${WEBHOOK_VERSION}/webhook-linux-${TARGETARCH}.tar.gz" && \
     tar -xzf /tmp/webhook.tar.gz -C /usr/local/bin/ --strip-components=1 && \
     rm /tmp/webhook.tar.gz && \
     chmod +x /usr/local/bin/webhook
