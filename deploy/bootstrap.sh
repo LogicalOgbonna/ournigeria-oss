@@ -61,16 +61,12 @@ echo "1. Creating directory structure..."
 mkdir -p "$DEPLOY_DIR/deploy/traefik"
 mkdir -p /var/log/ournigeria-deploy
 
-# ─── Create shared Docker network for NPM ↔ Traefik ──────────────
-echo "2. Creating npm-proxy network..."
-docker network create npm-proxy 2>/dev/null || echo "   npm-proxy network already exists"
-
 # ─── Authenticate to GHCR ─────────────────────────────────────────
-echo "3. Authenticating to GitHub Container Registry..."
+echo "2. Authenticating to GitHub Container Registry..."
 echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
 # ─── Copy files ───────────────────────────────────────────────────
-echo "4. Copying deploy files..."
+echo "3. Copying deploy files..."
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cp "$SCRIPT_DIR/hooks.yaml" "$DEPLOY_DIR/deploy/hooks.yaml"
 cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/deploy/deploy.sh"
@@ -84,7 +80,7 @@ chmod +x "$DEPLOY_DIR/deploy/"*.sh
 
 # ─── Set up .env if not exists ─────────────────────────────────────
 if [ ! -f "$DEPLOY_DIR/.env" ]; then
-  echo "5. Creating .env file..."
+  echo "4. Creating .env file..."
   cat > "$DEPLOY_DIR/.env" <<ENVEOF
 # ── Deploy config ──
 ACTIVE_STACK=blue
@@ -105,7 +101,7 @@ INFISICAL_ENV=prod
 ENVEOF
   echo "   .env created with all required values."
 else
-  echo "5. .env already exists, appending missing deploy vars..."
+  echo "4. .env already exists, appending missing deploy vars..."
   grep -q "ACTIVE_STACK" "$DEPLOY_DIR/.env" || echo "ACTIVE_STACK=blue" >> "$DEPLOY_DIR/.env"
   grep -q "IMAGE_TAG" "$DEPLOY_DIR/.env" || echo "IMAGE_TAG=latest" >> "$DEPLOY_DIR/.env"
   grep -q "WEBHOOK_SECRET" "$DEPLOY_DIR/.env" || echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$DEPLOY_DIR/.env"
@@ -117,16 +113,16 @@ else
 fi
 
 # ─── Copy docker-compose.yml ──────────────────────────────────────
-echo "6. Copying docker-compose.yml..."
+echo "5. Copying docker-compose.yml..."
 cp "$SCRIPT_DIR/../docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
 
 # ─── Build webhook image ──────────────────────────────────────────
-echo "7. Building webhook image..."
+echo "6. Building webhook image..."
 cd "$DEPLOY_DIR"
 docker compose build webhook
 
 # ─── Pull initial images ──────────────────────────────────────────
-echo "8. Pulling initial images..."
+echo "7. Pulling initial images..."
 docker compose pull api-blue ingest-blue socials-blue || echo "   WARNING: Pull failed — check GHCR auth"
 
 echo ""
@@ -135,9 +131,9 @@ echo "  Bootstrap complete!"
 echo ""
 echo "  Next steps:"
 echo "  1. Verify $DEPLOY_DIR/.env has correct values"
-echo "  2. Configure NPM to forward API/ingest/socials traffic to traefik:80"
-echo "     (NPM and Traefik are on the 'npm-proxy' network)"
-echo "     Proxy hosts: ournigeria-api / ournigeria-ingest / ournigeria-socials .example.invalid"
+echo "  2. Traefik terminates TLS via Let's Encrypt directly (no NPM)."
+echo "     Ensure ports 80 and 443 are open to the internet (OCI security list)."
+echo "     Hosts served: api / ingest / socials .ournigeria.ng"
 echo "  3. Run: cd $DEPLOY_DIR && docker compose up -d"
 echo "  4. Ensure port $WEBHOOK_PORT is reachable for GitHub webhooks"
 echo "  5. Set DEPLOY_WEBHOOK_URL and WEBHOOK_SECRET in GitHub repo secrets"
