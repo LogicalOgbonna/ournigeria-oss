@@ -108,4 +108,6 @@ STOPSIGNAL SIGTERM
 # Mirror api/ingest: wrap with Infisical so prod secrets (ROAMER_INGEST_KEY,
 # DEEPSEEK_API_KEY, X OAuth tokens, SOCIALS_CORS_ORIGINS, …) are injected at runtime.
 # Socials secrets live under the /socials path (see apps/socials/package.json scripts).
-CMD infisical run --env "${INFISICAL_ENV:-prod}" --path /socials -- node dist/main
+# Exec/JSON form so SIGTERM reaches PID 1. sh -c gives us ${INFISICAL_ENV}
+# expansion; exec replaces the shell with infisical (which forwards signals to node).
+CMD ["sh", "-c", "exec infisical run --env \"${INFISICAL_ENV:-prod}\" --path /socials -- node dist/main"]

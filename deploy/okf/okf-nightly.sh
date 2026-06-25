@@ -28,5 +28,5 @@ pick_container() {
 
 API="$(pick_container)" || { echo "okf-nightly: no running API container found" >&2; exit 1; }
 echo "okf-nightly: publishing via $API"
-docker exec "$API" infisical run --env prod -- node dist/okf/okf-publish.cli.js
+docker exec "$API" infisical run --env prod --path /api -- node dist/okf/okf-publish.cli.js
 echo "okf-nightly: done"

@@ -4,7 +4,7 @@
   "sourceRoot": "apps/ingest/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --watch -- nest start --watch",
+      "command": "infisical run --env dev --path /ingest --watch -- nest start --watch",
       "options": {
         "cwd": "apps/ingest"
       }
@@ -16,7 +16,7 @@
       }
     },
     "start": {
-      "command": "infisical run --env prod -- watch -- nest start",
+      "command": "infisical run --env prod --path /ingest --watch -- nest start",
       "options": {
         "cwd": "apps/ingest"
       }
