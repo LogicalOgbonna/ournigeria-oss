@@ -5,6 +5,9 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   ui_host: "https://eu.posthog.com",
   defaults: "2026-01-30",
   capture_exceptions: true,
+  // Real-user Core Web Vitals (LCP/FCP/CLS/INP/TTFB) per page. CrUX has no field data
+  // for this site (below its traffic threshold), so this is our only field-CWV source.
+  capture_performance: { web_vitals: true },
   debug: process.env.NODE_ENV === "development",
   // Privacy: the login + proposal flows have phone/OTP and personal fields.
   // Mask every input in session replay so we never record what users type.
