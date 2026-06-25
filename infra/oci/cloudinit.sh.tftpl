@@ -67,9 +67,10 @@ bash bootstrap.sh \
   --telegram-bot-token "$TG_BOT" --telegram-chat-id "$TG_CHAT"
 
 # bootstrap.sh only builds the webhook image + pulls app images — it does NOT
-# start the stack. Bring everything up (Postgres first via compose depends_on).
+# start the stack. Bring up ONLY the active (blue) stack + infra; the green
+# stack is started by deploy.sh during a blue/green deploy, not at boot.
 cd /opt/ournigeria
-docker compose up -d
+docker compose up -d postgres traefik webhook api-blue ingest-blue socials-blue
 
 rm -rf /opt/ournigeria-src   # drop the clone (its .git/config embeds the token)
 echo "cloud-init provisioning complete"
