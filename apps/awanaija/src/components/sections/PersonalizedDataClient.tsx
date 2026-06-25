@@ -572,22 +572,31 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   return (
     <>
     {/* Personalization Top Bar */}
-    <div id="personalized-data-section" className="border-y border-border/50 bg-background/95 backdrop-blur-sm relative z-30 -mt-20 lg:-mt-32">
+    <div id="personalized-data-section" className="border-y border-border/60 dark:border-white/30 bg-background/95 backdrop-blur-sm relative z-30 lg:-mt-32">
       <KitContainer>
         {/* Coverage stats first */}
         {children}
 
-        {/* Then: Viewing Status + location/date selectors */}
-        <div className="flex items-center justify-between py-4 border-t border-border/50">
+        {/* Then: Viewing Status + location/date selectors.
+            Divider is white-ish in dark mode so the section boundary stays visible
+            against the near-black background (border-border is dark-on-dark there). */}
+        <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               <span className="hidden sm:inline">You are viewing</span>
               <span className="sm:hidden">Viewing</span>
             </span>
-            <span className="font-semibold text-sm text-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(!dropdownOpen);
+                setDateDropdownOpen(false);
+              }}
+              className="font-semibold text-sm text-foreground text-left transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
+            >
               {data.state} · {data.lga} · {data.ward}
-            </span>
+            </button>
           </div>
           
           <div className="flex items-center gap-3">
