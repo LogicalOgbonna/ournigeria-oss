@@ -1,7 +1,7 @@
 import { test, expect } from "vitest";
-import { decideSeat } from "../lib/assembly-member-reconcile";
+import { decideSeat, type DatasetMember } from "../lib/assembly-member-reconcile";
 
-const member = (over = {}) => ({
+const member = (over: Partial<DatasetMember> = {}): DatasetMember => ({
   constituency_code: "state_kano_ajingi", name: "Abdullahi Yusuf", party: "APC",
   gender: "male", leadership_role: null, returning: false, image_url: null,
   confidence: "high", sources: ["a", "b"], profile: null, ...over,
