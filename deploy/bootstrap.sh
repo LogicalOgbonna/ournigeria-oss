@@ -79,6 +79,9 @@ cp "$SCRIPT_DIR/traefik/dynamic-blue.yml" "$DEPLOY_DIR/deploy/traefik/dynamic.ym
 chmod +x "$DEPLOY_DIR/deploy/"*.sh
 
 # ─── Set up .env if not exists ─────────────────────────────────────
+# GHCR_OWNER is used in image refs (ghcr.io/<owner>/...), which Docker requires
+# to be lowercase — even though GHCR_USER may be mixed-case (e.g. LogicalOgbonna).
+GHCR_OWNER_LC="$(printf '%s' "$GHCR_USER" | tr '[:upper:]' '[:lower:]')"
 if [ ! -f "$DEPLOY_DIR/.env" ]; then
   echo "4. Creating .env file..."
   cat > "$DEPLOY_DIR/.env" <<ENVEOF
@@ -88,7 +91,7 @@ IMAGE_TAG=latest
 WEBHOOK_SECRET=$WEBHOOK_SECRET
 WEBHOOK_PORT=$WEBHOOK_PORT
 STATUS_BEARER_TOKEN=$STATUS_TOKEN
-GHCR_OWNER=$GHCR_USER
+GHCR_OWNER=$GHCR_OWNER_LC
 
 # ── Telegram deploy alerts (optional) ──
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
@@ -107,7 +110,7 @@ else
   grep -q "WEBHOOK_SECRET" "$DEPLOY_DIR/.env" || echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$DEPLOY_DIR/.env"
   grep -q "WEBHOOK_PORT" "$DEPLOY_DIR/.env" || echo "WEBHOOK_PORT=$WEBHOOK_PORT" >> "$DEPLOY_DIR/.env"
   grep -q "STATUS_BEARER_TOKEN" "$DEPLOY_DIR/.env" || echo "STATUS_BEARER_TOKEN=$STATUS_TOKEN" >> "$DEPLOY_DIR/.env"
-  grep -q "GHCR_OWNER" "$DEPLOY_DIR/.env" || echo "GHCR_OWNER=$GHCR_USER" >> "$DEPLOY_DIR/.env"
+  grep -q "GHCR_OWNER" "$DEPLOY_DIR/.env" || echo "GHCR_OWNER=$GHCR_OWNER_LC" >> "$DEPLOY_DIR/.env"
   grep -q "TELEGRAM_BOT_TOKEN" "$DEPLOY_DIR/.env" || echo "TELEGRAM_BOT_TOKEN=" >> "$DEPLOY_DIR/.env"
   grep -q "TELEGRAM_DEPLOY_CHAT_ID" "$DEPLOY_DIR/.env" || echo "TELEGRAM_DEPLOY_CHAT_ID=" >> "$DEPLOY_DIR/.env"
 fi
