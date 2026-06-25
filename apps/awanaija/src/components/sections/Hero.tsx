@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   Bot,
@@ -18,9 +18,17 @@ export function Hero() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Close the channel dropdown when the user scrolls away from it.
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const close = () => setIsDropdownOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [isDropdownOpen]);
+
   return (
     <section
-      className="relative min-h-[100dvh] overflow-hidden"
+      className="relative overflow-hidden lg:min-h-[100dvh]"
     >
       {/* Deep gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
@@ -33,7 +41,7 @@ export function Hero() {
       <div
         className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
       >
-        <div className="flex min-h-[100dvh] flex-col items-center justify-end gap-16 pb-24 pt-32 lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
+        <div className="flex flex-col items-center justify-center gap-16 pb-6 pt-28 lg:min-h-[100dvh] lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
           {/* Left — Text content, pushed bottom-left on desktop */}
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
 
@@ -100,13 +108,22 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Subtext */}
-            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed">
+            {/* Subtext — desktop gets the fuller list of what we cover;
+                mobile keeps the shorter copy so the hero stays compact. */}
+            <p className="hero-sub mt-8 hidden max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:block">
+              Knowledge is the first step to good citizenship. Explore{" "}
+              <strong className="text-foreground">
+                budgets, daily govspend, corruption records, public officials, and bills
+              </strong>{" "}
+              across all <strong className="text-foreground">36 states and the FCT</strong>.
+              Ask in plain English or Pidgin.
+            </p>
+            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:hidden">
               Knowledge is the first step to good citizenship. Explore{" "}
               <strong className="text-foreground">
                 budgets, daily govspend, and corruption records
               </strong>{" "}
-              across all <strong className="text-foreground">36 states</strong>.
+              across all <strong className="text-foreground">36 states and the FCT</strong>.
               Ask in plain English or Pidgin.
             </p>
 
@@ -178,8 +195,9 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Right — Mock chat interface card */}
-          <div className="hero-card w-full max-w-md opacity-0 animate-fade-in-up lg:max-w-lg perspective-[1200px]" style={{ animationDelay: "1.0s" }}>
+          {/* Right — Mock chat interface card (desktop only; removed on mobile so it
+              isn't mistaken for a real, typable chat) */}
+          <div className="hero-card hidden w-full max-w-md opacity-0 animate-fade-in-up lg:block lg:max-w-lg perspective-[1200px]" style={{ animationDelay: "1.0s" }}>
             <div className="relative">
               {/* Main card */}
               <div className="rounded-[2rem] border border-border/50 bg-card/80 p-6 shadow-2xl shadow-black/5 backdrop-blur-sm dark:bg-card/60 dark:shadow-black/20">
