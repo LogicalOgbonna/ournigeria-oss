@@ -92,6 +92,16 @@ RUN apt-get update && apt-get install -y openssl curl bash gnupg git openssh-cli
  && apt-get update && apt-get install -y infisical \
  && rm -rf /var/lib/apt/lists/*
 
+# postgresql-client-16: pg_dump for the dashboard DB-backup feature.
+# Must be >= the PG16 server version, so pin via the official PGDG apt repo.
+# PGDG ships amd64 + arm64, so this works for current prod and the future OCI box.
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update && apt-get install -y postgresql-client-16 \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 appgroup && \

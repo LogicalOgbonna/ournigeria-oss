@@ -85,19 +85,19 @@ export async function PersonalizedData() {
       initialMonth={initialMonth}
     >
       <div className="grid grid-cols-2 md:grid-cols-4 py-6 gap-y-6">
-        <div className="flex flex-col justify-between md:border-r border-border/50 px-4 md:px-6 first:pl-0">
+        <div className="flex flex-col justify-between items-center text-center md:items-start md:text-left md:border-r border-border/50 px-4 md:px-6 md:first:pl-0">
           <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">States covered</span>
           <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">{stats.states}</span>
         </div>
-        <div className="flex flex-col justify-between md:border-r border-border/50 px-4 md:px-6">
+        <div className="flex flex-col justify-between items-center text-center md:items-start md:text-left md:border-r border-border/50 px-4 md:px-6">
           <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">LGA Covered</span>
           <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">{stats.lgas}</span>
         </div>
-        <div className="flex flex-col justify-between md:border-r border-border/50 px-4 md:px-6">
+        <div className="flex flex-col justify-between items-center text-center md:items-start md:text-left md:border-r border-border/50 px-4 md:px-6">
           <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Budgets/FAAC years covered</span>
           <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">{stats.faacYears}</span>
         </div>
-        <div className="flex flex-col justify-between px-4 md:px-6">
+        <div className="flex flex-col justify-between items-center text-center md:items-start md:text-left px-4 md:px-6">
           <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Wards Covered</span>
           <span className="font-[family-name:var(--font-heading)] text-2xl md:text-3xl font-bold text-emerald-700 dark:text-emerald-400">{stats.wards.toLocaleString()}</span>
         </div>

@@ -40,11 +40,11 @@ const ibmPlexMono = IBM_Plex_Mono({
     metadataBase: new URL("https://ournigeria.ng"),
     title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
     description:
-      "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states. Ask questions and get clear, sourced answers on government spending.",
+      "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states and the FCT. Ask questions and get clear, sourced answers on government spending.",
     openGraph: {
       title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
       description:
-        "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states.",
+        "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states and the FCT.",
     url: "https://ournigeria.ng",
     siteName: "Our Nigeria",
     type: "website",
@@ -54,7 +54,7 @@ const ibmPlexMono = IBM_Plex_Mono({
     card: "summary_large_image",
     title: "Our Nigeria - See Where Nigeria Money Dey Go",
     description:
-      "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states.",
+      "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states and the FCT.",
   },
 };
 

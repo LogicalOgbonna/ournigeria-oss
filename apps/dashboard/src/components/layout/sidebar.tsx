@@ -25,6 +25,7 @@ import {
   Server,
   ScrollText,
   Briefcase,
+  HardDrive,
   Bell,
   ClipboardList,
   Megaphone,
@@ -124,6 +125,7 @@ const systemNav = [
   { title: "Health", href: "/dashboard/system", icon: Server },
   { title: "Live Logs", href: "/dashboard/system/logs", icon: ScrollText },
   { title: "Jobs", href: "/dashboard/system/jobs", icon: Briefcase },
+  { title: "Backups", href: "/dashboard/system/backups", icon: HardDrive },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
