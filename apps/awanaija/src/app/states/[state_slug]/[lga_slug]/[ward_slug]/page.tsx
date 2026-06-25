@@ -4,9 +4,10 @@ import Link from "next/link";
 import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquare, Construction } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import { getWardDetails } from "@/lib/api";
+import { getWardDetails, ApiError } from "@/lib/api";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { ldJson, breadcrumbLd } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -25,9 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!ward || ward.error) return { title: "Ward Not Found" };
 
+  // INEC ward names are sometimes already "Ward I N2" — avoid a redundant "Ward … Ward",
+  // and include the state so the title matches how people actually search (place + state).
+  const wardLabel = /^ward\b/i.test(ward.name) ? ward.name : `${ward.name} Ward`;
+
   return {
-    title: `${ward.name} Ward, ${ward.lgaName} LGA | Our Nigeria`,
-    description: `Explore community updates and projects for ${ward.name} Ward in ${ward.lgaName} Local Government Area, ${ward.stateName} State.`,
+    title: `${wardLabel}, ${ward.lgaName} LGA, ${ward.stateName} State | Our Nigeria`,
+    description: `Explore community updates and projects for ${wardLabel} in ${ward.lgaName} Local Government Area, ${ward.stateName} State.`,
     alternates: {
       canonical: `https://ournigeria.ng/states/${state_slug}/${lga_slug}/${ward_slug}`,
     },
@@ -43,19 +48,23 @@ export default async function WardPage({
   params,
 }: Props) {
   const resolvedParams = await params;
-  
-  let ward;
+
+  let ward = null;
   try {
     ward = await getWardDetails(resolvedParams.state_slug, resolvedParams.lga_slug, resolvedParams.ward_slug);
-    if (ward?.error) {
+  } catch (error) {
+    // A 404 means the ward was orphaned by the INEC ward resync → fall through to the LGA
+    // redirect below. Any other error (5xx / network) keeps the prior not-found behavior.
+    if (!(error instanceof ApiError && error.status === 404)) {
       notFound();
     }
-  } catch (error) {
-    notFound();
   }
 
-  if (!ward) {
-    notFound();
+  // Ward missing / not found → 308 to the parent LGA page (which lists the current INEC
+  // wards), preserving the old indexed URL's SEO equity instead of 404ing. permanentRedirect
+  // MUST be outside the try/catch — it works by throwing, which the catch would swallow.
+  if (!ward || ward.error) {
+    permanentRedirect(`/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}`);
   }
 
   const { stateName, lgaName, name: wardName, councilor, code: wardCode, stateCode, lgaCode } = ward;
@@ -108,6 +117,15 @@ export default async function WardPage({
     } : {})
   };
 
+  const wardCrumb = /^ward\b/i.test(wardName) ? wardName : `${wardName} Ward`;
+  const breadcrumbJsonLd = breadcrumbLd([
+    { name: "Home", item: "https://ournigeria.ng" },
+    { name: "States", item: "https://ournigeria.ng/states" },
+    { name: `${stateName} State`, item: `https://ournigeria.ng/states/${resolvedParams.state_slug}` },
+    { name: `${lgaName} LGA`, item: `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}` },
+    { name: wardCrumb, item: `https://ournigeria.ng/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${resolvedParams.ward_slug}` },
+  ]);
+
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -129,12 +147,16 @@ export default async function WardPage({
     <div className="min-h-screen bg-background flex flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: ldJson(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJson(jsonLd) }}
       />
       {faqJsonLd.mainEntity.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: ldJson(faqJsonLd) }}
         />
       )}
       <Navbar />

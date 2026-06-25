@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+// Old ward/LGA slugs orphaned by the INEC ward resync (commit 88e1e1b) → 308 to their
+// successor URL. Generated from the resync's reconcile_plan.csv and validated against prod
+// by scripts/gen-ward-redirects.mjs. `delete`d wards (no successor) are NOT here — the ward
+// page's in-page fallback redirects those to their parent LGA. Regenerate after ward changes.
+import wardRedirects from "./ward-redirects.generated.json";
 
 const nextConfig: NextConfig = {
   images: {
@@ -13,6 +18,10 @@ const nextConfig: NextConfig = {
         hostname: "nass.gov.ng",
       },
     ],
+  },
+  async redirects() {
+    // permanent: true ⇒ HTTP 308 (SEO-equivalent to 301).
+    return wardRedirects;
   },
   async rewrites() {
     const apiUrl =

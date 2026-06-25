@@ -7,6 +7,12 @@ import { ActivityFeed } from "@/components/civic/ActivityFeed";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
 import { OfficialsClientContent } from "./OfficialsClientContent";
+import { ldJson, breadcrumbLd } from "@/lib/seo";
+
+const breadcrumbJsonLd = breadcrumbLd([
+  { name: "Home", item: "https://ournigeria.ng" },
+  { name: "Officials", item: "https://ournigeria.ng/officials" },
+]);
 
 export const metadata: Metadata = {
   title: "Nigerian Officials Directory | Our Nigeria",
@@ -37,6 +43,10 @@ export default async function OfficialsDirectoryPage({
 
   return (
     <div className="min-h-screen flex flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldJson(breadcrumbJsonLd) }}
+      />
       <Navbar />
       <main className="flex-grow pt-24">
         <div className="max-w-7xl mx-auto px-4 pt-6 pb-12">
