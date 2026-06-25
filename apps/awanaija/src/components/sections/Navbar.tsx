@@ -236,7 +236,7 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden mt-2 rounded-3xl border border-border/50 bg-background/95 backdrop-blur-2xl shadow-xl shadow-black/10 p-4 max-h-[75vh] overflow-y-auto animate-in fade-in slide-in-from-top-2">
             {/* Ask the platform */}
-            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ask</div>
+            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ask Questions</div>
             <a href={LOGIN_URL} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
               <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Ask on Web
             </a>
