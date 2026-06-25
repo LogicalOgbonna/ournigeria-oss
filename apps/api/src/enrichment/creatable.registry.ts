@@ -521,6 +521,172 @@ async function findOrCreateOfficial(
   return rows[0].id;
 }
 
+/**
+ * Read a string field out of payload.profile (the nested enrichment blob).
+ * Returns null unless the value is a non-empty string.
+ */
+function prof(p: Record<string, unknown>, k: string): string | null {
+  const pr = (p.profile ?? null) as Record<string, unknown> | null;
+  const v = pr?.[k];
+  return typeof v === "string" && v ? v : null;
+}
+
+/** Flatten profile.education (string[] or string) into a single text column. */
+function educationText(p: Record<string, unknown>): string | null {
+  const pr = (p.profile ?? null) as Record<string, unknown> | null;
+  const e = pr?.education;
+  if (Array.isArray(e)) return e.filter(Boolean).join("; ") || null;
+  return typeof e === "string" && e ? e : null;
+}
+
+/** Soft party check (return acronym only if it exists; never reject). */
+async function validParty(tx: RawTx, acr: string | null): Promise<string | null> {
+  if (!acr) return null;
+  const r = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM political_parties WHERE acronym = $1`, acr);
+  return r.length ? acr : null;
+}
+
+/**
+ * Assembly member (State House of Assembly — role 'mha'). Find-or-creates the
+ * official, fills profile fields, upserts the active 'mha' position for the
+ * constituency seat, and ATOMICALLY downgrades any other active holder on that
+ * seat in the same tx (one active member per seat invariant).
+ *
+ * Schema constraints honored (see migrations 20260403150702 / 20260404200000):
+ *  - chk_role_scope: an 'mha' position must set constituency_code ONLY
+ *    (state_code/lga_code/ward_code all NULL) — so state_code is NOT inserted,
+ *    even though it is derived from the constituency for validation.
+ *  - chk_source_type: source_type IN (election_result, official_site, news,
+ *    manual) — 'curated' is NOT allowed, so we write 'manual'.
+ *  - chk_end_reason: end_reason IN (term_end, impeached, resigned, deceased,
+ *    tribunal_sacked, dissolved) — 'superseded' is NOT allowed, so the seat
+ *    downgrade leaves end_reason NULL and only flips status → 'contested'.
+ *  - chk_status: 'active'/'contested' both valid; chk_confidence: high/medium/low;
+ *    chk_review_status: 'reviewed' valid. evidence.entry_type 'position' valid.
+ */
+export const assemblyMemberEntity: CreatableEntity = {
+  targetTable: "assembly_member",
+  evidenceEntryType: "position",
+  validate(raw: unknown): Record<string, unknown> {
+    if (!raw || typeof raw !== "object") throw new BadRequestException("malformed assembly_member payload");
+    const p = raw as Record<string, unknown>;
+    if (typeof p.name !== "string" || !p.name) throw new BadRequestException("name required");
+    if (typeof p.constituencyCode !== "string" || !p.constituencyCode) {
+      throw new BadRequestException("constituencyCode required");
+    }
+    return p; // name, constituencyCode, party?, gender?, leadershipRole?, startDate?, imageUrl?, profile?
+  },
+  async preflight(tx, p) {
+    const c = await tx.$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM nigerian_constituencies WHERE code = $1`,
+      p.constituencyCode,
+    );
+    if (c.length === 0) throw new BadRequestException(`constituency ${p.constituencyCode} does not exist`);
+  },
+  async insert(tx, p, ctx) {
+    // 0. authoritative state_code from the constituency row (validate it resolves;
+    //    NOT trusted from the payload, and NOT inserted into the position — chk_role_scope
+    //    forbids state_code on an mha row — but used for logging/return integrity).
+    const cc = await tx.$queryRawUnsafe<{ state_code: string }[]>(
+      `SELECT state_code FROM nigerian_constituencies WHERE code = $1`,
+      p.constituencyCode,
+    );
+    if (!cc.length || !cc[0].state_code) {
+      throw new BadRequestException(`constituency ${p.constituencyCode} has no state_code`);
+    }
+
+    // 1. find-or-create the official (reuse in-file helper: slug + base profile on create)
+    const officialId = await findOrCreateOfficial(tx, {
+      name: p.name as string,
+      imageUrl: (p.imageUrl as string) ?? null,
+      biography: prof(p, "biography"),
+      gender: (p.gender as string) ?? null,
+      dateOfBirth: prof(p, "date_of_birth"),
+      twitterHandle: prof(p, "twitter"),
+      facebookUrl: prof(p, "facebook"),
+      officialType: "mha",
+    });
+    // COALESCE-fill the fields findOrCreateOfficial doesn't set, and the already-existing case.
+    await tx.$executeRawUnsafe(
+      `UPDATE nigerian_officials SET
+         image_url      = COALESCE(image_url, $2),
+         gender         = COALESCE(gender, $3),
+         biography      = COALESCE(biography, $4),
+         date_of_birth  = COALESCE(date_of_birth, $5::date),
+         email          = COALESCE(email, $6),
+         phone_number   = COALESCE(phone_number, $7),
+         office_address = COALESCE(office_address, $8),
+         twitter_handle = COALESCE(twitter_handle, $9),
+         facebook_url   = COALESCE(facebook_url, $10),
+         education      = COALESCE(education, $11),
+         updated_at     = now()
+       WHERE id = $1`,
+      officialId,
+      p.imageUrl ?? null,
+      p.gender ?? null,
+      prof(p, "biography"),
+      prof(p, "date_of_birth"),
+      prof(p, "email"),
+      prof(p, "phone"),
+      prof(p, "office_address"),
+      prof(p, "twitter"),
+      prof(p, "facebook"),
+      educationText(p),
+    );
+
+    // 2. upsert the active mha position for this seat held by THIS official.
+    const party = await validParty(tx, (p.party as string | null) ?? null);
+    const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM official_positions WHERE official_id = $1 AND constituency_code = $2 AND role = 'mha' LIMIT 1`,
+      officialId,
+      p.constituencyCode,
+    );
+    let positionId: string;
+    if (existing.length) {
+      await tx.$executeRawUnsafe(
+        `UPDATE official_positions SET status='active', party_acronym=$2, leadership_role=$3,
+           source_type='manual', confidence=$4, review_status='reviewed', reviewed_by=$5,
+           end_date=NULL, end_reason=NULL
+         WHERE id=$1`,
+        existing[0].id,
+        party,
+        (p.leadershipRole as string | null) ?? null,
+        ctx.confidence ?? "high",
+        ctx.adminId,
+      );
+      positionId = existing[0].id;
+    } else {
+      // chk_role_scope: mha → constituency_code ONLY (no state_code).
+      const pos = await tx.$queryRawUnsafe<{ id: string }[]>(
+        `INSERT INTO official_positions
+           (official_id, role, constituency_code, appointment_type, status, start_date,
+            party_acronym, leadership_role, source_type, confidence, review_status, reviewed_by)
+         VALUES ($1::uuid,'mha',$2,'elected','active',$3::date,$4,$5,'manual',$6,'reviewed',$7) RETURNING id`,
+        officialId,
+        p.constituencyCode,
+        (p.startDate as string | null) ?? "2023-06-13",
+        party,
+        (p.leadershipRole as string | null) ?? null,
+        ctx.confidence ?? "high",
+        ctx.adminId,
+      );
+      positionId = pos[0].id;
+    }
+
+    // 3. ATOMIC INVARIANT: downgrade every OTHER active mha on this seat in the SAME tx.
+    //    chk_end_reason has no 'superseded' value, so we leave end_reason NULL and only
+    //    flip status → 'contested' (a valid chk_status value).
+    await tx.$executeRawUnsafe(
+      `UPDATE official_positions
+         SET status='contested'
+       WHERE role='mha' AND constituency_code=$1 AND status='active' AND id <> $2`,
+      p.constituencyCode,
+      positionId,
+    );
+    return { id: positionId, officialId };
+  },
+};
+
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   official_education: officialFactEntity("official_education", "education", [
     { key: "institution", column: "institution", type: "string", required: true },
@@ -628,6 +794,9 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   corruption_cases: corruptionInvolvementEntity(),
   // Party officers (chairman/secretary/party leader) — party-scoped, no official.
   party_officers: partyOfficerEntity(),
+  // Assembly member (State House of Assembly, role 'mha'): find-or-create official,
+  // upsert active mha position for the seat, atomic downgrade of other holders.
+  assembly_member: assemblyMemberEntity,
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {
