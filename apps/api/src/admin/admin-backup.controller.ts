@@ -73,7 +73,10 @@ export class AdminBackupController {
       const url = await this.service.getDownloadUrl(id);
       return res.json({ url });
     } catch (err) {
-      return res.status(HttpStatus.CONFLICT).json({ error: (err as Error).message });
+      if ((err as Error).message?.includes("not available")) {
+        return res.status(HttpStatus.CONFLICT).json({ error: (err as Error).message });
+      }
+      throw err;
     }
   }
 
