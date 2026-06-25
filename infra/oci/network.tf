@@ -47,14 +47,7 @@ resource "oci_core_security_list" "public" {
       max = 80
     }
   }
-  ingress_security_rules {
-    protocol = "6"
-    source   = "0.0.0.0/0"
-    tcp_options {
-      min = 9000
-      max = 9000
-    }
-  }
+  # webhook (9000) is NOT public — reached via Traefik HTTPS on deploy.ournigeria.ng
   ingress_security_rules {
     protocol = "17"
     source   = "0.0.0.0/0"

@@ -3,6 +3,7 @@ locals {
     api     = "api.ournigeria.ng"
     ingest  = "ingest.ournigeria.ng"
     socials = "socials.ournigeria.ng"
+    deploy  = "deploy.ournigeria.ng"
   }
 }
 

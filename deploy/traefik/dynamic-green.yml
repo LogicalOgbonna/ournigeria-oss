@@ -28,6 +28,14 @@ http:
       tls:
         certResolver: le
 
+    deploy:
+      rule: "Host(`deploy.ournigeria.ng`)"
+      service: webhook
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: le
+
   services:
     api:
       loadBalancer:
@@ -43,3 +51,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://socials-green:3005"
+
+    webhook:
+      loadBalancer:
+        servers:
+          - url: "http://webhook:9000"
