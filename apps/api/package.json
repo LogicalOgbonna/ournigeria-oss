@@ -16,6 +16,7 @@
     "@ai-sdk/provider": "catalog:",
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-ses": "^3.1030.0",
+    "@aws-sdk/lib-storage": "3.999.0",
     "@aws-sdk/s3-request-presigner": "3.999.0",
     "@mastra/core": "1.6.0",
     "@mastra/langfuse": "1.0.3",
