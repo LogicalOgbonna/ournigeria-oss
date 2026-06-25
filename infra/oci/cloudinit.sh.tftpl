@@ -35,6 +35,7 @@ TS_KEY="$(geti TAILSCALE_AUTHKEY)"
 GHCR_TOKEN="$(geti GHCR_TOKEN)"; GHCR_USER="$(geti GHCR_USER)"
 WEBHOOK_SECRET="$(geti OCI_WEBHOOK_SECRET)"; STATUS_TOKEN="$(geti OCI_STATUS_TOKEN)"
 PG_PASS="$(geti POSTGRES_PASSWORD)"
+SVC_TOKEN="$(geti INFISICAL_SERVICE_TOKEN)"
 TG_BOT="$(geta TELEGRAM_BOT_TOKEN)"; TG_CHAT="$(geta TELEGRAM_DEPLOY_CHAT_ID)"
 
 # --- Join Tailscale (admin SSH over tailnet) ---
@@ -58,7 +59,7 @@ bash bootstrap.sh \
   --status-token "$STATUS_TOKEN" \
   --ghcr-token "$GHCR_TOKEN" --ghcr-user "$GHCR_USER" \
   --postgres-password "$PG_PASS" \
-  --infisical-token "$INFISICAL_TOKEN" \
+  --infisical-token "$SVC_TOKEN" \
   --telegram-bot-token "$TG_BOT" --telegram-chat-id "$TG_CHAT"
 
 echo "cloud-init provisioning complete"
