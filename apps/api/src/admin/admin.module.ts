@@ -23,6 +23,8 @@ import { AdminSettingsController } from "./admin-settings.controller";
 import { AdminSettingsService } from "./admin-settings.service";
 import { AdminConnectionsController } from "./admin-connections.controller";
 import { AdminConnectionsService } from "./admin-connections.service";
+import { AdminBackupController } from "./admin-backup.controller";
+import { AdminBackupService } from "./admin-backup.service";
 
 @Module({
   controllers: [
@@ -38,6 +40,7 @@ import { AdminConnectionsService } from "./admin-connections.service";
     AdminEvalController,
     AdminSettingsController,
     AdminConnectionsController,
+    AdminBackupController,
   ],
   providers: [
     AdminAuthService,
@@ -52,6 +55,7 @@ import { AdminConnectionsService } from "./admin-connections.service";
     AdminEvalService,
     AdminSettingsService,
     AdminConnectionsService,
+    AdminBackupService,
   ],
 })
 export class AdminModule implements OnModuleInit {
