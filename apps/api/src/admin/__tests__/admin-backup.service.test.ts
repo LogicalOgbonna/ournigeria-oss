@@ -247,3 +247,60 @@ describe("AdminBackupService.runBackup", () => {
     }
   });
 });
+
+describe("AdminBackupService.deleteBackup", () => {
+  it("removes the S3 object, then soft-deletes the row", async () => {
+    const { svc, prisma } = makeService();
+    prisma.backupJob.findUnique.mockResolvedValue({
+      id: "j1",
+      deletedAt: null,
+      s3Key: "db-backups/j1.dump",
+      s3Bucket: "test-bucket",
+    });
+    const send = vi.fn().mockResolvedValue({});
+    (svc as unknown as { s3: { send: typeof send } }).s3.send = send;
+
+    await svc.deleteBackup("j1");
+
+    expect(send).toHaveBeenCalledTimes(1); // DeleteObjectCommand
+    expect(prisma.backupJob.update).toHaveBeenCalledWith({
+      where: { id: "j1" },
+      data: { deletedAt: expect.any(Date) },
+    });
+  });
+
+  it("propagates an S3 delete failure and does NOT soft-delete the row", async () => {
+    const { svc, prisma } = makeService();
+    prisma.backupJob.findUnique.mockResolvedValue({
+      id: "j2",
+      deletedAt: null,
+      s3Key: "db-backups/j2.dump",
+      s3Bucket: "test-bucket",
+    });
+    (svc as unknown as { s3: { send: ReturnType<typeof vi.fn> } }).s3.send = vi
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error("Access Denied"), { name: "AccessDenied" }),
+      );
+
+    await expect(svc.deleteBackup("j2")).rejects.toThrow(/Access Denied/i);
+    expect(prisma.backupJob.update).not.toHaveBeenCalled();
+  });
+
+  it("is idempotent: an already-deleted row is a no-op (no S3 call, no update)", async () => {
+    const { svc, prisma } = makeService();
+    prisma.backupJob.findUnique.mockResolvedValue({
+      id: "j3",
+      deletedAt: new Date(),
+      s3Key: "db-backups/j3.dump",
+      s3Bucket: "test-bucket",
+    });
+    const send = vi.fn();
+    (svc as unknown as { s3: { send: typeof send } }).s3.send = send;
+
+    await svc.deleteBackup("j3");
+
+    expect(send).not.toHaveBeenCalled();
+    expect(prisma.backupJob.update).not.toHaveBeenCalled();
+  });
+});

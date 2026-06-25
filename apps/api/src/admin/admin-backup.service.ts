@@ -220,7 +220,20 @@ export class AdminBackupService implements OnModuleInit {
   async deleteBackup(id: string): Promise<void> {
     const job = await this.prisma.backupJob.findUnique({ where: { id } });
     if (!job || job.deletedAt) return;
-    if (job.s3Key) await this.deleteObjectQuiet(job.s3Key);
+    if (job.s3Key) {
+      // User-initiated delete: do NOT swallow failures. If the S3 object can't be
+      // removed (e.g. missing s3:DeleteObject permission), surface the error so the
+      // caller knows the object still exists and can retry — and DON'T mark the row
+      // deleted, which would silently orphan the object under a manual-retention model.
+      // (deleteObjectQuiet's swallowing behaviour is only for best-effort cleanup of
+      // partial objects on a FAILED dump, where crashing the dump is worse.)
+      await this.s3.send(
+        new DeleteObjectCommand({
+          Bucket: job.s3Bucket ?? this.bucket,
+          Key: job.s3Key,
+        }),
+      );
+    }
     await this.prisma.backupJob.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 }

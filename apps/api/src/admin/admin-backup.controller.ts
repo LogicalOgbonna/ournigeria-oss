@@ -83,7 +83,15 @@ export class AdminBackupController {
   @Delete(":id")
   @ApiOperation({ summary: "Delete a backup" })
   async remove(@Param("id") id: string, @Res() res: Response) {
-    await this.service.deleteBackup(id);
-    return res.json({ ok: true });
+    try {
+      await this.service.deleteBackup(id);
+      return res.json({ ok: true });
+    } catch (err) {
+      // S3 removal failed (e.g. missing s3:DeleteObject permission) — report it
+      // instead of pretending the delete succeeded; the row stays undeleted.
+      return res
+        .status(HttpStatus.BAD_GATEWAY)
+        .json({ error: `Failed to delete backup from storage: ${(err as Error).message}` });
+    }
   }
 }
