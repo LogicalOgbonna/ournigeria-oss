@@ -10,11 +10,11 @@ Automated blue-green deployment pipeline for the OurNigeria platform. Pushes to 
                     GitHub                                  Production Server
   ┌───────────────────────────────────┐    ┌──────────────────────────────────────────────────┐
   │                                   │    │                                                  │
-  │  Push to main                     │    │  Nginx Proxy Manager (NPM)                       │
-  │       │                           │    │    ├─ spending-api.arinze.online ──► traefik:80   │
-  │       ▼                           │    │    └─ ingest.arinze.online ────────► traefik:80   │
-  │  GitHub Actions                   │    │                                                  │
-  │    ├─ Validate compose + lint     │    │  Traefik (internal reverse proxy)                │
+  │  Push to main                     │    │  Traefik (TLS termination via Let's Encrypt)     │
+  │       │                           │    │    ├─ api.ournigeria.ng (:443)                    │
+  │       ▼                           │    │    ├─ ingest.ournigeria.ng (:443)                 │
+  │  GitHub Actions                   │    │    └─ socials.ournigeria.ng (:443)                │
+  │    ├─ Validate compose + lint     │    │  Traefik (internal blue-green routing)            │
   │    ├─ Build API image             │    │    ├─ dynamic.yml routes to active stack          │
   │    ├─ Build Ingest image          │    │    ├─ BLUE:  api-blue:3000  / ingest-blue:3002   │
   │    └─ Push to GHCR               │    │    └─ GREEN: api-green:3000 / ingest-green:3002  │
@@ -40,8 +40,7 @@ Automated blue-green deployment pipeline for the OurNigeria platform. Pushes to 
 - Docker Compose v2 (`docker compose` subcommand)
 - `curl`, `jq`, `bash`
 - Port `9000` open for webhook receiver (or set `WEBHOOK_PORT` in `.env`)
-- An existing Nginx Proxy Manager (NPM) instance on the same server
-- The `npm-proxy` Docker network must exist: `docker network create npm-proxy`
+- Ports `80` and `443` open to the internet (OCI security list); Traefik handles TLS via Let's Encrypt directly (no NPM required)
 
 ---
 
@@ -72,20 +71,20 @@ The bootstrap script will:
 - Create `/var/log/ournigeria-deploy/` for deploy logs
 - Write the initial `.env` file with provided secrets
 - Log in to GHCR (`docker login ghcr.io`)
-- Create the `npm-proxy` Docker network if it does not exist
 - Copy `deploy/traefik/dynamic-blue.yml` to `deploy/traefik/dynamic.yml`
 - Start the production stack with `docker compose up -d`
 
-### 2. NPM configuration
+### 2. Traefik TLS configuration
 
-In Nginx Proxy Manager, create two proxy hosts:
+Traefik terminates TLS directly via Let's Encrypt — no NPM required. Ensure ports `80` and `443` are open in the OCI security list. The following hostnames are served:
 
-| Domain | Forward Hostname | Forward Port | Notes |
-|--------|-----------------|--------------|-------|
-| `api.example.invalid` | `traefik` | `80` | API |
-| `ingest.example.invalid` | `traefik` | `80` | Ingestion pipeline |
+| Domain | Service |
+|--------|---------|
+| `api.ournigeria.ng` | API |
+| `ingest.ournigeria.ng` | Ingestion pipeline |
+| `socials.ournigeria.ng` | Socials service |
 
-Both NPM and the OurNigeria stack share the `npm-proxy` Docker network (defined as `external: true` in `docker-compose.yml`). NPM handles TLS termination; Traefik handles blue-green routing internally over plain HTTP.
+Traefik handles both TLS termination and blue-green routing internally. TLS certificates are provisioned automatically on first request via Let's Encrypt.
 
 ### 3. GitHub repository setup
 
