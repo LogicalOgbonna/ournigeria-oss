@@ -118,4 +118,4 @@ EXPOSE 3002
 
 STOPSIGNAL SIGTERM
 
-CMD infisical run --env "${INFISICAL_ENV:-prod}" -- node dist/main.js
+CMD infisical run --env "${INFISICAL_ENV:-prod}" --path /ingest -- node dist/main.js
