@@ -44,7 +44,7 @@ export default function BackupsPage() {
     try {
       setJobs(await adminFetch("/backups"));
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof Error ? e.message : String(e));
     }
   }, []);
 
@@ -76,21 +76,31 @@ export default function BackupsPage() {
       }
       await load();
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }
 
   async function download(id: string) {
-    const { url } = await adminFetch(`/backups/${id}/download`);
-    window.location.href = url; // presigned S3 URL, direct download
+    setError(null);
+    try {
+      const { url } = await adminFetch(`/backups/${id}/download`);
+      window.location.href = url; // presigned S3 URL, direct download
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this backup? The S3 file will be removed.")) return;
-    await adminFetch(`/backups/${id}`, { method: "DELETE" });
-    await load();
+    setError(null);
+    try {
+      await adminFetch(`/backups/${id}`, { method: "DELETE" });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   return (
