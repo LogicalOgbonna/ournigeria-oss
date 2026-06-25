@@ -19,7 +19,7 @@ export default function Home() {
         "@id": "https://ournigeria.ng/#website",
         "url": "https://ournigeria.ng/",
         "name": "Our Nigeria",
-        "description": "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states.",
+        "description": "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states and the FCT.",
         "publisher": {
           "@id": "https://ournigeria.ng/#organization"
         },

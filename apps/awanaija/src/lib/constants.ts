@@ -118,7 +118,7 @@ export const TYPEWRITER_MESSAGES = [
   "> Tracking new GovSpend contractor payments...",
   "> Corruption case found: EFCC v. Former Officials...",
   "> Senate bills data pipeline initialized...",
-  "> 36 states processed. Millions of records indexed.",
+  "> 36 states + FCT processed. Millions of records indexed.",
   "> Ready to build a better Nigeria with you.",
 ] as const;
 
