@@ -28,7 +28,7 @@ export function Hero() {
 
   return (
     <section
-      className="relative min-h-[78dvh] overflow-hidden lg:min-h-[100dvh]"
+      className="relative overflow-hidden lg:min-h-[100dvh]"
     >
       {/* Deep gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
@@ -41,7 +41,7 @@ export function Hero() {
       <div
         className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
       >
-        <div className="flex min-h-[78dvh] flex-col items-center justify-center gap-16 pb-16 pt-28 lg:min-h-[100dvh] lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
+        <div className="flex flex-col items-center justify-center gap-16 pb-6 pt-28 lg:min-h-[100dvh] lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
           {/* Left — Text content, pushed bottom-left on desktop */}
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
 
@@ -108,8 +108,17 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Subtext */}
-            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed">
+            {/* Subtext — desktop gets the fuller list of what we cover;
+                mobile keeps the shorter copy so the hero stays compact. */}
+            <p className="hero-sub mt-8 hidden max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:block">
+              Knowledge is the first step to good citizenship. Explore{" "}
+              <strong className="text-foreground">
+                budgets, daily govspend, corruption records, public officials, and bills
+              </strong>{" "}
+              across all <strong className="text-foreground">36 states and the FCT</strong>.
+              Ask in plain English or Pidgin.
+            </p>
+            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:hidden">
               Knowledge is the first step to good citizenship. Explore{" "}
               <strong className="text-foreground">
                 budgets, daily govspend, and corruption records
