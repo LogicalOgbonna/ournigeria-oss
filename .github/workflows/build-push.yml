@@ -5,7 +5,7 @@ on:
     branches: [main, staging, prod]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, staging, prod]
   workflow_dispatch:
     inputs:
       build_all:
@@ -91,6 +91,9 @@ jobs:
     if: needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
+      # Don't let one app's build failure (e.g. socials OOM under QEMU) cancel the
+      # healthy legs and skip the deploy. Each app builds/deploys independently.
+      fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
     steps:
@@ -140,7 +143,11 @@ jobs:
 
   deploy:
     needs: [detect-changes, build]
+    # !cancelled() lets the deploy webhook fire even if SOME build legs failed
+    # (e.g. socials OOMs under QEMU) — the box's blue/green keeps the old image
+    # for any app that didn't produce a fresh one, while healthy apps roll forward.
     if: >-
+      !cancelled() &&
       github.event_name == 'push' &&
       needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
