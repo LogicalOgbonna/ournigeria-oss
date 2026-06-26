@@ -145,6 +145,13 @@ mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
+# Load env (Telegram notify creds + ACTIVE_STACK) BEFORE the first notify, so the
+# "Deploy started"/staging-complete messages can actually send. Previously .env was
+# sourced only at the blue-green step below — after those notifies — so they silently
+# no-op'd (notify() guards on TELEGRAM_BOT_TOKEN/TELEGRAM_DEPLOY_CHAT_ID being set).
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+
 echo "═══════════════════════════════════════════════════"
 echo "  DEPLOY STARTED"
 echo "  Branch: $BRANCH | SHA: $SHA | Env: $DEPLOY_ENV"
@@ -175,9 +182,7 @@ Duration: $(( DEPLOY_END - DEPLOY_START ))s"
   exit 0
 fi
 
-# ─── Read current active stack ─────────────────────────────────────
-# shellcheck source=/dev/null
-source "$ENV_FILE"
+# ─── Read current active stack (env already sourced above) ─────────
 ACTIVE="${ACTIVE_STACK:-blue}"
 if [ "$ACTIVE" = "blue" ]; then
   STANDBY="green"
