@@ -100,6 +100,9 @@ services:
     image: pgvector/pgvector:pg16
     container_name: ournigeria_prod_db
     restart: unless-stopped
+    # pgvector HNSW index builds use parallel-worker shared memory; the default
+    # 64MB /dev/shm overflows on large tables (e.g. 2.3M budget_chunks). Give it room.
+    shm_size: 2gb
     environment:
       POSTGRES_DB: spending
       POSTGRES_USER: spending
@@ -114,7 +117,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 6G
     logging:
       driver: "json-file"
       options:
