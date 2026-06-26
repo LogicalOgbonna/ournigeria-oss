@@ -604,7 +604,10 @@ export const assemblyMemberEntity: CreatableEntity = {
       dateOfBirth: prof(p, "date_of_birth"),
       twitterHandle: prof(p, "twitter"),
       facebookUrl: prof(p, "facebook"),
-      officialType: "mha",
+      // official_type is the appointment *category* (chk_official_type allows
+      // elected/appointed/civil_servant/judicial/security/traditional/other) — an mha
+      // is elected. The role "mha" belongs on official_positions.role, NOT here.
+      officialType: "elected",
     });
     // COALESCE-fill the fields findOrCreateOfficial doesn't set, and the already-existing case.
     await tx.$executeRawUnsafe(
