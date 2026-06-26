@@ -128,9 +128,9 @@ fi
 
 # ─── Determine environment from branch ────────────────────────────
 case "$BRANCH" in
-  main)    DEPLOY_ENV="prod" ;;
-  staging) DEPLOY_ENV="staging" ;;
-  *)       echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
+  main|prod) DEPLOY_ENV="prod" ;;
+  staging)   DEPLOY_ENV="staging" ;;
+  *)         echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
 esac
 
 # ─── Deploy lock (flock) ──────────────────────────────────────────
