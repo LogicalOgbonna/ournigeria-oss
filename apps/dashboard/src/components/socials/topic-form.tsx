@@ -47,7 +47,9 @@ export function TopicForm({ initial, topicId }: TopicFormProps) {
 
   // Test query state
   const [testing, setTesting] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [testResults, setTestResults] = useState<unknown[] | null>(null);
+  const [testCursor, setTestCursor] = useState<string | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
   function update<K extends keyof typeof form>(
@@ -110,20 +112,33 @@ export function TopicForm({ initial, topicId }: TopicFormProps) {
     router.push("/dashboard/social/topics");
   }
 
-  async function runTestQuery() {
-    setTesting(true);
+  async function runTestQuery(append = false) {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setTesting(true);
+      setTestResults(null);
+      setTestCursor(null);
+    }
     setTestError(null);
-    setTestResults(null);
     try {
       const result = await socialsFetch("/v1/topics/test-query", {
         method: "POST",
-        body: JSON.stringify({ query: form.query }),
+        body: JSON.stringify({
+          query: form.query,
+          cursor: append ? testCursor : null,
+        }),
       });
-      setTestResults(result.tweets ?? []);
+      const tweets = result.tweets ?? [];
+      setTestResults((prev) =>
+        append && prev ? [...prev, ...tweets] : tweets,
+      );
+      setTestCursor(result.nextCursor ?? null);
     } catch (err) {
       setTestError(err instanceof Error ? err.message : String(err));
     } finally {
       setTesting(false);
+      setLoadingMore(false);
     }
   }
 
@@ -169,7 +184,7 @@ export function TopicForm({ initial, topicId }: TopicFormProps) {
               type="button"
               variant="outline"
               size="sm"
-              onClick={runTestQuery}
+              onClick={() => runTestQuery()}
               disabled={!form.query || testing}
             >
               {testing ? "Testing…" : "Test query"}
@@ -185,14 +200,20 @@ export function TopicForm({ initial, topicId }: TopicFormProps) {
           </div>
           {testResults && testResults.length > 0 && (
             <div className="space-y-2">
-              {testResults.slice(0, 5).map((t) => {
+              {testResults.map((t, i) => {
                 const tweet = t as Record<string, unknown>;
+                const screenName = tweet.authorScreenName as string;
+                const id = tweet.id as string;
+                const tweetUrl =
+                  screenName && id
+                    ? `https://x.com/${screenName}/status/${id}`
+                    : null;
                 return (
                   <TweetCard
-                    key={tweet.id as string}
+                    key={id || `tweet-${i}`}
                     tweet={{
                       authorName: tweet.authorName as string,
-                      authorScreenName: tweet.authorScreenName as string,
+                      authorScreenName: screenName,
                       authorProfileImageUrl: (tweet.authorProfileImageUrl as string | null) ?? null,
                       text: tweet.text as string,
                       tweetCreatedAt: tweet.tweetCreatedAt as string,
@@ -200,10 +221,23 @@ export function TopicForm({ initial, topicId }: TopicFormProps) {
                       retweetCount: tweet.retweetCount as number,
                       likeCount: tweet.likeCount as number,
                       quoteCount: tweet.quoteCount as number,
+                      tweetUrl,
                     }}
                   />
                 );
               })}
+              {testCursor && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => runTestQuery(true)}
+                  disabled={loadingMore}
+                  className="w-full"
+                >
+                  {loadingMore ? "Loading…" : "Load more tweets"}
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
