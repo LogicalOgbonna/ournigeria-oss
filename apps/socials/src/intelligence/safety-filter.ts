@@ -23,6 +23,30 @@ const NAIRA_PATTERNS = [
   /[\d,.]+\s*(trillion|billion|million|thousand)/gi,
 ];
 
+// X's character budget (default 280; raise via env for an X Premium account).
+const MAX_TWEET_CHARS = Number(process.env.SOCIALS_MAX_TWEET_CHARS) || 280;
+
+/**
+ * X-weighted character count. X counts most characters as 1 but anything
+ * outside a few Latin/punctuation ranges as 2 — so ₦ (U+20A6) and other symbols
+ * count double. `string.length` undercounts those, which let a "270-char" reply
+ * actually be 274 on X and silently 403 as too long. Mirror X's twitter-text
+ * weighting so the warning matches what X enforces.
+ */
+export function xWeightedLength(s: string): number {
+  let weight = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0)!;
+    const lightweight =
+      (cp >= 0x0000 && cp <= 0x10ff) ||
+      (cp >= 0x2000 && cp <= 0x200d) ||
+      (cp >= 0x2010 && cp <= 0x201f) ||
+      (cp >= 0x2032 && cp <= 0x2037);
+    weight += lightweight ? 1 : 2;
+  }
+  return weight;
+}
+
 @Injectable()
 export class SafetyFilter {
   private readonly logger = new Logger(SafetyFilter.name);
@@ -49,8 +73,11 @@ export class SafetyFilter {
       : [content];
 
     for (const tweet of tweets) {
-      if (tweet.length > 280) {
-        warnings.push(`Tweet exceeds 280 chars (${tweet.length} chars)`);
+      const weighted = xWeightedLength(tweet);
+      if (weighted > MAX_TWEET_CHARS) {
+        warnings.push(
+          `Tweet exceeds ${MAX_TWEET_CHARS} chars (${weighted} X-weighted chars)`,
+        );
       }
     }
 

@@ -17,6 +17,25 @@ const OUR_BRAND = {
   verified: false,
 };
 
+/**
+ * X-weighted character count — ₦ and other symbols count as 2 on X, so
+ * `string.length` undercounts. Mirror X's weighting so the counter matches
+ * what X actually enforces.
+ */
+function xWeightedLength(s: string): number {
+  let weight = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0) ?? 0;
+    const lightweight =
+      (cp >= 0x0000 && cp <= 0x10ff) ||
+      (cp >= 0x2000 && cp <= 0x200d) ||
+      (cp >= 0x2010 && cp <= 0x201f) ||
+      (cp >= 0x2032 && cp <= 0x2037);
+    weight += lightweight ? 1 : 2;
+  }
+  return weight;
+}
+
 interface DraftCardProps {
   draft: DraftRow;
   onChanged: () => void;
@@ -94,7 +113,10 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
     quoteCount: 0,
   };
 
-  const charCount = (editing ? draftText : draft.content).length;
+  // X-weighted count (₦ counts as 2). 280 is a soft guideline — the bot runs on
+  // an X Premium account with a higher cap, so this warns but no longer blocks
+  // saving; the publish path surfaces X's real limit if exceeded.
+  const charCount = xWeightedLength(editing ? draftText : draft.content);
   const overLimit = charCount > 280;
 
   return (
@@ -120,9 +142,23 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
               </span>
             ) : null}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {new Date(draft.createdAt).toLocaleString()}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground">
+              {new Date(draft.createdAt).toLocaleString()}
+            </span>
+            {tweetUrl ? (
+              <a
+                href={tweetUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="Open original tweet on X"
+                aria-label="Open original tweet on X"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : null}
+          </div>
         </div>
 
         {/* Preview */}
@@ -237,11 +273,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
             )}
             {editing ? (
               <>
-                <Button
-                  size="sm"
-                  onClick={saveEdit}
-                  disabled={!!busy || overLimit}
-                >
+                <Button size="sm" onClick={saveEdit} disabled={!!busy}>
                   Save
                 </Button>
                 <Button
