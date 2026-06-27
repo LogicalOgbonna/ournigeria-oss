@@ -20,14 +20,57 @@ const X_NO_WRITE =
   "The X app can read but not post (403). In the X Developer Portal set User authentication → App permissions to 'Read and write', then re-authorize (`pnpm x-oauth-authorize`).";
 
 /**
- * If a publish failure is an X authorization/permission problem, return the
- * actionable message to surface as a 422 (vs a content/transient error, which
- * returns null and bubbles up as a 500). Distinguishes 403 "no write
- * permission" from 401/400 "expired/missing" so the dashboard shows the right fix.
+ * X refused the reply/quote because of an engagement restriction (403). Either
+ * the bot account is reply-limited by X (anti-spam state new/automated accounts
+ * land in — it can post originals and reply to itself, but not engage strangers
+ * who haven't engaged it) or the author limited who can reply. NOT a token,
+ * app-permission, or content problem — nothing in the dashboard fixes it. The
+ * account has to be un-restricted on X.
+ */
+const X_REPLY_RESTRICTED =
+  "X won't let this account reply to or quote this tweet — \"not been mentioned or otherwise engaged by the author.\" This is an X-side restriction on the bot account (reply-limited) or the author's reply settings, not a token/permission/length issue and not fixable from the dashboard. The account needs to be un-restricted on X (check x.com logged in as the bot for a restriction notice; verify phone; let it age).";
+
+/** X rejected the text as too long for the account's tier (403/400). */
+const X_TOO_LONG =
+  "X rejected this tweet as too long for the account's tier. Shorten it (₦ and other symbols can count as 2 characters), or post from an X Premium account for the higher limit.";
+
+/** X rejected duplicate content (403). */
+const X_DUPLICATE =
+  "X rejected this as duplicate content — the same text was already posted. Edit the draft before publishing.";
+
+/** Lower-cased detail/body of an X API error, for reason matching. */
+function xErrorDetail(err: ApiResponseError): string {
+  const data = (err as { data?: { detail?: string } }).data;
+  return `${data?.detail ?? ""} ${err.message ?? ""} ${JSON.stringify(
+    data ?? {},
+  )}`.toLowerCase();
+}
+
+/**
+ * If a publish failure is an X authorization/permission/restriction problem,
+ * return the actionable message to surface as a 422 (vs a content/transient
+ * error, which returns null and bubbles up as a 500).
+ *
+ * A bare 403 is NOT always "no write permission" — X also 403s for reply/quote
+ * engagement restrictions, over-length tweets, and duplicate content. Mapping
+ * every 403 to "fix app permissions" sends operators re-authorizing for nothing,
+ * so we read `err.data.detail` to name the real reason.
  */
 function xAuthFailureMessage(err: unknown): string | null {
   if (err instanceof ApiResponseError) {
-    if (err.code === 403) return X_NO_WRITE;
+    if (err.code === 403) {
+      const detail = xErrorDetail(err);
+      if (
+        /not been mentioned|not part of the conversation|otherwise engaged/.test(
+          detail,
+        )
+      )
+        return X_REPLY_RESTRICTED;
+      if (/too long|character limit|maximum.*length|280/.test(detail))
+        return X_TOO_LONG;
+      if (/duplicate/.test(detail)) return X_DUPLICATE;
+      return X_NO_WRITE;
+    }
     if (err.code === 401) return X_AUTH_EXPIRED;
     const body = `${err.message} ${JSON.stringify(
       (err as { data?: unknown }).data ?? {},
@@ -43,6 +86,16 @@ function xAuthFailureMessage(err: unknown): string | null {
     ? X_AUTH_EXPIRED
     : null;
 }
+
+// Exported for unit tests — the 403-reason classification is the whole point.
+export const __testables = {
+  xAuthFailureMessage,
+  X_NO_WRITE,
+  X_AUTH_EXPIRED,
+  X_REPLY_RESTRICTED,
+  X_TOO_LONG,
+  X_DUPLICATE,
+};
 
 export interface OriginalTweetSnapshot {
   id: string;
