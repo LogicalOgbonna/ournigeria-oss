@@ -277,6 +277,29 @@ export class ReplyQueueService {
     });
   }
 
+  /**
+   * Mark a draft as posted WITHOUT calling the X API — for when an operator
+   * published it manually via an X Web Intent (the reliable path while the bot
+   * account is reply-restricted). Mirrors approve()'s success update minus the
+   * publish call. Optionally records the resulting tweet id for engagement
+   * tracking if the operator supplies it.
+   */
+  async markPosted(id: string, adminId: string, externalId?: string) {
+    const post = await this.prisma.socialPost.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException("Post not found");
+    return this.prisma.socialPost.update({
+      where: { id },
+      data: {
+        status: "published",
+        reviewStatus: "approved",
+        externalId: externalId?.trim() || post.externalId,
+        publishedAt: new Date(),
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+      },
+    });
+  }
+
   async editAndSave(id: string, newContent: string) {
     return this.prisma.socialPost.update({
       where: { id },
