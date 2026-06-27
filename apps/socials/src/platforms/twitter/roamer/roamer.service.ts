@@ -51,9 +51,21 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
 
   private running = false;
   private owns = false;
+  private desired = false;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private summaryTimer: NodeJS.Timeout | null = null;
   private pruneTimer: NodeJS.Timeout | null = null;
+  private supervisorTimer: NodeJS.Timeout | null = null;
+
+  /**
+   * How often the supervisor retries to acquire leadership while desired but
+   * not yet owning. Derived from existing config (no new env var): poll at
+   * half the heartbeat-stale window so a freed lock is reclaimed promptly,
+   * floored at 5s to avoid hammering the DB.
+   */
+  private get supervisorIntervalMs(): number {
+    return Math.max(5000, Math.floor(this.cfg.heartbeatStaleMs / 2));
+  }
 
   constructor(
     config: ConfigService<SocialsEnvConfig>,
@@ -83,26 +95,67 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.start();
+    this.desired = true;
+    this.startSupervisor();
+    await this.tryAcquire();
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.stop();
   }
 
+  /**
+   * Manual start (POST /v1/roam/start). Marks leadership as desired, ensures
+   * the self-healing supervisor is running, then attempts an immediate
+   * acquire. Returns the current claim outcome (preserving the existing
+   * { claimed, reason } shape).
+   */
   async start(): Promise<{ claimed: boolean; reason?: string }> {
-    if (this.running) return { claimed: true };
+    this.desired = true;
+    this.startSupervisor();
+    return this.tryAcquire();
+  }
 
-    const claimed = await this.state.claim(
-      this.pid,
-      this.host,
-      this.cfg.heartbeatStaleMs,
-    );
+  /**
+   * Self-healing leader election. Runs periodically (and on boot/manual
+   * start). While leadership is desired but not yet held, it keeps trying to
+   * claim the cross-process lock so blue-green deploys recover automatically:
+   * when the old node releases, the next tick acquires and begins the loop.
+   */
+  private async tryAcquire(): Promise<{ claimed: boolean; reason?: string }> {
+    if (!this.desired) return { claimed: false, reason: "not desired" };
+    if (this.running || this.owns) return { claimed: true };
+
+    let claimed = false;
+    try {
+      claimed = await this.state.claim(
+        this.pid,
+        this.host,
+        this.cfg.heartbeatStaleMs,
+      );
+    } catch (e) {
+      this.logger.error(
+        `claim attempt failed: ${e instanceof Error ? e.message : e}`,
+      );
+      return { claimed: false, reason: "claim error" };
+    }
+
     if (!claimed) {
-      this.logger.warn("another process owns the loop; not starting");
+      // Quiet: another node owns it; the supervisor will retry. Avoid a
+      // spammy warn every tick.
+      this.logger.debug?.("another process owns the loop; will retry");
       return { claimed: false, reason: "another process owns the loop" };
     }
 
+    this.beginLoop();
+    this.logger.log(
+      `acquired leadership (pid=${this.pid} host=${this.host})`,
+    );
+    return { claimed: true };
+  }
+
+  /** Begins the loop + heartbeat/summary/prune timers (assumes lock held). */
+  private beginLoop(): void {
     this.owns = true;
     this.running = true;
 
@@ -130,10 +183,25 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.logger.log(`started (pid=${this.pid} host=${this.host})`);
-    return { claimed: true };
+  }
+
+  private startSupervisor(): void {
+    if (this.supervisorTimer) return;
+    this.supervisorTimer = setInterval(() => {
+      this.tryAcquire().catch((e) =>
+        this.logger.error(`supervisor tick failed: ${e?.message}`),
+      );
+    }, this.supervisorIntervalMs);
+    // Don't keep the event loop alive solely for the supervisor.
+    this.supervisorTimer.unref?.();
   }
 
   async stop(): Promise<void> {
+    // Respect a manual/shutdown stop: the supervisor must NOT re-acquire.
+    this.desired = false;
+    if (this.supervisorTimer) clearInterval(this.supervisorTimer);
+    this.supervisorTimer = null;
+
     this.running = false;
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     if (this.summaryTimer) clearInterval(this.summaryTimer);
