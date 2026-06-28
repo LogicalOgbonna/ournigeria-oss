@@ -53,6 +53,93 @@ const AgentResultJsonSchema = z.object({
 });
 
 /**
+ * Remove em/en-dashes from a tweet — the single most reliable AI tell. The
+ * prompt forbids them, but the model still leaks them, so we enforce it
+ * deterministically: a dash between two digits is a numeric range (keep a
+ * hyphen); a clause-separating dash becomes a comma. Guarantees zero —/– ship.
+ */
+export function stripDashes(text: string): string {
+  return text
+    // A dash flanked by non-space on both sides is a range/compound
+    // (Jan-Apr, 2024-2025) -> hyphen; a spaced dash is a clause break -> comma.
+    .replace(/(\S)\s*[—–]\s*(\S)/g, (m, a, b) =>
+      /\s/.test(m) ? `${a}, ${b}` : `${a}-${b}`,
+    )
+    .replace(/[—–]/g, ", ") // any straggler (leading/trailing/consecutive)
+    .replace(/\s*,\s*,/g, ",");
+}
+
+/** Lowercase, hyphenated slug for a state/LGA name ("Akwa Ibom" -> "akwa-ibom"). */
+export function ognSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const VERIFY_BASE = "https://ournigeria.ng/states";
+
+/**
+ * Build the OurNigeria verify-link for the entity + year the agent queried.
+ * LGA-level -> /states/<state>/<lga>; single state -> /states/<state>;
+ * national/multi-state -> /states. `?year=` carries the year it cited. FAAC
+ * only for now (that's what has public state pages). Returns null otherwise.
+ */
+export function buildVerifyUrl(
+  domain: string,
+  calls: Array<{ name: string; args: Record<string, unknown> }>,
+): string | null {
+  if (domain !== "faac") return null;
+  const faac = calls.filter((c) => c.name === "faac_search");
+  if (faac.length === 0) return null;
+  const states = new Set<string>();
+  let lga: { state?: string; lga: string } | null = null;
+  const years = new Set<number>();
+  for (const { args } of faac) {
+    if (typeof args.state === "string" && args.state.trim())
+      states.add(args.state.trim());
+    if (typeof args.lga === "string" && args.lga.trim())
+      lga = {
+        state: typeof args.state === "string" ? args.state : undefined,
+        lga: args.lga.trim(),
+      };
+    const y = Number(args.year);
+    if (Number.isInteger(y) && y > 2000) years.add(y);
+  }
+  const yq = years.size ? `?year=${Math.max(...years)}` : "";
+  if (lga?.state) return `${VERIFY_BASE}/${ognSlug(lga.state)}/${ognSlug(lga.lga)}${yq}`;
+  if (states.size === 1) return `${VERIFY_BASE}/${ognSlug([...states][0])}${yq}`;
+  return `${VERIFY_BASE}${yq}`;
+}
+
+/** Append the verify CTA as its own paragraph (idempotent, no-op if url null). */
+export function appendVerifyCta(text: string, url: string | null): string {
+  if (!url || text.includes(url)) return text;
+  return `${text.trim()}\n\nVerify on OurNigeria: ${url}`;
+}
+
+/**
+ * When the model returns the tweet as plain prose instead of the JSON envelope,
+ * salvage it as a postable reply. Strips code fences and a leading "json"
+ * marker, scrubs dashes, and rejects refusals / obvious non-tweets. Returns the
+ * cleaned tweet, or null if the body isn't usable as a reply.
+ */
+export function recoverProse(body: string): string | null {
+  const cleaned = stripDashes(
+    body
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .replace(/^json\s*/i, "")
+      .trim(),
+  );
+  if (cleaned.length < 15 || cleaned.length > 4000) return null;
+  if (cleaned.startsWith("{") || cleaned.startsWith("[")) return null; // malformed JSON, not prose
+  if (/^(i('?m| am| cannot| can't)|sorry|as an ai)\b/i.test(cleaned)) return null; // refusal
+  return cleaned;
+}
+
+/**
  * Extract the first balanced JSON object `{ ... }` from a string, ignoring any
  * prose the model prepended/appended despite the "ONLY JSON" instruction.
  * Brace-aware and string-literal-aware (so braces inside string values don't
@@ -139,6 +226,8 @@ Your job:
 3. Return the JSON object only.`;
 
     const collectedToolResults: unknown[] = [];
+    const searchCalls: Array<{ name: string; args: Record<string, unknown> }> =
+      [];
     let lastDataQuery = "";
 
     const buildSearchTool = (
@@ -151,6 +240,7 @@ Your job:
         inputSchema: schema,
         execute: async (args: Record<string, unknown>) => {
           lastDataQuery = `${name}: ${JSON.stringify(args)}`;
+          searchCalls.push({ name, args });
           this.logger.log(`Tool call: ${name}`);
           const result = await toolExecutor(name, args);
           collectedToolResults.push(result);
@@ -222,8 +312,17 @@ Your job:
     const parsed = this.parseFinalJson(result.text);
     if (!parsed) return null;
 
+    // Append a verify CTA driving to the OurNigeria page for the state/LGA +
+    // year the agent actually queried (doubles as source-anchoring, the
+    // strongest credibility lever). Only for reply/quote.
+    const text =
+      parsed.action === "reply" || parsed.action === "quote"
+        ? appendVerifyCta(parsed.text, buildVerifyUrl(topic.domain, searchCalls))
+        : parsed.text;
+
     return {
       ...parsed,
+      text,
       toolResults: collectedToolResults,
       dataQuery: lastDataQuery,
       costUsd: this.estimateCostUsd(
@@ -256,6 +355,20 @@ Your job:
         }
       }
       if (parsed === undefined) {
+        // The human, multi-paragraph voice makes flash drop the JSON wrapper
+        // and just write the tweet ~half the time. The body IS a usable reply,
+        // so recover it instead of dropping the draft. Low confidence so it is
+        // never auto-published (recommended needs >= 0.8) and always reviewed.
+        const prose = recoverProse(body);
+        if (prose) {
+          this.logger.warn("agent returned prose, not JSON; recovering as reply");
+          return {
+            action: "reply",
+            text: prose,
+            confidence: 0.6,
+            reasoning: "recovered from a non-JSON (prose) response",
+          };
+        }
         this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
         return null;
       }
@@ -269,19 +382,24 @@ Your job:
       return null;
     }
 
+    // Deterministic dash scrub: the prompt bans em/en-dashes, but the model
+    // still leaks them ~2/3 of the time. Strip them in code so none ever ship
+    // (numeric ranges keep a hyphen; clause dashes become commas).
+    const cleaned = { ...safe.data, text: stripDashes(safe.data.text) };
+
     // retweet carries no text (pure amplification); only reply/quote require it.
     if (
-      safe.data.action !== "skip" &&
-      safe.data.action !== "retweet" &&
-      safe.data.text.length === 0
+      cleaned.action !== "skip" &&
+      cleaned.action !== "retweet" &&
+      cleaned.text.length === 0
     ) {
       this.logger.warn(
-        `agent returned ${safe.data.action} but empty text; treating as skip`,
+        `agent returned ${cleaned.action} but empty text; treating as skip`,
       );
-      return { ...safe.data, action: "skip", text: "" };
+      return { ...cleaned, action: "skip", text: "" };
     }
 
-    return safe.data;
+    return cleaned;
   }
 
   private estimateCostUsd(inputTokens: number, outputTokens: number): number {

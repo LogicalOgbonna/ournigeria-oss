@@ -23,8 +23,10 @@ const NAIRA_PATTERNS = [
   /[\d,.]+\s*(trillion|billion|million|thousand)/gi,
 ];
 
-// X's character budget (default 280; raise via env for an X Premium account).
-const MAX_TWEET_CHARS = Number(process.env.SOCIALS_MAX_TWEET_CHARS) || 280;
+// No house character limit — we optimise for correct, complete, factual answers,
+// not brevity. Keep only a sanity backstop at X's long-form hard ceiling (25,000
+// for a Premium account) so genuinely runaway output is flagged. Override via env.
+const MAX_TWEET_CHARS = Number(process.env.SOCIALS_MAX_TWEET_CHARS) || 25_000;
 
 /**
  * X-weighted character count. X counts most characters as 1 but anything
@@ -156,7 +158,7 @@ export class SafetyFilter {
       const weighted = xWeightedLength(tweet);
       if (weighted > MAX_TWEET_CHARS) {
         warnings.push(
-          `Tweet exceeds ${MAX_TWEET_CHARS} chars (${weighted} X-weighted chars)`,
+          `Tweet exceeds X's hard limit of ${MAX_TWEET_CHARS} chars (${weighted} X-weighted chars)`,
         );
       }
     }

@@ -20,13 +20,20 @@ describe("xWeightedLength — X character weighting", () => {
   });
 });
 
-describe("SafetyFilter — length warning uses weighted count", () => {
-  it("warns when X-weighted length exceeds the limit even if .length is under it", () => {
-    // 279 ASCII + one ₦ = 280 length but 281 weighted -> over 280
-    const content = "x".repeat(279) + "₦";
-    expect(content.length).toBe(280);
+describe("SafetyFilter — no house length limit, only X's hard ceiling", () => {
+  it("does NOT warn on a long, multi-paragraph factual answer (no 280 cap)", () => {
+    // ~600 chars: well over the old 280, well under X's 25k ceiling.
+    const content =
+      "Some LGAs do get around ₦500M monthly from FAAC.\n\n" +
+      "x".repeat(550);
     const result = new SafetyFilter().check(content);
-    expect(result.warnings.some((w) => /exceeds 280/.test(w))).toBe(true);
+    expect(result.warnings.some((w) => /exceeds/.test(w))).toBe(false);
+  });
+
+  it("warns only when X's hard ceiling (25,000) is exceeded", () => {
+    const content = "x".repeat(25_001);
+    const result = new SafetyFilter().check(content);
+    expect(result.warnings.some((w) => /exceeds X's hard limit/.test(w))).toBe(true);
   });
 
   it("does not warn for a concise tweet", () => {
