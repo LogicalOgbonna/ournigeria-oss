@@ -41,7 +41,6 @@ export interface SocialsEnvConfig {
   SOCIALS_DRAFTER_INTERVAL_MS?: number;
   SOCIALS_DRAFTER_BACKLOG_CAP?: number;
   SOCIALS_AGENT_DAILY_BUDGET_USD?: number;
-  SOCIALS_AUTO_PUBLISH?: string;
   // Drafter + classifier model knobs (parameterized so operators can swap
   // models / temperatures via Infisical without redeploy).
   SOCIALS_DRAFTER_MODEL?: string;
@@ -132,7 +131,6 @@ export function validateEnv(
     SOCIALS_DRAFTER_INTERVAL_MS: num("SOCIALS_DRAFTER_INTERVAL_MS", 30_000),
     SOCIALS_DRAFTER_BACKLOG_CAP: num("SOCIALS_DRAFTER_BACKLOG_CAP", 50),
     SOCIALS_AGENT_DAILY_BUDGET_USD: num("SOCIALS_AGENT_DAILY_BUDGET_USD", 1),
-    SOCIALS_AUTO_PUBLISH: (config.SOCIALS_AUTO_PUBLISH as string) || undefined,
     SOCIALS_DRAFTER_MODEL:
       (config.SOCIALS_DRAFTER_MODEL as string) || "deepseek-v4-flash",
     SOCIALS_CLASSIFIER_MODEL:

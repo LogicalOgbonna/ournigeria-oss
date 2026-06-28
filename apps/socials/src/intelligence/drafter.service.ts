@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/commo
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@ournigeria/database";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
+import { SocialsSettingsService } from "../config/socials-settings.service.js";
 import { TelegramService } from "../notifications/telegram.service.js";
 import { DiscoveredTweetRepo } from "../platforms/twitter/roamer/discovered-tweet.repo.js";
 import { RoamStateRepo } from "../platforms/twitter/roamer/roam-state.repo.js";
@@ -36,7 +37,6 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
   private readonly intervalMs: number;
   private readonly backlogCap: number;
   private readonly dailyBudgetUsd: number;
-  private readonly autoPublish: boolean;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
   private dailyCost = 0;
@@ -51,12 +51,11 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     private readonly safety: SafetyFilter,
     private readonly queue: ReplyQueueService,
     private readonly telegram: TelegramService,
+    private readonly settings: SocialsSettingsService,
   ) {
     this.intervalMs = config.get("SOCIALS_DRAFTER_INTERVAL_MS")!;
     this.backlogCap = config.get("SOCIALS_DRAFTER_BACKLOG_CAP")!;
     this.dailyBudgetUsd = config.get("SOCIALS_AGENT_DAILY_BUDGET_USD")!;
-    this.autoPublish =
-      String(config.get("SOCIALS_AUTO_PUBLISH") ?? "") === "true";
   }
 
   onModuleInit(): void {
@@ -233,8 +232,9 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Zero-touch posting: when SOCIALS_AUTO_PUBLISH is on, publish drafts the
-   * agent rated "recommended" (confidence ≥ 0.8 and zero safety warnings)
+   * Zero-touch posting: when the `socials.auto_publish` setting is on (toggled
+   * from the dashboard, read live from the DB — no redeploy), publish drafts
+   * the agent rated "recommended" (confidence ≥ 0.8 and zero safety warnings)
    * immediately via the API — no dashboard click. Reply/quote that X blocks
    * fall back to a quote-by-URL inside the publisher, so this works on the
    * reply-restricted account. Failures are logged, never thrown (the drafter
@@ -245,7 +245,8 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     reviewStatus: string | null;
     postType: string;
   }): Promise<void> {
-    if (!this.autoPublish || draft.reviewStatus !== "recommended") return;
+    if (draft.reviewStatus !== "recommended") return;
+    if (!(await this.settings.getAutoPublish())) return;
     try {
       await this.queue.approve(draft.id, "auto");
       this.logger.log(`auto-published ${draft.postType} draft=${draft.id}`);
