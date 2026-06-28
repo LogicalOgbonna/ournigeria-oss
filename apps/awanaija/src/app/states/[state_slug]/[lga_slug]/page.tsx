@@ -171,6 +171,12 @@ export default async function LgaPage({
           <h3 className="font-heading text-base font-semibold leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
             {official.name || "Information Unavailable"}
           </h3>
+          {official.proposed && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              <AlertCircle className="w-3 h-3" />
+              Proposed · unverified
+            </span>
+          )}
           <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
             <span className="px-1.5 py-0.5 rounded bg-muted text-foreground font-medium">
               {official.party || "N/A"}

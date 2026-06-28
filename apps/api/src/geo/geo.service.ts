@@ -684,6 +684,7 @@ export class GeoService implements OnModuleInit {
       leadershipRole: pos.leadershipRole,
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
 
     const chairmanPosition = lga.officialPositions[0];
@@ -695,6 +696,7 @@ export class GeoService implements OnModuleInit {
       term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
       image: chairmanPosition.official.imageUrl,
       email: chairmanPosition.official.email,
+      proposed: false,
     } : null;
 
     // Fetch Senator
@@ -721,6 +723,7 @@ export class GeoService implements OnModuleInit {
       constituency: senatorPosition.constituency?.name || "Unknown Constituency",
       image: senatorPosition.official.imageUrl,
       email: senatorPosition.official.email,
+      proposed: false,
     } : null;
 
     // Fetch House of Reps Members
@@ -749,6 +752,7 @@ export class GeoService implements OnModuleInit {
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
 
     // Fetch State Assembly Members
@@ -777,7 +781,18 @@ export class GeoService implements OnModuleInit {
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
+
+    // Flag officials that only exist via an unapproved citizen "identify" submission
+    // (pending identify proposal) so the UI can badge them "Proposed · unverified".
+    // review_status alone is not a usable signal — most bulk-imported rows are also
+    // "unreviewed"; the pending identify proposal is the precise, self-clearing marker.
+    const cards = [chairman, senator, ...councilors, ...houseMembers, ...stateAssemblyMembers];
+    const proposedIds = await this.proposedOfficialIds(cards.flatMap(c => (c ? [c.id] : [])));
+    for (const card of cards) {
+      if (card && proposedIds.has(card.id)) card.proposed = true;
+    }
 
     const fiscal = lga.fiscalEntity;
     const faacYtd = fiscal?.faacLgaAllocations.reduce((sum, record) => {
@@ -820,6 +835,25 @@ export class GeoService implements OnModuleInit {
         name: ward.name,
       }))
     };
+  }
+
+  /**
+   * Given a set of official ids, return those that have a PENDING "identify" proposal
+   * (status submitted/under_review). Such officials were created by a citizen
+   * submission and not yet approved, so they should be surfaced as unverified.
+   */
+  private async proposedOfficialIds(officialIds: string[]): Promise<Set<string>> {
+    const ids = [...new Set(officialIds)];
+    if (ids.length === 0) return new Set();
+    const pending = await this.prisma.dataProposal.findMany({
+      where: { officialId: { in: ids }, status: { in: ["submitted", "under_review"] } },
+      select: { officialId: true, proposedValue: true },
+    });
+    const proposed = new Set<string>();
+    for (const p of pending) {
+      if ((p.proposedValue as any)?.type === "identify") proposed.add(p.officialId);
+    }
+    return proposed;
   }
 
   async getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
