@@ -47,6 +47,86 @@ export function xWeightedLength(s: string): number {
   return weight;
 }
 
+// ── Figure validation ──────────────────────────────────────────────────────
+// A cited figure like "₦597.7M" is a ROUNDED human-readable form of a precise
+// source value (597,700,500.99). The old check demanded the exact digit string
+// 597700000 appear verbatim in the tool JSON, so every correctly-rounded figure
+// false-flagged. Instead, treat a figure as supported when some source number
+// rounds to it at the figure's own precision (its significant figures).
+
+const SUFFIX_MULTIPLIER: Record<string, number> = {
+  k: 1e3,
+  m: 1e6,
+  b: 1e9,
+  t: 1e12,
+  thousand: 1e3,
+  million: 1e6,
+  billion: 1e9,
+  trillion: 1e12,
+};
+
+/** Significant figures in a numeric mantissa: "597.7"→4, "500"→1, "47"→2,
+ * "1.30"→3. Trailing zeros on an integer are not significant. */
+export function significantFigures(mantissa: string): number {
+  const cleaned = mantissa.replace(/,/g, "");
+  if (cleaned.includes(".")) {
+    const digits = cleaned.replace(".", "").replace(/^0+/, "");
+    return Math.max(digits.length, 1);
+  }
+  const digits = cleaned.replace(/^0+/, "").replace(/0+$/, "");
+  return Math.max(digits.length, 1);
+}
+
+/** Parse a cited money figure ("₦597.7M", "NGN 1,234", "₦2.5 billion") into its
+ * numeric value and the precision (significant figures) it was written to. */
+export function parseCitedFigure(
+  figure: string,
+): { value: number; sig: number } | null {
+  const numMatch = figure.match(/[\d,]*\.?\d+/);
+  if (!numMatch) return null;
+  const mantissa = numMatch[0].replace(/,/g, "");
+  const num = parseFloat(mantissa);
+  if (!Number.isFinite(num)) return null;
+
+  const lower = figure.toLowerCase();
+  let multiplier = 1;
+  const word = lower.match(/(trillion|billion|million|thousand)/);
+  if (word) {
+    multiplier = SUFFIX_MULTIPLIER[word[1]];
+  } else {
+    const letter = figure.match(/\d\s*([tbmk])\b/i);
+    if (letter) multiplier = SUFFIX_MULTIPLIER[letter[1].toLowerCase()];
+  }
+  return { value: num * multiplier, sig: significantFigures(mantissa) };
+}
+
+/** Every number present in the source text (commas + decimals tolerated). */
+export function extractSourceNumbers(text: string): number[] {
+  const nums: number[] = [];
+  for (const m of text.matchAll(/\d[\d,]*\.?\d*/g)) {
+    const n = parseFloat(m[0].replace(/,/g, ""));
+    if (Number.isFinite(n)) nums.push(n);
+  }
+  return nums;
+}
+
+/** True when some source number rounds to the cited figure at the figure's own
+ * precision — i.e. the figure is a correct rounding of a real source value.
+ * Unparseable figures return true (never false-flag what we can't read). */
+export function figureSupported(
+  figure: string,
+  sourceNumbers: number[],
+): boolean {
+  const parsed = parseCitedFigure(figure);
+  if (!parsed) return true;
+  const { value, sig } = parsed;
+  if (value === 0) return sourceNumbers.some((n) => Math.round(n) === 0);
+  const magnitude = Math.floor(Math.log10(Math.abs(value)));
+  const step = Math.pow(10, magnitude - (sig - 1));
+  const target = Math.round(value / step);
+  return sourceNumbers.some((n) => Math.round(n / step) === target);
+}
+
 @Injectable()
 export class SafetyFilter {
   private readonly logger = new Logger(SafetyFilter.name);
@@ -107,44 +187,14 @@ export class SafetyFilter {
 
     if (figures.length === 0) return warnings;
 
-    const toolText = JSON.stringify(toolResults);
+    const sourceNumbers = extractSourceNumbers(JSON.stringify(toolResults));
 
     for (const figure of figures) {
-      const normalized = figure
-        .replace(/[₦N,\s]/g, "")
-        .replace(/NGN/gi, "");
-
-      if (
-        !toolText.includes(normalized) &&
-        !this.fuzzyNumberMatch(normalized, toolText)
-      ) {
+      if (!figureSupported(figure, sourceNumbers)) {
         warnings.push(`Cited figure "${figure}" not found in source data`);
       }
     }
 
     return warnings;
-  }
-
-  private fuzzyNumberMatch(figure: string, sourceText: string): boolean {
-    // Extract the numeric part
-    const numMatch = figure.match(/[\d.]+/);
-    if (!numMatch) return false;
-
-    const num = parseFloat(numMatch[0]);
-    if (isNaN(num)) return false;
-
-    // Check for the number with different suffixes
-    const multipliers: Record<string, number> = {
-      T: 1e12,
-      B: 1e9,
-      M: 1e6,
-      K: 1e3,
-    };
-
-    const suffix = figure.match(/[TBMK]$/i)?.[0]?.toUpperCase();
-    const rawValue = suffix ? num * (multipliers[suffix] ?? 1) : num;
-
-    // Check if the raw value appears in source
-    return sourceText.includes(rawValue.toString());
   }
 }
