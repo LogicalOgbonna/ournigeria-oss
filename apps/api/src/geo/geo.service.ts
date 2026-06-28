@@ -3,6 +3,7 @@ import { PrismaService } from "@ournigeria/database";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { formatNaira } from "../lib/format";
+import { computeBudgetFigures } from "./budget-breakdown";
 import { buildTopFunctionSectorRows } from "./sector-expenditure";
 
 /** Lower = preferred headline row when multiple `IgrRecord`s share the same fiscal year (FY over partials). */
@@ -351,11 +352,7 @@ export class GeoService implements OnModuleInit {
     if (latestBudget) {
       const fy = latestBudget.fiscalYear;
       const baseWhere = { entityCode: state.code, fiscalYear: fy };
-      const [budgetSum, recurrentSumAgg, capitalSumAgg] = await Promise.all([
-        this.prisma.budgetLineItem.aggregate({
-          where: baseWhere,
-          _sum: { approvedBudget: true },
-        }),
+      const [recurrentSumAgg, capitalSumAgg] = await Promise.all([
         this.prisma.budgetLineItem.aggregate({
           where: { ...baseWhere, budgetType: "recurrent_expenditure" },
           _sum: { approvedBudget: true },
@@ -366,36 +363,15 @@ export class GeoService implements OnModuleInit {
         }),
       ]);
 
-      const sumValue = budgetSum._sum.approvedBudget;
-      if (sumValue) {
-        budgetTotal = `₦${(Number(sumValue) / 1_000_000_000_000).toFixed(2)}T`;
-      }
-
-      const recurrentNum = Number(recurrentSumAgg._sum.approvedBudget) || 0;
-      const capitalNum = Number(capitalSumAgg._sum.approvedBudget) || 0;
-      recurrentExpenditure = formatNaira(recurrentNum);
-      capitalExpenditure = formatNaira(capitalNum);
-
-      const expTotal = recurrentNum + capitalNum;
-      const capitalPct =
-        expTotal > 0 ? Number(((capitalNum / expTotal) * 100).toFixed(1)) : 0;
-      const recurrentPct =
-        expTotal > 0 ? Number(((recurrentNum / expTotal) * 100).toFixed(1)) : 0;
-
-      budgetBreakdown = {
-        total: budgetTotal,
-        capital: {
-          amount: capitalExpenditure,
-          percentage: capitalPct,
-          color: "bg-emerald-500",
-        },
-        recurrent: {
-          amount: recurrentExpenditure,
-          percentage: recurrentPct,
-          color: "bg-amber-500",
-        },
-        explanation: `Approved budget line items for FY ${fy}: capital expenditure (projects, infrastructure) versus recurrent expenditure (running costs and salaries), from published state appropriation data.`,
-      };
+      const figures = computeBudgetFigures(
+        Number(recurrentSumAgg._sum.approvedBudget) || 0,
+        Number(capitalSumAgg._sum.approvedBudget) || 0,
+        fy,
+      );
+      budgetTotal = figures.budgetTotal;
+      recurrentExpenditure = figures.recurrentExpenditure;
+      capitalExpenditure = figures.capitalExpenditure;
+      budgetBreakdown = figures.breakdown;
 
       sectorsPayload = await buildTopFunctionSectorRows(this.prisma, state.code, fy);
     }
