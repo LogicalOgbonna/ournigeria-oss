@@ -25,6 +25,11 @@ import {
   TwitterSearchService,
 } from "./twitter-search.service.js";
 
+/** Consecutive SearchTimeline 404s before we give up on the op-hash and ask
+ * for a re-capture. A single 404 is usually a transient transaction-id issue,
+ * so we keep the hash and cool down instead of wiping it on the first failure. */
+const HASH_STALE_CLEAR_THRESHOLD = 3;
+
 export interface RoamConfig {
   windowMs: number;
   cooldownMs: number;
@@ -437,14 +442,25 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
       };
     }
     if (err instanceof FetchHashStaleError) {
-      await this.sessions.clearOpHash(session.id);
-      await this.telegram.notify(
-        `🔁 <b>SearchTimeline hash rotated</b> for <code>${session.userName}</code>. Re-capture in extension to refresh.`,
-      );
+      // A SearchTimeline 404 is usually a transient x-client-transaction-id
+      // problem, NOT a rotated op-hash (the same hash returns 200 moments
+      // later). Cool the session down and KEEP the hash; only discard it (and
+      // ask for a re-capture) after repeated failures, so one bad request
+      // doesn't throw away a working hash and force a needless re-capture.
+      const updated = await this.sessions.release(session.id, {
+        cooldownMs: this.cfg.rateLimitCooldownMs,
+        errorMessage: err.message,
+      });
+      if (updated.consecutiveErrors >= HASH_STALE_CLEAR_THRESHOLD) {
+        await this.sessions.clearOpHash(session.id);
+        await this.telegram.notify(
+          `🔁 <b>SearchTimeline hash stale</b> for <code>${session.userName}</code> after ${updated.consecutiveErrors} failures. Re-capture in extension to refresh.`,
+        );
+      }
       return {
         stopReason: "hash_stale",
         errorMessage: err.message,
-        sessionAlreadyMarked: false,
+        sessionAlreadyMarked: true,
       };
     }
     if (err instanceof FetchRateLimitError) {
