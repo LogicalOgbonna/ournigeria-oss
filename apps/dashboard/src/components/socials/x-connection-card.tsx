@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Twitter, CheckCircle2, AlertTriangle, Link2 } from "lucide-react";
 import { socialsFetch } from "@/lib/api";
 
@@ -28,6 +29,8 @@ export function XConnectionCard() {
   const [status, setStatus] = useState<XStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
+  const [savingAuto, setSavingAuto] = useState(false);
   const [banner, setBanner] = useState<
     { kind: "success" | "error"; text: string } | null
   >(null);
@@ -38,6 +41,35 @@ export function XConnectionCard() {
       .then((s: XStatus) => setStatus(s))
       .catch(() => setStatus(null))
       .finally(() => setLoading(false));
+    socialsFetch("/v1/x-oauth/auto-publish")
+      .then((r: { enabled: boolean }) => setAutoPublish(r.enabled))
+      .catch(() => setAutoPublish(null));
+  }, []);
+
+  const toggleAutoPublish = useCallback(async (next: boolean) => {
+    setSavingAuto(true);
+    setAutoPublish(next); // optimistic
+    try {
+      const r: { enabled: boolean } = await socialsFetch(
+        "/v1/x-oauth/auto-publish",
+        { method: "POST", body: JSON.stringify({ enabled: next }) },
+      );
+      setAutoPublish(r.enabled);
+      setBanner({
+        kind: "success",
+        text: r.enabled
+          ? "Auto-publish ON — recommended drafts post without approval."
+          : "Auto-publish OFF — every draft waits for your approval.",
+      });
+    } catch (e) {
+      setAutoPublish(!next); // revert
+      setBanner({
+        kind: "error",
+        text: e instanceof Error ? e.message : "Could not update auto-publish.",
+      });
+    } finally {
+      setSavingAuto(false);
+    }
   }, []);
 
   // Read ?x_connected / ?x_error left by the callback redirect, surface it,
@@ -165,6 +197,29 @@ export function XConnectionCard() {
             )}
           </div>
         </div>
+
+        {status?.connected && (
+          <div className="mt-4 flex items-start justify-between gap-4 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">Auto-publish recommended drafts</p>
+              <p className="text-xs text-muted-foreground">
+                When on, high-confidence drafts (no safety warnings) post to X
+                automatically — no approval needed. Off keeps every draft in the
+                review queue. Replies X blocks are posted as quote-tweets.
+              </p>
+            </div>
+            {autoPublish === null ? (
+              <Skeleton className="h-5 w-9 shrink-0" />
+            ) : (
+              <Switch
+                checked={autoPublish}
+                onCheckedChange={toggleAutoPublish}
+                disabled={savingAuto}
+                aria-label="Toggle auto-publish"
+              />
+            )}
+          </div>
+        )}
 
         {banner && (
           <div
