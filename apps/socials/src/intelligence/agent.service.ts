@@ -35,7 +35,7 @@ export interface AgentClassification {
 }
 
 export interface AgentResult {
-  action: "quote" | "reply" | "skip";
+  action: "quote" | "reply" | "retweet" | "skip";
   text: string;
   confidence: number;
   reasoning: string;
@@ -46,7 +46,7 @@ export interface AgentResult {
 }
 
 const AgentResultJsonSchema = z.object({
-  action: z.enum(["quote", "reply", "skip"]),
+  action: z.enum(["quote", "reply", "retweet", "skip"]),
   text: z.string(),
   confidence: z.number().min(0).max(1),
   reasoning: z.string(),
@@ -269,7 +269,12 @@ Your job:
       return null;
     }
 
-    if (safe.data.action !== "skip" && safe.data.text.length === 0) {
+    // retweet carries no text (pure amplification); only reply/quote require it.
+    if (
+      safe.data.action !== "skip" &&
+      safe.data.action !== "retweet" &&
+      safe.data.text.length === 0
+    ) {
       this.logger.warn(
         `agent returned ${safe.data.action} but empty text; treating as skip`,
       );

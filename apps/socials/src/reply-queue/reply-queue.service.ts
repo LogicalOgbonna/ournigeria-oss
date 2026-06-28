@@ -9,7 +9,7 @@ import { Prisma } from "@prisma/client";
 import { ApiResponseError } from "twitter-api-v2";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
 
-export type DraftAction = "reply" | "quote";
+export type DraftAction = "reply" | "quote" | "retweet";
 
 /** Token is missing or expired — needs (re)authorization. */
 const X_AUTH_EXPIRED =
@@ -149,8 +149,9 @@ export class ReplyQueueService {
         inReplyToId: data.action === "reply" ? tweetId : null,
         inReplyToText: data.originalTweet.text.slice(0, 500),
         inReplyToUser: data.originalTweet.authorScreenName,
-        // Quote-specific
-        quotedTweetId: data.action === "quote" ? tweetId : null,
+        // Quote/retweet target — both engage the source tweet by id.
+        quotedTweetId:
+          data.action === "quote" || data.action === "retweet" ? tweetId : null,
         // Audit + preview
         originalTweetSnapshot: data.originalTweet as unknown as Prisma.JsonObject,
         safetyWarnings: data.safetyWarnings as unknown as Prisma.JsonArray,
@@ -216,20 +217,31 @@ export class ReplyQueueService {
   async approve(id: string, adminId: string) {
     const post = await this.prisma.socialPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException("Post not found");
-    if (post.postType !== "reply" && post.postType !== "quote") {
+    if (
+      post.postType !== "reply" &&
+      post.postType !== "quote" &&
+      post.postType !== "retweet"
+    ) {
       throw new Error(
-        `Can only approve reply or quote drafts, got ${post.postType}`,
+        `Can only approve reply, quote, or retweet drafts, got ${post.postType}`,
       );
     }
 
-    let result;
+    let result: { id: string };
     try {
-      if (post.postType === "reply") {
+      if (post.postType === "retweet") {
+        const target = post.quotedTweetId ?? post.inReplyToId;
+        if (!target) throw new Error("retweet draft missing target tweet id");
+        result = await this.publisher.publishRetweet(target);
+      } else if (post.postType === "reply") {
         if (!post.inReplyToId)
           throw new Error("reply draft missing inReplyToId");
+        // Pass the author handle so an engagement-restricted reply can fall
+        // back to a quote-by-URL (which X allows) instead of failing.
         result = await this.publisher.publishReply(
           post.inReplyToId,
           post.content,
+          post.inReplyToUser ?? undefined,
         );
       } else {
         if (!post.quotedTweetId)
@@ -237,6 +249,7 @@ export class ReplyQueueService {
         result = await this.publisher.publishQuote(
           post.quotedTweetId,
           post.content,
+          post.inReplyToUser ?? undefined,
         );
       }
     } catch (err) {

@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/commo
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@ournigeria/database";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
+import { SocialsSettingsService } from "../config/socials-settings.service.js";
 import { TelegramService } from "../notifications/telegram.service.js";
 import { DiscoveredTweetRepo } from "../platforms/twitter/roamer/discovered-tweet.repo.js";
 import { RoamStateRepo } from "../platforms/twitter/roamer/roam-state.repo.js";
@@ -50,6 +51,7 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     private readonly safety: SafetyFilter,
     private readonly queue: ReplyQueueService,
     private readonly telegram: TelegramService,
+    private readonly settings: SocialsSettingsService,
   ) {
     this.intervalMs = config.get("SOCIALS_DRAFTER_INTERVAL_MS")!;
     this.backlogCap = config.get("SOCIALS_DRAFTER_BACKLOG_CAP")!;
@@ -205,7 +207,7 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       tweetCreatedAt: tweet.tweetCreatedAt.toISOString(),
     };
 
-    await this.queue.createDraft({
+    const draft = await this.queue.createDraft({
       action: result.action,
       originalTweet: snapshot,
       content: result.text,
@@ -225,6 +227,34 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `drafted ${result.action} for tweet=${tweet.id} topic="${topic.name}" cost=$${result.costUsd.toFixed(4)} (daily=$${this.dailyCost.toFixed(2)})`,
     );
+
+    await this.maybeAutoPublish(draft);
+  }
+
+  /**
+   * Zero-touch posting: when the `socials.auto_publish` setting is on (toggled
+   * from the dashboard, read live from the DB — no redeploy), publish drafts
+   * the agent rated "recommended" (confidence ≥ 0.8 and zero safety warnings)
+   * immediately via the API — no dashboard click. Reply/quote that X blocks
+   * fall back to a quote-by-URL inside the publisher, so this works on the
+   * reply-restricted account. Failures are logged, never thrown (the drafter
+   * loop must keep running). Default off → existing manual-review behavior.
+   */
+  private async maybeAutoPublish(draft: {
+    id: string;
+    reviewStatus: string | null;
+    postType: string;
+  }): Promise<void> {
+    if (draft.reviewStatus !== "recommended") return;
+    if (!(await this.settings.getAutoPublish())) return;
+    try {
+      await this.queue.approve(draft.id, "auto");
+      this.logger.log(`auto-published ${draft.postType} draft=${draft.id}`);
+    } catch (e) {
+      this.logger.warn(
+        `auto-publish failed for draft=${draft.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
   }
 
   private async toolExecutor(

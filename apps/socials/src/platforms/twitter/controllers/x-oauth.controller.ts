@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -12,6 +13,7 @@ import type { Response } from "express";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
 import { XOauthService, XOauthError } from "../x-oauth.service.js";
+import { SocialsSettingsService } from "../../../config/socials-settings.service.js";
 
 /**
  * Dashboard-driven "Connect X account" OAuth2 flow.
@@ -26,7 +28,10 @@ import { XOauthService, XOauthError } from "../x-oauth.service.js";
 export class XOauthController {
   private readonly logger = new Logger(XOauthController.name);
 
-  constructor(private readonly xOauth: XOauthService) {}
+  constructor(
+    private readonly xOauth: XOauthService,
+    private readonly settings: SocialsSettingsService,
+  ) {}
 
   @Post("start")
   @UseGuards(AdminAuthGuard)
@@ -77,5 +82,25 @@ export class XOauthController {
   async disconnect(): Promise<{ ok: true }> {
     await this.xOauth.disconnect();
     return { ok: true };
+  }
+
+  @Get("auto-publish")
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({
+    summary: "Whether recommended drafts auto-publish without approval",
+  })
+  async getAutoPublish(): Promise<{ enabled: boolean }> {
+    return { enabled: await this.settings.getAutoPublish() };
+  }
+
+  @Post("auto-publish")
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({
+    summary: "Toggle auto-publish of recommended drafts (DB-backed, live)",
+  })
+  async setAutoPublish(
+    @Body("enabled") enabled: boolean,
+  ): Promise<{ enabled: boolean }> {
+    return { enabled: await this.settings.setAutoPublish(enabled === true) };
   }
 }
