@@ -90,6 +90,19 @@ export class ReplyQueueController {
     return this.service.reject(id, req.adminId);
   }
 
+  @Post(":id/mark-posted")
+  @ApiOperation({
+    summary:
+      "Mark a draft as posted manually (via X Web Intent) without calling the X API",
+  })
+  async markPosted(
+    @Param("id") id: string,
+    @Req() req: AuthedRequest,
+    @Body("externalId") externalId?: string,
+  ) {
+    return this.service.markPosted(id, req.adminId, externalId);
+  }
+
   @Patch(":id")
   @ApiOperation({ summary: "Edit a draft's text" })
   async edit(@Param("id") id: string, @Body("content") content: string) {

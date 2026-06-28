@@ -13,6 +13,7 @@ interface Councilor {
   ward: string;
   leadershipRole?: string | null;
   image?: string | null;
+  proposed?: boolean;
 }
 
 interface Ward {
@@ -77,6 +78,11 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {councilor.name}
+                      {councilor.proposed && (
+                        <span className="ml-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 align-middle">
+                          Proposed
+                        </span>
+                      )}
                     </p>
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       {councilor.leadershipRole ? (

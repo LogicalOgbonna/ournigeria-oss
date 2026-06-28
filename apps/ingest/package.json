@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "infisical run --env dev --watch -- nest start",
+    "dev": "infisical run --env dev --path /ingest --watch -- nest start",
     "build": "nest build",
-    "start": "infisical run --env dev -- nest start",
-    "start:prod": "infisical run --env dev -- node dist/main",
+    "start": "infisical run --env dev --path /ingest -- nest start",
+    "start:prod": "infisical run --env dev --path /ingest -- node dist/main",
     "upload-to-s3": "tsx src/scripts/upload-to-s3.ts",
     "test": "vitest run"
   },

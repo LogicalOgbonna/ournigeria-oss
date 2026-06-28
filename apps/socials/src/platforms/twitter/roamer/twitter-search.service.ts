@@ -262,6 +262,14 @@ function extractTweet(entry: unknown): RawTweet | null {
   )?.user_results?.result as
     | {
         rest_id?: string;
+        // X moved name/screen_name out of `legacy` into a nested `core`
+        // object, and the avatar into `avatar.image_url`. Read both so the
+        // parser survives whichever schema the session is served.
+        core?: {
+          screen_name?: string;
+          name?: string;
+        };
+        avatar?: { image_url?: string };
         legacy?: {
           screen_name?: string;
           name?: string;
@@ -273,17 +281,24 @@ function extractTweet(entry: unknown): RawTweet | null {
       }
     | undefined;
   const userLegacy = userResult?.legacy;
-  if (!legacy || !userLegacy) return null;
+  const userCore = userResult?.core;
+  if (!legacy || !userResult) return null;
 
   const isRetweet = !!legacy.retweeted_status_result;
 
   const createdAt = legacy.created_at ? new Date(legacy.created_at) : null;
   if (!createdAt || isNaN(createdAt.getTime())) return null;
 
-  // X serves a "_normal" 48px avatar in profile_image_url_https; upgrade to
-  // _bigger (~73px) for the dashboard preview, which closer to Twitter web.
-  const profileImageUrl = userLegacy.profile_image_url_https
-    ? userLegacy.profile_image_url_https.replace("_normal.", "_bigger.")
+  const screenName = userCore?.screen_name ?? userLegacy?.screen_name ?? "";
+  const name = userCore?.name ?? userLegacy?.name ?? "";
+
+  // X serves a "_normal" 48px avatar; upgrade to _bigger (~73px) for the
+  // dashboard preview, closer to Twitter web. New schema exposes it at
+  // avatar.image_url; older one at legacy.profile_image_url_https.
+  const rawAvatar =
+    userResult.avatar?.image_url ?? userLegacy?.profile_image_url_https ?? null;
+  const profileImageUrl = rawAvatar
+    ? rawAvatar.replace("_normal.", "_bigger.")
     : null;
 
   return {
@@ -298,11 +313,11 @@ function extractTweet(entry: unknown): RawTweet | null {
     isReply: !!legacy.in_reply_to_status_id_str,
     isRetweet: isRetweet,
     tweetCreatedAt: createdAt,
-    authorRestId: userResult.rest_id ?? userLegacy.id_str ?? "",
-    authorScreenName: userLegacy.screen_name ?? "",
-    authorName: userLegacy.name ?? "",
-    authorBio: userLegacy.description ?? "",
-    authorFollowers: userLegacy.followers_count ?? 0,
+    authorRestId: userResult.rest_id ?? userLegacy?.id_str ?? "",
+    authorScreenName: screenName,
+    authorName: name,
+    authorBio: userLegacy?.description ?? "",
+    authorFollowers: userLegacy?.followers_count ?? 0,
     authorProfileImageUrl: profileImageUrl,
   };
 }

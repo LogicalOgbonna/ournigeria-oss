@@ -52,19 +52,15 @@ verify_traefik_switch() {
 # Curls through Traefik's entrypoint to confirm routing is live.
 # If routing fails, restarts Traefik and retries.
 verify_traefik_routing() {
-  local host_header="$1"   # e.g. api.example.invalid
+  local host_header="$1"   # e.g. api.ournigeria.ng
   local health_path="$2"   # e.g. /health
   local max_wait="${3:-15}"
-
-  # NOTE: deploy.sh runs inside the webhook container, so we reach
-  # Traefik via its Docker service name, not localhost.
-  local traefik_url="http://traefik:80"
 
   echo "Verifying Traefik routes to $host_header (up to ${max_wait}s)..."
 
   # First attempt: wait for file watch to pick up the change
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
+    if curl -sfk --connect-to "$host_header:443:traefik:443" "https://$host_header$health_path" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after ${i}s"
       return 0
     fi
@@ -77,7 +73,7 @@ verify_traefik_routing() {
 
   # Wait for Traefik to come back up and route correctly
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
+    if curl -sfk --connect-to "$host_header:443:traefik:443" "https://$host_header$health_path" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after restart (${i}s)"
       return 0
     fi
@@ -132,9 +128,9 @@ fi
 
 # ─── Determine environment from branch ────────────────────────────
 case "$BRANCH" in
-  main)    DEPLOY_ENV="prod" ;;
-  staging) DEPLOY_ENV="staging" ;;
-  *)       echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
+  main|prod) DEPLOY_ENV="prod" ;;
+  staging)   DEPLOY_ENV="staging" ;;
+  *)         echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
 esac
 
 # ─── Deploy lock (flock) ──────────────────────────────────────────
@@ -148,6 +144,13 @@ fi
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Load env (Telegram notify creds + ACTIVE_STACK) BEFORE the first notify, so the
+# "Deploy started"/staging-complete messages can actually send. Previously .env was
+# sourced only at the blue-green step below — after those notifies — so they silently
+# no-op'd (notify() guards on TELEGRAM_BOT_TOKEN/TELEGRAM_DEPLOY_CHAT_ID being set).
+# shellcheck source=/dev/null
+source "$ENV_FILE"
 
 echo "═══════════════════════════════════════════════════"
 echo "  DEPLOY STARTED"
@@ -179,9 +182,7 @@ Duration: $(( DEPLOY_END - DEPLOY_START ))s"
   exit 0
 fi
 
-# ─── Read current active stack ─────────────────────────────────────
-# shellcheck source=/dev/null
-source "$ENV_FILE"
+# ─── Read current active stack (env already sourced above) ─────────
 ACTIVE="${ACTIVE_STACK:-blue}"
 if [ "$ACTIVE" = "blue" ]; then
   STANDBY="green"
@@ -335,7 +336,7 @@ Tag: \`$NEW_IMAGE_TAG\`"
 }
 
 # Verify Traefik actually routes traffic to the new API backend
-verify_traefik_routing "api.example.invalid" "/health" 15 || {
+verify_traefik_routing "api.ournigeria.ng" "/health" 15 || {
   echo "CRITICAL: Traefik routing failed. Rolling back config..."
   cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
   log_deploy "traefik_routing_failed" "rollback"

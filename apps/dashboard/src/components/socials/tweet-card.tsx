@@ -33,6 +33,8 @@ export interface TweetLikeData {
   likeCount?: number;
   quoteCount?: number;
   verified?: boolean;
+  /** Permalink to the tweet on X. When set, the timestamp links out. */
+  tweetUrl?: string | null;
 }
 
 interface TweetCardProps {
@@ -104,9 +106,22 @@ export function TweetCard({
             {tweet.tweetCreatedAt ? (
               <>
                 <span className="text-[#536471] dark:text-[#71767b]">·</span>
-                <span className="text-[#536471] dark:text-[#71767b] text-sm">
-                  {isDraft ? "now" : formatTime(tweet.tweetCreatedAt)}
-                </span>
+                {tweet.tweetUrl && !isDraft ? (
+                  <a
+                    href={tweet.tweetUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[#536471] dark:text-[#71767b] text-sm hover:underline hover:text-[#1d9bf0]"
+                    title="View on X"
+                  >
+                    {formatTime(tweet.tweetCreatedAt)}
+                  </a>
+                ) : (
+                  <span className="text-[#536471] dark:text-[#71767b] text-sm">
+                    {isDraft ? "now" : formatTime(tweet.tweetCreatedAt)}
+                  </span>
+                )}
               </>
             ) : null}
           </div>

@@ -5,7 +5,7 @@ on:
     branches: [main, staging, prod]
     tags: ['v*']
   pull_request:
-    branches: [main]
+    branches: [main, staging, prod]
   workflow_dispatch:
     inputs:
       build_all:
@@ -91,10 +91,26 @@ jobs:
     if: needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     strategy:
+      # Don't let one app's build failure (e.g. socials OOM under QEMU) cancel the
+      # healthy legs and skip the deploy. Each app builds/deploys independently.
+      fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.detect-changes.outputs.matrix) }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v5
+
+      # socials' multi-arch image (amd64 + emulated arm64) plus the GHA layer
+      # cache (cache-to mode=max writes every layer of both arches) overflows the
+      # ~14GB free disk on ubuntu-latest → "No space left on device" during build.
+      # api/ingest are lighter and slip under the limit; socials is the one that
+      # tips over. Reclaim ~25GB of preinstalled toolchains this job never uses.
+      - name: Free up runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            "${AGENT_TOOLSDIRECTORY:-/opt/hostedtoolcache}"
+          sudo docker image prune --all --force || true
+          df -h /
 
       - uses: docker/setup-qemu-action@v3
 
@@ -140,7 +156,11 @@ jobs:
 
   deploy:
     needs: [detect-changes, build]
+    # !cancelled() lets the deploy webhook fire even if SOME build legs failed
+    # (e.g. socials OOMs under QEMU) — the box's blue/green keeps the old image
+    # for any app that didn't produce a fresh one, while healthy apps roll forward.
     if: >-
+      !cancelled() &&
       github.event_name == 'push' &&
       needs.detect-changes.outputs.any_changed == 'true'
     runs-on: ubuntu-latest

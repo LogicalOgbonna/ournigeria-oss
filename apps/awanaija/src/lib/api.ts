@@ -407,6 +407,9 @@ export interface Official {
   education: string | null;
   biography: string | null;
   completenessScore: number;
+  // True when this record exists only via an unapproved citizen "identify" submission
+  // (a pending identify proposal). Present from getByIdOrSlug.
+  proposed?: boolean;
   positions: Position[];
   proposalCount: number;
   proposals: Proposal[];

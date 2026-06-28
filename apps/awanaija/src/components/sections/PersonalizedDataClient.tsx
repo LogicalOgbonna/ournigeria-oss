@@ -326,7 +326,18 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
-  
+
+  // Close the location/date dropdowns on scroll so they don't float over the page.
+  useEffect(() => {
+    if (!dropdownOpen && !dateDropdownOpen) return;
+    const close = () => {
+      setDropdownOpen(false);
+      setDateDropdownOpen(false);
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [dropdownOpen, dateDropdownOpen]);
+
   const [faacPeriods, setFaacPeriods] = useState<{ years: number[], monthsByYear: Record<number, number[]> }>(initialFaacPeriods);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(initialMonth);
   const [selectedYear, setSelectedYear] = useState<number | null>(initialYear);
@@ -561,19 +572,31 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   return (
     <>
     {/* Personalization Top Bar */}
-    <div id="personalized-data-section" className="border-y border-border/50 bg-background/95 backdrop-blur-sm relative z-30 -mt-20 lg:-mt-32">
+    <div id="personalized-data-section" className="border-y border-border/60 dark:border-white/30 bg-background/95 backdrop-blur-sm relative z-30 lg:-mt-32">
       <KitContainer>
-        {/* Top: Viewing Status */}
-        <div className="flex items-center justify-between py-4 border-b border-border/50">
+        {/* Coverage stats first */}
+        {children}
+
+        {/* Then: Viewing Status + location/date selectors.
+            Divider is white-ish in dark mode so the section boundary stays visible
+            against the near-black background (border-border is dark-on-dark there). */}
+        <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               <span className="hidden sm:inline">You are viewing</span>
               <span className="sm:hidden">Viewing</span>
             </span>
-            <span className="font-semibold text-sm text-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(!dropdownOpen);
+                setDateDropdownOpen(false);
+              }}
+              className="font-semibold text-sm text-foreground text-left transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
+            >
               {data.state} · {data.lga} · {data.ward}
-            </span>
+            </button>
           </div>
           
           <div className="flex items-center gap-3">
@@ -731,9 +754,6 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
             </div>
           </div>
         </div>
-
-        {/* Bottom: Stats */}
-        {children}
       </KitContainer>
     </div>
 
@@ -807,8 +827,8 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
           ) : (
           <div className="grid items-start gap-10 lg:grid-cols-12">
             <div className="lg:col-span-5 flex flex-col gap-16">
-              {/* LGA Financials */}
-              <div className="rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
+              {/* LGA Financials — after the officials card on mobile, before it on desktop */}
+              <div className="order-2 lg:order-1 rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                     <MapPin className="h-6 w-6" />
@@ -847,8 +867,8 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 </div>
               </div>
 
-              {/* Officials */}
-              <div className="rounded-[1.75rem] border border-border/60 bg-card/50 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
+              {/* Officials — "Know Your Leaders" comes first on mobile */}
+              <div className="order-1 lg:order-2 rounded-[1.75rem] border border-border/60 bg-card/50 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold">
                     Know Your Leaders
@@ -1239,7 +1259,7 @@ function LgLineItems({ data }: { data: ProfileViewData }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-24">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-12">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -1268,7 +1288,7 @@ function NeighbourComparison({ data }: { data: ProfileViewData }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-24">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-12">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -1337,20 +1357,20 @@ function TakeAction({ data }: { data: ProfileViewData }) {
           </div>
 
           {/* Card 3: Join */}
-          <div className="group relative overflow-hidden rounded-[2rem] border border-violet-200/60 bg-gradient-to-b from-violet-50/80 to-violet-100/50 dark:border-violet-900/30 dark:from-violet-950/20 dark:to-violet-900/10 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-200/50 text-violet-700 dark:bg-violet-900/50 dark:text-violet-400 transition-transform group-hover:scale-110">
+          <div className="group relative overflow-hidden rounded-[2rem] border border-emerald-200/60 bg-gradient-to-b from-emerald-50/80 to-emerald-100/50 dark:border-emerald-900/30 dark:from-emerald-950/20 dark:to-emerald-900/10 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200/50 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 transition-transform group-hover:scale-110">
               <Users className="h-6 w-6" />
             </div>
-            <div className="mb-3 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-violet-700/80 dark:text-violet-400/80">
+            <div className="mb-3 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-emerald-700/80 dark:text-emerald-400/80">
               Join a circle
             </div>
-            <h3 className="mb-4 font-[family-name:var(--font-heading)] text-2xl font-bold text-violet-950 dark:text-violet-100 leading-tight">
+            <h3 className="mb-4 font-[family-name:var(--font-heading)] text-2xl font-bold text-emerald-950 dark:text-emerald-100 leading-tight">
               Join others in your ward
             </h3>
-            <p className="mb-8 text-[15px] leading-relaxed text-violet-900/80 dark:text-violet-200/70">
+            <p className="mb-8 text-[15px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/70">
               148 neighbours in {data.ward} are already tracking these projects — join the circle.
             </p>
-            <Button asChild className="w-full sm:w-auto rounded-xl bg-violet-700 text-white hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-700 shadow-sm transition-all group-hover:pr-6 relative overflow-hidden">
+            <Button asChild className="w-full sm:w-auto rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 shadow-sm transition-all group-hover:pr-6 relative overflow-hidden">
               <a href="https://t.me/+ZFpykF_Ka4RjMGQ0" target="_blank" rel="noopener noreferrer">
                 <span className="relative z-10 flex items-center">
                   Join circle <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

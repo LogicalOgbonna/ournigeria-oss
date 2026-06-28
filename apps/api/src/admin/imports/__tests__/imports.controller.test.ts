@@ -4,7 +4,7 @@ import { listImporters } from "../importer.registry";
 import { ImportsController } from "../imports.controller";
 
 describe("imports registry wiring", () => {
-  it("registers the party importers and the state-assembly reconciliation importer", () => {
+  it("registers the party importers and the state-assembly importers", () => {
     const names = listImporters()
       .map((i) => i.name)
       .sort();
@@ -12,6 +12,7 @@ describe("imports registry wiring", () => {
       "party-candidates",
       "party-officers",
       "party-profiles",
+      "state-assembly-members",
       "state-assembly-reconciliation",
     ]);
   });

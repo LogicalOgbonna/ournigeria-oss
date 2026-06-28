@@ -34,6 +34,7 @@ interface TopicWriteBody {
 
 interface TestQueryBody {
   query: string;
+  cursor?: string | null;
 }
 
 const VALID_DOMAINS = ["budget", "corruption", "faac", "govspend", "general"];
@@ -113,7 +114,7 @@ export class TopicsController {
     try {
       const page = await this.search.fetchSearchTimelinePage({
         query: body.query,
-        cursor: null,
+        cursor: body.cursor ?? null,
         sessionId: session.id,
         opHash: session.searchTimelineOpHash!,
       });

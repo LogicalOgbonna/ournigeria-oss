@@ -9,7 +9,7 @@ import { Prisma } from "@prisma/client";
 import { ApiResponseError } from "twitter-api-v2";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
 
-export type DraftAction = "reply" | "quote";
+export type DraftAction = "reply" | "quote" | "retweet";
 
 /** Token is missing or expired — needs (re)authorization. */
 const X_AUTH_EXPIRED =
@@ -20,14 +20,57 @@ const X_NO_WRITE =
   "The X app can read but not post (403). In the X Developer Portal set User authentication → App permissions to 'Read and write', then re-authorize (`pnpm x-oauth-authorize`).";
 
 /**
- * If a publish failure is an X authorization/permission problem, return the
- * actionable message to surface as a 422 (vs a content/transient error, which
- * returns null and bubbles up as a 500). Distinguishes 403 "no write
- * permission" from 401/400 "expired/missing" so the dashboard shows the right fix.
+ * X refused the reply/quote because of an engagement restriction (403). Either
+ * the bot account is reply-limited by X (anti-spam state new/automated accounts
+ * land in — it can post originals and reply to itself, but not engage strangers
+ * who haven't engaged it) or the author limited who can reply. NOT a token,
+ * app-permission, or content problem — nothing in the dashboard fixes it. The
+ * account has to be un-restricted on X.
+ */
+const X_REPLY_RESTRICTED =
+  "X won't let this account reply to or quote this tweet — \"not been mentioned or otherwise engaged by the author.\" This is an X-side restriction on the bot account (reply-limited) or the author's reply settings, not a token/permission/length issue and not fixable from the dashboard. The account needs to be un-restricted on X (check x.com logged in as the bot for a restriction notice; verify phone; let it age).";
+
+/** X rejected the text as too long for the account's tier (403/400). */
+const X_TOO_LONG =
+  "X rejected this tweet as too long for the account's tier. Shorten it (₦ and other symbols can count as 2 characters), or post from an X Premium account for the higher limit.";
+
+/** X rejected duplicate content (403). */
+const X_DUPLICATE =
+  "X rejected this as duplicate content — the same text was already posted. Edit the draft before publishing.";
+
+/** Lower-cased detail/body of an X API error, for reason matching. */
+function xErrorDetail(err: ApiResponseError): string {
+  const data = (err as { data?: { detail?: string } }).data;
+  return `${data?.detail ?? ""} ${err.message ?? ""} ${JSON.stringify(
+    data ?? {},
+  )}`.toLowerCase();
+}
+
+/**
+ * If a publish failure is an X authorization/permission/restriction problem,
+ * return the actionable message to surface as a 422 (vs a content/transient
+ * error, which returns null and bubbles up as a 500).
+ *
+ * A bare 403 is NOT always "no write permission" — X also 403s for reply/quote
+ * engagement restrictions, over-length tweets, and duplicate content. Mapping
+ * every 403 to "fix app permissions" sends operators re-authorizing for nothing,
+ * so we read `err.data.detail` to name the real reason.
  */
 function xAuthFailureMessage(err: unknown): string | null {
   if (err instanceof ApiResponseError) {
-    if (err.code === 403) return X_NO_WRITE;
+    if (err.code === 403) {
+      const detail = xErrorDetail(err);
+      if (
+        /not been mentioned|not part of the conversation|otherwise engaged/.test(
+          detail,
+        )
+      )
+        return X_REPLY_RESTRICTED;
+      if (/too long|character limit|maximum.*length|280/.test(detail))
+        return X_TOO_LONG;
+      if (/duplicate/.test(detail)) return X_DUPLICATE;
+      return X_NO_WRITE;
+    }
     if (err.code === 401) return X_AUTH_EXPIRED;
     const body = `${err.message} ${JSON.stringify(
       (err as { data?: unknown }).data ?? {},
@@ -43,6 +86,16 @@ function xAuthFailureMessage(err: unknown): string | null {
     ? X_AUTH_EXPIRED
     : null;
 }
+
+// Exported for unit tests — the 403-reason classification is the whole point.
+export const __testables = {
+  xAuthFailureMessage,
+  X_NO_WRITE,
+  X_AUTH_EXPIRED,
+  X_REPLY_RESTRICTED,
+  X_TOO_LONG,
+  X_DUPLICATE,
+};
 
 export interface OriginalTweetSnapshot {
   id: string;
@@ -96,8 +149,9 @@ export class ReplyQueueService {
         inReplyToId: data.action === "reply" ? tweetId : null,
         inReplyToText: data.originalTweet.text.slice(0, 500),
         inReplyToUser: data.originalTweet.authorScreenName,
-        // Quote-specific
-        quotedTweetId: data.action === "quote" ? tweetId : null,
+        // Quote/retweet target — both engage the source tweet by id.
+        quotedTweetId:
+          data.action === "quote" || data.action === "retweet" ? tweetId : null,
         // Audit + preview
         originalTweetSnapshot: data.originalTweet as unknown as Prisma.JsonObject,
         safetyWarnings: data.safetyWarnings as unknown as Prisma.JsonArray,
@@ -163,20 +217,31 @@ export class ReplyQueueService {
   async approve(id: string, adminId: string) {
     const post = await this.prisma.socialPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException("Post not found");
-    if (post.postType !== "reply" && post.postType !== "quote") {
+    if (
+      post.postType !== "reply" &&
+      post.postType !== "quote" &&
+      post.postType !== "retweet"
+    ) {
       throw new Error(
-        `Can only approve reply or quote drafts, got ${post.postType}`,
+        `Can only approve reply, quote, or retweet drafts, got ${post.postType}`,
       );
     }
 
-    let result;
+    let result: { id: string };
     try {
-      if (post.postType === "reply") {
+      if (post.postType === "retweet") {
+        const target = post.quotedTweetId ?? post.inReplyToId;
+        if (!target) throw new Error("retweet draft missing target tweet id");
+        result = await this.publisher.publishRetweet(target);
+      } else if (post.postType === "reply") {
         if (!post.inReplyToId)
           throw new Error("reply draft missing inReplyToId");
+        // Pass the author handle so an engagement-restricted reply can fall
+        // back to a quote-by-URL (which X allows) instead of failing.
         result = await this.publisher.publishReply(
           post.inReplyToId,
           post.content,
+          post.inReplyToUser ?? undefined,
         );
       } else {
         if (!post.quotedTweetId)
@@ -184,6 +249,7 @@ export class ReplyQueueService {
         result = await this.publisher.publishQuote(
           post.quotedTweetId,
           post.content,
+          post.inReplyToUser ?? undefined,
         );
       }
     } catch (err) {
@@ -218,6 +284,29 @@ export class ReplyQueueService {
       data: {
         status: "rejected",
         reviewStatus: "rejected",
+        reviewedBy: adminId,
+        reviewedAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Mark a draft as posted WITHOUT calling the X API — for when an operator
+   * published it manually via an X Web Intent (the reliable path while the bot
+   * account is reply-restricted). Mirrors approve()'s success update minus the
+   * publish call. Optionally records the resulting tweet id for engagement
+   * tracking if the operator supplies it.
+   */
+  async markPosted(id: string, adminId: string, externalId?: string) {
+    const post = await this.prisma.socialPost.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException("Post not found");
+    return this.prisma.socialPost.update({
+      where: { id },
+      data: {
+        status: "published",
+        reviewStatus: "approved",
+        externalId: externalId?.trim() || post.externalId,
+        publishedAt: new Date(),
         reviewedBy: adminId,
         reviewedAt: new Date(),
       },

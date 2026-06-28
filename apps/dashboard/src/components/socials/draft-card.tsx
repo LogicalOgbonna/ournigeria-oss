@@ -5,7 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, X, Pencil, ExternalLink, AlertTriangle } from "lucide-react";
+import {
+  Check,
+  X,
+  Pencil,
+  ExternalLink,
+  AlertTriangle,
+  Send,
+  Repeat2,
+  CheckCheck,
+} from "lucide-react";
 import { socialsFetch } from "@/lib/api";
 import { TweetCard, ReplyingToBadge } from "./tweet-card";
 import type { DraftRow } from "./types";
@@ -16,6 +25,25 @@ const OUR_BRAND = {
   authorProfileImageUrl: null as string | null,
   verified: false,
 };
+
+/**
+ * X-weighted character count — ₦ and other symbols count as 2 on X, so
+ * `string.length` undercounts. Mirror X's weighting so the counter matches
+ * what X actually enforces.
+ */
+function xWeightedLength(s: string): number {
+  let weight = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0) ?? 0;
+    const lightweight =
+      (cp >= 0x0000 && cp <= 0x10ff) ||
+      (cp >= 0x2000 && cp <= 0x200d) ||
+      (cp >= 0x2010 && cp <= 0x201f) ||
+      (cp >= 0x2032 && cp <= 0x2037);
+    weight += lightweight ? 1 : 2;
+  }
+  return weight;
+}
 
 interface DraftCardProps {
   draft: DraftRow;
@@ -40,6 +68,36 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
       ? `https://x.com/${draft.inReplyToUser}/status/${targetTweetId}`
       : `https://x.com/i/web/status/${targetTweetId}`
     : null;
+
+  // X Web Intent URLs — open x.com's composer pre-filled so a human posts from
+  // their own logged-in session (bypasses the API, which is reply-restricted on
+  // the bot account). Reply uses `in_reply_to`; quote drops the target URL into
+  // the text so X renders the embed; repost opens the retweet confirm dialog.
+  const intentText = encodeURIComponent(draft.content);
+  const intentUrl =
+    targetTweetId == null
+      ? null
+      : isQuote && tweetUrl
+        ? `https://x.com/intent/tweet?text=${intentText}&url=${encodeURIComponent(tweetUrl)}`
+        : `https://x.com/intent/tweet?in_reply_to=${targetTweetId}&text=${intentText}`;
+  const repostUrl = targetTweetId
+    ? `https://x.com/intent/retweet?tweet_id=${targetTweetId}`
+    : null;
+
+  async function markPosted() {
+    setBusy("mark-posted");
+    setError(null);
+    try {
+      await socialsFetch(`/v1/replies/${draft.id}/mark-posted`, {
+        method: "POST",
+      });
+      onChanged();
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function approve() {
     setBusy("approve");
@@ -94,7 +152,10 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
     quoteCount: 0,
   };
 
-  const charCount = (editing ? draftText : draft.content).length;
+  // X-weighted count (₦ counts as 2). 280 is a soft guideline — the bot runs on
+  // an X Premium account with a higher cap, so this warns but no longer blocks
+  // saving; the publish path surfaces X's real limit if exceeded.
+  const charCount = xWeightedLength(editing ? draftText : draft.content);
   const overLimit = charCount > 280;
 
   return (
@@ -120,9 +181,23 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
               </span>
             ) : null}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {new Date(draft.createdAt).toLocaleString()}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground">
+              {new Date(draft.createdAt).toLocaleString()}
+            </span>
+            {tweetUrl ? (
+              <a
+                href={tweetUrl}
+                target="_blank"
+                rel="noreferrer"
+                title="Open original tweet on X"
+                aria-label="Open original tweet on X"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : null}
+          </div>
         </div>
 
         {/* Preview */}
@@ -224,12 +299,52 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
         draft.reviewStatus === "recommended" ||
         draft.reviewStatus === "edited" ? (
           <div className="flex items-center gap-2 pt-1 flex-wrap">
+            {!editing && intentUrl && (
+              <Button
+                asChild
+                size="sm"
+                className="bg-sky-600 hover:bg-sky-700 text-white"
+                title="Open X with this reply pre-filled — post from your own logged-in account"
+              >
+                <a href={intentUrl} target="_blank" rel="noreferrer">
+                  <Send className="h-3.5 w-3.5 mr-1" />
+                  Post on X
+                </a>
+              </Button>
+            )}
+            {!editing && repostUrl && (
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                title="Open X to repost the original tweet"
+              >
+                <a href={repostUrl} target="_blank" rel="noreferrer">
+                  <Repeat2 className="h-3.5 w-3.5 mr-1" />
+                  Repost on X
+                </a>
+              </Button>
+            )}
             {!editing && (
               <Button
                 size="sm"
+                variant="outline"
+                onClick={markPosted}
+                disabled={!!busy}
+                title="Mark this draft as posted (after you've posted it manually on X)"
+                className="text-emerald-700 hover:text-emerald-800"
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Mark posted
+              </Button>
+            )}
+            {!editing && (
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={approve}
                 disabled={!!busy}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                title="Publish via the X API (may fail if the bot account is reply-restricted)"
               >
                 <Check className="h-3.5 w-3.5 mr-1" />
                 Approve & Publish
@@ -237,11 +352,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
             )}
             {editing ? (
               <>
-                <Button
-                  size="sm"
-                  onClick={saveEdit}
-                  disabled={!!busy || overLimit}
-                >
+                <Button size="sm" onClick={saveEdit} disabled={!!busy}>
                   Save
                 </Button>
                 <Button

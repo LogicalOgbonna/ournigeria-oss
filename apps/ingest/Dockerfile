@@ -118,4 +118,6 @@ EXPOSE 3002
 
 STOPSIGNAL SIGTERM
 
-CMD infisical run --env "${INFISICAL_ENV:-prod}" -- node dist/main.js
+# Exec/JSON form so SIGTERM reaches PID 1. sh -c gives us ${INFISICAL_ENV}
+# expansion; exec replaces the shell with infisical (which forwards signals to node).
+CMD ["sh", "-c", "exec infisical run --env \"${INFISICAL_ENV:-prod}\" --path /ingest -- node dist/main.js"]
