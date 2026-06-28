@@ -70,6 +70,26 @@ export function stripDashes(text: string): string {
 }
 
 /**
+ * When the model returns the tweet as plain prose instead of the JSON envelope,
+ * salvage it as a postable reply. Strips code fences and a leading "json"
+ * marker, scrubs dashes, and rejects refusals / obvious non-tweets. Returns the
+ * cleaned tweet, or null if the body isn't usable as a reply.
+ */
+export function recoverProse(body: string): string | null {
+  const cleaned = stripDashes(
+    body
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .replace(/^json\s*/i, "")
+      .trim(),
+  );
+  if (cleaned.length < 15 || cleaned.length > 4000) return null;
+  if (cleaned.startsWith("{") || cleaned.startsWith("[")) return null; // malformed JSON, not prose
+  if (/^(i('?m| am| cannot| can't)|sorry|as an ai)\b/i.test(cleaned)) return null; // refusal
+  return cleaned;
+}
+
+/**
  * Extract the first balanced JSON object `{ ... }` from a string, ignoring any
  * prose the model prepended/appended despite the "ONLY JSON" instruction.
  * Brace-aware and string-literal-aware (so braces inside string values don't
@@ -273,6 +293,20 @@ Your job:
         }
       }
       if (parsed === undefined) {
+        // The human, multi-paragraph voice makes flash drop the JSON wrapper
+        // and just write the tweet ~half the time. The body IS a usable reply,
+        // so recover it instead of dropping the draft. Low confidence so it is
+        // never auto-published (recommended needs >= 0.8) and always reviewed.
+        const prose = recoverProse(body);
+        if (prose) {
+          this.logger.warn("agent returned prose, not JSON; recovering as reply");
+          return {
+            action: "reply",
+            text: prose,
+            confidence: 0.6,
+            reasoning: "recovered from a non-JSON (prose) response",
+          };
+        }
         this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
         return null;
       }

@@ -1,5 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { stripDashes } from "../intelligence/agent.service.js";
+import { stripDashes, recoverProse } from "../intelligence/agent.service.js";
+
+describe("recoverProse — salvage a tweet when the model drops the JSON wrapper", () => {
+  it("recovers a multi-paragraph prose draft and scrubs dashes", () => {
+    const body =
+      "Gaya (Kano) got ₦597.7M in Feb 2026 — close to the ₦500M you mention.\n\nWhat nobody publishes is what it bought.";
+    expect(recoverProse(body)).toBe(
+      "Gaya (Kano) got ₦597.7M in Feb 2026, close to the ₦500M you mention.\n\nWhat nobody publishes is what it bought.",
+    );
+  });
+
+  it("strips a leading json code fence", () => {
+    expect(recoverProse("```json\nStates shared ₦794B in Feb 2026.\n```")).toBe(
+      "States shared ₦794B in Feb 2026.",
+    );
+  });
+
+  it("rejects refusals and malformed JSON and too-short bodies", () => {
+    expect(recoverProse("I'm sorry, I cannot help with that.")).toBeNull();
+    expect(recoverProse('{"action":"reply"')).toBeNull();
+    expect(recoverProse("ok")).toBeNull();
+  });
+});
 
 describe("stripDashes — guarantees no em/en-dashes ever ship", () => {
   it("turns a spaced clause em-dash into a comma", () => {
