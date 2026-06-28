@@ -36,6 +36,7 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
   private readonly intervalMs: number;
   private readonly backlogCap: number;
   private readonly dailyBudgetUsd: number;
+  private readonly autoPublish: boolean;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
   private dailyCost = 0;
@@ -54,6 +55,8 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     this.intervalMs = config.get("SOCIALS_DRAFTER_INTERVAL_MS")!;
     this.backlogCap = config.get("SOCIALS_DRAFTER_BACKLOG_CAP")!;
     this.dailyBudgetUsd = config.get("SOCIALS_AGENT_DAILY_BUDGET_USD")!;
+    this.autoPublish =
+      String(config.get("SOCIALS_AUTO_PUBLISH") ?? "") === "true";
   }
 
   onModuleInit(): void {
@@ -205,7 +208,7 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       tweetCreatedAt: tweet.tweetCreatedAt.toISOString(),
     };
 
-    await this.queue.createDraft({
+    const draft = await this.queue.createDraft({
       action: result.action,
       originalTweet: snapshot,
       content: result.text,
@@ -225,6 +228,32 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(
       `drafted ${result.action} for tweet=${tweet.id} topic="${topic.name}" cost=$${result.costUsd.toFixed(4)} (daily=$${this.dailyCost.toFixed(2)})`,
     );
+
+    await this.maybeAutoPublish(draft);
+  }
+
+  /**
+   * Zero-touch posting: when SOCIALS_AUTO_PUBLISH is on, publish drafts the
+   * agent rated "recommended" (confidence ≥ 0.8 and zero safety warnings)
+   * immediately via the API — no dashboard click. Reply/quote that X blocks
+   * fall back to a quote-by-URL inside the publisher, so this works on the
+   * reply-restricted account. Failures are logged, never thrown (the drafter
+   * loop must keep running). Default off → existing manual-review behavior.
+   */
+  private async maybeAutoPublish(draft: {
+    id: string;
+    reviewStatus: string | null;
+    postType: string;
+  }): Promise<void> {
+    if (!this.autoPublish || draft.reviewStatus !== "recommended") return;
+    try {
+      await this.queue.approve(draft.id, "auto");
+      this.logger.log(`auto-published ${draft.postType} draft=${draft.id}`);
+    } catch (e) {
+      this.logger.warn(
+        `auto-publish failed for draft=${draft.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
   }
 
   private async toolExecutor(
