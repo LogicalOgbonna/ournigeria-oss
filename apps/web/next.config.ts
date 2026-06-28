@@ -1,4 +1,4 @@
-// Deploy trigger: no functional change.
+// Deploy trigger: no functional change. (rebuild all frontends)
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
