@@ -28,15 +28,20 @@ export function Hero() {
 
   return (
     <section
-      className="relative overflow-hidden lg:min-h-[100dvh]"
+      className="relative lg:min-h-[100dvh]"
     >
-      {/* Deep gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
+      {/* Decorative background — clipped on its own layer so the section itself
+          can keep overflow visible (otherwise it clips the hero CTA dropdown,
+          hiding all but the first option on mobile). */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        {/* Deep gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
 
-      {/* Floating orbs */}
-      <div className="absolute top-[15%] left-[8%] h-80 w-80 rounded-full bg-emerald-400/12 blur-[100px] animate-orb-1 dark:bg-emerald-400/6" />
-      <div className="absolute bottom-[10%] right-[5%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-[120px] animate-orb-2 dark:bg-emerald-500/4" />
-      <div className="absolute top-[40%] left-[50%] h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/8 blur-[80px] animate-orb-3 dark:bg-emerald-300/4" />
+        {/* Floating orbs */}
+        <div className="absolute top-[15%] left-[8%] h-80 w-80 rounded-full bg-emerald-400/12 blur-[100px] animate-orb-1 dark:bg-emerald-400/6" />
+        <div className="absolute bottom-[10%] right-[5%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-[120px] animate-orb-2 dark:bg-emerald-500/4" />
+        <div className="absolute top-[40%] left-[50%] h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/8 blur-[80px] animate-orb-3 dark:bg-emerald-300/4" />
+      </div>
 
       <div
         className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
