@@ -53,6 +53,23 @@ const AgentResultJsonSchema = z.object({
 });
 
 /**
+ * Remove em/en-dashes from a tweet — the single most reliable AI tell. The
+ * prompt forbids them, but the model still leaks them, so we enforce it
+ * deterministically: a dash between two digits is a numeric range (keep a
+ * hyphen); a clause-separating dash becomes a comma. Guarantees zero —/– ship.
+ */
+export function stripDashes(text: string): string {
+  return text
+    // A dash flanked by non-space on both sides is a range/compound
+    // (Jan-Apr, 2024-2025) -> hyphen; a spaced dash is a clause break -> comma.
+    .replace(/(\S)\s*[—–]\s*(\S)/g, (m, a, b) =>
+      /\s/.test(m) ? `${a}, ${b}` : `${a}-${b}`,
+    )
+    .replace(/[—–]/g, ", ") // any straggler (leading/trailing/consecutive)
+    .replace(/\s*,\s*,/g, ",");
+}
+
+/**
  * Extract the first balanced JSON object `{ ... }` from a string, ignoring any
  * prose the model prepended/appended despite the "ONLY JSON" instruction.
  * Brace-aware and string-literal-aware (so braces inside string values don't
@@ -269,19 +286,24 @@ Your job:
       return null;
     }
 
+    // Deterministic dash scrub: the prompt bans em/en-dashes, but the model
+    // still leaks them ~2/3 of the time. Strip them in code so none ever ship
+    // (numeric ranges keep a hyphen; clause dashes become commas).
+    const cleaned = { ...safe.data, text: stripDashes(safe.data.text) };
+
     // retweet carries no text (pure amplification); only reply/quote require it.
     if (
-      safe.data.action !== "skip" &&
-      safe.data.action !== "retweet" &&
-      safe.data.text.length === 0
+      cleaned.action !== "skip" &&
+      cleaned.action !== "retweet" &&
+      cleaned.text.length === 0
     ) {
       this.logger.warn(
-        `agent returned ${safe.data.action} but empty text; treating as skip`,
+        `agent returned ${cleaned.action} but empty text; treating as skip`,
       );
-      return { ...safe.data, action: "skip", text: "" };
+      return { ...cleaned, action: "skip", text: "" };
     }
 
-    return safe.data;
+    return cleaned;
   }
 
   private estimateCostUsd(inputTokens: number, outputTokens: number): number {
