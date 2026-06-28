@@ -179,12 +179,12 @@ if [ "$DEPLOY_ENV" = "staging" ]; then
   # api + ingest run on every box; socials only on boxes whose compose defines it
   # (the dev/staging box doesn't run socials). Treat socials as best-effort so its
   # absence doesn't abort the deploy under `set -e`.
-  STAGING_SVCS="api-blue ingest-blue"
+  STAGING_SVCS=(api-blue ingest-blue)
   if docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null | grep -qx socials-blue; then
-    STAGING_SVCS="$STAGING_SVCS socials-blue"
+    STAGING_SVCS+=(socials-blue)
   fi
-  docker compose -f "$COMPOSE_FILE" pull $STAGING_SVCS
-  docker compose -f "$COMPOSE_FILE" up -d $STAGING_SVCS
+  docker compose -f "$COMPOSE_FILE" pull "${STAGING_SVCS[@]}"
+  docker compose -f "$COMPOSE_FILE" up -d "${STAGING_SVCS[@]}"
   DEPLOY_END=$(date +%s)
   log_deploy "success" "" "$(( DEPLOY_END - DEPLOY_START ))"
   notify "✅ *Staging deploy complete*
