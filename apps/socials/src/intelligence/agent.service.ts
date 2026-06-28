@@ -69,6 +69,56 @@ export function stripDashes(text: string): string {
     .replace(/\s*,\s*,/g, ",");
 }
 
+/** Lowercase, hyphenated slug for a state/LGA name ("Akwa Ibom" -> "akwa-ibom"). */
+export function ognSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const VERIFY_BASE = "https://ournigeria.ng/states";
+
+/**
+ * Build the OurNigeria verify-link for the entity + year the agent queried.
+ * LGA-level -> /states/<state>/<lga>; single state -> /states/<state>;
+ * national/multi-state -> /states. `?year=` carries the year it cited. FAAC
+ * only for now (that's what has public state pages). Returns null otherwise.
+ */
+export function buildVerifyUrl(
+  domain: string,
+  calls: Array<{ name: string; args: Record<string, unknown> }>,
+): string | null {
+  if (domain !== "faac") return null;
+  const faac = calls.filter((c) => c.name === "faac_search");
+  if (faac.length === 0) return null;
+  const states = new Set<string>();
+  let lga: { state?: string; lga: string } | null = null;
+  const years = new Set<number>();
+  for (const { args } of faac) {
+    if (typeof args.state === "string" && args.state.trim())
+      states.add(args.state.trim());
+    if (typeof args.lga === "string" && args.lga.trim())
+      lga = {
+        state: typeof args.state === "string" ? args.state : undefined,
+        lga: args.lga.trim(),
+      };
+    const y = Number(args.year);
+    if (Number.isInteger(y) && y > 2000) years.add(y);
+  }
+  const yq = years.size ? `?year=${Math.max(...years)}` : "";
+  if (lga?.state) return `${VERIFY_BASE}/${ognSlug(lga.state)}/${ognSlug(lga.lga)}${yq}`;
+  if (states.size === 1) return `${VERIFY_BASE}/${ognSlug([...states][0])}${yq}`;
+  return `${VERIFY_BASE}${yq}`;
+}
+
+/** Append the verify CTA as its own paragraph (idempotent, no-op if url null). */
+export function appendVerifyCta(text: string, url: string | null): string {
+  if (!url || text.includes(url)) return text;
+  return `${text.trim()}\n\nVerify on OurNigeria: ${url}`;
+}
+
 /**
  * When the model returns the tweet as plain prose instead of the JSON envelope,
  * salvage it as a postable reply. Strips code fences and a leading "json"
@@ -176,6 +226,8 @@ Your job:
 3. Return the JSON object only.`;
 
     const collectedToolResults: unknown[] = [];
+    const searchCalls: Array<{ name: string; args: Record<string, unknown> }> =
+      [];
     let lastDataQuery = "";
 
     const buildSearchTool = (
@@ -188,6 +240,7 @@ Your job:
         inputSchema: schema,
         execute: async (args: Record<string, unknown>) => {
           lastDataQuery = `${name}: ${JSON.stringify(args)}`;
+          searchCalls.push({ name, args });
           this.logger.log(`Tool call: ${name}`);
           const result = await toolExecutor(name, args);
           collectedToolResults.push(result);
@@ -259,8 +312,17 @@ Your job:
     const parsed = this.parseFinalJson(result.text);
     if (!parsed) return null;
 
+    // Append a verify CTA driving to the OurNigeria page for the state/LGA +
+    // year the agent actually queried (doubles as source-anchoring, the
+    // strongest credibility lever). Only for reply/quote.
+    const text =
+      parsed.action === "reply" || parsed.action === "quote"
+        ? appendVerifyCta(parsed.text, buildVerifyUrl(topic.domain, searchCalls))
+        : parsed.text;
+
     return {
       ...parsed,
+      text,
       toolResults: collectedToolResults,
       dataQuery: lastDataQuery,
       costUsd: this.estimateCostUsd(
