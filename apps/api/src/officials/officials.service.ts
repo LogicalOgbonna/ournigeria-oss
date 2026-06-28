@@ -181,9 +181,18 @@ export class OfficialsService {
       evidence: ev(r.id),
     });
 
+    // "Proposed" = created by a citizen "identify" submission that an admin has not
+    // yet approved. The included `proposals` are already filtered to pending statuses
+    // (submitted/under_review); an identify proposal means the whole record is unverified.
+    // Self-clearing: approve()/reject() move the proposal out of the pending set.
+    const proposed = official.proposals.some(
+      (p) => (p.proposedValue as any)?.type === "identify",
+    );
+
     return {
       ...this.formatOfficial(official),
       officialType: official.officialType ?? null,
+      proposed,
       fieldEvidence: {
         biography: evidence.get(EvidenceService.key(official.id, "biography")) ?? [],
         education: evidence.get(EvidenceService.key(official.id, "education")) ?? [],
