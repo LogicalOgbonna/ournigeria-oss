@@ -127,10 +127,12 @@ if [ "$AGE" -gt 300 ] || [ "$AGE" -lt -30 ]; then
 fi
 
 # ─── Determine environment from branch ────────────────────────────
+# prod branch → production box (Infisical `prod`).
+# main/staging branch → staging box (Infisical `staging`).
 case "$BRANCH" in
-  main|prod) DEPLOY_ENV="prod" ;;
-  staging)   DEPLOY_ENV="staging" ;;
-  *)         echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
+  prod)         DEPLOY_ENV="prod" ;;
+  main|staging) DEPLOY_ENV="staging" ;;
+  *)            echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
 esac
 
 # ─── Deploy lock (flock) ──────────────────────────────────────────
@@ -152,6 +154,13 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 # shellcheck source=/dev/null
 source "$ENV_FILE"
 
+# The Infisical environment the containers boot against follows the deploy
+# environment (prod branch → prod secrets, main/staging → staging secrets).
+# Authoritative over any static INFISICAL_ENV in .env, so one shared deploy.sh
+# serves both the prod box and the staging box. Exported here (after sourcing
+# .env) so the branch-derived value wins over the box's static .env.
+export INFISICAL_ENV="$DEPLOY_ENV"
+
 echo "═══════════════════════════════════════════════════"
 echo "  DEPLOY STARTED"
 echo "  Branch: $BRANCH | SHA: $SHA | Env: $DEPLOY_ENV"
@@ -167,8 +176,15 @@ Env: \`$DEPLOY_ENV\`"
 if [ "$DEPLOY_ENV" = "staging" ]; then
   echo "Staging deploy: simple restart (no blue-green)"
   export IMAGE_TAG="$NEW_IMAGE_TAG"
-  docker compose -f "$COMPOSE_FILE" pull api-blue ingest-blue socials-blue
-  docker compose -f "$COMPOSE_FILE" up -d api-blue ingest-blue socials-blue
+  # api + ingest run on every box; socials only on boxes whose compose defines it
+  # (the dev/staging box doesn't run socials). Treat socials as best-effort so its
+  # absence doesn't abort the deploy under `set -e`.
+  STAGING_SVCS="api-blue ingest-blue"
+  if docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null | grep -qx socials-blue; then
+    STAGING_SVCS="$STAGING_SVCS socials-blue"
+  fi
+  docker compose -f "$COMPOSE_FILE" pull $STAGING_SVCS
+  docker compose -f "$COMPOSE_FILE" up -d $STAGING_SVCS
   DEPLOY_END=$(date +%s)
   log_deploy "success" "" "$(( DEPLOY_END - DEPLOY_START ))"
   notify "✅ *Staging deploy complete*
