@@ -66,6 +66,36 @@ describe("buildVerifyUrl", () => {
     expect(buildVerifyUrl("budget", [call({ state: "abia" })])).toBeNull();
     expect(buildVerifyUrl("faac", [])).toBeNull();
   });
+
+  describe("platform → utm_source mapping", () => {
+    const sourceFor = (platform?: Parameters<typeof buildVerifyUrl>[2]) => {
+      const url = buildVerifyUrl(
+        "faac",
+        [call({ state: "abia", year: 2026 })],
+        platform,
+      )!;
+      return new URL(url).searchParams.get("utm_source");
+    };
+
+    it("defaults to twitter, which maps to source 'x'", () => {
+      expect(sourceFor()).toBe("x");
+      expect(sourceFor("twitter")).toBe("x");
+    });
+
+    it("maps each supported platform to its own utm_source", () => {
+      expect(sourceFor("telegram")).toBe("telegram");
+      expect(sourceFor("facebook")).toBe("facebook");
+      expect(sourceFor("threads")).toBe("threads");
+      expect(sourceFor("bluesky")).toBe("bluesky");
+      expect(sourceFor("linkedin")).toBe("linkedin");
+    });
+
+    it("only utm_source changes across platforms; the rest of the link is identical", () => {
+      const x = buildVerifyUrl("faac", [call({ state: "abia", year: 2026 })], "twitter")!;
+      const tg = buildVerifyUrl("faac", [call({ state: "abia", year: 2026 })], "telegram")!;
+      expect(x.replace("utm_source=x", "utm_source=telegram")).toBe(tg);
+    });
+  });
 });
 
 describe("appendVerifyCta", () => {
