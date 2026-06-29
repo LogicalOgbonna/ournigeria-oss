@@ -3,6 +3,11 @@ packages:
   - packages/*
 
 minimumReleaseAge: 10080
+# x-client-transaction-id 0.3.1 is the only release that parses X's current
+# homepage format (older, well-aged versions fail to resolve the ondemand
+# chunk). Scope-exclude it from the 7-day age gate; it's MIT and maintained.
+minimumReleaseAgeExclude:
+  - x-client-transaction-id
 
 catalog:
   '@ai-sdk/deepseek': 2.0.29

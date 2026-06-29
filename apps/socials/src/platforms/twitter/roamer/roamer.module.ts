@@ -8,6 +8,7 @@ import { SessionRunRepo } from "./session-run.repo.js";
 import { TopicRepo } from "./topic.repo.js";
 import { TwitterGraphqlClient } from "./twitter-graphql.client.js";
 import { TwitterSearchService } from "./twitter-search.service.js";
+import { XTransactionService } from "./x-transaction.service.js";
 
 @Module({
   providers: [
@@ -17,6 +18,7 @@ import { TwitterSearchService } from "./twitter-search.service.js";
     SessionRunRepo,
     RoamStateRepo,
     ClassifierService,
+    XTransactionService,
     TwitterGraphqlClient,
     TwitterSearchService,
     RoamerService,
