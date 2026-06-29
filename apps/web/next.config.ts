@@ -1,4 +1,4 @@
-// Deploy trigger: no functional change. (web only — env var update)
+// Deploy trigger: no functional change. (web only — rebake NEXT_PUBLIC_APP_URL)
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 
