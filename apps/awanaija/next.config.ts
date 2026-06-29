@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+// Deploy trigger: no functional change.
 // Old ward/LGA slugs orphaned by the INEC ward resync (commit 88e1e1b) → 308 to their
 // successor URL. Generated from the resync's reconcile_plan.csv and validated against prod
 // by scripts/gen-ward-redirects.mjs. `delete`d wards (no successor) are NOT here — the ward

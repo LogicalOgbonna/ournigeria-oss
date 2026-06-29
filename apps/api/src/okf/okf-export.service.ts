@@ -26,7 +26,7 @@ export class OkfExportService {
   ) {}
 
   private webBase() {
-    return this.config.get<string>("OKF_WEB_BASE_URL") ?? "https://app.ournigeria.ng";
+    return this.config.get<string>("OKF_WEB_BASE_URL") ?? "https://ournigeria.ng";
   }
   private snapshotBase() {
     return this.config.get<string>("OKF_SNAPSHOT_BASE_URL") ?? this.config.get<string>("CDN_BASE_URL") ?? "";
@@ -112,9 +112,12 @@ export class OkfExportService {
       const lgas = await this.prisma.nigerianLga.findMany({ where: { code: { in: [...populatedLgaCodes] } }, orderBy: { code: "asc" } });
       for (const l of lgas) {
         const slug = okfSlug(l.code);
+        // Canonical site URL nests the LGA under its state, keyed by the LGA name slug:
+        // https://ournigeria.ng/states/<stateCode>/<lga-name>  (e.g. /states/abia/bende)
+        const resource = `${web}/states/${l.stateCode}/${okfSlug(l.name)}`;
         bundle.set(
           `lgas/${slug}.md`,
-          renderLga({ slug, code: l.code, name: l.name, stateCode: l.stateCode, stateName: stateNameByCode.get(l.stateCode) ?? l.stateCode, timestamp, resource: `${web}/lgas/${slug}` }),
+          renderLga({ slug, code: l.code, name: l.name, stateCode: l.stateCode, stateName: stateNameByCode.get(l.stateCode) ?? l.stateCode, timestamp, resource }),
         );
         lgaIndex.push({ slug, title: l.name });
       }

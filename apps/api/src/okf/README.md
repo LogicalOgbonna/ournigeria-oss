@@ -47,7 +47,7 @@ The export is deterministic (stable ordering; the only wall-clock value is the r
 
 | Env | Purpose | Default |
 |---|---|---|
-| `OKF_WEB_BASE_URL` | canonical site base for `resource:` links | `https://app.ournigeria.ng` |
+| `OKF_WEB_BASE_URL` | canonical site base for `resource:` links | `https://ournigeria.ng` |
 | `OKF_SNAPSHOT_BASE_URL` | public base for archived snapshots | falls back to `CDN_BASE_URL` |
 | `OKF_GIT_REPO` | mirror repo — `owner/name` (SSH) or `host/owner/name` (token) | (skips git if unset) |
 | `OKF_GIT_SSH_KEY` | private deploy key for the mirror repo (preferred auth) | (falls back to token) |
