@@ -442,10 +442,11 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
       };
     }
     if (err instanceof FetchHashStaleError) {
-      // A SearchTimeline 404 is usually a transient x-client-transaction-id
-      // problem, NOT a rotated op-hash (the same hash returns 200 moments
-      // later). Cool the session down and KEEP the hash; only discard it (and
-      // ask for a re-capture) after repeated failures, so one bad request
+      // The graphql client now generates a fresh x-client-transaction-id per
+      // request and already retries a 404 once with a rebuilt verification key,
+      // so a 404 that reaches here is most likely a genuinely rotated op-hash.
+      // Still cool the session down and KEEP the hash, only discarding it (and
+      // asking for a re-capture) after repeated failures, so one bad request
       // doesn't throw away a working hash and force a needless re-capture.
       const updated = await this.sessions.release(session.id, {
         cooldownMs: this.cfg.rateLimitCooldownMs,
