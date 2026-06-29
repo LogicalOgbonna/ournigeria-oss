@@ -15,7 +15,7 @@
 
 **700+ budget documents** across **37 Nigerian states** ingested and indexed with **708,000+ vector embeddings** - enabling citizens to ask questions about public spending in plain English or Pidgin.
 
-[Live App](#) &nbsp;&middot;&nbsp; [API Docs](#) &nbsp;&middot;&nbsp; [Landing Page](#)
+[Live App](https://app.ournigeria.ng) &nbsp;&middot;&nbsp; [API Docs](https://api.ournigeria.ng/api/docs) &nbsp;&middot;&nbsp; [Landing Page](https://ournigeria.ng)
 
 </div>
 
@@ -36,33 +36,27 @@ The platform processes the question through specialized AI agents, searches acro
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        CLIENTS                              │
-│  ┌───────────┐  ┌───────────────┐  ┌──────────────────────┐ │
-│  │  Next.js   │  │  Telegram Bot │  │  Landing Page        │ │
-│  │  Web App   │  │  @ournigeria  │  │  (Awanaija)          │ │
-│  │  :3001     │  │               │  │  :3003               │ │
-│  └─────┬─────┘  └───────┬───────┘  └──────────────────────┘ │
-│                                                             │
-│  ┌──────────────────────┐                                   │
-│  │  Admin Dashboard      │                                   │
-│  │  :3004               │                                   │
-│  └───────────┬──────────┘                                   │
-└──────────────┼──────────────────────────────────────────────┘
-         │                │
-         ▼                ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     NestJS API :3000                         │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │   Auth   │ │   Chat   │ │  Charts  │ │  Telegram     │  │
-│  │  (OTP)   │ │  (SSE)   │ │ (Parser) │ │  (Webhook)    │  │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              Mastra AI Agent Pipeline                 │   │
-│  │  Router → Budget Analyst → Impact Analyst            │   │
-│  │         → Corruption Analyst                         │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────┬───────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                              CLIENTS                                  │
+│  ┌──────────┐ ┌─────────────┐ ┌────────────┐ ┌──────────┐ ┌────────┐ │
+│  │ Next.js  │ │ Telegram Bot│ │  Landing   │ │  Admin   │ │ Socials│ │
+│  │ Web App  │ │ @ournigeria │ │ (Awanaija) │ │Dashboard │ │X/Twitter│ │
+│  │  :3001   │ │             │ │   :3003    │ │  :3004   │ │ :3005  │ │
+│  └────┬─────┘ └──────┬──────┘ └────────────┘ └────┬─────┘ └───┬────┘ │
+└───────┼──────────────┼─────────────────────────────┼──────────┼──────┘
+        │              │                              │          │
+        ▼              ▼                              ▼          ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                          NestJS API :3000                            │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐           │
+│  │   Auth   │ │   Chat   │ │  Charts  │ │  Telegram     │           │
+│  │  (OTP)   │ │  (SSE)   │ │ (Parser) │ │  (Webhook)    │           │
+│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘           │
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │                  Mastra AI Agent Pipeline                       │ │
+│  │  Router → Budget / Corruption / GovSpend / FAAC / Impact        │ │
+│  └────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────┬────────────────────────────────────────────┘
                           │
          ┌────────────────┼────────────────┐
          ▼                ▼                ▼
@@ -71,6 +65,9 @@ The platform processes the question through specialized AI agents, searches acro
 │   (Prisma)   │ │  708K chunks │ │  Embeddings      │
 │              │ │  1024-dim    │ │  voyage-3-large  │
 └──────────────┘ └──────────────┘ └──────────────────┘
+
+  Pipelines (separate apps):  ingest :3002 (docs → embeddings)
+                              videos (Remotion CLI → social MP4s)
 ```
 
 ---
@@ -80,20 +77,25 @@ The platform processes the question through specialized AI agents, searches acro
 ```
 ournigeria/
 ├── apps/
-│   ├── api/          # NestJS backend — auth, chat, agents, charts, Telegram
-│   ├── web/          # Next.js frontend — chat UI, 22 chart types, public pages
-│   ├── dashboard/    # Next.js admin interface — usage analytics, ingestion tracking
-│   ├── ingest/       # Document ingestion pipeline — PDF, XLSX, DOCX, JSON
-│   ├── awanaija/     # Marketing landing page with animations
-│   └── videos/       # Remotion — programmatic video generation
+│   ├── api/          # NestJS backend — auth, chat, agents, charts, Telegram  (:3000)
+│   ├── web/          # Next.js frontend — chat UI, 22 chart types, public pages (:3001)
+│   ├── ingest/       # Document ingestion pipeline — PDF, XLSX, DOCX, JSON     (:3002)
+│   ├── awanaija/     # Marketing landing page with animations (Vercel)         (:3003)
+│   ├── dashboard/    # Next.js admin interface — analytics, ingestion, socials review (Vercel) (:3004)
+│   ├── socials/      # X/Twitter automation — roam, draft, human-approve replies (:3005)
+│   └── videos/       # Remotion — programmatic short-form video generation
 │
 ├── packages/
-│   ├── source/       # Raw budget data
-│   │   ├── budgets/      # 37 states × multiple years (959 files)
-│   │   ├── corruption/   # High-profile case files
-│   │   └── govspend/     # Government spending data (2018–2025)
-│   ├── scripts/      # Scraping and ingestion utilities
-│   └── db/           # Database volumes and backups
+│   ├── database/     # Prisma schema + migrations (pgvector); party/official seeds
+│   ├── tools/        # Shared AI agent tool definitions (budget/corruption/govspend/FAAC search, impact)
+│   ├── shared-types/ # Shared TypeScript types (charts, budget data, money equivalents)
+│   ├── cache/        # Cache manager library (memory / Redis providers)
+│   ├── content/      # SVG → PNG infographic renderer for Telegram / social posts
+│   ├── evaluation/   # AI response eval runner against the live /api/chat endpoint
+│   ├── e2e/          # Playwright end-to-end tests (web + dashboard)
+│   ├── scripts/      # Scraping and ad-hoc ingestion utilities
+│   ├── source/       # Static GeoJSON of Nigerian administrative boundaries
+│   └── db_backup/    # pg_dump / restore tooling (pgvector-aware)
 │
 ├── docker-compose.yml      # Production stack
 ├── docker-compose.dev.yml  # Development database
@@ -110,9 +112,11 @@ Conversational interface powered by a multi-agent pipeline:
 
 | Agent | Role |
 |-------|------|
-| **Router** | Detects intent and routes to the right specialist |
+| **Router** | Detects intent + entities and routes to the right specialist |
 | **Budget Analyst** | Searches vector-indexed budget documents |
-| **Corruption Analyst** | Searches corruption case files |
+| **Corruption Analyst** | Searches EFCC corruption case files |
+| **GovSpend Analyst** | Searches government payment records |
+| **FAAC Analyst** | Federal Account Allocation Committee disbursement data |
 | **Impact Analyst** | Translates budget figures into real-world equivalents |
 
 - Streaming responses via **Server-Sent Events (SSE)**
@@ -183,13 +187,16 @@ Supported formats: **PDF** (with OCR) · **XLSX/XLS** · **DOCX** · **JSON** ·
 | **Frontend** | Next.js, Tailwind CSS v4, Recharts |
 | **Database** | PostgreSQL 16, pgvector |
 | **Embeddings** | Voyage AI (voyage-3-large) |
+| **Reranking** | Cohere (rerank-2) |
+| **LLMs** | Claude (agents/drafting), DeepSeek (classification) |
 | **Auth** | OTP + Session cookies, Telegram OAuth |
 | **Streaming** | Server-Sent Events |
 | **Bot** | Telegram Bot API (webhook) |
+| **Socials** | X/Twitter OAuth2 automation (human-in-the-loop) |
 | **Monorepo** | Nx, pnpm |
 | **Secrets** | Infisical |
 | **Videos** | Remotion |
-| **Deployment** | Docker Compose |
+| **Deployment** | Docker Compose (OCI), Vercel (landing + dashboard) |
 
 ---
 
@@ -198,30 +205,64 @@ Supported formats: **PDF** (with OCR) · **XLSX/XLS** · **DOCX** · **JSON** ·
 ### Prerequisites
 
 - Node.js 20+
-- pnpm 9+
-- PostgreSQL 16 with pgvector
-- [Infisical CLI](https://infisical.com/docs/cli/overview) (for secrets management)
+- pnpm 10+ (`corepack enable` will pin the version from `package.json`)
+- Docker (for the local PostgreSQL 16 + pgvector database)
+- [Infisical CLI](https://infisical.com/docs/cli/overview) — all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria Infisical project; ask a maintainer to be added.
 
 ### Development
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 pnpm install
 
-# Start the development database
+# 2. Start the development database (PostgreSQL 16 + pgvector)
 docker compose -f docker-compose.dev.yml up -d
 
-# Generate Prisma client and run migrations
+# 3. Generate the Prisma client and apply migrations
 pnpm prisma:generate
 pnpm prisma:migrate
 
-# Start services (in separate terminals)
-pnpm api:dev       # API on :3000
-pnpm web:dev       # Web on :3001
-pnpm ingest:dev    # Ingestion on :3002
-pnpm awanaija:dev  # Landing page on :3003
-pnpm dashboard:dev # Admin dashboard on :3004
+# 4. Start the services you need (each in its own terminal)
+pnpm api:dev        # API on :3000
+pnpm web:dev        # Web on :3001
+pnpm ingest:dev     # Ingestion on :3002
+pnpm awanaija:dev   # Landing page on :3003
+pnpm dashboard:dev  # Admin dashboard on :3004
+pnpm socials:dev    # X/Twitter automation on :3005 (optional)
+pnpm videos:dev     # Remotion Studio (optional)
 ```
+
+> Most contributors only need `api:dev` + `web:dev`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
+
+### App URLs
+
+When running locally each app serves on the port above (`http://localhost:<port>`). The hosted environments are:
+
+| App | Local | Dev (tunnel → your local server) | Production |
+|-----|-------|----------------------------------|------------|
+| API | `:3000` | `https://spending-api.arinze.online/api` | `https://api.ournigeria.ng/api` |
+| Web | `:3001` | `https://spending.arinze.online` | `https://app.ournigeria.ng` |
+| Ingest | `:3002` | `https://ingest.arinze.online/api/ingest` | `https://ingest.ournigeria.ng/api/ingest` |
+| Landing (Awanaija) | `:3003` | `https://ounigeria.arinze.online` | `https://ournigeria.ng` |
+| Dashboard | `:3004` | `https://dashboard.arinze.online` | `https://dashboard.ournigeria.ng` |
+| Socials | `:3005` | — (internal; review drafts in the dashboard) | runs on the OCI box, no public domain |
+
+> The `*.arinze.online` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running locally — not a separate deployed environment. Production (`*.ournigeria.ng`) only advances when `main` is merged into `prod`.
+
+### Contributing
+
+1. **Branch from `main`.** Feature branches → PR into `main` (staging). Production advances separately via a `main → prod` release. Never PR directly to `prod`.
+2. **Authenticate as the dev test user** for any manual/automated testing (the OTP flow is bypassed in dev):
+   ```bash
+   curl -X POST https://spending-api.arinze.online/api/auth/dev-login -c cookies.txt
+   curl https://spending-api.arinze.online/api/auth/profile -b cookies.txt
+   ```
+   This endpoint only exists in dev builds. See `CLAUDE.md` → Dev Testing for browser/Playwright cookie setup.
+3. **Plans** for non-trivial work go in `.agent/plans/` as `{sequence}.{plan-name}.md`.
+4. **Update `PROGRESS.md`** with what you did, files touched, and the exact next steps — every contributor reads it to pick up context.
+5. **Read `DESIGN.md`** before any UI/visual change — it is the source of truth for fonts, colors, and spacing.
+6. **Bug fixes:** reproduce with a failing test first, then fix (`CLAUDE.md` → Bug Fixing Workflow).
+7. **Lint** the web app with `pnpm web:lint`; run E2E with `pnpm test:e2e` where relevant.
 
 ### Production
 
@@ -283,12 +324,15 @@ apps/api/src/
 ├── chart/             # Chart JSON parsing and validation
 ├── conversations/     # CRUD, public/private toggle, slug generation
 ├── mastra/
-│   ├── agents/        # Router, Budget, Corruption, Impact analysts
-│   └── tools/         # Vector search, formatting utilities
+│   ├── agents/        # Router, Budget, Corruption, GovSpend, FAAC, Impact analysts
+│   ├── rag/           # Hybrid search (pgvector + BM25 RRF), Cohere reranking
+│   └── tools/         # Vector search, impact calc, web search, formatting
+├── geo/               # State/LGA budget breakdown endpoints
+├── okf/               # Open-data export/publish (officials, cases, geo)
 ├── sources/           # Budget document file serving
-├── telegram/          # Webhook handler, bot commands, user sync
-└── prisma/
-    └── schema.prisma  # 15+ tables, pgvector, enums
+└── telegram/          # Webhook handler, bot commands, user sync
+
+# Prisma schema lives in packages/database/prisma/schema.prisma (~90 models, pgvector, enums)
 ```
 
 </details>
@@ -326,13 +370,28 @@ apps/ingest/src/
 </details>
 
 <details>
-<summary><strong>packages/source</strong> — Raw Data</summary>
+<summary><strong>packages/source</strong> — Static geo data</summary>
 
 ```
 packages/source/
-├── budgets/           # 37 states: Abia → Zamfara + FCT (959 files)
-├── corruption/        # Case files: Tinubu, Abacha, Bello
-└── govspend/          # Government spending 2018–2025
+└── nga_admin_boundaries.geojson/   # Nigerian state/LGA administrative boundaries
+```
+
+> Raw budget, corruption, and govspend source documents now live in S3 (migrated out of the repo); the ingestion pipeline reads them from there.
+
+</details>
+
+<details>
+<summary><strong>apps/socials</strong> — X/Twitter automation</summary>
+
+```
+apps/socials/src/
+├── intelligence/ # Tweet discovery + DeepSeek classification, Claude draft generation
+├── platforms/    # X/Twitter integration — captured sessions, OAuth2 posting
+├── reply-queue/  # Human approval workflow — nothing posts without a click
+├── scheduler/    # Roamer/drafter scheduled loops
+├── content/      # Draft content + safety filtering
+└── analytics/    # Engagement tracking
 ```
 
 </details>
