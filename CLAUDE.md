@@ -21,9 +21,36 @@ OurNigeria — an open-source AI-powered platform for Nigerian budget analysis a
 
 ## Monorepo Setup
 
-- **Package manager**: pnpm (with hoisted node-linker via `.npmrc`)
+- **Package manager**: pnpm 10 (pinned via `packageManager` in `package.json`; hoisted node-linker via `.npmrc`)
 - **Orchestration**: Nx v21
 - **Workspaces**: `apps/*` and `packages/*`
+
+### Apps
+
+| App | What it is | Dev port |
+|-----|-----------|----------|
+| `api` | NestJS backend — auth, chat (SSE), charts, Telegram, Mastra agent pipeline | 3000 |
+| `web` | Next.js chat frontend (22 chart types, public pages) | 3001 |
+| `ingest` | Document ingestion pipeline (PDF/XLSX/DOCX/JSON → embeddings) | 3002 |
+| `awanaija` | Marketing landing page (deployed to Vercel) | 3003 |
+| `dashboard` | Next.js admin dashboard (deployed to Vercel) | 3004 |
+| `socials` | X/Twitter automation — roams civic tweets, drafts replies, human-approves via dashboard before posting | 3005 |
+| `videos` | Remotion video generation CLI (short-form civic/budget videos from live DB data) | Remotion Studio |
+
+### Packages
+
+| Package | Purpose |
+|---------|---------|
+| `database` | Prisma schema + migration tooling (pgvector); seeds for parties/officials |
+| `tools` | Shared AI agent tool definitions/executors (budget/corruption/govspend/FAAC search, impact calc) |
+| `shared-types` | Shared TS types (charts, budget data, money equivalents) — type-only |
+| `cache` | Cache manager library (pluggable memory/Redis providers) |
+| `content` | SVG→PNG infographic renderer for Telegram/social posts |
+| `evaluation` | Custom eval runner against the live `/api/chat` endpoint |
+| `e2e` | Playwright E2E suite (web + dashboard projects) |
+| `scripts` | Ad-hoc data ingestion/scraping scripts |
+| `source` | Static GeoJSON of Nigerian administrative boundaries |
+| `db_backup` | Bash pg_dump/restore tooling (pgvector-aware) |
 
 ## Common Commands
 
@@ -45,12 +72,20 @@ pnpm web:dev              # Next.js frontend on :3001 use dev: https://spending.
 pnpm ingest:dev           # Ingestion pipeline on :3002 use dev: https://ingest.arinze.online/api/ingest. prod: https://ingest.ournigeria.ng/api/ingest to test the ingestion pipeline (OCI box; ingest.example.invalid is the legacy box)
 pnpm awanaija:dev         # Landing page on :3003 use dev: https://ounigeria.arinze.online. prod: https://ournigeria.ng to test the landing page
 pnpm dashboard:dev        # Admin dashboard on :3004 use dev: https://dashboard.arinze.online. prod: https://dashboard.ournigeria.ng to test the dashboard
+pnpm socials:dev          # X/Twitter automation on :3005 (internal service — no public domain; review drafts in the dashboard reply queue; prod runs on the OCI `ournigeria-prod` box)
+pnpm videos:dev           # Remotion Studio (interactive video composition editor)
+
+# Video generation (Remotion CLI)
+pnpm videos:generate --recipe <type> --state <name> --year <year> [--thumbnail]   # render MP4 to apps/videos/out/
+pnpm videos:smoke-test    # render frame 0 of each composition to verify no crashes
 
 # Build
 pnpm api:build
 pnpm web:build
 pnpm ingest:build
 pnpm dashboard:build
+pnpm socials:build
+pnpm videos:build
 
 # Lint (web only)
 pnpm web:lint             # ESLint v9 on the web app
@@ -69,7 +104,9 @@ npx tsx packages/evaluation/run-eval.ts --api-url http://localhost:3000 --user-i
 docker compose up -d
 ```
 
-All dev commands use `infisical run --env dev` to inject secrets. Build commands do not.
+All dev commands use `infisical run --env dev` to inject secrets (scoped per-service paths: `/api`, `/ingest`, `/web`, `/dashboard`, `/socials`). Build commands do not.
+
+> **Dev vs prod URLs:** the `*.arinze.online` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running **locally** — they are not a separate deployed environment. The `*.ournigeria.ng` prod domains are the live OCI deployment (`ournigeria-prod` box) for the backend apps; `awanaija` and `dashboard` deploy to Vercel. Only a merge to `main` → `prod` advances production.
 
 ## Testing
 
@@ -109,13 +146,32 @@ Flow: Load conversation → build token-budgeted context (summary + recent messa
 
 Keepalive heartbeat every 15s to prevent reverse proxy timeouts. Message sequence collision handled with P2002 retry logic.
 
+## Socials Automation (apps/socials/)
+
+NestJS service that grows the OurNigeria X/Twitter presence with a human always in the loop:
+- **Roamer** — discovers civic-domain tweets via SearchTimeline on captured browser sessions, classifies each with DeepSeek per topic profile.
+- **Drafter** — Claude agent (with the same budget/corruption/govspend/FAAC RAG tools) drafts quote/reply candidates with safety filters.
+- **Reply queue** — every draft lands in `social_posts` as `drafted`; a human approves/edits/rejects in the dashboard before anything posts via X OAuth2.
+- A Chrome extension captures x.com sessions and POSTs them to `/v1/sessions` (guarded by `X-Roamer-Key`). Telegram ops alerts on auth/rate-limit failures.
+
+Known gotchas (see memory): the roamer leader-election loop dies after each blue/green deploy (recover via `POST /v1/roam/start`); X refresh tokens are single-use/rotating (re-auth via `pnpm x-oauth-authorize`); socials needs `EMBEDDING_BASE_URL` in its `/socials` Infisical path or RAG silently fails.
+
+## Video Generation (apps/videos/)
+
+Remotion CLI that queries the DB for real budget/corruption/FAAC data, validates with Zod, and renders 9:16 + 16:9 MP4s (state budget, corruption case, state comparison, FAAC allocation, "money could buy" impact, civic-intro onboarding). Run via `pnpm videos:generate`; `pnpm videos:dev` opens Remotion Studio.
+
 ## Database (packages/database/)
 
-Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/prisma/schema.prisma`.
+Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/prisma/schema.prisma`. ~90 models spanning several domains:
 
-Key models: AdminUser, User, Conversation, Message, Document, SourceReference, BudgetSummary, IngestionRecord, Feedback, Notification, SystemBanner, SystemSetting.
+- **Chat/auth**: `AdminUser`, `User`, `UserMemory`, `OtpVerification`, `Conversation`, `Message`, `TelegramLoginRequest`, `ProviderConnection`.
+- **Documents/ingestion**: `Document`, `SourceReference`, `IngestionRecord`, `IngestionRun`, `QueryAnalytic`, `GraphExtractionJob`.
+- **Officials & politics**: `NigerianOfficial`, `OfficialPosition`, `PoliticalParty`, `NigerianState`, `NigerianLga`, `NigerianConstituency`, `NigerianWard`, `CorruptionCase` (+ parties/updates/evidence), and the data-proposal/change-proposal review workflow.
+- **Budget/fiscal**: `BudgetLineItem`, `BudgetProject`, `BudgetMetadata`, `BudgetActual`, `FederalSpending`, `FaacDisbursement` (+ state/LGA allocations), `IgrRecord`, `DebtRecord`, `GdpRecord`.
+- **Socials**: `SocialPost`, `SocialsBotSession`, `SocialsTopic`, `SocialsDiscoveredTweet`, `SocialsXOauthTokens`, etc.
+- **Ops/system**: `Notification`, `SystemBanner`, `SystemSetting`, `Feedback`, `BackupJob`, `Donation`.
 
-Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_chunks` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
+Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_vectors` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
 
 ### Migration Workflow
 
@@ -137,7 +193,7 @@ The `prisma:migrate:create` script (`packages/database/scripts/create-migration.
 
 ## Secrets Management
 
-Uses [Infisical](https://infisical.com/) CLI. Config in `.infisical.json`. Environment-specific paths: `/web`, `/dashboard`. Dev commands wrap with `infisical run --env dev --watch --`.
+Uses [Infisical](https://infisical.com/) CLI. Config in `.infisical.json`. Secrets are split into **per-service paths**: `/api`, `/ingest`, `/web`, `/dashboard`, `/socials` (the legacy shared root `/` is being deprecated). Each dev command wraps with `infisical run --env dev --path /<service> --watch --`, so a service only sees its own vars. Copy secrets between paths via JSON export (not `--plain`, which appends a trailing newline). The required-var set per service is defined in that service's `env.validation.ts`.
 
 Key env vars (defined in `apps/api/src/config/env.validation.ts`):
 - `DATABASE_URL`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL`
