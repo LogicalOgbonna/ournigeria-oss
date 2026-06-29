@@ -8,6 +8,7 @@ import { renderOfficial } from "./render/official";
 import { renderCase } from "./render/case";
 import { renderParty, renderState, renderLga } from "./render/geo";
 import { renderTypeIndex, renderRootIndex, findDanglingLinks } from "./render/index-docs";
+import { renderReadme } from "./render/readme";
 import { renderViz } from "./render/viz";
 import type { Bundle, OfficialNode, CaseNode } from "./types";
 
@@ -129,10 +130,16 @@ export class OkfExportService {
     bundle.set("parties/index.md", renderTypeIndex("parties", partyIndex));
     bundle.set("states/index.md", renderTypeIndex("states", stateIndex));
     if (lgaIndex.length) bundle.set("lgas/index.md", renderTypeIndex("lgas", lgaIndex));
-    bundle.set(
-      "index.md",
-      renderRootIndex({ officials: officialIndex.length, cases: caseIndex.length, parties: partyIndex.length, states: stateIndex.length, lgas: lgaIndex.length }),
-    );
+    const counts = {
+      officials: officialIndex.length,
+      cases: caseIndex.length,
+      parties: partyIndex.length,
+      states: stateIndex.length,
+      lgas: lgaIndex.length,
+    };
+    bundle.set("index.md", renderRootIndex(counts));
+    // GitHub landing page — regenerated every publish so it's never lost to the force-replace.
+    bundle.set("README.md", renderReadme(counts, timestamp, web));
 
     // --- integrity + viz ---
     const dangling = findDanglingLinks(bundle);

@@ -42,7 +42,7 @@ export function renderViz(bundle: Record<string, string>): string {
   }
   const nodes=[], edges=[], byId={}, backlinks={};
   for(const [path,raw] of Object.entries(bundle)){
-    if(path.endsWith("/index.md")||path==="index.md"||!path.endsWith(".md")) continue;
+    if(path.endsWith("/index.md")||path==="index.md"||path==="README.md"||!path.endsWith(".md")) continue;
     const p = parse(path, raw); byId[path]=p;
     nodes.push({ data:{ id:path, label:p.fm.title||path, type:p.fm.type||"officials" } });
   }
