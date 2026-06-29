@@ -80,11 +80,37 @@ export function ognSlug(name: string): string {
 
 const VERIFY_BASE = "https://ournigeria.ng/states";
 
+// UTM tags on every verify-CTA link so analytics (PostHog auto-captures utm_*)
+// can attribute landing-page traffic back to the X bot's tweets, and segment by
+// which page granularity (national / state / LGA) actually drives clicks. X
+// wraps every link in t.co, so the longer URL costs no tweet characters.
+const UTM_SOURCE = "x";
+const UTM_MEDIUM = "social";
+const UTM_CAMPAIGN = "verify_cta";
+
+type VerifyLevel = "national" | "state" | "lga";
+
+/** Compose the verify URL: base + path, with year (optional) then utm params. */
+function withTracking(
+  path: string,
+  year: number | null,
+  level: VerifyLevel,
+): string {
+  const params = new URLSearchParams();
+  if (year) params.set("year", String(year));
+  params.set("utm_source", UTM_SOURCE);
+  params.set("utm_medium", UTM_MEDIUM);
+  params.set("utm_campaign", UTM_CAMPAIGN);
+  params.set("utm_content", level);
+  return `${VERIFY_BASE}${path}?${params.toString()}`;
+}
+
 /**
  * Build the OurNigeria verify-link for the entity + year the agent queried.
  * LGA-level -> /states/<state>/<lga>; single state -> /states/<state>;
- * national/multi-state -> /states. `?year=` carries the year it cited. FAAC
- * only for now (that's what has public state pages). Returns null otherwise.
+ * national/multi-state -> /states. `?year=` carries the year it cited, followed
+ * by UTM tags for traffic attribution. FAAC only for now (that's what has
+ * public state pages). Returns null otherwise.
  */
 export function buildVerifyUrl(
   domain: string,
@@ -107,10 +133,16 @@ export function buildVerifyUrl(
     const y = Number(args.year);
     if (Number.isInteger(y) && y > 2000) years.add(y);
   }
-  const yq = years.size ? `?year=${Math.max(...years)}` : "";
-  if (lga?.state) return `${VERIFY_BASE}/${ognSlug(lga.state)}/${ognSlug(lga.lga)}${yq}`;
-  if (states.size === 1) return `${VERIFY_BASE}/${ognSlug([...states][0])}${yq}`;
-  return `${VERIFY_BASE}${yq}`;
+  const year = years.size ? Math.max(...years) : null;
+  if (lga?.state)
+    return withTracking(
+      `/${ognSlug(lga.state)}/${ognSlug(lga.lga)}`,
+      year,
+      "lga",
+    );
+  if (states.size === 1)
+    return withTracking(`/${ognSlug([...states][0])}`, year, "state");
+  return withTracking("", year, "national");
 }
 
 /** Append the verify CTA as its own paragraph (idempotent, no-op if url null). */
