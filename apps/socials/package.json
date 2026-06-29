@@ -32,6 +32,7 @@
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "twitter-api-v2": "1.29.0",
+    "x-client-transaction-id": "^0.3.1",
     "zod": "catalog:"
   },
   "devDependencies": {
