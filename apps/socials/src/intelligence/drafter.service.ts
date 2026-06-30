@@ -190,6 +190,19 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
 
     const safety = this.safety.check(result.text, result.toolResults);
 
+    // Hard gate: an ungrounded comparison (e.g. a fabricated year-over-year
+    // "drop" the tool data can't support) must never reach the queue. Skip it
+    // with the reason recorded instead of publishing a false claim.
+    if (safety.blocked) {
+      this.logger.warn(
+        `blocked draft for tweet=${tweet.id} topic="${topic.name}": ${safety.blockReasons.join("; ")}`,
+      );
+      await this.tweets.setDraftStatus(tweet.id, "skipped", {
+        draftError: `safety block: ${safety.blockReasons.join("; ")}`,
+      });
+      return;
+    }
+
     const snapshot: OriginalTweetSnapshot = {
       id: tweet.id,
       text: tweet.text,

@@ -19,14 +19,14 @@ describe("SafetyFilter", () => {
     const filter = createFilter();
     const result = filter.check("What the fuck is this budget allocation?");
     expect(result.safe).toBe(false);
-    expect(result.reason).toContain("fuck");
+    expect(result.warnings.join(" ")).toContain("fuck");
   });
 
   it("rejects content containing political endorsements", () => {
     const filter = createFilter();
     const result = filter.check("You should vote for Governor Ade to fix this mess.");
     expect(result.safe).toBe(false);
-    expect(result.reason).toContain("vote for");
+    expect(result.warnings.join(" ")).toContain("vote for");
   });
 
   it("passes when cited figures exist in tool results", () => {
@@ -53,6 +53,6 @@ describe("SafetyFilter", () => {
       toolResults,
     );
     expect(result.safe).toBe(false);
-    expect(result.reason).toContain("not found in source data");
+    expect(result.warnings.join(" ")).toContain("not found in source data");
   });
 });
