@@ -18,6 +18,7 @@ import {
 import { SmartImage } from "@/components/ui/SmartImage";
 import type { Official, Proposal } from "@/lib/api";
 import { voteOnProposal, formatOfficialLocation } from "@/lib/api";
+import { RelatedLinks, type RelatedLink } from "@/components/civic/RelatedLinks";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -82,6 +83,31 @@ export function OfficialProfile({ official }: { official: Official }) {
   const filledFields = TRACKED_FIELDS.filter(
     (f) => f === "partyAcronym" ? !!position?.party : !!(official as unknown as Record<string, unknown>)[f],
   );
+
+  // Retention Phase 1 — link the jurisdictions this official serves so a one-shot
+  // profile visitor can explore the place, not just the person. Data-gated:
+  // a card renders only when its target page is reachable (state → LGA → ward).
+  const serveLinks: RelatedLink[] = [];
+  if (position?.state) {
+    const stateSlug = position.state.toLowerCase().replace(/\s+/g, "-");
+    serveLinks.push({ href: `/states/${stateSlug}`, label: position.state, sublabel: "State" });
+    if (position.lga) {
+      const lgaSlug = position.lga.toLowerCase().replace(/\s+/g, "-");
+      serveLinks.push({
+        href: `/states/${stateSlug}/${lgaSlug}`,
+        label: position.lga,
+        sublabel: "Local Government",
+      });
+      if (position.ward) {
+        const wardSlug = position.ward.toLowerCase().split("/")[0].replace(/\s+/g, "-");
+        serveLinks.push({
+          href: `/states/${stateSlug}/${lgaSlug}/${wardSlug}`,
+          label: position.ward,
+          sublabel: "Ward",
+        });
+      }
+    }
+  }
 
   return (
     <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
@@ -328,6 +354,9 @@ export function OfficialProfile({ official }: { official: Official }) {
             </div>
           </section>
         )}
+
+        {/* Retention Phase 1 — explore the jurisdictions this official serves */}
+        <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
       </div>
     </main>
   );

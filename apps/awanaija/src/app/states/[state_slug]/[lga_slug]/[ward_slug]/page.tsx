@@ -4,8 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, User, MapPin, AlertCircle, CheckCircle2, Clock, MessageSquare, Construction } from "lucide-react";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import { getWardDetails, ApiError } from "@/lib/api";
+import { getWardDetails, getWards, ApiError } from "@/lib/api";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
+import { RelatedLinks, type RelatedLink } from "@/components/civic/RelatedLinks";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ldJson, breadcrumbLd } from "@/lib/seo";
 
@@ -71,6 +72,26 @@ export default async function WardPage({
   
   const projects = ward.projects || [];
   const civicUpdates = ward.civicUpdates || [];
+
+  // Retention Phase 1 — give the one-shot ward visitor sibling wards to explore.
+  // Best-effort: a failed sibling fetch must never break the page.
+  let siblingWardLinks: RelatedLink[] = [];
+  if (lgaCode) {
+    try {
+      const wards = await getWards(lgaCode);
+      siblingWardLinks = (wards || [])
+        .filter((w) => w.code !== wardCode)
+        .map((w) => ({
+          href: `/states/${resolvedParams.state_slug}/${resolvedParams.lga_slug}/${w.name
+            .toLowerCase()
+            .split("/")[0]
+            .replace(/\s+/g, "-")}`,
+          label: w.name,
+        }));
+    } catch {
+      siblingWardLinks = [];
+    }
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -311,6 +332,12 @@ export default async function WardPage({
             ))}
           </div>
         </section>
+
+        {/* Retention Phase 1 — explore sibling wards */}
+        <RelatedLinks
+          title={`Other wards in ${lgaName}`}
+          items={siblingWardLinks}
+        />
       </main>
       <Footer />
     </div>
