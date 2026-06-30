@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Req, Res, HttpStatus } from "@nestjs/common";
+import { Controller, Get, Param, Query, Req, Res, HttpStatus } from "@nestjs/common";
 import { Request, Response } from "express";
 import { Public } from "../auth/decorators/public";
 import { GeoService } from "./geo.service";
@@ -230,6 +230,24 @@ export class GeoController {
       return res.json(constituencies);
     } catch (err) {
       console.error("geo constituencies error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
+  @Get("constituencies/:code")
+  async constituencyDetails(
+    @Param("code") code: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const constituency = await this.service.getConstituencyDetails(code);
+      if (!constituency) {
+        return res.status(HttpStatus.NOT_FOUND).json({ error: "Constituency not found" });
+      }
+      return res.json(constituency);
+    } catch (err) {
+      console.error("geo constituency details error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
   }

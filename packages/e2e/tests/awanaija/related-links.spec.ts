@@ -106,4 +106,61 @@ test.describe('Related-entity links @awanaija', () => {
       timeout: 15000,
     });
   });
+
+  test('official page shows other representatives for the area', async ({
+    page,
+    request,
+  }) => {
+    // A governor reliably has at least one peer (the state's senator).
+    const list = await (
+      await request.get(`${API}/officials?role=governor&limit=1`)
+    ).json();
+    const gov = list.data?.[0];
+    expect(gov, 'a governor').toBeTruthy();
+
+    await page.goto(`/officials/${gov.slug ?? gov.id}`);
+    const peers = page.getByTestId('peer-officials');
+    await expect(peers).toBeVisible({ timeout: 15000 });
+    await expect(
+      peers.getByRole('heading', { name: /other representatives for/i }),
+    ).toBeVisible();
+    // Clicking a peer goes to another official page.
+    await peers.getByRole('link').first().click();
+    await page.waitForURL(/\/officials\/[^/]+$/);
+  });
+
+  test('constituency page shows the rep and coverage', async ({
+    page,
+    request,
+  }) => {
+    // Find a federal constituency, then its detail. Skips until the
+    // /geo/constituencies/:code endpoint is deployed (dev/CI validates it).
+    const states = await (await request.get(`${API}/geo/states`)).json();
+    let code: string | null = null;
+    for (const st of states.slice(0, 6)) {
+      const cons = await (
+        await request.get(`${API}/geo/constituencies?state=${st.code}&type=federal`)
+      ).json();
+      if (Array.isArray(cons) && cons.length) {
+        code = cons[0].code;
+        break;
+      }
+    }
+    expect(code, 'a federal constituency code').toBeTruthy();
+
+    const detail = await request.get(`${API}/geo/constituencies/${code}`);
+    test.skip(
+      detail.status() === 404,
+      'constituency detail endpoint not deployed on this API yet',
+    );
+    expect(detail.ok()).toBeTruthy();
+
+    await page.goto(`/constituencies/${code}`);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(
+      page.getByRole('heading', { name: /who represents you/i }),
+    ).toBeVisible();
+  });
 });

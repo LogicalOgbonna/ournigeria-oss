@@ -16,9 +16,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
-import type { Official, Proposal } from "@/lib/api";
+import type { Official, Proposal, ChainEntry } from "@/lib/api";
 import { voteOnProposal, formatOfficialLocation } from "@/lib/api";
 import { RelatedLinks, type RelatedLink } from "@/components/civic/RelatedLinks";
+import { OfficialCard } from "@/components/civic/OfficialCard";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -73,9 +74,16 @@ function formatDateRange(startDate: string, endDate: string | null): string {
   return `Since ${fmt(startDate)}`;
 }
 
-export function OfficialProfile({ official }: { official: Official }) {
+export function OfficialProfile({
+  official,
+  peers = [],
+}: {
+  official: Official;
+  peers?: ChainEntry[];
+}) {
   const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
+  const peerAreaLabel = position?.lga || position?.state || "this area";
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
     (f) => f === "partyAcronym" ? !position?.party : !(official as unknown as Record<string, unknown>)[f],
@@ -107,6 +115,14 @@ export function OfficialProfile({ official }: { official: Official }) {
         });
       }
     }
+  }
+  // Constituency is its own jurisdiction (senators/reps/MHAs) — link to its page.
+  if (position?.constituency && position?.constituencyCode) {
+    serveLinks.push({
+      href: `/constituencies/${position.constituencyCode}`,
+      label: position.constituency,
+      sublabel: "Constituency",
+    });
   }
 
   return (
@@ -357,6 +373,26 @@ export function OfficialProfile({ official }: { official: Official }) {
 
         {/* Retention Phase 1 — explore the jurisdictions this official serves */}
         <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+
+        {/* Retention Phase 1 — the other people who represent this area */}
+        {peers.length > 0 && (
+          <section data-testid="peer-officials">
+            <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
+              Other representatives for {peerAreaLabel}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {peers.map((entry) => (
+                <OfficialCard
+                  key={entry.official!.id}
+                  official={entry.official}
+                  position={entry.position}
+                  role={entry.role}
+                  showProposals={false}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

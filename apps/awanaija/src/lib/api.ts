@@ -105,6 +105,33 @@ export async function getWards(lgaCode: string, init?: RequestInit) {
   );
 }
 
+export interface ConstituencyDetails {
+  code: string;
+  name: string;
+  type: string; // federal | state | senatorial
+  stateCode: string;
+  stateName: string;
+  representatives: {
+    id: string;
+    slug: string | null;
+    name: string;
+    role: string;
+    party: string;
+    image: string | null;
+    email: string | null;
+  }[];
+  wards: { code: string; name: string; lgaName: string }[];
+  lgas: { code: string; name: string }[];
+  projects: unknown[];
+}
+
+export async function getConstituencyDetails(code: string, init?: RequestInit) {
+  return apiFetch<ConstituencyDetails>(
+    `/geo/constituencies/${encodeURIComponent(code)}`,
+    init,
+  );
+}
+
 export async function getParties() {
   return apiFetch<{ acronym: string; name: string }[]>("/geo/parties");
 }

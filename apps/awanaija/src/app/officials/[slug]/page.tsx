@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { OfficialProfile } from "./OfficialProfile";
 import { Navbar } from "@/components/sections/Navbar";
 import { Footer } from "@/components/sections/Footer";
-import type { Official } from "@/lib/api";
+import type { Official, ChainEntry, Position } from "@/lib/api";
 import { formatOfficialLocation } from "@/lib/api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
@@ -34,6 +34,32 @@ async function getOfficial(idOrSlug: string): Promise<Official | null> {
     return (await res.json()) as Official;
   } catch {
     return null;
+  }
+}
+
+// Retention Phase 1 — the other people who represent this official's area.
+// One call to the by-location chain (councilor → chairman → MHA → rep →
+// senator → governor); we drop the current official and unresolved slots.
+// Best-effort: failure returns [] and the section simply doesn't render.
+async function getPeers(
+  position: Position | undefined,
+  currentOfficialId: string,
+): Promise<ChainEntry[]> {
+  if (!position?.stateCode) return [];
+  const qs = new URLSearchParams({ state: position.stateCode });
+  if (position.lgaCode) qs.set("lga", position.lgaCode);
+  if (position.wardCode) qs.set("ward", position.wardCode);
+  try {
+    const res = await fetch(`${API_URL}/api/officials/by-location?${qs.toString()}`, {
+      next: { revalidate: 120 },
+    });
+    if (!res.ok) return [];
+    const { chain } = (await res.json()) as { chain: ChainEntry[] };
+    return (chain || []).filter(
+      (entry) => entry.official && entry.official.id !== currentOfficialId,
+    );
+  } catch {
+    return [];
   }
 }
 
@@ -115,6 +141,7 @@ export default async function OfficialPage({
   const location = formatOfficialLocation(position);
   const party = position?.partyName || position?.party || null;
   const canonicalSlug = official.slug || slug;
+  const peers = await getPeers(position, official.id);
   const url = `${SITE_URL}/officials/${canonicalSlug}`;
   const image = absoluteImage(official.imageUrl);
 
@@ -222,7 +249,7 @@ export default async function OfficialPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldJson(faqLd) }}
       />
-      <OfficialProfile official={official} />
+      <OfficialProfile official={official} peers={peers} />
       <Footer />
     </div>
   );
