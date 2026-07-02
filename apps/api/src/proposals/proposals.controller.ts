@@ -240,6 +240,26 @@ export class ProposalsController {
 
   @Public()
   @UseGuards(AdminGuard)
+  @Get("admin/queue/grouped")
+  async adminQueueGrouped(
+    @Query("page") page: string | undefined,
+    @Query("limit") limit: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.service.listPendingIdentifyGrouped({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? Math.min(parseInt(limit, 10), 50) : 20,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("admin grouped queue error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
+  @UseGuards(AdminGuard)
   @Patch("admin/:id")
   async adminAction(
     @Param("id") id: string,

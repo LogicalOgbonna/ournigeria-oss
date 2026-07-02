@@ -829,6 +829,79 @@ export class ProposalsService {
     };
   }
 
+  /**
+   * Admin grouped queue for identify candidates. Groups pending identify name
+   * proposals by positionId (= seat), each group ranked by voteScore with the
+   * seat's canonical official + scope labels. The flat listPending stays for
+   * field-change proposals.
+   */
+  async listPendingIdentifyGrouped(params: { page?: number; limit?: number }) {
+    const { page = 1, limit = 20 } = params;
+
+    const pending = await this.prisma.dataProposal.findMany({
+      where: {
+        targetField: "name",
+        status: { in: ["submitted", "under_review", "needs_evidence"] },
+        positionId: { not: null },
+        proposedValue: { path: ["type"], equals: "identify" },
+      },
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true, positionId: true, officialId: true, proposedValue: true, sourceUrl: true,
+        trust: true, proposerPhone: true, status: true, voteScore: true, upvoteCount: true,
+        downvoteCount: true, createdAt: true,
+        position: { select: { id: true, role: true, stateCode: true, lgaCode: true, wardCode: true, constituencyCode: true } },
+        official: { select: { id: true, name: true } },
+        _count: { select: { votes: true } },
+      },
+    });
+
+    const groups = new Map<string, any>();
+    for (const p of pending) {
+      const key = p.positionId!;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          positionId: key,
+          officialId: p.officialId,
+          seat: {
+            role: p.position?.role ?? null,
+            stateCode: p.position?.stateCode ?? null,
+            lgaCode: p.position?.lgaCode ?? null,
+            wardCode: p.position?.wardCode ?? null,
+            constituencyCode: p.position?.constituencyCode ?? null,
+          },
+          candidates: [] as any[],
+        });
+      }
+      groups.get(key).candidates.push({
+        id: p.id,
+        name: String((p.proposedValue as any)?.name ?? (p.proposedValue as any)?.value ?? ""),
+        partyAcronym: (p.proposedValue as any)?.partyAcronym ?? null,
+        proposedValue: p.proposedValue,
+        sourceUrl: p.sourceUrl,
+        trust: p.trust,
+        proposerPhone: maskPhone(p.proposerPhone),
+        status: p.status,
+        voteScore: p.voteScore,
+        confirmCount: p.upvoteCount,
+        disputeCount: p.downvoteCount,
+        voteCount: p._count.votes,
+        createdAt: p.createdAt.toISOString(),
+      });
+    }
+
+    const all = Array.from(groups.values()).map((g) => {
+      g.candidates.sort((a: any, b: any) => b.voteScore - a.voteScore || a.createdAt.localeCompare(b.createdAt));
+      g.topVoteScore = g.candidates[0]?.voteScore ?? 0;
+      return g;
+    });
+    all.sort((a, b) => b.topVoteScore - a.topVoteScore);
+
+    const total = all.length;
+    const start = (page - 1) * limit;
+    return { data: all.slice(start, start + limit), total, page, limit };
+  }
+
   async approve(proposalId: string, adminId: string) {
     const proposal = await this.prisma.dataProposal.findUnique({
       where: { id: proposalId },
