@@ -946,6 +946,81 @@ export class GeoService implements OnModuleInit {
   }
 
   /**
+   * Full detail for a single constituency: its current representative(s) plus
+   * the wards/LGAs it covers (from the mapping tables). Federal HoR + state
+   * assembly constituencies map to wards (ConstituencyWard); senatorial
+   * districts map to LGAs (SenatorialDistrictLga). `projects` is a placeholder
+   * until constituency-level project data is ingested.
+   */
+  async getConstituencyDetails(code: string) {
+    const constituency = await this.prisma.nigerianConstituency.findUnique({
+      where: { code },
+      include: {
+        state: true,
+        officialPositions: {
+          where: { status: "active" },
+          include: { official: true },
+        },
+      },
+    });
+
+    if (!constituency) return null;
+
+    const representatives = constituency.officialPositions.map((pos) => ({
+      id: pos.official.id,
+      slug: pos.official.slug,
+      name: pos.official.name,
+      role: pos.role,
+      party: pos.partyAcronym || "N/A",
+      image: pos.official.imageUrl,
+      email: pos.official.email,
+    }));
+
+    // Coverage: ward-mapped (federal/state) or LGA-mapped (senatorial).
+    const wardRows = await this.prisma.constituencyWard.findMany({
+      where: { constituencyCode: code },
+      include: { ward: { include: { lga: true } } },
+    });
+    const wards = wardRows
+      .map((row) => ({
+        code: row.ward.code,
+        name: row.ward.name,
+        lgaName: row.ward.lga.name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const senatorialLgaRows = await this.prisma.senatorialDistrictLga.findMany({
+      where: { senatorialDistrictCode: code },
+      include: { lga: true },
+    });
+    // LGAs come straight from senatorial mappings, or are derived from the
+    // covered wards for ward-mapped constituencies.
+    const lgaMap = new Map<string, { code: string; name: string }>();
+    for (const row of senatorialLgaRows) {
+      lgaMap.set(row.lga.code, { code: row.lga.code, name: row.lga.name });
+    }
+    for (const row of wardRows) {
+      lgaMap.set(row.ward.lga.code, {
+        code: row.ward.lga.code,
+        name: row.ward.lga.name,
+      });
+    }
+    const lgas = [...lgaMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      code: constituency.code,
+      name: constituency.name,
+      type: constituency.type,
+      stateCode: constituency.stateCode,
+      stateName: constituency.state.name,
+      representatives,
+      wards,
+      lgas,
+      projects: [],
+    };
+  }
+
+  /**
    * Simple ray-casting point-in-polygon test.
    * Works for Polygon and MultiPolygon geometries.
    */
