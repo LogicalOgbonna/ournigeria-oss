@@ -3,6 +3,36 @@ import { Injectable, Logger } from "@nestjs/common";
 export interface SafetyResult {
   safe: boolean;
   warnings: string[];
+  /**
+   * True when the draft makes a claim that must NOT be published as-is — a hard
+   * gate, not advisory. Today this fires only for ungrounded year-over-year
+   * comparisons (a trend the tool data can't support). `blockReasons` lists the
+   * specific violations; the drafter skips a blocked draft instead of queueing.
+   */
+  blocked: boolean;
+  blockReasons: string[];
+}
+
+// ── Comparison / trend grounding ───────────────────────────────────────────
+// A year-over-year claim needs data for BOTH years. The FAAC incident shipped a
+// draft asserting "down 64.4% from last year" while the tool returned only 2026
+// — the model invented the 2025 baseline. We detect a trend/delta claim and
+// require every year it leans on to be present in the tool results.
+const PERCENT = /\b\d{1,3}(?:\.\d+)?\s*%/;
+const CHANGE_TERMS =
+  /\b(?:year[- ]over[- ]year|y\/?o\/?y|drop(?:ped|s|ping)?|decline[ds]?|fell|falling|down|shrank|shrink(?:ing|s)?|plunge[ds]?|rose|rising|increase[ds]?|grew|grow(?:th|ing|s)?|surge[ds]?|jump(?:ed|s)?)\b/i;
+// Explicit cross-year COMPARISON language (so a YoY claim with no year named
+// still gates). Deliberately NOT a bare "last year" — that's just a time
+// reference ("spent ₦2.5B last year"), not a comparison. Requires a comparison
+// preposition or an explicit year-to-year span.
+const YOY_TERMS =
+  /\b(?:year[- ]over[- ]year|y\/?o\/?y|(?:from|than|versus|vs\.?|compared\s+to|over)\s+(?:the\s+)?(?:previous|prior|last)\s+year|same\s+period\s+(?:of|in)\s+20\d{2}|from\s+20\d{2}\s+to\s+20\d{2})\b/i;
+
+/** Distinct 4-digit years (2000-2099) mentioned in a string. */
+export function extractYears(text: string): number[] {
+  const years = new Set<number>();
+  for (const m of text.matchAll(/\b(20\d{2})\b/g)) years.add(Number(m[1]));
+  return [...years];
 }
 
 const BLOCKED_KEYWORDS = [
@@ -145,8 +175,16 @@ export class SafetyFilter {
     }
 
     // 2. Figure validation: cited figures must exist in tool results
+    const blockReasons: string[] = [];
     if (toolResults && toolResults.length > 0) {
       warnings.push(...this.validateFigures(content, toolResults));
+      // 2b. Comparison grounding — a HARD gate (blocks publishing).
+      const comparisonViolations = this.validateComparisonClaims(
+        content,
+        toolResults,
+      );
+      blockReasons.push(...comparisonViolations);
+      warnings.push(...comparisonViolations);
     }
 
     // 3. Length validation
@@ -167,7 +205,52 @@ export class SafetyFilter {
       this.logger.warn(`safety warnings: ${warnings.join("; ")}`);
     }
 
-    return { safe: warnings.length === 0, warnings };
+    return {
+      safe: warnings.length === 0,
+      warnings,
+      blocked: blockReasons.length > 0,
+      blockReasons,
+    };
+  }
+
+  /**
+   * Reject a trend/comparison claim the tool data can't support. Fires when the
+   * draft asserts a delta (a percentage next to change language) or explicit
+   * year-over-year phrasing, but the tool results don't contain every year the
+   * claim leans on. This is the guard that would have caught the FAAC incident.
+   */
+  private validateComparisonClaims(
+    content: string,
+    toolResults: unknown[],
+  ): string[] {
+    const hasDelta = PERCENT.test(content) && CHANGE_TERMS.test(content);
+    const hasYoY = YOY_TERMS.test(content);
+    if (!hasDelta && !hasYoY) return [];
+
+    const sourceYears = new Set(extractYears(JSON.stringify(toolResults)));
+    const draftYears = extractYears(content);
+
+    // Rule A: the draft names a year whose data was never retrieved.
+    const missing = draftYears.filter((y) => !sourceYears.has(y));
+    if (missing.length > 0) {
+      const retrieved = [...sourceYears].sort().join(", ") || "none";
+      return [
+        `Comparison claim references ${missing.join(", ")}, but the tool results contain no data for ${missing.length > 1 ? "those years" : "that year"} (years retrieved: ${retrieved}). A year-over-year claim must pull every year it cites.`,
+      ];
+    }
+
+    // Rule B: explicit year-over-year language, but fewer than two years of data.
+    if (hasYoY && sourceYears.size < 2) {
+      const got =
+        sourceYears.size === 1
+          ? `only one year (${[...sourceYears][0]})`
+          : "no dated period";
+      return [
+        `Year-over-year claim, but the tool results cover ${got}; a YoY comparison needs at least two years of data.`,
+      ];
+    }
+
+    return [];
   }
 
   private isThread(content: string): boolean {
