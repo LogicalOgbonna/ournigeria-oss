@@ -246,6 +246,11 @@ export class ProposalsService {
     const proposedSlug = slugifyName(data.name.trim());
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // Serialize concurrent submissions for the SAME seat so two first-submits
+      // can't both create a canonical official (advisory lock auto-releases at tx end).
+      const seatLockKey = `${role}:${seat.column}:${seat.value}`;
+      await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)", seatLockKey);
+
       const canonical = await this.findCanonicalPosition(tx, role, seat.column, seat.value);
 
       // Branch 1: empty seat → create canonical official + position + proposal.
@@ -376,12 +381,19 @@ export class ProposalsService {
     const where = voterPhone
       ? { proposalId_voterPhone: { proposalId, voterPhone } }
       : { proposalId_voterIp: { proposalId, voterIp: voterIp! } };
+    // Pre-read decides whether this is a fresh confirm (increment) or a repeat (no-op).
     const existing = await tx.proposalVote.findUnique({ where });
+    // Idempotent upsert: a concurrent duplicate insert becomes a no-op update instead
+    // of throwing P2002, so no unique violation ever aborts the enclosing transaction.
+    await tx.proposalVote.upsert({
+      where,
+      create: { proposalId, voterPhone, voterIp, direction: 1 },
+      update: {},
+    });
     if (existing) {
       const p = await tx.dataProposal.findUnique({ where: { id: proposalId }, select: { upvoteCount: true, voteScore: true } });
       return { upvoteCount: p!.upvoteCount, voteScore: p!.voteScore, alreadyConfirmed: true };
     }
-    await tx.proposalVote.create({ data: { proposalId, voterPhone, voterIp, direction: 1 } });
     const updated = await tx.dataProposal.update({
       where: { id: proposalId },
       data: { voteScore: { increment: 1 }, upvoteCount: { increment: 1 } },
