@@ -212,9 +212,25 @@ export default async function ConstituencyPage({ params }: Props) {
           </div>
         </section>
 
-        {/* Coverage */}
-        <RelatedLinks title="Local Governments in this constituency" items={lgaLinks} />
-        <RelatedLinks title="Wards in this constituency" items={wardLinks} />
+        {/* Coverage — LGAs + wards, or a compile note when neither is mapped yet
+            (many state constituencies aren't ward-mapped in the source data). */}
+        {lgaLinks.length === 0 && wardLinks.length === 0 ? (
+          <section className="space-y-6">
+            <h2 className="font-heading text-2xl font-semibold">Coverage</h2>
+            <div className="rounded-[10px] border border-border bg-muted/30 px-5 py-4 flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-muted-foreground shrink-0" />
+              <p className="font-sans text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">Coming soon.</span>{" "}
+                The local governments and wards that make up this constituency are being compiled.
+              </p>
+            </div>
+          </section>
+        ) : (
+          <>
+            <RelatedLinks title="Local Governments in this constituency" items={lgaLinks} />
+            <RelatedLinks title="Wards in this constituency" items={wardLinks} />
+          </>
+        )}
       </main>
       <Footer />
     </div>
