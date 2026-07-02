@@ -1,0 +1,40 @@
+name: Runner health
+
+# Watches the self-hosted arm64 runner (homeland-arm64) that builds prod images.
+# If it's offline, a prod release would stall at the build step — so alert early.
+# Runs on GitHub's cloud so it works even when homeland is down.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours
+  workflow_dispatch:
+
+permissions:
+  administration: read       # needed to read self-hosted runner status
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check homeland-arm64 runner status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Optional: set these repo secrets to also get a Telegram ping.
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          status=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runners" \
+            --jq '.runners[] | select(.name=="homeland-arm64") | .status' 2>/dev/null || echo "")
+          echo "homeland-arm64 status: ${status:-not-found}"
+          if [ "$status" = "online" ]; then
+            echo "Runner healthy."
+            exit 0
+          fi
+          msg="⚠️ CI runner homeland-arm64 is ${status:-not-found}. Prod arm64 builds will stall until it is back online (sudo ~/actions-runner/svc.sh start on homeland)."
+          if [ -n "${TG_TOKEN}" ] && [ -n "${TG_CHAT}" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              -d chat_id="${TG_CHAT}" -d text="${msg}" >/dev/null || true
+          fi
+          echo "::error::${msg}"
+          exit 1
