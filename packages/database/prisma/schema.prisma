@@ -1544,6 +1544,42 @@ model SocialPost {
   @@map("social_posts")
 }
 
+/// Cluster-singleton lock + audit for the identify campaign. One row per
+/// (windowDate, windowSlot); the first socials node to INSERT it owns that
+/// window (blue/green safe — replaces the FAAC cron's in-process boolean).
+model IdentifyCampaignRun {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  windowDate    DateTime @map("window_date") @db.Date
+  windowSlot    Int      @map("window_slot")
+  claimedByPid  Int      @map("claimed_by_pid")
+  claimedByHost String   @map("claimed_by_host") @db.VarChar(120)
+  startedAt     DateTime @default(now()) @map("started_at") @db.Timestamptz()
+  postedCount   Int      @default(0) @map("posted_count")
+
+  @@unique([windowDate, windowSlot], map: "uq_identify_run_window")
+  @@map("identify_campaign_runs")
+}
+
+/// The without-replacement ledger — one row per seat we've tweeted (or parked
+/// a draft for). Its existence removes the seat from future selection. `status`
+/// is "posted" (auto-posted or human-approved) or "drafted" (parked).
+model IdentifyCampaignTarget {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category     String   @db.VarChar(20)
+  seatColumn   String   @map("seat_column") @db.VarChar(20)
+  seatCode     String   @map("seat_code") @db.VarChar(100)
+  stateCode    String   @map("state_code") @db.VarChar(30)
+  positionId   String?  @map("position_id") @db.Uuid
+  socialPostId String?  @map("social_post_id") @db.Uuid
+  tweetId      String?  @map("tweet_id") @db.VarChar(100)
+  status       String   @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([category, seatCode], map: "uq_identify_target_seat")
+  @@index([category, status], map: "idx_identify_target_category_status")
+  @@map("identify_campaign_targets")
+}
+
 // ============================================================
 // Socials Roamer (Twitter discovery + drafting pipeline)
 // ============================================================
