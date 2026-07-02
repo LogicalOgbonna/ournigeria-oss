@@ -176,6 +176,31 @@ export class ProposalsController {
   }
 
   @Public()
+  @Get("seat")
+  async seat(
+    @Query("role") role: string | undefined,
+    @Query("wardCode") wardCode: string | undefined,
+    @Query("lgaCode") lgaCode: string | undefined,
+    @Query("constituencyCode") constituencyCode: string | undefined,
+    @Query("stateCode") stateCode: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!role) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: "role is required" });
+      }
+      const result = await this.service.getSeatCandidates({ role, wardCode, lgaCode, constituencyCode, stateCode });
+      return res.json(result);
+    } catch (err: any) {
+      if (err.status === 400) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
+      }
+      console.error("seat candidates error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
   @Get(":id")
   async getById(@Param("id") id: string, @Res() res: Response) {
     try {

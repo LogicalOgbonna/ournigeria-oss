@@ -684,6 +684,77 @@ export class ProposalsService {
     };
   }
 
+  /**
+   * Public seat read for the verification UI. Returns the canonical official (if
+   * any) for a (role, scope) seat and its identify name-candidates ranked by
+   * voteScore, each with its confirm count.
+   */
+  async getSeatCandidates(params: {
+    role: string;
+    wardCode?: string;
+    lgaCode?: string;
+    constituencyCode?: string;
+    stateCode?: string;
+  }) {
+    const role = params.role === "rep" ? "representative" : params.role;
+    const validRoles = ["councilor", "lga_chairman", "mha", "representative", "senator", "governor"];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException(`Invalid role: ${params.role}`);
+    }
+    const seat = this.seatKey(role, params);
+    if (!seat.value) {
+      throw new BadRequestException(`Missing scope code for role ${role}`);
+    }
+
+    const canonical = await this.prisma.officialPosition.findFirst({
+      where: { role, [seat.column]: seat.value, reviewStatus: "unreviewed" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: {
+        id: true,
+        officialId: true,
+        partyAcronym: true,
+        official: { select: { id: true, name: true, slug: true, imageUrl: true } },
+      },
+    });
+
+    if (!canonical) {
+      return { seat: { role, column: seat.column, code: seat.value }, hasCanonical: false, candidates: [] };
+    }
+
+    const candidates = await this.prisma.dataProposal.findMany({
+      where: {
+        positionId: canonical.id,
+        targetField: "name",
+        status: { in: ["submitted", "under_review", "needs_evidence"] },
+      },
+      orderBy: [{ voteScore: "desc" }, { createdAt: "asc" }],
+      select: {
+        id: true, proposedValue: true, sourceUrl: true, voteScore: true,
+        upvoteCount: true, createdAt: true, _count: { select: { votes: true } },
+      },
+    });
+
+    return {
+      seat: { role, column: seat.column, code: seat.value },
+      hasCanonical: true,
+      official: {
+        id: canonical.official.id, name: canonical.official.name,
+        slug: canonical.official.slug, imageUrl: canonical.official.imageUrl,
+      },
+      positionId: canonical.id,
+      candidates: candidates.map((c) => ({
+        id: c.id,
+        name: String((c.proposedValue as any)?.name ?? (c.proposedValue as any)?.value ?? ""),
+        partyAcronym: (c.proposedValue as any)?.partyAcronym ?? null,
+        sourceUrl: c.sourceUrl,
+        voteScore: c.voteScore,
+        confirmCount: c.upvoteCount,
+        voteCount: c._count.votes,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    };
+  }
+
   // Admin methods
   async listPending(params: { status?: string; page?: number; limit?: number }) {
     const { status = "submitted", page = 1, limit = 20 } = params;
