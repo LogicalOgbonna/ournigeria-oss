@@ -163,4 +163,28 @@ test.describe('Related-entity links @awanaija', () => {
       page.getByRole('heading', { name: /who represents you/i }),
     ).toBeVisible();
   });
+
+  test('state page groups reps by constituency type', async ({ page, request }) => {
+    const states = await (await request.get(`${API}/geo/states`)).json();
+    const st = states[0];
+    const detail = await (
+      await request.get(`${API}/geo/states/${slug(st.name)}`)
+    ).json();
+    // Skips until the state-details constituencies grouping is deployed.
+    test.skip(
+      !detail.constituencies,
+      'state constituencies grouping not deployed on this API yet',
+    );
+
+    await page.goto(`/states/${slug(st.name)}`);
+    await expect(page.getByText('Senatorial Districts')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Federal Constituencies')).toBeVisible();
+    await expect(page.getByText('State Constituencies')).toBeVisible();
+
+    // Expand a section → each item links to its constituency page.
+    await page.getByText('Senatorial Districts').click();
+    await expect(
+      page.locator('a[href^="/constituencies/"]').first(),
+    ).toBeVisible({ timeout: 10000 });
+  });
 });

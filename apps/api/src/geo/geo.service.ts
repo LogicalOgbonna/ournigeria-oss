@@ -424,6 +424,56 @@ export class GeoService implements OnModuleInit {
     const houseMembers = houseMemberPositions.map(mapOfficial);
     const stateAssemblyMembers = stateAssemblyPositions.map(mapOfficial);
 
+    // Constituencies grouped by type, each with its current representative (if
+    // known). Powers the state page's "who represents each district" accordion +
+    // links to the per-constituency pages. Includes ALL constituencies, even ones
+    // with no identified representative yet.
+    const mapRep = (pos: any) => ({
+      id: pos.official.id,
+      slug: pos.official.slug,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      image: pos.official.imageUrl,
+    });
+    const repByCode = (positions: any[]) => {
+      const m = new Map<string, any>();
+      for (const p of positions) {
+        if (p.constituencyCode && !m.has(p.constituencyCode)) m.set(p.constituencyCode, mapRep(p));
+      }
+      return m;
+    };
+    const senRepByCode = repByCode(senatorPositions);
+    const repRepByCode = repByCode(houseMemberPositions);
+    const mhaRepByCode = repByCode(stateAssemblyPositions);
+
+    const allConstituencies = await this.prisma.nigerianConstituency.findMany({
+      where: { stateCode: state.code },
+      orderBy: { name: "asc" },
+      select: { code: true, name: true, type: true },
+    });
+    // Dedupe by name: the constituency tables still carry duplicate rows per
+    // district (the known "+extra-code" issue from the INEC reconciliation), so a
+    // district can appear twice — one code linked to the officeholder, one empty.
+    // Collapse by name and keep the row that resolves a representative (its code
+    // is the one that also powers a populated /constituencies/<code> page).
+    const buildGroup = (type: string, reps: Map<string, any>) => {
+      const byName = new Map<string, { code: string; name: string; representative: any }>();
+      for (const c of allConstituencies.filter((x) => x.type === type)) {
+        const representative = reps.get(c.code) || null;
+        const existing = byName.get(c.name);
+        if (!existing || (!existing.representative && representative)) {
+          byName.set(c.name, { code: c.code, name: c.name, representative });
+        }
+      }
+      return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+    };
+
+    const constituencies = {
+      senatorial: buildGroup("senatorial", senRepByCode),
+      federal: buildGroup("federal", repRepByCode),
+      state: buildGroup("state", mhaRepByCode),
+    };
+
     let faacDate = "";
     if (faacYtd > 0) {
       const latestFaac = fiscal?.faacStateAllocations?.[0];
@@ -442,6 +492,7 @@ export class GeoService implements OnModuleInit {
         houseMembers,
         stateAssembly: stateAssemblyMembers,
       },
+      constituencies,
       ...(budgetBreakdown ? { budgetBreakdown } : {}),
       sectors: sectorsPayload,
       stats: {

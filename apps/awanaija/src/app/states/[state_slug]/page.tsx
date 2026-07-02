@@ -537,11 +537,7 @@ export default async function StatePage({
                   <ChevronRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity self-center" />
                 </Link>
 
-                <StateOfficialsAccordion 
-                  stateCode={state.code} 
-                  stats={stats} 
-                  officials={state.officials} 
-                />
+                <StateOfficialsAccordion constituencies={state.constituencies} />
               </div>
             </div>
 
