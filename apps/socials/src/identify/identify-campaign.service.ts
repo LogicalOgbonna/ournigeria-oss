@@ -1,10 +1,18 @@
 import { hostname } from "node:os";
 import { Injectable, Logger } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "@ournigeria/database";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
 import { SafetyFilter } from "../intelligence/safety-filter.js";
 import { SocialsSettingsService } from "../config/socials-settings.service.js";
-import { IdentifyCategory, reachTierCase } from "./identify-content.js";
+import {
+  IdentifyCategory,
+  reachTierCase,
+  fillTemplate,
+  pickTemplate,
+  buildIdentifyUrl,
+  IdentifyLevel,
+} from "./identify-content.js";
 
 export interface SelectedSeat {
   category: IdentifyCategory;
@@ -127,5 +135,137 @@ export class IdentifyCampaignService {
       UPDATE identify_campaign_runs SET posted_count = posted_count + 1
       WHERE window_date = ${windowDate}::date AND window_slot = ${windowSlot};
     `;
+  }
+
+  private readonly CATEGORIES: IdentifyCategory[] = ["councilor", "lga_chairman", "mha"];
+  /** UTC hours the cron fires at (07/11/15/19/23 WAT, offset baked in). */
+  private readonly WINDOW_HOURS = [6, 10, 14, 18, 22];
+
+  private sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+  private rand(minMs: number, maxMs: number) {
+    return Math.floor(minMs + Math.random() * (maxMs - minMs));
+  }
+
+  /** 5 windows/day at 07/11/15/19/23 WAT (UTC 06/10/14/18/22). */
+  @Cron("0 0 6,10,14,18,22 * * *")
+  async runScheduledWindow() {
+    const now = new Date();
+    const slot = this.WINDOW_HOURS.indexOf(now.getUTCHours());
+    if (slot === -1) return;
+    const windowDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const leader = await this.claimWindow(windowDate, slot);
+    if (!leader) { this.logger.log(`window ${slot} owned by another node — skipping`); return; }
+    await this.runWindow(windowDate, slot);
+  }
+
+  /**
+   * Post ONE tweet per fueled category, jittered: initial 0-5 min, then 2-5 min
+   * between categories (~15 min total). If the process is killed mid-window at
+   * most the remaining tweets of THIS window are lost (acceptable).
+   */
+  async runWindow(windowDate: Date, windowSlot: number) {
+    await this.sleep(this.rand(0, 5 * 60_000));
+    for (let i = 0; i < this.CATEGORIES.length; i++) {
+      const cat = this.CATEGORIES[i];
+      try {
+        const result = await this.postOneCategory(cat, windowSlot, { dryRun: false });
+        if (result) await this.incrementPosted(windowDate, windowSlot);
+      } catch (e) {
+        this.logger.error(`identify ${cat} failed: ${e instanceof Error ? e.message : e}`);
+      }
+      if (i < this.CATEGORIES.length - 1) {
+        await this.sleep(this.rand(2 * 60_000, 5 * 60_000));
+      }
+    }
+  }
+
+  /**
+   * Select a seat, build the tweet, and either auto-post (toggle ON) or park a
+   * draft (toggle OFF). Returns a preview or null (empty pool). `dryRun` builds
+   * everything but performs NO publish AND NO writes — for automated tests. Both
+   * the auto-post and park branches write a ledger row so the seat isn't reused.
+   */
+  async postOneCategory(
+    category: IdentifyCategory,
+    windowSlot: number,
+    opts: { dryRun: boolean },
+  ): Promise<{ text: string; url: string; safe: boolean; seatCode: string } | null> {
+    const seat = await this.selectSeat(category);
+    if (!seat) return null;
+
+    const level: IdentifyLevel =
+      category === "councilor" ? "ward" : category === "lga_chairman" ? "lga" : "constituency";
+    const url = buildIdentifyUrl({
+      role: category, stateCode: seat.stateCode, level,
+      lgaCode: seat.lgaCode, wardCode: category === "councilor" ? seat.seatCode : undefined,
+      constituencyCode: seat.constituencyCode,
+    });
+    const text = fillTemplate(pickTemplate(category, windowSlot), {
+      ward: seat.wardName ?? "", lga: seat.lgaName ?? "",
+      constituency: seat.constituencyName ?? "", state: seat.stateName, url,
+    });
+    const safety = this.safetyFilter.check(text, []);
+    const preview = { text, url, safe: safety.safe && !safety.blocked, seatCode: seat.seatCode };
+
+    if (opts.dryRun) return preview;
+    if (!preview.safe) {
+      this.logger.warn(`identify ${category} skipped: ${safety.warnings.join("; ")}`);
+      return null;
+    }
+
+    if (await this.seatHasPosition(seat)) {
+      this.logger.log(`identify ${category} seat ${seat.seatCode} got identified — skip`);
+      return null;
+    }
+
+    const dataQuery = JSON.stringify({
+      category, seatColumn: seat.seatColumn, seatCode: seat.seatCode, stateCode: seat.stateCode, url,
+    });
+
+    const autoPost = await this.settings.getIdentifyAutoPost();
+    if (autoPost) {
+      const published = await this.publisher.publishOriginal(text, "opinion_tweet");
+      const tweetId = published[0]?.id;
+      const post = await this.prisma.socialPost.create({
+        data: {
+          platform: "twitter", postType: "identify_seat", externalId: tweetId,
+          content: text, dataDomain: "officials", dataQuery,
+          status: "published", publishedAt: new Date(),
+        },
+      });
+      await this.prisma.identifyCampaignTarget.create({
+        data: {
+          category, seatColumn: seat.seatColumn, seatCode: seat.seatCode,
+          stateCode: seat.stateCode, socialPostId: post.id, tweetId, status: "posted",
+        },
+      });
+      this.logger.log(`identify ${category} posted ${seat.seatCode}: ${tweetId}`);
+    } else {
+      const post = await this.prisma.socialPost.create({
+        data: {
+          platform: "twitter", postType: "identify_seat",
+          content: text, dataDomain: "officials", dataQuery,
+          status: "drafted", reviewStatus: "pending",
+        },
+      });
+      await this.prisma.identifyCampaignTarget.create({
+        data: {
+          category, seatColumn: seat.seatColumn, seatCode: seat.seatCode,
+          stateCode: seat.stateCode, socialPostId: post.id, status: "drafted",
+        },
+      });
+      this.logger.log(`identify ${category} parked draft ${post.id} for ${seat.seatCode}`);
+    }
+    return preview;
+  }
+
+  /** Race-guard: does the seat now have an official_position? */
+  private async seatHasPosition(seat: SelectedSeat): Promise<boolean> {
+    const col = seat.seatColumn; // internal enum, not user input
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT 1 FROM official_positions WHERE role = $1 AND ${col} = $2 LIMIT 1`,
+      seat.category, seat.seatCode,
+    );
+    return rows.length > 0;
   }
 }
