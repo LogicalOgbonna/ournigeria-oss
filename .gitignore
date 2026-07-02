@@ -91,3 +91,6 @@ packages/plans/
 
 # playwright mcp scratch (screenshots, snapshots, console logs)
 .playwright-mcp/
+
+# reconcile_wards workbook cache
+packages/database/scripts/reconcile_wards/.cache/
