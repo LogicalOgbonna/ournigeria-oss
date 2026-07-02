@@ -968,6 +968,30 @@ export class ProposalsService {
       data: { status: "approved", reviewedAt: new Date(), reviewedBy: adminId },
     });
 
+    // Seat supersession: approving an identify name-candidate resolves the seat.
+    // Reject sibling candidates on the same position so one answer wins.
+    const approvedValue = proposal.proposedValue as any;
+    if (
+      proposal.targetField === "name" &&
+      approvedValue?.type === "identify" &&
+      proposal.positionId
+    ) {
+      await this.prisma.dataProposal.updateMany({
+        where: {
+          positionId: proposal.positionId,
+          targetField: "name",
+          id: { not: proposalId },
+          status: { in: ["submitted", "under_review", "needs_evidence"] },
+        },
+        data: { status: "rejected", reviewedAt: new Date(), reviewedBy: adminId },
+      });
+      // Mark the position reviewed so it leaves the canonical/pending pool.
+      await this.prisma.officialPosition.update({
+        where: { id: proposal.positionId },
+        data: { reviewStatus: "reviewed", reviewedBy: adminId, lastVerifiedAt: new Date() },
+      });
+    }
+
     // Recompute completeness
     await this.officialsService.recomputeCompleteness(proposal.officialId);
 
