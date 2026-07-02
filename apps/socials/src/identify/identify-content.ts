@@ -88,3 +88,22 @@ export function pickTemplate(cat: IdentifyCategory, windowSlot: number): string 
   const arr = IDENTIFY_TEMPLATES[cat];
   return arr[windowSlot % arr.length];
 }
+
+/**
+ * Static geographic reach tier (§6 "now" signal). Higher = more X reach.
+ * Keys are NigerianState.code — FULL LOWERCASE SLUGS. Unlisted → DEFAULT_REACH_TIER.
+ */
+export const DEFAULT_REACH_TIER = 2;
+export const STATE_REACH_TIER: Record<string, number> = {
+  lagos: 10, fct: 9, kano: 8, rivers: 8, oyo: 7,
+  kaduna: 6, anambra: 6, delta: 6, enugu: 5, edo: 5,
+  abia: 5, imo: 5, ogun: 5, plateau: 4, cross_river: 4,
+};
+
+/** SQL `CASE state_code WHEN 'lagos' THEN 10 … ELSE 2 END` from the tier map. */
+export function reachTierCase(stateCol: string): string {
+  const whens = Object.entries(STATE_REACH_TIER)
+    .map(([code, tier]) => `WHEN '${code}' THEN ${tier}`)
+    .join(" ");
+  return `CASE ${stateCol} ${whens} ELSE ${DEFAULT_REACH_TIER} END`;
+}
