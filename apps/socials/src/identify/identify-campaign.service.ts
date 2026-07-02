@@ -1,3 +1,4 @@
+import { hostname } from "node:os";
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
@@ -103,5 +104,28 @@ export class IdentifyCampaignService {
       seatName: r.seat_name, stateCode: r.state_code, stateName: r.state_name,
       constituencyCode: r.seat_code, constituencyName: r.seat_name,
     };
+  }
+
+  /**
+   * Cluster singleton for one (windowDate, windowSlot). The first socials node
+   * to INSERT the run row owns the window; everyone else gets a 0-row conflict
+   * and returns false. Blue/green safe. $executeRaw returns the affected count.
+   */
+  async claimWindow(windowDate: Date, windowSlot: number): Promise<boolean> {
+    const affected = await this.prisma.$executeRaw`
+      INSERT INTO identify_campaign_runs
+        (window_date, window_slot, claimed_by_pid, claimed_by_host, started_at, posted_count)
+      VALUES (${windowDate}::date, ${windowSlot}, ${process.pid}, ${hostname()}, now(), 0)
+      ON CONFLICT (window_date, window_slot) DO NOTHING;
+    `;
+    return affected === 1;
+  }
+
+  /** Bump the posted counter on the current window's run row. */
+  private async incrementPosted(windowDate: Date, windowSlot: number) {
+    await this.prisma.$executeRaw`
+      UPDATE identify_campaign_runs SET posted_count = posted_count + 1
+      WHERE window_date = ${windowDate}::date AND window_slot = ${windowSlot};
+    `;
   }
 }
