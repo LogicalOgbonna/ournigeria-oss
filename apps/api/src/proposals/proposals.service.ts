@@ -255,6 +255,35 @@ export class ProposalsService {
 
       // Branch 1: empty seat → create canonical official + position + proposal.
       if (!canonical) {
+        // A confirmed (approved) official may already hold this seat. Do NOT mint
+        // a duplicate — route the submission to a name-change correction instead.
+        const resolved = await tx.officialPosition.findFirst({
+          where: { role, [seat.column]: seat.value, reviewStatus: "reviewed" },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          select: { id: true, officialId: true },
+        });
+        if (resolved) {
+          const changeProposal = await tx.dataProposal.create({
+            data: {
+              officialId: resolved.officialId,
+              positionId: resolved.id,
+              proposerPhone: data.proposerPhone,
+              proposerIp: data.proposerIp ?? null,
+              trust: data.trust,
+              targetField: "name",
+              proposedValue: { value: data.name.trim() }, // change shape (no type:"identify")
+              sourceUrl: data.sourceUrl || null,
+              status: "submitted",
+            },
+          });
+          return {
+            officialId: resolved.officialId,
+            positionId: resolved.id,
+            proposalId: changeProposal.id,
+            outcome: "change_proposed" as const,
+          };
+        }
+
         const slug = await this.generateUniqueOfficialSlug(tx, data.name.trim(), positionScope.stateCode || data.stateCode);
         const official = await tx.nigerianOfficial.create({
           data: { name: data.name.trim(), slug, imageUrl: imageInfo.officialImageUrl, ...officialProfile, completenessScore: 0 },
@@ -305,6 +334,7 @@ export class ProposalsService {
     const eventType =
       result.outcome === "created" ? "official_identified"
       : result.outcome === "corroborated" ? "official_corroborated"
+      : result.outcome === "change_proposed" ? "official_change_proposed"
       : "official_candidate_added";
     await this.prisma.activityLog.create({
       data: {
@@ -1036,6 +1066,43 @@ export class ProposalsService {
       where: { id: proposalId },
       data: { status: "rejected", reviewedAt: new Date(), reviewedBy: adminId },
     });
+
+    // If this was the last pending identify candidate on a never-approved seat,
+    // remove the provisional official/position it created so the seat returns to
+    // the unidentified pool and no rejected name lingers publicly.
+    const pv = proposal.proposedValue as any;
+    if (proposal.targetField === "name" && pv?.type === "identify" && proposal.positionId) {
+      const remaining = await this.prisma.dataProposal.count({
+        where: {
+          positionId: proposal.positionId,
+          targetField: "name",
+          status: { in: ["submitted", "under_review", "needs_evidence"] },
+        },
+      });
+      if (remaining === 0) {
+        const position = await this.prisma.officialPosition.findUnique({
+          where: { id: proposal.positionId },
+          select: { id: true, officialId: true, reviewStatus: true },
+        });
+        if (position && position.reviewStatus === "unreviewed") {
+          const otherPositions = await this.prisma.officialPosition.count({
+            where: { officialId: position.officialId, id: { not: position.id } },
+          });
+          await this.prisma.$transaction(async (tx) => {
+            if (otherPositions === 0) {
+              // Provisional official with only this rejected seat → remove entirely.
+              await tx.dataProposal.deleteMany({ where: { officialId: position.officialId } });
+              await tx.officialPosition.delete({ where: { id: position.id } });
+              await tx.nigerianOfficial.delete({ where: { id: position.officialId } });
+            } else {
+              // Official holds other seats → free only this seat.
+              await tx.dataProposal.deleteMany({ where: { positionId: position.id } });
+              await tx.officialPosition.delete({ where: { id: position.id } });
+            }
+          });
+        }
+      }
+    }
 
     return { status: "rejected" };
   }
