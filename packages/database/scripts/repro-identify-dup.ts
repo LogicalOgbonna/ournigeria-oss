@@ -18,22 +18,25 @@ async function main() {
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
   });
 
-  // Mimic the CURRENT identify() create path: always create fresh, no dedup.
-  async function currentIdentifyPath(name: string) {
+  // Seat-aware path mirroring the fixed identify() transaction.
+  async function seatAwareIdentify(name: string, ip: string) {
     return prisma.$transaction(async (tx) => {
-      const official = await tx.nigerianOfficial.create({ data: { name, completenessScore: 0 } });
-      const position = await tx.officialPosition.create({
-        data: {
-          officialId: official.id, role: SEAT_ROLE, startDate: new Date("2023-05-29"),
-          sourceType: "manual", confidence: "low", reviewStatus: "unreviewed", wardCode: WARD_CODE,
-        },
+      const canonical = await tx.officialPosition.findFirst({
+        where: { role: SEAT_ROLE, wardCode: WARD_CODE, reviewStatus: "unreviewed" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, officialId: true },
       });
+      if (!canonical) {
+        const official = await tx.nigerianOfficial.create({ data: { name, completenessScore: 0 } });
+        const position = await tx.officialPosition.create({
+          data: { officialId: official.id, role: SEAT_ROLE, startDate: new Date("2023-05-29"), sourceType: "manual", confidence: "low", reviewStatus: "unreviewed", wardCode: WARD_CODE },
+        });
+        await tx.dataProposal.create({
+          data: { officialId: official.id, positionId: position.id, proposerIp: ip, proposerPhone: null, trust: "anonymous", targetField: "name", status: "submitted", proposedValue: { value: name, type: "identify", name, role: SEAT_ROLE, wardCode: WARD_CODE } },
+        });
+        return;
+      }
       await tx.dataProposal.create({
-        data: {
-          officialId: official.id, positionId: position.id, proposerPhone: null, proposerIp: "203.0.113.1",
-          trust: "anonymous", targetField: "name",
-          proposedValue: { value: name, type: "identify", name, role: SEAT_ROLE, wardCode: WARD_CODE }, status: "submitted",
-        },
+        data: { officialId: canonical.officialId, positionId: canonical.id, proposerIp: ip, proposerPhone: null, trust: "anonymous", targetField: "name", status: "submitted", proposedValue: { value: name, type: "identify", name, role: SEAT_ROLE, wardCode: WARD_CODE } },
       });
     });
   }
@@ -47,8 +50,13 @@ async function main() {
   });
 
   console.log(`Seat under test: (${SEAT_ROLE}, ${WARD_CODE})`);
-  await currentIdentifyPath("Person A Repro");
-  await currentIdentifyPath("Person B Repro");
+  await seatAwareIdentify("Person A Repro", "203.0.113.1");
+  await seatAwareIdentify("Person B Repro", "203.0.113.2");
+
+  const proposalsAtSeat = await prisma.dataProposal.count({
+    where: { position: { role: SEAT_ROLE, wardCode: WARD_CODE }, targetField: "name" },
+  });
+  console.log(`Name candidates at seat: ${proposalsAtSeat}`);
 
   const positions = await prisma.officialPosition.count({ where: { role: SEAT_ROLE, wardCode: WARD_CODE } });
   const officials = await prisma.officialPosition.findMany({

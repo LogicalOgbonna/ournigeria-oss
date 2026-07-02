@@ -239,87 +239,155 @@ export class ProposalsService {
       positionScope,
     });
 
-    // Create official + position + proposal in a transaction
+    const seat = this.seatKey(role, {
+      wardCode: data.wardCode, lgaCode: data.lgaCode,
+      constituencyCode: data.constituencyCode, stateCode: data.stateCode,
+    });
+    const proposedSlug = slugifyName(data.name.trim());
+
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1. Create the official (with a unique SEO slug)
-      const slug = await this.generateUniqueOfficialSlug(
-        tx,
-        data.name.trim(),
-        positionScope.stateCode || data.stateCode,
+      const canonical = await this.findCanonicalPosition(tx, role, seat.column, seat.value);
+
+      // Branch 1: empty seat → create canonical official + position + proposal.
+      if (!canonical) {
+        const slug = await this.generateUniqueOfficialSlug(tx, data.name.trim(), positionScope.stateCode || data.stateCode);
+        const official = await tx.nigerianOfficial.create({
+          data: { name: data.name.trim(), slug, imageUrl: imageInfo.officialImageUrl, ...officialProfile, completenessScore: 0 },
+        });
+        const position = await tx.officialPosition.create({
+          data: {
+            officialId: official.id, role, partyAcronym: data.partyAcronym || null,
+            startDate: new Date("2023-05-29"), sourceType: "manual", sourceUrl: data.sourceUrl || null,
+            confidence: "low", reviewStatus: "unreviewed", ...positionScope,
+          },
+        });
+        const proposal = await tx.dataProposal.create({
+          data: {
+            officialId: official.id, positionId: position.id, proposerPhone: data.proposerPhone,
+            proposerIp: data.proposerIp ?? null, trust: data.trust, targetField: "name",
+            proposedValue: identifyProposalValue, sourceUrl: data.sourceUrl || null, status: "submitted",
+          },
+        });
+        return { officialId: official.id, positionId: position.id, proposalId: proposal.id, outcome: "created" as const };
+      }
+
+      // Canonical exists → never create a new official/position.
+      const candidates = await this.findSeatCandidates(tx, canonical.id);
+      const match = candidates.find(
+        (c: any) => slugifyName(String((c.proposedValue as any)?.name ?? "")) === proposedSlug,
       );
-      const official = await tx.nigerianOfficial.create({
+
+      // Branch 2: matching name → corroborate.
+      if (match) {
+        const conf = await this.corroborate(tx, match.id, data.proposerPhone, data.proposerIp ?? null);
+        return {
+          officialId: canonical.officialId, positionId: canonical.id, proposalId: match.id,
+          outcome: "corroborated" as const, upvoteCount: conf.upvoteCount, voteScore: conf.voteScore, alreadyConfirmed: conf.alreadyConfirmed,
+        };
+      }
+
+      // Branch 3: new name → competing candidate on the SAME position/official.
+      const competing = await tx.dataProposal.create({
         data: {
-          name: data.name.trim(),
-          slug,
-          imageUrl: imageInfo.officialImageUrl,
-          ...officialProfile,
-          completenessScore: 0,
+          officialId: canonical.officialId, positionId: canonical.id, proposerPhone: data.proposerPhone,
+          proposerIp: data.proposerIp ?? null, trust: data.trust, targetField: "name",
+          proposedValue: identifyProposalValue, sourceUrl: data.sourceUrl || null, status: "submitted",
         },
       });
-
-      // 2. Create the position
-      const position = await tx.officialPosition.create({
-        data: {
-          officialId: official.id,
-          role,
-          partyAcronym: data.partyAcronym || null,
-          startDate: new Date("2023-05-29"), // Current political term start
-          // User-submitted identifications should map to the DB's manual provenance bucket.
-          sourceType: "manual",
-          sourceUrl: data.sourceUrl || null,
-          confidence: "low",
-          reviewStatus: "unreviewed",
-          ...positionScope,
-        },
-      });
-
-      // 3. Create the proposal to track this identification
-      const proposal = await tx.dataProposal.create({
-        data: {
-          officialId: official.id,
-          positionId: position.id,
-          proposerPhone: data.proposerPhone,
-          proposerIp: data.proposerIp ?? null,
-          trust: data.trust,
-          targetField: "name",
-          proposedValue: identifyProposalValue,
-          sourceUrl: data.sourceUrl || null,
-          status: "submitted",
-        },
-      });
-
-      return { officialId: official.id, positionId: position.id, proposalId: proposal.id };
+      return { officialId: canonical.officialId, positionId: canonical.id, proposalId: competing.id, outcome: "competing" as const };
     });
 
-    // Log activity
+    const eventType =
+      result.outcome === "created" ? "official_identified"
+      : result.outcome === "corroborated" ? "official_corroborated"
+      : "official_candidate_added";
     await this.prisma.activityLog.create({
       data: {
-        eventType: "official_identified",
-        targetType: "official",
-        targetId: result.officialId,
+        eventType, targetType: "official", targetId: result.officialId,
         metadata: {
-          proposalId: result.proposalId,
-          name: data.name.trim(),
-          role,
-          partyAcronym: data.partyAcronym || null,
-          ...officialProfile,
-          ...positionScope,
+          proposalId: result.proposalId, positionId: result.positionId, outcome: result.outcome,
+          name: data.name.trim(), role, partyAcronym: data.partyAcronym || null, ...officialProfile, ...positionScope,
         },
       },
     });
 
-    // Send notification
-    this.notifier
-      .notifyNewProposal({
-        proposalId: result.proposalId,
-        officialName: data.name.trim(),
-        targetField: "identify",
-        proposedValue: identifyProposalValue.displayValue,
-        voteScore: 0,
-      })
-      .catch(() => {});
+    if (result.outcome !== "corroborated") {
+      this.notifier
+        .notifyNewProposal({
+          proposalId: result.proposalId, officialName: data.name.trim(),
+          targetField: result.outcome === "competing" ? "identify_candidate" : "identify",
+          proposedValue: identifyProposalValue.displayValue, voteScore: 0,
+        })
+        .catch(() => {});
+    }
 
-    return { id: result.proposalId, officialId: result.officialId, status: "submitted", trust: data.trust };
+    return {
+      id: result.proposalId, officialId: result.officialId, positionId: result.positionId,
+      status: "submitted", trust: data.trust, outcome: result.outcome,
+      ...(result.outcome === "corroborated"
+        ? { upvoteCount: result.upvoteCount, voteScore: result.voteScore, alreadyConfirmed: result.alreadyConfirmed }
+        : {}),
+    };
+  }
+
+  /** Seat scope column + value for a (role, scope) pair. Design-locked mapping. */
+  private seatKey(
+    role: string,
+    scope: { wardCode?: string; lgaCode?: string; constituencyCode?: string; stateCode?: string },
+  ): { column: "wardCode" | "lgaCode" | "constituencyCode" | "stateCode"; value: string } {
+    if (role === "councilor") return { column: "wardCode", value: scope.wardCode! };
+    if (role === "lga_chairman") return { column: "lgaCode", value: scope.lgaCode! };
+    if (role === "mha" || role === "representative" || role === "senator")
+      return { column: "constituencyCode", value: scope.constituencyCode! };
+    if (role === "governor") return { column: "stateCode", value: scope.stateCode! };
+    throw new BadRequestException(`Unsupported role for seat key: ${role}`);
+  }
+
+  /** Canonical position for a seat = earliest-created unresolved OfficialPosition at (role, scope). */
+  private async findCanonicalPosition(
+    tx: any, role: string, column: string, value: string,
+  ): Promise<{ id: string; officialId: string } | null> {
+    return tx.officialPosition.findFirst({
+      where: { role, [column]: value, reviewStatus: "unreviewed" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select: { id: true, officialId: true },
+    });
+  }
+
+  /** Existing identify name-candidates on a canonical position, best score first. */
+  private async findSeatCandidates(tx: any, positionId: string) {
+    return tx.dataProposal.findMany({
+      where: { positionId, targetField: "name", status: { in: ["submitted", "under_review", "needs_evidence"] } },
+      orderBy: [{ voteScore: "desc" }, { createdAt: "asc" }],
+      select: { id: true, proposerPhone: true, proposerIp: true, proposedValue: true },
+    });
+  }
+
+  /** Record a corroboration (confirm) on an existing candidate. Verified→phone, anon→IP. Idempotent per voter. */
+  private async corroborate(
+    tx: any, proposalId: string, voterPhone: string | null, voterIp: string | null,
+  ): Promise<{ upvoteCount: number; voteScore: number; alreadyConfirmed: boolean }> {
+    // Neither a phone nor an IP → no stable voter key; skip the vote rather than
+    // issue an invalid null-keyed findUnique that would crash.
+    if (!voterPhone && !voterIp) {
+      const p = await tx.dataProposal.findUnique({ where: { id: proposalId }, select: { upvoteCount: true, voteScore: true } });
+      return { upvoteCount: p!.upvoteCount, voteScore: p!.voteScore, alreadyConfirmed: true };
+    }
+    const where = voterPhone
+      ? { proposalId_voterPhone: { proposalId, voterPhone } }
+      : { proposalId_voterIp: { proposalId, voterIp: voterIp! } };
+    const existing = await tx.proposalVote.findUnique({ where });
+    if (existing) {
+      const p = await tx.dataProposal.findUnique({ where: { id: proposalId }, select: { upvoteCount: true, voteScore: true } });
+      return { upvoteCount: p!.upvoteCount, voteScore: p!.voteScore, alreadyConfirmed: true };
+    }
+    await tx.proposalVote.create({ data: { proposalId, voterPhone, voterIp, direction: 1 } });
+    const updated = await tx.dataProposal.update({
+      where: { id: proposalId },
+      data: { voteScore: { increment: 1 }, upvoteCount: { increment: 1 } },
+      select: { upvoteCount: true, voteScore: true },
+    });
+    return { upvoteCount: updated.upvoteCount, voteScore: updated.voteScore, alreadyConfirmed: false };
   }
 
   private normalizeIdentifyImage(imageUrl?: string) {
