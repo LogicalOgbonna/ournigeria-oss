@@ -184,6 +184,40 @@ export async function identifyOfficial(data: {
   });
 }
 
+export interface SeatCandidate {
+  id: string;
+  name: string;
+  partyAcronym: string | null;
+  sourceUrl: string | null;
+  voteScore: number;
+  confirmCount: number;
+  voteCount: number;
+  createdAt: string;
+}
+
+export interface SeatCandidatesResponse {
+  seat: { role: string; column: string; code: string };
+  hasCanonical: boolean;
+  official?: { id: string; name: string; slug: string | null; imageUrl: string | null };
+  positionId?: string;
+  candidates: SeatCandidate[];
+}
+
+export async function getSeatCandidates(params: {
+  role: string;
+  wardCode?: string;
+  lgaCode?: string;
+  constituencyCode?: string;
+  stateCode?: string;
+}) {
+  const qs = new URLSearchParams({ role: params.role });
+  if (params.wardCode) qs.set("wardCode", params.wardCode);
+  if (params.lgaCode) qs.set("lgaCode", params.lgaCode);
+  if (params.constituencyCode) qs.set("constituencyCode", params.constituencyCode);
+  if (params.stateCode) qs.set("stateCode", params.stateCode);
+  return apiFetch<SeatCandidatesResponse>(`/proposals/seat?${qs.toString()}`);
+}
+
 export async function claimProposal(proposalId: string) {
   return apiFetch<{ status: string }>(`/proposals/${proposalId}/claim`, {
     method: "POST",
