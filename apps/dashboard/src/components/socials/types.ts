@@ -17,7 +17,7 @@ export interface OriginalTweetSnapshot {
 
 export interface DraftRow {
   id: string;
-  postType: "reply" | "quote" | "identify_seat";
+  postType: "reply" | "quote" | "identify_seat" | "proposal_verify";
   content: string;
   inReplyToId: string | null;
   quotedTweetId: string | null;

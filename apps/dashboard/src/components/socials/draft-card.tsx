@@ -61,7 +61,8 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
   }
 
   const original = draft.originalTweetSnapshot;
-  const isIdentify = draft.postType === "identify_seat";
+  const isIdentify =
+    draft.postType === "identify_seat" || draft.postType === "proposal_verify";
   const isQuote = draft.postType === "quote";
   const targetTweetId = draft.inReplyToId ?? draft.quotedTweetId;
   const tweetUrl = targetTweetId
