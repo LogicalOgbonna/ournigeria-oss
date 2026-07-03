@@ -109310,5 +109310,1413 @@
     "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
     "source_date": "2019-02",
     "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_south_aba_river",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_south_aba_town_hall",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_south_ekeoha",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_south_gloucester",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_south_mosque",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_north_ogbor_i",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_north_ogbor_ii",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_aba_central",
+    "ward_code": "abia_aba_north_umuola",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_amankalu_akoliufu",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_igbere_a",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_igbere_b",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_item_a",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_item_b",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_item_c",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_north",
+    "ward_code": "abia_bende_ugwueke_ezeukwu",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_bende",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_itumbauzo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_ozuitem",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_umu_imenyi",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_umuhu_ezechi",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_bende_south",
+    "ward_code": "abia_bende_uzuakoli",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_east",
+    "ward_code": "abia_obi_ngwa_akumaimo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_east",
+    "ward_code": "abia_obi_ngwa_alaukwu_ohanze",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_east",
+    "ward_code": "abia_obi_ngwa_maboko_amairi",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_east",
+    "ward_code": "abia_obi_ngwa_ndiarata_amairinabua",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_east",
+    "ward_code": "abia_obi_ngwa_ntighauzo_amairi",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_abayi_i",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_abayi_ii",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_ahiaba",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_ibeme",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_mgboko_itungwa",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_obingwa_west",
+    "ward_code": "abia_obi_ngwa_mgboko_umuanunu",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_amaeke_abiriba",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_amaogudu_abiriba",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_ebem_ohafia",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_isiama_ohafia",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_ndi_elu_nkporo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_north",
+    "ward_code": "abia_ohafia_ndi_etiti_nkporo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_south",
+    "ward_code": "abia_ohafia_agboji_abiriba",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_south",
+    "ward_code": "abia_ohafia_ania_ohoafia",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_south",
+    "ward_code": "abia_ohafia_ndi_agbo_nkporo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_south",
+    "ward_code": "abia_ohafia_ohafor_ohoafia",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_abia_ohafia_south",
+    "ward_code": "abia_ohafia_okanu_ohoafia",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "low"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_north",
+    "ward_code": "abia_osisioma_ngwa_ama_asaa",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_north",
+    "ward_code": "abia_osisioma_ngwa_amavo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_north",
+    "ward_code": "abia_osisioma_ngwa_aro_ngwa",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_north",
+    "ward_code": "abia_osisioma_ngwa_oso_okwa",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_north",
+    "ward_code": "abia_osisioma_ngwa_umunneise",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_south",
+    "ward_code": "abia_osisioma_ngwa_amaitolu_mbutu_umuojima",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_south",
+    "ward_code": "abia_osisioma_ngwa_amasator",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_south",
+    "ward_code": "abia_osisioma_ngwa_amator",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_south",
+    "ward_code": "abia_osisioma_ngwa_okpor_umuobo",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_osisioma_south",
+    "ward_code": "abia_osisioma_ngwa_urtta",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "low"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_east",
+    "ward_code": "abia_umuahia_north_ibeku_east_i",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_east",
+    "ward_code": "abia_umuahia_north_ibeku_east_ii",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_east",
+    "ward_code": "abia_umuahia_north_ibeku_west",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_east",
+    "ward_code": "abia_umuahia_north_ndume",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_central",
+    "ward_code": "abia_umuahia_north_umuahia_urban_i",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_central",
+    "ward_code": "abia_umuahia_north_umuahia_urban_ii",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_abia_umuahia_central",
+    "ward_code": "abia_umuahia_north_umuahia_urban_iii",
+    "source": "inec_abia_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/ABIA.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_chiromawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_dalili",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_dan_hassan",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_dorawar_sallau",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_dukawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_fankurun",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_garun_babba",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_garun_malam",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_gundutse",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_jobawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_kadawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_karfi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_kosawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_kura",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_kurun_sumau",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_makwaro",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_rigar_duka",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_kura_tanawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_yadakwari",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_kura_gurun_mallam",
+    "ward_code": "kano_garum_mallam_yalwan_yadakwari",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_butu_butu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_dawakin_gulu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_dindere",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_doka",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_doka_dawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_dururawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_gajida",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_ginsawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_gulu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_janguza",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_jauben_kudu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_jili",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_karofin_yashi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_kwami",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_lambu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_langel",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_rimin_gado",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_sakaratsa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_tamawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_tofa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_kumbotso_unguwar_rimi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_gezawa_wangara",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_yalwa_garama",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_yalwan_danziyal",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_yanoko",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_tofa_yarimawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_rimi_gado_tofa",
+    "ward_code": "kano_rimin_gado_zagon_dan_abdu",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_bumai",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_daddarawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_dunbulun",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_garin_sheme",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_gozarki",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_gurun",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_gwarmai",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_kaba_giwa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_kasuwar_kuka",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_kunchi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_matan_fada",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_ridawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_shamakawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_shuwaki",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_tatsan",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_tsanyawa",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_ghari_yandadi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_yanganau",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_yankamaye",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_kano_tsanyawa_kunchi",
+    "ward_code": "kano_tsanyawa_zarogi",
+    "source": "inec_kano_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/KANO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_askira_east",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_chul_rumirgo",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_dille_huyim",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_hausari_tampul",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_kopa_multhafu",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_lassa",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_mussa",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_ngohi",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_ngulde",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_uba",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_uda_uvu",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_wamdeo_giwi",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_askira",
+    "ward_code": "borno_askira_uba_zadawa_hausari",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_dipchari_jere_dar_jamal_kotembe",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_kasugula",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_lawanti_malam_mastari_abbaram",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_mbuliya_goniri_siraja",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_sabsabwa_soye_bulongu",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama",
+    "ward_code": "borno_bama_shehuri_hausari_mairi",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_andara_ajiri_wulba",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_buduwa_bula_chirabe",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_gulumba_jukkuri_batra",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_marka_malge_amchaka",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_wulbari_ndine_chachile",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_yabiri_kura_yabiri_gana_chongolo",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_bama_ii",
+    "ward_code": "borno_bama_zangeri_kash_kash",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_jarawa_sangaya",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_jilbe",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "low"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_jilbe_b_koma_kaudi",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_kala",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_k_kumaga",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_mada",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_moholo",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_rann_b_daima",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "low"
+  },
+  {
+    "constituency_code": "state_borno_kala_balge",
+    "ward_code": "borno_kala_balge_sigal_karche",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_bolori_i",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_bolori_ii",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_bulabulin",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_fezzan",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_gamboru_liberty",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_gwange_i",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_gwange_ii",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_gwange_iii",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_hausari_zango",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_lamisula_jabba_mari",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_bayo_limanti",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_maisandari",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_shehuri_north",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_shehuri_south",
+    "source": "inec_borno_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
   }
 ]

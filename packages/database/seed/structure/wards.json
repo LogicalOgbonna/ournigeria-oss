@@ -4101,7 +4101,7 @@
   },
   {
     "code": "akwa_ibom_abak_abak_urban_1",
-    "name": "Abak Urban 1",
+    "name": "Abak Urban I",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4111,7 +4111,7 @@
   },
   {
     "code": "akwa_ibom_abak_abak_urban_11",
-    "name": "Abak Urban 11",
+    "name": "Abak Urban II",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4121,7 +4121,7 @@
   },
   {
     "code": "akwa_ibom_abak_abak_urban_111",
-    "name": "Abak Urban 111",
+    "name": "Abak Urban III",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4141,7 +4141,7 @@
   },
   {
     "code": "akwa_ibom_abak_afaha_obong_1",
-    "name": "Afaha Obong 1",
+    "name": "Afaha Obong I",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4151,7 +4151,7 @@
   },
   {
     "code": "akwa_ibom_abak_afaha_obong_11",
-    "name": "Afaha Obong 11",
+    "name": "Afaha Obong II",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4161,7 +4161,7 @@
   },
   {
     "code": "akwa_ibom_abak_midim_1",
-    "name": "Midim 1",
+    "name": "Midim I",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4171,7 +4171,7 @@
   },
   {
     "code": "akwa_ibom_abak_midim_11",
-    "name": "Midim 11",
+    "name": "Midim II",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4181,7 +4181,7 @@
   },
   {
     "code": "akwa_ibom_abak_otoro_1",
-    "name": "Otoro 1",
+    "name": "Otoro I",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4191,7 +4191,7 @@
   },
   {
     "code": "akwa_ibom_abak_otoro_11",
-    "name": "Otoro 11",
+    "name": "Otoro II",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4201,7 +4201,7 @@
   },
   {
     "code": "akwa_ibom_abak_otoro_111",
-    "name": "Otoro 111",
+    "name": "Otoro III",
     "lga_code": "akwa_ibom_abak",
     "pcode": null,
     "source": "inec",
@@ -4211,7 +4211,7 @@
   },
   {
     "code": "akwa_ibom_eastern_obolo_eastern_obolo_1",
-    "name": "Eastern Obolo 1",
+    "name": "Eastern Obolo I",
     "lga_code": "akwa_ibom_eastern_obolo",
     "pcode": null,
     "source": "inec",
@@ -4221,7 +4221,7 @@
   },
   {
     "code": "akwa_ibom_eastern_obolo_eastern_obolo_11",
-    "name": "Eastern Obolo 11",
+    "name": "Eastern Obolo II",
     "lga_code": "akwa_ibom_eastern_obolo",
     "pcode": null,
     "source": "inec",
@@ -4231,7 +4231,7 @@
   },
   {
     "code": "akwa_ibom_eastern_obolo_eastern_obolo_111",
-    "name": "Eastern Obolo 111",
+    "name": "Eastern Obolo III",
     "lga_code": "akwa_ibom_eastern_obolo",
     "pcode": null,
     "source": "inec",
@@ -4311,7 +4311,7 @@
   },
   {
     "code": "akwa_ibom_eket_central_1",
-    "name": "Central 1",
+    "name": "Central I",
     "lga_code": "akwa_ibom_eket",
     "pcode": null,
     "source": "inec",
@@ -4321,7 +4321,7 @@
   },
   {
     "code": "akwa_ibom_eket_central_11",
-    "name": "Central 11",
+    "name": "Central II",
     "lga_code": "akwa_ibom_eket",
     "pcode": null,
     "source": "inec",
@@ -4331,7 +4331,7 @@
   },
   {
     "code": "akwa_ibom_eket_central_111",
-    "name": "Central 111",
+    "name": "Central III",
     "lga_code": "akwa_ibom_eket",
     "pcode": null,
     "source": "inec",
@@ -4361,7 +4361,7 @@
   },
   {
     "code": "akwa_ibom_eket_okon_1",
-    "name": "Okon 1",
+    "name": "Okon I",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4371,7 +4371,7 @@
   },
   {
     "code": "akwa_ibom_eket_okon_11",
-    "name": "Okon 11",
+    "name": "Okon II",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4381,7 +4381,7 @@
   },
   {
     "code": "akwa_ibom_eket_urban_1",
-    "name": "Urban 1",
+    "name": "Urban I",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4391,7 +4391,7 @@
   },
   {
     "code": "akwa_ibom_eket_urban_11",
-    "name": "Urban 11",
+    "name": "Urban II",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4401,7 +4401,7 @@
   },
   {
     "code": "akwa_ibom_eket_urban_111",
-    "name": "Urban 111",
+    "name": "Urban III",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4411,7 +4411,7 @@
   },
   {
     "code": "akwa_ibom_eket_urban_1v",
-    "name": "Urban 1v",
+    "name": "Urban IV",
     "lga_code": "akwa_ibom_eket",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -4541,7 +4541,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_ekpeyong_1",
-    "name": "Ekpeyong 1",
+    "name": "Ekpeyong I",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4551,7 +4551,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_ekpeyong_11",
-    "name": "Ekpeyong 11",
+    "name": "Ekpeyong II",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4571,7 +4571,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_odoro_ikot_1",
-    "name": "Odoro Ikot 1",
+    "name": "Odoro Ikot I",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4581,7 +4581,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_odoro_ikot_11",
-    "name": "Odoro Ikot 11",
+    "name": "Odoro Ikot II",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4611,7 +4611,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_ukana_west_1",
-    "name": "Ukana West 1",
+    "name": "Ukana West I",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4621,7 +4621,7 @@
   },
   {
     "code": "akwa_ibom_essien_udim_ukana_west_11",
-    "name": "Ukana West 11",
+    "name": "Ukana West II",
     "lga_code": "akwa_ibom_essien_udim",
     "pcode": null,
     "source": "inec",
@@ -4631,7 +4631,7 @@
   },
   {
     "code": "akwa_ibom_etim_ekpo_etim_ekpo_1",
-    "name": "Etim Ekpo 1",
+    "name": "Etim Ekpo I",
     "lga_code": "akwa_ibom_etim_ekpo",
     "pcode": null,
     "source": "inec",
@@ -4641,7 +4641,7 @@
   },
   {
     "code": "akwa_ibom_etim_ekpo_etim_ekpo_11",
-    "name": "Etim Ekpo 11",
+    "name": "Etim Ekpo II",
     "lga_code": "akwa_ibom_etim_ekpo",
     "pcode": null,
     "source": "inec",
@@ -4651,7 +4651,7 @@
   },
   {
     "code": "akwa_ibom_etim_ekpo_etim_ekpo_111",
-    "name": "Etim Ekpo 111",
+    "name": "Etim Ekpo III",
     "lga_code": "akwa_ibom_etim_ekpo",
     "pcode": null,
     "source": "inec",
@@ -4731,7 +4731,7 @@
   },
   {
     "code": "akwa_ibom_etinan_etinan_urban_1",
-    "name": "Etinan Urban 1",
+    "name": "Etinan Urban I",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4741,7 +4741,7 @@
   },
   {
     "code": "akwa_ibom_etinan_etinan_urban_11",
-    "name": "Etinan Urban 11",
+    "name": "Etinan Urban II",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4751,7 +4751,7 @@
   },
   {
     "code": "akwa_ibom_etinan_etinan_urban_111",
-    "name": "Etinan Urban 111",
+    "name": "Etinan Urban III",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4781,7 +4781,7 @@
   },
   {
     "code": "akwa_ibom_etinan_northern_iman_1",
-    "name": "Northern Iman 1",
+    "name": "Northern Iman I",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4791,7 +4791,7 @@
   },
   {
     "code": "akwa_ibom_etinan_northern_iman_11",
-    "name": "Northern Iman 11",
+    "name": "Northern Iman II",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4801,7 +4801,7 @@
   },
   {
     "code": "akwa_ibom_etinan_southern_iman_1",
-    "name": "Southern Iman 1",
+    "name": "Southern Iman I",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4811,7 +4811,7 @@
   },
   {
     "code": "akwa_ibom_etinan_southern_iman_11",
-    "name": "Southern Iman 11",
+    "name": "Southern Iman II",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4821,7 +4821,7 @@
   },
   {
     "code": "akwa_ibom_etinan_southern_iman_111",
-    "name": "Southern Iman 111",
+    "name": "Southern Iman III",
     "lga_code": "akwa_ibom_etinan",
     "pcode": null,
     "source": "inec",
@@ -4841,7 +4841,7 @@
   },
   {
     "code": "akwa_ibom_ibeno_ibeno_1",
-    "name": "Ibeno 1",
+    "name": "Ibeno I",
     "lga_code": "akwa_ibom_ibeno",
     "pcode": null,
     "source": "inec",
@@ -4851,7 +4851,7 @@
   },
   {
     "code": "akwa_ibom_ibeno_ibeno_11",
-    "name": "Ibeno 11",
+    "name": "Ibeno II",
     "lga_code": "akwa_ibom_ibeno",
     "pcode": null,
     "source": "inec",
@@ -4861,7 +4861,7 @@
   },
   {
     "code": "akwa_ibom_ibeno_ibeno_111",
-    "name": "Ibeno 111",
+    "name": "Ibeno III",
     "lga_code": "akwa_ibom_ibeno",
     "pcode": null,
     "source": "inec",
@@ -4941,7 +4941,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_asutan_1",
-    "name": "Asutan 1",
+    "name": "Asutan I",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -4951,7 +4951,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_asutan_11",
-    "name": "Asutan 11",
+    "name": "Asutan II",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -4961,7 +4961,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_asutan_111",
-    "name": "Asutan 111",
+    "name": "Asutan III",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -4991,7 +4991,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_ibesikpo_1",
-    "name": "Ibesikpo 1",
+    "name": "Ibesikpo I",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -5001,7 +5001,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_ibesikpo_11",
-    "name": "Ibesikpo 11",
+    "name": "Ibesikpo II",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -5011,7 +5011,7 @@
   },
   {
     "code": "akwa_ibom_ibesikpo_asutan_ibesikpo_111",
-    "name": "Ibesikpo 111",
+    "name": "Ibesikpo III",
     "lga_code": "akwa_ibom_ibesikpo_asutan",
     "pcode": null,
     "source": "inec",
@@ -5041,7 +5041,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_central_1",
-    "name": "Ibiono Central 1",
+    "name": "Ibiono Central I",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5051,7 +5051,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_central_11",
-    "name": "Ibiono Central 11",
+    "name": "Ibiono Central II",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5061,7 +5061,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_eastern_1",
-    "name": "Ibiono Eastern 1",
+    "name": "Ibiono Eastern I",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5071,7 +5071,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_eastern_11",
-    "name": "Ibiono Eastern 11",
+    "name": "Ibiono Eastern II",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5081,7 +5081,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_northern_1",
-    "name": "Ibiono Northern 1",
+    "name": "Ibiono Northern I",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5091,7 +5091,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_northern_11",
-    "name": "Ibiono Northern 11",
+    "name": "Ibiono Northern II",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5101,7 +5101,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_southern_1",
-    "name": "Ibiono Southern 1",
+    "name": "Ibiono Southern I",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5111,7 +5111,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_southern_11",
-    "name": "Ibiono Southern 11",
+    "name": "Ibiono Southern II",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5121,7 +5121,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_western_1",
-    "name": "Ibiono Western 1",
+    "name": "Ibiono Western I",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5131,7 +5131,7 @@
   },
   {
     "code": "akwa_ibom_ibiono_ibom_ibiono_western_11",
-    "name": "Ibiono Western 11",
+    "name": "Ibiono Western II",
     "lga_code": "akwa_ibom_ibiono_ibom",
     "pcode": null,
     "source": "inec",
@@ -5151,7 +5151,7 @@
   },
   {
     "code": "akwa_ibom_ika_achan_11",
-    "name": "Achan 11",
+    "name": "Achan II",
     "lga_code": "akwa_ibom_ika",
     "pcode": null,
     "source": "inec",
@@ -5161,7 +5161,7 @@
   },
   {
     "code": "akwa_ibom_ika_achan_111",
-    "name": "Achan 111",
+    "name": "Achan III",
     "lga_code": "akwa_ibom_ika",
     "pcode": null,
     "source": "inec",
@@ -5181,7 +5181,7 @@
   },
   {
     "code": "akwa_ibom_ika_ito_1",
-    "name": "Ito 1",
+    "name": "Ito I",
     "lga_code": "akwa_ibom_ika",
     "pcode": null,
     "source": "inec",
@@ -5191,7 +5191,7 @@
   },
   {
     "code": "akwa_ibom_ika_ito_11",
-    "name": "Ito 11",
+    "name": "Ito II",
     "lga_code": "akwa_ibom_ika",
     "pcode": null,
     "source": "inec",
@@ -5201,7 +5201,7 @@
   },
   {
     "code": "akwa_ibom_ika_ito_111",
-    "name": "Ito 111",
+    "name": "Ito III",
     "lga_code": "akwa_ibom_ika",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -5211,7 +5211,7 @@
   },
   {
     "code": "akwa_ibom_ika_odoro_1",
-    "name": "Odoro 1",
+    "name": "Odoro I",
     "lga_code": "akwa_ibom_ika",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -5221,7 +5221,7 @@
   },
   {
     "code": "akwa_ibom_ika_odoro_11",
-    "name": "Odoro 11",
+    "name": "Odoro II",
     "lga_code": "akwa_ibom_ika",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -5231,7 +5231,7 @@
   },
   {
     "code": "akwa_ibom_ika_urban_1",
-    "name": "Urban 1",
+    "name": "Urban I",
     "lga_code": "akwa_ibom_ika",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -5241,7 +5241,7 @@
   },
   {
     "code": "akwa_ibom_ika_urban_11",
-    "name": "Urban 11",
+    "name": "Urban II",
     "lga_code": "akwa_ibom_ika",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -5261,7 +5261,7 @@
   },
   {
     "code": "akwa_ibom_ikono_ediene_1",
-    "name": "Ediene 1",
+    "name": "Ediene I",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5271,7 +5271,7 @@
   },
   {
     "code": "akwa_ibom_ikono_ediene_11",
-    "name": "Ediene 11",
+    "name": "Ediene II",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5281,7 +5281,7 @@
   },
   {
     "code": "akwa_ibom_ikono_ikono_middle_1",
-    "name": "Ikono Middle 1",
+    "name": "Ikono Middle I",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5291,7 +5291,7 @@
   },
   {
     "code": "akwa_ibom_ikono_ikono_middle_11",
-    "name": "Ikono Middle 11",
+    "name": "Ikono Middle II",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5301,7 +5301,7 @@
   },
   {
     "code": "akwa_ibom_ikono_ikono_middle_111",
-    "name": "Ikono Middle 111",
+    "name": "Ikono Middle III",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5341,7 +5341,7 @@
   },
   {
     "code": "akwa_ibom_ikono_nkwot_1",
-    "name": "Nkwot 1",
+    "name": "Nkwot I",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5351,7 +5351,7 @@
   },
   {
     "code": "akwa_ibom_ikono_nkwot_11",
-    "name": "Nkwot 11",
+    "name": "Nkwot II",
     "lga_code": "akwa_ibom_ikono",
     "pcode": null,
     "source": "inec",
@@ -5361,7 +5361,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_edemaya_1",
-    "name": "Edemaya 1",
+    "name": "Edemaya I",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5371,7 +5371,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_edemaya_11",
-    "name": "Edemaya 11",
+    "name": "Edemaya II",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5381,7 +5381,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_edemaya_111",
-    "name": "Edemaya 111",
+    "name": "Edemaya III",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5391,7 +5391,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ikpa_ibekwe_1",
-    "name": "Ikpa Ibekwe 1",
+    "name": "Ikpa Ibekwe I",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5401,7 +5401,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ikpa_ibekwe_11",
-    "name": "Ikpa Ibekwe 11",
+    "name": "Ikpa Ibekwe II",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5411,7 +5411,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ikpa_nung_asang_1",
-    "name": "Ikpa Nung Asang 1",
+    "name": "Ikpa Nung Asang I",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5421,7 +5421,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ikpa_nung_asang_11",
-    "name": "Ikpa Nung Asang 11",
+    "name": "Ikpa Nung Asang II",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5431,7 +5431,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ukpum_ete_1",
-    "name": "Ukpum Ete 1",
+    "name": "Ukpum Ete I",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5441,7 +5441,7 @@
   },
   {
     "code": "akwa_ibom_ikot_abasi_ukpum_ete_11",
-    "name": "Ukpum Ete 11",
+    "name": "Ukpum Ete II",
     "lga_code": "akwa_ibom_ikot_abasi",
     "pcode": null,
     "source": "inec",
@@ -5461,7 +5461,7 @@
   },
   {
     "code": "akwa_ibom_ikot_ekpene_ikot_ekpene_1",
-    "name": "Ikot Ekpene 1",
+    "name": "Ikot Ekpene I",
     "lga_code": "akwa_ibom_ikot_ekpene",
     "pcode": null,
     "source": "inec",
@@ -5471,7 +5471,7 @@
   },
   {
     "code": "akwa_ibom_ikot_ekpene_ikot_ekpene_11",
-    "name": "Ikot Ekpene 11",
+    "name": "Ikot Ekpene II",
     "lga_code": "akwa_ibom_ikot_ekpene",
     "pcode": null,
     "source": "inec",
@@ -5481,7 +5481,7 @@
   },
   {
     "code": "akwa_ibom_ikot_ekpene_ikot_ekpene_111",
-    "name": "Ikot Ekpene 111",
+    "name": "Ikot Ekpene III",
     "lga_code": "akwa_ibom_ikot_ekpene",
     "pcode": null,
     "source": "inec",
@@ -5571,7 +5571,7 @@
   },
   {
     "code": "akwa_ibom_ini_ikono_north_1",
-    "name": "Ikono North 1",
+    "name": "Ikono North I",
     "lga_code": "akwa_ibom_ini",
     "pcode": null,
     "source": "inec",
@@ -5581,7 +5581,7 @@
   },
   {
     "code": "akwa_ibom_ini_ikono_north_11",
-    "name": "Ikono North 11",
+    "name": "Ikono North II",
     "lga_code": "akwa_ibom_ini",
     "pcode": null,
     "source": "inec",
@@ -5591,7 +5591,7 @@
   },
   {
     "code": "akwa_ibom_ini_ikono_north_111",
-    "name": "Ikono North 111",
+    "name": "Ikono North III",
     "lga_code": "akwa_ibom_ini",
     "pcode": null,
     "source": "inec",
@@ -5601,7 +5601,7 @@
   },
   {
     "code": "akwa_ibom_ini_ikpe_1",
-    "name": "Ikpe 1",
+    "name": "Ikpe I",
     "lga_code": "akwa_ibom_ini",
     "pcode": null,
     "source": "inec",
@@ -5611,7 +5611,7 @@
   },
   {
     "code": "akwa_ibom_ini_ikpe_11",
-    "name": "Ikpe 11",
+    "name": "Ikpe II",
     "lga_code": "akwa_ibom_ini",
     "pcode": null,
     "source": "inec",
@@ -5671,7 +5671,7 @@
   },
   {
     "code": "akwa_ibom_itu_east_itam_1",
-    "name": "East Itam 1",
+    "name": "East Itam I",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5681,7 +5681,7 @@
   },
   {
     "code": "akwa_ibom_itu_east_itam_11",
-    "name": "East Itam 11",
+    "name": "East Itam II",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5691,7 +5691,7 @@
   },
   {
     "code": "akwa_ibom_itu_east_itam_111",
-    "name": "East Itam 111",
+    "name": "East Itam III",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5741,7 +5741,7 @@
   },
   {
     "code": "akwa_ibom_itu_west_itam_1",
-    "name": "West Itam 1",
+    "name": "West Itam I",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5751,7 +5751,7 @@
   },
   {
     "code": "akwa_ibom_itu_west_itam_11",
-    "name": "West Itam 11",
+    "name": "West Itam II",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5761,7 +5761,7 @@
   },
   {
     "code": "akwa_ibom_itu_west_itam_111",
-    "name": "West Itam 111",
+    "name": "West Itam III",
     "lga_code": "akwa_ibom_itu",
     "pcode": null,
     "source": "inec",
@@ -5771,7 +5771,7 @@
   },
   {
     "code": "akwa_ibom_mbo_ebughu_1",
-    "name": "Ebughu 1",
+    "name": "Ebughu I",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5781,7 +5781,7 @@
   },
   {
     "code": "akwa_ibom_mbo_ebughu_11",
-    "name": "Ebughu 11",
+    "name": "Ebughu II",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5791,7 +5791,7 @@
   },
   {
     "code": "akwa_ibom_mbo_efiat_1",
-    "name": "Efiat 1",
+    "name": "Efiat I",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5801,7 +5801,7 @@
   },
   {
     "code": "akwa_ibom_mbo_efiat_11",
-    "name": "Efiat 11",
+    "name": "Efiat II",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5811,7 +5811,7 @@
   },
   {
     "code": "akwa_ibom_mbo_enwang_1",
-    "name": "Enwang 1",
+    "name": "Enwang I",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5821,7 +5821,7 @@
   },
   {
     "code": "akwa_ibom_mbo_enwang_11",
-    "name": "Enwang 11",
+    "name": "Enwang II",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5841,7 +5841,7 @@
   },
   {
     "code": "akwa_ibom_mbo_uda_1",
-    "name": "Uda 1",
+    "name": "Uda I",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5851,7 +5851,7 @@
   },
   {
     "code": "akwa_ibom_mbo_uda_11",
-    "name": "Uda 11",
+    "name": "Uda II",
     "lga_code": "akwa_ibom_mbo",
     "pcode": null,
     "source": "inec",
@@ -5871,7 +5871,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ibiaku_1",
-    "name": "Ibiaku 1",
+    "name": "Ibiaku I",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5881,7 +5881,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ibiaku_11",
-    "name": "Ibiaku 11",
+    "name": "Ibiaku II",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5891,7 +5891,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ibiaku_111",
-    "name": "Ibiaku 111",
+    "name": "Ibiaku III",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5901,7 +5901,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ibom_1",
-    "name": "Ikpa Ibom 1",
+    "name": "Ikpa Ibom I",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5911,7 +5911,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ibom_11",
-    "name": "Ikpa Ibom 11",
+    "name": "Ikpa Ibom II",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5921,7 +5921,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ibom_111",
-    "name": "Ikpa Ibom 111",
+    "name": "Ikpa Ibom III",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5941,7 +5941,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ikono_1",
-    "name": "Ikpa Ikono 1",
+    "name": "Ikpa Ikono I",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5951,7 +5951,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ikono_11",
-    "name": "Ikpa Ikono 11",
+    "name": "Ikpa Ikono II",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5961,7 +5961,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ikpa_ikono_111",
-    "name": "Ikpa Ikono 111",
+    "name": "Ikpa Ikono III",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5971,7 +5971,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ukpum_minya_1",
-    "name": "Ukpum Minya 1",
+    "name": "Ukpum Minya I",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5981,7 +5981,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ukpum_minya_11",
-    "name": "Ukpum Minya 11",
+    "name": "Ukpum Minya II",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -5991,7 +5991,7 @@
   },
   {
     "code": "akwa_ibom_mkpat_enin_ukpum_minya_111",
-    "name": "Ukpum Minya 111",
+    "name": "Ukpum Minya III",
     "lga_code": "akwa_ibom_mkpat_enin",
     "pcode": null,
     "source": "inec",
@@ -6011,7 +6011,7 @@
   },
   {
     "code": "akwa_ibom_nsit_atai_eastern_nsit_1",
-    "name": "Eastern Nsit 1",
+    "name": "Eastern Nsit I",
     "lga_code": "akwa_ibom_nsit_atai",
     "pcode": null,
     "source": "inec",
@@ -6021,7 +6021,7 @@
   },
   {
     "code": "akwa_ibom_nsit_atai_eastern_nsit_11",
-    "name": "Eastern Nsit 11",
+    "name": "Eastern Nsit II",
     "lga_code": "akwa_ibom_nsit_atai",
     "pcode": null,
     "source": "inec",
@@ -6031,7 +6031,7 @@
   },
   {
     "code": "akwa_ibom_nsit_atai_eastern_nsit_111",
-    "name": "Eastern Nsit 111",
+    "name": "Eastern Nsit III",
     "lga_code": "akwa_ibom_nsit_atai",
     "pcode": null,
     "source": "inec",
@@ -6111,7 +6111,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_asang_1",
-    "name": "Asang 1",
+    "name": "Asang I",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6121,7 +6121,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_asang_11",
-    "name": "Asang 11",
+    "name": "Asang II",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6131,7 +6131,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_asang_111",
-    "name": "Asang 111",
+    "name": "Asang III",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6161,7 +6161,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_mbaiso_1",
-    "name": "Mbaiso 1",
+    "name": "Mbaiso I",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6171,7 +6171,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_mbaiso_11",
-    "name": "Mbaiso 11",
+    "name": "Mbaiso II",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6181,7 +6181,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ibom_mbaiso_111",
-    "name": "Mbaiso 111",
+    "name": "Mbaiso III",
     "lga_code": "akwa_ibom_nsit_ibom",
     "pcode": null,
     "source": "inec",
@@ -6211,7 +6211,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ibiakpan_obotim_1",
-    "name": "Ibiakpan Obotim 1",
+    "name": "Ibiakpan Obotim I",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6221,7 +6221,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ibiakpan_obotim_11",
-    "name": "Ibiakpan Obotim 11",
+    "name": "Ibiakpan Obotim II",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6251,7 +6251,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_north_1",
-    "name": "Ubium North 1",
+    "name": "Ubium North I",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6261,7 +6261,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_north_11",
-    "name": "Ubium North 11",
+    "name": "Ubium North II",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6271,7 +6271,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_north_111",
-    "name": "Ubium North 111",
+    "name": "Ubium North III",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6281,7 +6281,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_south_1",
-    "name": "Ubium South 1",
+    "name": "Ubium South I",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6291,7 +6291,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_south_11",
-    "name": "Ubium South 11",
+    "name": "Ubium South II",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6301,7 +6301,7 @@
   },
   {
     "code": "akwa_ibom_nsit_ubium_ubium_south_111",
-    "name": "Ubium South 111",
+    "name": "Ubium South III",
     "lga_code": "akwa_ibom_nsit_ubium",
     "pcode": null,
     "source": "inec",
@@ -6311,7 +6311,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_ikot_abia_1",
-    "name": "Ikot Abia 1",
+    "name": "Ikot Abia I",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6321,7 +6321,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_ikot_abia_11",
-    "name": "Ikot Abia 11",
+    "name": "Ikot Abia II",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6331,7 +6331,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_ikot_abia_111",
-    "name": "Ikot Abia 111",
+    "name": "Ikot Abia III",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6341,7 +6341,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_nto_edino_1",
-    "name": "Nto Edino 1",
+    "name": "Nto Edino I",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6351,7 +6351,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_nto_edino_11",
-    "name": "Nto Edino 11",
+    "name": "Nto Edino II",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6361,7 +6361,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_nto_edino_111",
-    "name": "Nto Edino 111",
+    "name": "Nto Edino III",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6381,7 +6381,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_obot_akara_1",
-    "name": "Obot Akara 1",
+    "name": "Obot Akara I",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6391,7 +6391,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_obot_akara_11",
-    "name": "Obot Akara 11",
+    "name": "Obot Akara II",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6401,7 +6401,7 @@
   },
   {
     "code": "akwa_ibom_obot_akara_obot_akara_111",
-    "name": "Obot Akara 111",
+    "name": "Obot Akara III",
     "lga_code": "akwa_ibom_obot_akara",
     "pcode": null,
     "source": "inec",
@@ -6431,7 +6431,7 @@
   },
   {
     "code": "akwa_ibom_okobo_eweme_1",
-    "name": "Eweme 1",
+    "name": "Eweme I",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6441,7 +6441,7 @@
   },
   {
     "code": "akwa_ibom_okobo_eweme_11",
-    "name": "Eweme 11",
+    "name": "Eweme II",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6451,7 +6451,7 @@
   },
   {
     "code": "akwa_ibom_okobo_nung_atai_ube_1",
-    "name": "Nung Atai Ube 1",
+    "name": "Nung Atai Ube I",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6461,7 +6461,7 @@
   },
   {
     "code": "akwa_ibom_okobo_nung_atai_ube_11",
-    "name": "Nung Atai Ube 11",
+    "name": "Nung Atai Ube II",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6471,7 +6471,7 @@
   },
   {
     "code": "akwa_ibom_okobo_offi_1",
-    "name": "Offi 1",
+    "name": "Offi I",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6481,7 +6481,7 @@
   },
   {
     "code": "akwa_ibom_okobo_offi_11",
-    "name": "Offi 11",
+    "name": "Offi II",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6491,7 +6491,7 @@
   },
   {
     "code": "akwa_ibom_okobo_okopedi_1",
-    "name": "Okopedi 1",
+    "name": "Okopedi I",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6501,7 +6501,7 @@
   },
   {
     "code": "akwa_ibom_okobo_okopedi_11",
-    "name": "Okopedi 11",
+    "name": "Okopedi II",
     "lga_code": "akwa_ibom_okobo",
     "pcode": null,
     "source": "inec",
@@ -6511,7 +6511,7 @@
   },
   {
     "code": "akwa_ibom_onna_awa_1",
-    "name": "Awa 1",
+    "name": "Awa I",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6521,7 +6521,7 @@
   },
   {
     "code": "akwa_ibom_onna_awa_11",
-    "name": "Awa 11",
+    "name": "Awa II",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6531,7 +6531,7 @@
   },
   {
     "code": "akwa_ibom_onna_awa_111",
-    "name": "Awa 111",
+    "name": "Awa III",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6551,7 +6551,7 @@
   },
   {
     "code": "akwa_ibom_onna_nung_idem_1",
-    "name": "Nung Idem 1",
+    "name": "Nung Idem I",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6561,7 +6561,7 @@
   },
   {
     "code": "akwa_ibom_onna_nung_idem_11",
-    "name": "Nung Idem 11",
+    "name": "Nung Idem II",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6571,7 +6571,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_east_1",
-    "name": "Oniong East 1",
+    "name": "Oniong East I",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6581,7 +6581,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_east_11",
-    "name": "Oniong East 11",
+    "name": "Oniong East II",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6591,7 +6591,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_east_111",
-    "name": "Oniong East 111",
+    "name": "Oniong East III",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6601,7 +6601,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_west_1",
-    "name": "Oniong West 1",
+    "name": "Oniong West I",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6611,7 +6611,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_west_11",
-    "name": "Oniong West 11",
+    "name": "Oniong West II",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6621,7 +6621,7 @@
   },
   {
     "code": "akwa_ibom_onna_oniong_west_111",
-    "name": "Oniong West 111",
+    "name": "Oniong West III",
     "lga_code": "akwa_ibom_onna",
     "pcode": null,
     "source": "inec",
@@ -6631,7 +6631,7 @@
   },
   {
     "code": "akwa_ibom_oron_oron_urban_1",
-    "name": "Oron Urban 1",
+    "name": "Oron Urban I",
     "lga_code": "akwa_ibom_oron",
     "pcode": null,
     "source": "inec",
@@ -6641,7 +6641,7 @@
   },
   {
     "code": "akwa_ibom_oron_oron_urban_11",
-    "name": "Oron Urban 11",
+    "name": "Oron Urban II",
     "lga_code": "akwa_ibom_oron",
     "pcode": null,
     "source": "inec",
@@ -6651,7 +6651,7 @@
   },
   {
     "code": "akwa_ibom_oron_oron_urban_111",
-    "name": "Oron Urban 111",
+    "name": "Oron Urban III",
     "lga_code": "akwa_ibom_oron",
     "pcode": null,
     "source": "inec",
@@ -6731,7 +6731,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_abak_midim_1",
-    "name": "Abak Midim 1",
+    "name": "Abak Midim I",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6741,7 +6741,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_abak_midim_11",
-    "name": "Abak Midim 11",
+    "name": "Abak Midim II",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6751,7 +6751,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_abak_midim_111",
-    "name": "Abak Midim 111",
+    "name": "Abak Midim III",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6781,7 +6781,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ibesit_nung_ikot_1",
-    "name": "Ibesit Nung Ikot 1",
+    "name": "Ibesit Nung Ikot I",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6791,7 +6791,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ibesit_nung_ikot_11",
-    "name": "Ibesit Nung Ikot 11",
+    "name": "Ibesit Nung Ikot II",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6801,7 +6801,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ikot_ibritam_1",
-    "name": "Ikot Ibritam 1",
+    "name": "Ikot Ibritam I",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6811,7 +6811,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ikot_ibritam_11",
-    "name": "Ikot Ibritam 11",
+    "name": "Ikot Ibritam II",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6821,7 +6821,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ndot_ikot_okoro_1",
-    "name": "Ndot Ikot Okoro 1",
+    "name": "Ndot Ikot Okoro I",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6831,7 +6831,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ndot_ikot_okoro_11",
-    "name": "Ndot Ikot Okoro 11",
+    "name": "Ndot Ikot Okoro II",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6841,7 +6841,7 @@
   },
   {
     "code": "akwa_ibom_oruk_anam_ndot_ikot_okoro_111",
-    "name": "Ndot Ikot Okoro 111",
+    "name": "Ndot Ikot Okoro III",
     "lga_code": "akwa_ibom_oruk_anam",
     "pcode": null,
     "source": "inec",
@@ -6861,7 +6861,7 @@
   },
   {
     "code": "akwa_ibom_udung_uko_udung_uko_1",
-    "name": "Udung Uko 1",
+    "name": "Udung Uko I",
     "lga_code": "akwa_ibom_udung_uko",
     "pcode": null,
     "source": "inec",
@@ -6871,7 +6871,7 @@
   },
   {
     "code": "akwa_ibom_udung_uko_udung_uko_11",
-    "name": "Udung Uko 11",
+    "name": "Udung Uko II",
     "lga_code": "akwa_ibom_udung_uko",
     "pcode": null,
     "source": "inec",
@@ -6881,7 +6881,7 @@
   },
   {
     "code": "akwa_ibom_udung_uko_udung_uko_111",
-    "name": "Udung Uko 111",
+    "name": "Udung Uko III",
     "lga_code": "akwa_ibom_udung_uko",
     "pcode": null,
     "source": "inec",
@@ -6961,7 +6961,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_northern_afaha_1",
-    "name": "Northern Afaha 1",
+    "name": "Northern Afaha I",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -6971,7 +6971,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_northern_afaha_11",
-    "name": "Northern Afaha 11",
+    "name": "Northern Afaha II",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -6981,7 +6981,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_northern_ukanafun_1",
-    "name": "Northern Ukanafun 1",
+    "name": "Northern Ukanafun I",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -6991,7 +6991,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_northern_ukanafun_11",
-    "name": "Northern Ukanafun 11",
+    "name": "Northern Ukanafun II",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7001,7 +7001,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_southern_afaha_adat_ifang_1",
-    "name": "Southern Afaha Adat Ifang 1",
+    "name": "Southern Afaha Adat Ifang I",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7011,7 +7011,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_southern_afaha_adat_ifang_11",
-    "name": "Southern Afaha Adat Ifang 11",
+    "name": "Southern Afaha Adat Ifang II",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7021,7 +7021,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_southern_afaha_adat_ifang_111",
-    "name": "Southern Afaha Adat Ifang 111",
+    "name": "Southern Afaha Adat Ifang III",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7041,7 +7041,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_southern_ukanafun_1",
-    "name": "Southern Ukanafun 1",
+    "name": "Southern Ukanafun I",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7051,7 +7051,7 @@
   },
   {
     "code": "akwa_ibom_ukanafun_southern_ukanafun_11",
-    "name": "Southern Ukanafun 11",
+    "name": "Southern Ukanafun II",
     "lga_code": "akwa_ibom_ukanafun",
     "pcode": null,
     "source": "inec",
@@ -7071,7 +7071,7 @@
   },
   {
     "code": "akwa_ibom_uruan_central_uruan_11",
-    "name": "Central Uruan 11",
+    "name": "Central Uruan II",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7081,7 +7081,7 @@
   },
   {
     "code": "akwa_ibom_uruan_centyral_uruan_1",
-    "name": "Centyral Uruan 1",
+    "name": "Centyral Uruan I",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7091,7 +7091,7 @@
   },
   {
     "code": "akwa_ibom_uruan_centyral_uruan_111",
-    "name": "Centyral Uruan 111",
+    "name": "Centyral Uruan III",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7101,7 +7101,7 @@
   },
   {
     "code": "akwa_ibom_uruan_northern_uruan_1",
-    "name": "Northern Uruan 1",
+    "name": "Northern Uruan I",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7111,7 +7111,7 @@
   },
   {
     "code": "akwa_ibom_uruan_northern_uruan_11",
-    "name": "Northern Uruan 11",
+    "name": "Northern Uruan II",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7121,7 +7121,7 @@
   },
   {
     "code": "akwa_ibom_uruan_southern_uruan_1",
-    "name": "Southern Uruan 1",
+    "name": "Southern Uruan I",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7131,7 +7131,7 @@
   },
   {
     "code": "akwa_ibom_uruan_southern_uruan_11",
-    "name": "Southern Uruan 11",
+    "name": "Southern Uruan II",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7141,7 +7141,7 @@
   },
   {
     "code": "akwa_ibom_uruan_southern_uruan_111",
-    "name": "Southern Uruan 111",
+    "name": "Southern Uruan III",
     "lga_code": "akwa_ibom_uruan",
     "pcode": null,
     "source": "inec",
@@ -7181,7 +7181,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_oruko_1",
-    "name": "Oruko 1",
+    "name": "Oruko I",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7191,7 +7191,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_oruko_11",
-    "name": "Oruko 11",
+    "name": "Oruko II",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7201,7 +7201,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_oruko_111",
-    "name": "Oruko 111",
+    "name": "Oruko III",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7231,7 +7231,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_urue_offong_1",
-    "name": "Urue Offong 1",
+    "name": "Urue Offong I",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7241,7 +7241,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_urue_offong_11",
-    "name": "Urue Offong 11",
+    "name": "Urue Offong II",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7251,7 +7251,7 @@
   },
   {
     "code": "akwa_ibom_urue_offong_oruko_urue_offong_111",
-    "name": "Urue Offong 111",
+    "name": "Urue Offong III",
     "lga_code": "akwa_ibom_urue_offong_oruko",
     "pcode": null,
     "source": "inec",
@@ -7281,7 +7281,7 @@
   },
   {
     "code": "akwa_ibom_uyo_etoi_1",
-    "name": "Etoi 1",
+    "name": "Etoi I",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7291,7 +7291,7 @@
   },
   {
     "code": "akwa_ibom_uyo_etoi_11",
-    "name": "Etoi 11",
+    "name": "Etoi II",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7301,7 +7301,7 @@
   },
   {
     "code": "akwa_ibom_uyo_ikono_1",
-    "name": "Ikono 1",
+    "name": "Ikono I",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7311,7 +7311,7 @@
   },
   {
     "code": "akwa_ibom_uyo_ikono_11",
-    "name": "Ikono 11",
+    "name": "Ikono II",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7321,7 +7321,7 @@
   },
   {
     "code": "akwa_ibom_uyo_offot_1",
-    "name": "Offot 1",
+    "name": "Offot I",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7331,7 +7331,7 @@
   },
   {
     "code": "akwa_ibom_uyo_offot_11",
-    "name": "Offot 11",
+    "name": "Offot II",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7341,7 +7341,7 @@
   },
   {
     "code": "akwa_ibom_uyo_oku_1",
-    "name": "Oku 1",
+    "name": "Oku I",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7351,7 +7351,7 @@
   },
   {
     "code": "akwa_ibom_uyo_oku_11",
-    "name": "Oku 11",
+    "name": "Oku II",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7361,7 +7361,7 @@
   },
   {
     "code": "akwa_ibom_uyo_uyo_urban_1",
-    "name": "Uyo Urban 1",
+    "name": "Uyo Urban I",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7371,7 +7371,7 @@
   },
   {
     "code": "akwa_ibom_uyo_uyo_urban_11",
-    "name": "Uyo Urban 11",
+    "name": "Uyo Urban II",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -7381,7 +7381,7 @@
   },
   {
     "code": "akwa_ibom_uyo_uyo_urban_111",
-    "name": "Uyo Urban 111",
+    "name": "Uyo Urban III",
     "lga_code": "akwa_ibom_uyo",
     "pcode": null,
     "source": "inec",
@@ -8461,7 +8461,7 @@
   },
   {
     "code": "anambra_ayamelum_umueje_umueje",
-    "name": "Umueje Umueje",
+    "name": "Umueje",
     "lga_code": "anambra_ayamelum",
     "pcode": null,
     "source": "inec",
@@ -9951,7 +9951,7 @@
   },
   {
     "code": "anambra_onitsha_north_water_side_central_1",
-    "name": "Water Side Central 1",
+    "name": "Water Side Central I",
     "lga_code": "anambra_onitsha_north",
     "pcode": null,
     "source": "inec",
@@ -10011,7 +10011,7 @@
   },
   {
     "code": "anambra_onitsha_south_fegge_1",
-    "name": "Fegge 1",
+    "name": "Fegge I",
     "lga_code": "anambra_onitsha_south",
     "pcode": null,
     "source": "inec",
@@ -12781,7 +12781,7 @@
   },
   {
     "code": "bayelsa_brass_brass_1",
-    "name": "Brass 1",
+    "name": "Brass I",
     "lga_code": "bayelsa_brass",
     "pcode": null,
     "source": "inec",
@@ -13101,7 +13101,7 @@
   },
   {
     "code": "bayelsa_kolokuma_opokuma_seibokorogha_sabagreia_1",
-    "name": "Seibokorogha Sabagreia 1",
+    "name": "Seibokorogha Sabagreia I",
     "lga_code": "bayelsa_kolokuma_opokuma",
     "pcode": null,
     "source": "inec",
@@ -13111,7 +13111,7 @@
   },
   {
     "code": "bayelsa_nembe_bassambiri_1",
-    "name": "Bassambiri 1",
+    "name": "Bassambiri I",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13121,7 +13121,7 @@
   },
   {
     "code": "bayelsa_nembe_bassambiri_11",
-    "name": "Bassambiri 11",
+    "name": "Bassambiri II",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13131,7 +13131,7 @@
   },
   {
     "code": "bayelsa_nembe_bassambiri_111",
-    "name": "Bassambiri 111",
+    "name": "Bassambiri III",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13181,7 +13181,7 @@
   },
   {
     "code": "bayelsa_nembe_ogbolomabiri_1",
-    "name": "Ogbolomabiri 1",
+    "name": "Ogbolomabiri I",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13191,7 +13191,7 @@
   },
   {
     "code": "bayelsa_nembe_ogbolomabiri_11",
-    "name": "Ogbolomabiri 11",
+    "name": "Ogbolomabiri II",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13201,7 +13201,7 @@
   },
   {
     "code": "bayelsa_nembe_ogbolomabiri_111",
-    "name": "Ogbolomabiri 111",
+    "name": "Ogbolomabiri III",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13211,7 +13211,7 @@
   },
   {
     "code": "bayelsa_nembe_okoroma_1",
-    "name": "Okoroma 1",
+    "name": "Okoroma I",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13221,7 +13221,7 @@
   },
   {
     "code": "bayelsa_nembe_okoroma_11",
-    "name": "Okoroma 11",
+    "name": "Okoroma II",
     "lga_code": "bayelsa_nembe",
     "pcode": null,
     "source": "inec",
@@ -13631,7 +13631,7 @@
   },
   {
     "code": "bayelsa_southern_ijaw_oporoma_1",
-    "name": "Oporoma 1",
+    "name": "Oporoma I",
     "lga_code": "bayelsa_southern_ijaw",
     "pcode": null,
     "source": "inec",
@@ -13711,7 +13711,7 @@
   },
   {
     "code": "bayelsa_yenegoa_biseni_1",
-    "name": "Biseni 1",
+    "name": "Biseni I",
     "lga_code": "bayelsa_yenegoa",
     "pcode": null,
     "source": "inec",
@@ -13721,7 +13721,7 @@
   },
   {
     "code": "bayelsa_yenegoa_biseni_11",
-    "name": "Biseni 11",
+    "name": "Biseni II",
     "lga_code": "bayelsa_yenegoa",
     "pcode": null,
     "source": "inec",
@@ -13731,7 +13731,7 @@
   },
   {
     "code": "bayelsa_yenegoa_ekpetiama_11",
-    "name": "Ekpetiama 11",
+    "name": "Ekpetiama II",
     "lga_code": "bayelsa_yenegoa",
     "pcode": null,
     "source": "inec",
@@ -13751,7 +13751,7 @@
   },
   {
     "code": "bayelsa_yenegoa_epie_11",
-    "name": "Epie 11",
+    "name": "Epie II",
     "lga_code": "bayelsa_yenegoa",
     "pcode": null,
     "source": "inec",
@@ -24581,7 +24581,7 @@
   },
   {
     "code": "ebonyi_afikpo_north_uwana_afikpo_1",
-    "name": "Uwana Afikpo 1",
+    "name": "Uwana Afikpo I",
     "lga_code": "ebonyi_afikpo_north",
     "pcode": null,
     "source": "inec",
@@ -25321,7 +25321,7 @@
   },
   {
     "code": "ebonyi_ishielu_ezzagu_nkomor",
-    "name": "Ezzagu Nkomor",
+    "name": "Ezzagu Nkomoro",
     "lga_code": "ebonyi_ishielu",
     "pcode": null,
     "source": "inec",
@@ -25631,7 +25631,7 @@
   },
   {
     "code": "ebonyi_izzi_mgbalaku_inyimagu_i",
-    "name": "Mgbalaku Inyimagu I",
+    "name": "Mgbalaukwu Inyimagu I",
     "lga_code": "ebonyi_izzi",
     "pcode": null,
     "source": "inec",
@@ -25641,7 +25641,7 @@
   },
   {
     "code": "ebonyi_izzi_mgbalaku_inyimagu_ii",
-    "name": "Mgbalaku Inyimagu II",
+    "name": "Mgbalaukwu Inyimagu II",
     "lga_code": "ebonyi_izzi",
     "pcode": null,
     "source": "inec",
@@ -25751,7 +25751,7 @@
   },
   {
     "code": "ebonyi_ohaozara_umic_hima",
-    "name": "Umic Hima",
+    "name": "Umuchima",
     "lga_code": "ebonyi_ohaozara",
     "pcode": null,
     "source": "inec",
@@ -30341,7 +30341,7 @@
   },
   {
     "code": "enugu_ezeagu_aguobu_owa_1",
-    "name": "Aguobu Owa 1",
+    "name": "Aguobu Owa I",
     "lga_code": "enugu_ezeagu",
     "pcode": null,
     "source": "inec",
@@ -30351,7 +30351,7 @@
   },
   {
     "code": "enugu_ezeagu_aguobu_owa_11",
-    "name": "Aguobu Owa 11",
+    "name": "Aguobu Owa II",
     "lga_code": "enugu_ezeagu",
     "pcode": null,
     "source": "inec",
@@ -30731,7 +30731,7 @@
   },
   {
     "code": "enugu_igbo_eze_north_essodo_1",
-    "name": "Essodo 1",
+    "name": "Essodo I",
     "lga_code": "enugu_igbo_eze_north",
     "pcode": null,
     "source": "inec",
@@ -30741,7 +30741,7 @@
   },
   {
     "code": "enugu_igbo_eze_north_essodo_11",
-    "name": "Essodo 11",
+    "name": "Essodo II",
     "lga_code": "enugu_igbo_eze_north",
     "pcode": null,
     "source": "inec",
@@ -30751,7 +30751,7 @@
   },
   {
     "code": "enugu_igbo_eze_north_essodo_111",
-    "name": "Essodo 111",
+    "name": "Essodo III",
     "lga_code": "enugu_igbo_eze_north",
     "pcode": null,
     "source": "inec",
@@ -30761,7 +30761,7 @@
   },
   {
     "code": "enugu_igbo_eze_north_ette_1",
-    "name": "Ette 1",
+    "name": "Ette I",
     "lga_code": "enugu_igbo_eze_north",
     "pcode": null,
     "source": "inec",
@@ -30771,7 +30771,7 @@
   },
   {
     "code": "enugu_igbo_eze_north_ette_11",
-    "name": "Ette 11",
+    "name": "Ette II",
     "lga_code": "enugu_igbo_eze_north",
     "pcode": null,
     "source": "inec",
@@ -34211,7 +34211,7 @@
   },
   {
     "code": "imo_aboh_mbaise_uvuru_1",
-    "name": "Uvuru 1",
+    "name": "Uvuru I",
     "lga_code": "imo_aboh_mbaise",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -49651,7 +49651,7 @@
   },
   {
     "code": "katsina_katsina_wakilin_yamma_1i",
-    "name": "Wakilin Yamma 1i",
+    "name": "Wakilin Yamma II",
     "lga_code": "katsina_katsina",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -49661,7 +49661,7 @@
   },
   {
     "code": "katsina_katsina_wakilin_yamma_i",
-    "name": "Wakilin Yamma 1",
+    "name": "Wakilin Yamma I",
     "lga_code": "katsina_katsina",
     "pcode": null,
     "source": "inec",
@@ -54731,7 +54731,7 @@
   },
   {
     "code": "kogi_mopa_muro_illeteju_i",
-    "name": "Ileteju 1",
+    "name": "Ileteju I",
     "lga_code": "kogi_mopa_muro",
     "pcode": null,
     "source": "inec",
@@ -54751,7 +54751,7 @@
   },
   {
     "code": "kogi_mopa_muro_odole_i",
-    "name": "Odole 1",
+    "name": "Odole I",
     "lga_code": "kogi_mopa_muro",
     "pcode": null,
     "source": "inec",
@@ -55951,7 +55951,7 @@
   },
   {
     "code": "kwara_edu_lafiagi_11",
-    "name": "Lafiagi 11",
+    "name": "Lafiagi II",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -55961,7 +55961,7 @@
   },
   {
     "code": "kwara_edu_lafiagi_111",
-    "name": "Lafiagi 111",
+    "name": "Lafiagi III",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -55971,7 +55971,7 @@
   },
   {
     "code": "kwara_edu_lafiagi_1v",
-    "name": "Lafiagi 1v",
+    "name": "Lafiagi IV",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -55981,7 +55981,7 @@
   },
   {
     "code": "kwara_edu_lafiagi_i",
-    "name": "Lafiagi 1",
+    "name": "Lafiagi I",
     "lga_code": "kwara_edu",
     "pcode": null,
     "source": "inec",
@@ -55991,7 +55991,7 @@
   },
   {
     "code": "kwara_edu_tsaragi_11",
-    "name": "Tsaragi 11",
+    "name": "Tsaragi II",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56001,7 +56001,7 @@
   },
   {
     "code": "kwara_edu_tsaragi_111",
-    "name": "Tsaragi 111",
+    "name": "Tsaragi III",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56011,7 +56011,7 @@
   },
   {
     "code": "kwara_edu_tsaragi_i",
-    "name": "Tsaragi 1",
+    "name": "Tsaragi I",
     "lga_code": "kwara_edu",
     "pcode": null,
     "source": "inec",
@@ -56021,7 +56021,7 @@
   },
   {
     "code": "kwara_edu_tsonga_11",
-    "name": "Tsonga 11",
+    "name": "Tsonga II",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56031,7 +56031,7 @@
   },
   {
     "code": "kwara_edu_tsonga_111",
-    "name": "Tsonga 111",
+    "name": "Tsonga III",
     "lga_code": "kwara_edu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56041,7 +56041,7 @@
   },
   {
     "code": "kwara_edu_tsonga_i",
-    "name": "Tsonga 1",
+    "name": "Tsonga I",
     "lga_code": "kwara_edu",
     "pcode": null,
     "source": "inec",
@@ -56081,7 +56081,7 @@
   },
   {
     "code": "kwara_ekiti_obbo_aiyeggunle_11",
-    "name": "Obbo Aiyeggunle 11",
+    "name": "Obbo Aiyeggunle II",
     "lga_code": "kwara_ekiti",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56091,7 +56091,7 @@
   },
   {
     "code": "kwara_ekiti_obbo_aiyegunle_i",
-    "name": "Obbo Aiyeggunle 1",
+    "name": "Obbo Aiyeggunle I",
     "lga_code": "kwara_ekiti",
     "pcode": null,
     "source": "inec",
@@ -56131,7 +56131,7 @@
   },
   {
     "code": "kwara_ekiti_osi_11",
-    "name": "Osi 11",
+    "name": "Osi II",
     "lga_code": "kwara_ekiti",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56141,7 +56141,7 @@
   },
   {
     "code": "kwara_ekiti_osi_i",
-    "name": "Osi 1",
+    "name": "Osi I",
     "lga_code": "kwara_ekiti",
     "pcode": null,
     "source": "inec",
@@ -56171,7 +56171,7 @@
   },
   {
     "code": "kwara_ifelodun_idofian_11",
-    "name": "Idofian 11",
+    "name": "Idofian II",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56181,7 +56181,7 @@
   },
   {
     "code": "kwara_ifelodun_idofian_i",
-    "name": "Idofian 1",
+    "name": "Idofian I",
     "lga_code": "kwara_ifelodun",
     "pcode": null,
     "source": "inec",
@@ -56191,7 +56191,7 @@
   },
   {
     "code": "kwara_ifelodun_igbaja_11",
-    "name": "Igbaja 11",
+    "name": "Igbaja II",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56201,7 +56201,7 @@
   },
   {
     "code": "kwara_ifelodun_igbaja_111",
-    "name": "Igbaja 111",
+    "name": "Igbaja III",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56211,7 +56211,7 @@
   },
   {
     "code": "kwara_ifelodun_igbaja_i",
-    "name": "Igbaja 1",
+    "name": "Igbaja I",
     "lga_code": "kwara_ifelodun",
     "pcode": null,
     "source": "inec",
@@ -56231,7 +56231,7 @@
   },
   {
     "code": "kwara_ifelodun_oke_ode_11",
-    "name": "Oke Ode 11",
+    "name": "Oke Ode II",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56241,7 +56241,7 @@
   },
   {
     "code": "kwara_ifelodun_oke_ode_111",
-    "name": "Oke Ode 111",
+    "name": "Oke Ode III",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56251,7 +56251,7 @@
   },
   {
     "code": "kwara_ifelodun_oke_ode_i",
-    "name": "Oke Ode 1",
+    "name": "Oke Ode I",
     "lga_code": "kwara_ifelodun",
     "pcode": null,
     "source": "inec",
@@ -56281,7 +56281,7 @@
   },
   {
     "code": "kwara_ifelodun_share_11",
-    "name": "Share 11",
+    "name": "Share II",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56291,7 +56291,7 @@
   },
   {
     "code": "kwara_ifelodun_share_111",
-    "name": "Share 111",
+    "name": "Share III",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56301,7 +56301,7 @@
   },
   {
     "code": "kwara_ifelodun_share_1v",
-    "name": "Share 1v",
+    "name": "Share IV",
     "lga_code": "kwara_ifelodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56311,7 +56311,7 @@
   },
   {
     "code": "kwara_ifelodun_share_i",
-    "name": "Share 1",
+    "name": "Share I",
     "lga_code": "kwara_ifelodun",
     "pcode": null,
     "source": "inec",
@@ -56341,7 +56341,7 @@
   },
   {
     "code": "kwara_ilorin_east_bologun_gambari_11",
-    "name": "Bologun Gambari 11",
+    "name": "Bologun Gambari II",
     "lga_code": "kwara_ilorin_east",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56351,7 +56351,7 @@
   },
   {
     "code": "kwara_ilorin_east_gambari_i",
-    "name": "Gambari 1",
+    "name": "Gambari I",
     "lga_code": "kwara_ilorin_east",
     "pcode": null,
     "source": "inec",
@@ -56381,7 +56381,7 @@
   },
   {
     "code": "kwara_ilorin_east_magaji_are_11",
-    "name": "Magaji Are 11",
+    "name": "Magaji Are II",
     "lga_code": "kwara_ilorin_east",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56391,7 +56391,7 @@
   },
   {
     "code": "kwara_ilorin_east_magaji_are_i",
-    "name": "Magaji Are 1",
+    "name": "Magaji Are I",
     "lga_code": "kwara_ilorin_east",
     "pcode": null,
     "source": "inec",
@@ -56451,7 +56451,7 @@
   },
   {
     "code": "kwara_ilorin_south_akanbi_11",
-    "name": "Akanbi 11",
+    "name": "Akanbi II",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56461,7 +56461,7 @@
   },
   {
     "code": "kwara_ilorin_south_akanbi_111",
-    "name": "Akanbi 111",
+    "name": "Akanbi III",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56471,7 +56471,7 @@
   },
   {
     "code": "kwara_ilorin_south_akanbi_1v",
-    "name": "Akanbi 1v",
+    "name": "Akanbi IV",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56481,7 +56481,7 @@
   },
   {
     "code": "kwara_ilorin_south_akanbi_i",
-    "name": "Akanbi 1",
+    "name": "Akanbi I",
     "lga_code": "kwara_ilorin_south",
     "pcode": null,
     "source": "inec",
@@ -56501,7 +56501,7 @@
   },
   {
     "code": "kwara_ilorin_south_balogun_fulani_11",
-    "name": "Balogun Fulani 11",
+    "name": "Balogun Fulani II",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56511,7 +56511,7 @@
   },
   {
     "code": "kwara_ilorin_south_balogun_fulani_111",
-    "name": "Balogun Fulani 111",
+    "name": "Balogun Fulani III",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56531,7 +56531,7 @@
   },
   {
     "code": "kwara_ilorin_south_okaka_11",
-    "name": "Okaka 11",
+    "name": "Okaka II",
     "lga_code": "kwara_ilorin_south",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56541,7 +56541,7 @@
   },
   {
     "code": "kwara_ilorin_south_okaka_i",
-    "name": "Okaka 1",
+    "name": "Okaka I",
     "lga_code": "kwara_ilorin_south",
     "pcode": null,
     "source": "inec",
@@ -56681,7 +56681,7 @@
   },
   {
     "code": "kwara_irepodun_ajase_ipo_1",
-    "name": "Ajase Ipo 1",
+    "name": "Ajase Ipo I",
     "lga_code": "kwara_irepodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56691,7 +56691,7 @@
   },
   {
     "code": "kwara_irepodun_ajase_ipo_11",
-    "name": "Ajase Ipo 11",
+    "name": "Ajase Ipo II",
     "lga_code": "kwara_irepodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56771,7 +56771,7 @@
   },
   {
     "code": "kwara_irepodun_oro_11",
-    "name": "Oro 11",
+    "name": "Oro II",
     "lga_code": "kwara_irepodun",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56781,7 +56781,7 @@
   },
   {
     "code": "kwara_irepodun_oro_i",
-    "name": "Oro 1",
+    "name": "Oro I",
     "lga_code": "kwara_irepodun",
     "pcode": null,
     "source": "inec",
@@ -56821,7 +56821,7 @@
   },
   {
     "code": "kwara_isin_isanlu_1",
-    "name": "Isanlu 1",
+    "name": "Isanlu I",
     "lga_code": "kwara_isin",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56831,7 +56831,7 @@
   },
   {
     "code": "kwara_isin_isanlu_11",
-    "name": "Isanlu 11",
+    "name": "Isanlu II",
     "lga_code": "kwara_isin",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56921,7 +56921,7 @@
   },
   {
     "code": "kwara_kaiama_gwanabe_11",
-    "name": "Gwanabe 11",
+    "name": "Gwanabe II",
     "lga_code": "kwara_kaiama",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56931,7 +56931,7 @@
   },
   {
     "code": "kwara_kaiama_gwanabe_i",
-    "name": "Gwanabe 1",
+    "name": "Gwanabe I",
     "lga_code": "kwara_kaiama",
     "pcode": null,
     "source": "inec",
@@ -56951,7 +56951,7 @@
   },
   {
     "code": "kwara_kaiama_kaiama_11",
-    "name": "Kaiama 11",
+    "name": "Kaiama II",
     "lga_code": "kwara_kaiama",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56961,7 +56961,7 @@
   },
   {
     "code": "kwara_kaiama_kaiama_111",
-    "name": "Kaiama 111",
+    "name": "Kaiama III",
     "lga_code": "kwara_kaiama",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -56971,7 +56971,7 @@
   },
   {
     "code": "kwara_kaiama_kaiama_i",
-    "name": "Kaiama 1",
+    "name": "Kaiama I",
     "lga_code": "kwara_kaiama",
     "pcode": null,
     "source": "inec",
@@ -57231,7 +57231,7 @@
   },
   {
     "code": "kwara_offa_ojomu_central_11",
-    "name": "Ojomu Central 11",
+    "name": "Ojomu Central II",
     "lga_code": "kwara_offa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57311,7 +57311,7 @@
   },
   {
     "code": "kwara_oke_ero_idofin_igbana_11",
-    "name": "Idofin Igbana 11",
+    "name": "Idofin Igbana II",
     "lga_code": "kwara_oke_ero",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57321,7 +57321,7 @@
   },
   {
     "code": "kwara_oke_ero_idofin_igbana_i",
-    "name": "Idofin Igbana 1",
+    "name": "Idofin Igbana I",
     "lga_code": "kwara_oke_ero",
     "pcode": null,
     "source": "inec",
@@ -57371,7 +57371,7 @@
   },
   {
     "code": "kwara_oke_ero_odo_owa_11",
-    "name": "Odo Owa 11",
+    "name": "Odo Owa II",
     "lga_code": "kwara_oke_ero",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57381,7 +57381,7 @@
   },
   {
     "code": "kwara_oke_ero_odo_owa_i",
-    "name": "Odo Owa 1",
+    "name": "Odo Owa I",
     "lga_code": "kwara_oke_ero",
     "pcode": null,
     "source": "inec",
@@ -57501,7 +57501,7 @@
   },
   {
     "code": "kwara_pategi_kpada_11",
-    "name": "Kpada 11",
+    "name": "Kpada II",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57511,7 +57511,7 @@
   },
   {
     "code": "kwara_pategi_kpada_111",
-    "name": "Kpada 111",
+    "name": "Kpada III",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57521,7 +57521,7 @@
   },
   {
     "code": "kwara_pategi_kpada_i",
-    "name": "Kpada 1",
+    "name": "Kpada I",
     "lga_code": "kwara_pategi",
     "pcode": null,
     "source": "inec",
@@ -57531,7 +57531,7 @@
   },
   {
     "code": "kwara_pategi_lade_11",
-    "name": "Lade 11",
+    "name": "Lade II",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57541,7 +57541,7 @@
   },
   {
     "code": "kwara_pategi_lade_111",
-    "name": "Lade 111",
+    "name": "Lade III",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57551,7 +57551,7 @@
   },
   {
     "code": "kwara_pategi_lade_i",
-    "name": "Lade 1",
+    "name": "Lade I",
     "lga_code": "kwara_pategi",
     "pcode": null,
     "source": "inec",
@@ -57561,7 +57561,7 @@
   },
   {
     "code": "kwara_pategi_patigi_11",
-    "name": "Patigi 11",
+    "name": "Patigi II",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57571,7 +57571,7 @@
   },
   {
     "code": "kwara_pategi_patigi_111",
-    "name": "Patigi 111",
+    "name": "Patigi III",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57581,7 +57581,7 @@
   },
   {
     "code": "kwara_pategi_patigi_1v",
-    "name": "Patigi 1v",
+    "name": "Patigi IV",
     "lga_code": "kwara_pategi",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -57591,7 +57591,7 @@
   },
   {
     "code": "kwara_pategi_patigi_i",
-    "name": "Patigi 1",
+    "name": "Patigi I",
     "lga_code": "kwara_pategi",
     "pcode": null,
     "source": "inec",
@@ -57951,7 +57951,7 @@
   },
   {
     "code": "lagos_amuwo_odofin_festac_i",
-    "name": "Festac 1",
+    "name": "Festac I",
     "lga_code": "lagos_amuwo_odofin",
     "pcode": null,
     "source": "inec",
@@ -58961,7 +58961,7 @@
   },
   {
     "code": "lagos_ikorodu_imota_i",
-    "name": "Imota 1",
+    "name": "Imota I",
     "lga_code": "lagos_ikorodu",
     "pcode": null,
     "source": "inec",
@@ -66581,7 +66581,7 @@
   },
   {
     "code": "ogun_shagamu_sabo_i",
-    "name": "Sabo 1",
+    "name": "Sabo I",
     "lga_code": "ogun_shagamu",
     "pcode": null,
     "source": "inec",
@@ -67571,7 +67571,7 @@
   },
   {
     "code": "ondo_ifedore_ijare_1",
-    "name": "Ijare 1",
+    "name": "Ijare I",
     "lga_code": "ondo_ifedore",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67581,7 +67581,7 @@
   },
   {
     "code": "ondo_ifedore_ijare_11",
-    "name": "Ijare 11",
+    "name": "Ijare II",
     "lga_code": "ondo_ifedore",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67591,7 +67591,7 @@
   },
   {
     "code": "ondo_ifedore_ilara_1",
-    "name": "Ilara 1",
+    "name": "Ilara I",
     "lga_code": "ondo_ifedore",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67601,7 +67601,7 @@
   },
   {
     "code": "ondo_ifedore_ilara_11",
-    "name": "Ilara 11",
+    "name": "Ilara II",
     "lga_code": "ondo_ifedore",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67661,7 +67661,7 @@
   },
   {
     "code": "ondo_ilaje_mahin_11",
-    "name": "Mahin 11",
+    "name": "Mahin II",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67671,7 +67671,7 @@
   },
   {
     "code": "ondo_ilaje_mahin_111",
-    "name": "Mahin 111",
+    "name": "Mahin III",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67681,7 +67681,7 @@
   },
   {
     "code": "ondo_ilaje_mahin_1v",
-    "name": "Mahin 1v",
+    "name": "Mahin IV",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67691,7 +67691,7 @@
   },
   {
     "code": "ondo_ilaje_mahin_i",
-    "name": "Mahin 1",
+    "name": "Mahin I",
     "lga_code": "ondo_ilaje",
     "pcode": null,
     "source": "inec",
@@ -67701,7 +67701,7 @@
   },
   {
     "code": "ondo_ilaje_ugbo_11",
-    "name": "Ugbo 11",
+    "name": "Ugbo II",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67711,7 +67711,7 @@
   },
   {
     "code": "ondo_ilaje_ugbo_111",
-    "name": "Ugbo 111",
+    "name": "Ugbo III",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67721,7 +67721,7 @@
   },
   {
     "code": "ondo_ilaje_ugbo_1v",
-    "name": "Ugbo 1v",
+    "name": "Ugbo IV",
     "lga_code": "ondo_ilaje",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67731,7 +67731,7 @@
   },
   {
     "code": "ondo_ilaje_ugbo_i",
-    "name": "Ugbo 1",
+    "name": "Ugbo I",
     "lga_code": "ondo_ilaje",
     "pcode": null,
     "source": "inec",
@@ -67761,7 +67761,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_ile_oluji_i",
-    "name": "Ileoluji 1",
+    "name": "Ileoluji I",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "pcode": null,
     "source": "inec",
@@ -67781,7 +67781,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_ileoluji_11",
-    "name": "Ileoluji 11",
+    "name": "Ileoluji II",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67791,7 +67791,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_ileoluji_1v",
-    "name": "Ileoluji 1v",
+    "name": "Ileoluji IV",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67821,7 +67821,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_oke_igbo_11",
-    "name": "Oke Igbo 11",
+    "name": "Oke Igbo II",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67831,7 +67831,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_oke_igbo_111",
-    "name": "Oke Igbo 111",
+    "name": "Oke Igbo III",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67841,7 +67841,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_oke_igbo_1v",
-    "name": "Oke Igbo 1v",
+    "name": "Oke Igbo IV",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67851,7 +67851,7 @@
   },
   {
     "code": "ondo_ile_oluji_okeigbo_okeigbo_i",
-    "name": "Oke Igbo 1",
+    "name": "Oke Igbo I",
     "lga_code": "ondo_ile_oluji_okeigbo",
     "pcode": null,
     "source": "inec",
@@ -67861,7 +67861,7 @@
   },
   {
     "code": "ondo_irele_ajagba_1",
-    "name": "Ajagba 1",
+    "name": "Ajagba I",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67871,7 +67871,7 @@
   },
   {
     "code": "ondo_irele_ajagba_11",
-    "name": "Ajagba 11",
+    "name": "Ajagba II",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67881,7 +67881,7 @@
   },
   {
     "code": "ondo_irele_akotogbo_1",
-    "name": "Akotogbo 1",
+    "name": "Akotogbo I",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67891,7 +67891,7 @@
   },
   {
     "code": "ondo_irele_akotogbo_11",
-    "name": "Akotogbo 11",
+    "name": "Akotogbo II",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67901,7 +67901,7 @@
   },
   {
     "code": "ondo_irele_irele_11",
-    "name": "Irele 11",
+    "name": "Irele II",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67911,7 +67911,7 @@
   },
   {
     "code": "ondo_irele_irele_1v",
-    "name": "Irele 1v",
+    "name": "Irele IV",
     "lga_code": "ondo_irele",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -67921,7 +67921,7 @@
   },
   {
     "code": "ondo_irele_irele_i",
-    "name": "Irele 1",
+    "name": "Irele I",
     "lga_code": "ondo_irele",
     "pcode": null,
     "source": "inec",
@@ -68051,7 +68051,7 @@
   },
   {
     "code": "ondo_odigbo_ore_11",
-    "name": "Ore 11",
+    "name": "Ore II",
     "lga_code": "ondo_odigbo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68061,7 +68061,7 @@
   },
   {
     "code": "ondo_odigbo_ore_i",
-    "name": "Ore 1",
+    "name": "Ore I",
     "lga_code": "ondo_odigbo",
     "pcode": null,
     "source": "inec",
@@ -68071,7 +68071,7 @@
   },
   {
     "code": "ondo_okitipupa_aye_11",
-    "name": "Aye 11",
+    "name": "Aye II",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68101,7 +68101,7 @@
   },
   {
     "code": "ondo_okitipupa_igbotako_1",
-    "name": "Igbotako 1",
+    "name": "Igbotako I",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68111,7 +68111,7 @@
   },
   {
     "code": "ondo_okitipupa_igbotako_11",
-    "name": "Igbotako 11",
+    "name": "Igbotako II",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68141,7 +68141,7 @@
   },
   {
     "code": "ondo_okitipupa_ilutitun_1",
-    "name": "Ilutitun 1",
+    "name": "Ilutitun I",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68151,7 +68151,7 @@
   },
   {
     "code": "ondo_okitipupa_ilutitun_111",
-    "name": "Ilutitun 111",
+    "name": "Ilutitun III",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68171,7 +68171,7 @@
   },
   {
     "code": "ondo_okitipupa_ode_aye_i",
-    "name": "Ode Aye 1",
+    "name": "Ode Aye I",
     "lga_code": "ondo_okitipupa",
     "pcode": null,
     "source": "inec",
@@ -68181,7 +68181,7 @@
   },
   {
     "code": "ondo_okitipupa_okitipupa_11",
-    "name": "Okitipupa 11",
+    "name": "Okitipupa II",
     "lga_code": "ondo_okitipupa",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68191,7 +68191,7 @@
   },
   {
     "code": "ondo_okitipupa_okitipupa_i",
-    "name": "Okitipupa 1",
+    "name": "Okitipupa I",
     "lga_code": "ondo_okitipupa",
     "pcode": null,
     "source": "inec",
@@ -68221,7 +68221,7 @@
   },
   {
     "code": "ondo_ondo_east_bolorunduro_i",
-    "name": "Bolorunduro 1",
+    "name": "Bolorunduro I",
     "lga_code": "ondo_ondo_east",
     "pcode": null,
     "source": "inec",
@@ -68431,7 +68431,7 @@
   },
   {
     "code": "ondo_ose_idoani_1",
-    "name": "Idoani 1",
+    "name": "Idoani I",
     "lga_code": "ondo_ose",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68441,7 +68441,7 @@
   },
   {
     "code": "ondo_ose_idoani_11",
-    "name": "Idoani 11",
+    "name": "Idoani II",
     "lga_code": "ondo_ose",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68461,7 +68461,7 @@
   },
   {
     "code": "ondo_ose_ifon_11",
-    "name": "Ifon 11",
+    "name": "Ifon II",
     "lga_code": "ondo_ose",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68471,7 +68471,7 @@
   },
   {
     "code": "ondo_ose_ifon_i",
-    "name": "Ifon 1",
+    "name": "Ifon I",
     "lga_code": "ondo_ose",
     "pcode": null,
     "source": "inec",
@@ -68551,7 +68551,7 @@
   },
   {
     "code": "ondo_owo_igboroko_1",
-    "name": "Igboroko 1",
+    "name": "Igboroko I",
     "lga_code": "ondo_owo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68561,7 +68561,7 @@
   },
   {
     "code": "ondo_owo_igboroko_11",
-    "name": "Igboroko 11",
+    "name": "Igboroko II",
     "lga_code": "ondo_owo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68571,7 +68571,7 @@
   },
   {
     "code": "ondo_owo_ijebu_11",
-    "name": "Ijebu 11",
+    "name": "Ijebu II",
     "lga_code": "ondo_owo",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68581,7 +68581,7 @@
   },
   {
     "code": "ondo_owo_ijebu_i",
-    "name": "Ijebu 1",
+    "name": "Ijebu I",
     "lga_code": "ondo_owo",
     "pcode": null,
     "source": "inec",
@@ -68831,7 +68831,7 @@
   },
   {
     "code": "osun_aiyedire_olupona_i",
-    "name": "Oluponna 1",
+    "name": "Oluponna I",
     "lga_code": "osun_aiyedire",
     "pcode": null,
     "source": "inec",
@@ -68841,7 +68841,7 @@
   },
   {
     "code": "osun_aiyedire_oluponna_1i",
-    "name": "Oluponna 1i",
+    "name": "Oluponna II",
     "lga_code": "osun_aiyedire",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68851,7 +68851,7 @@
   },
   {
     "code": "osun_aiyedire_oluponna_1ii",
-    "name": "Oluponna 1ii",
+    "name": "Oluponna III",
     "lga_code": "osun_aiyedire",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -68901,7 +68901,7 @@
   },
   {
     "code": "osun_atakumosa_east_forest_reserve_i",
-    "name": "Forest Reserve 1",
+    "name": "Forest Reserve I",
     "lga_code": "osun_atakumosa_east",
     "pcode": null,
     "source": "inec",
@@ -69711,7 +69711,7 @@
   },
   {
     "code": "osun_ife_central_ilare_1",
-    "name": "Ilare 1",
+    "name": "Ilare I",
     "lga_code": "osun_ife_central",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -69721,7 +69721,7 @@
   },
   {
     "code": "osun_ife_central_ilare_1i",
-    "name": "Ilare 1i",
+    "name": "Ilare II",
     "lga_code": "osun_ife_central",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -72271,7 +72271,7 @@
   },
   {
     "code": "oyo_atiba_oke_afin_1",
-    "name": "Oke Afin 1",
+    "name": "Oke Afin I",
     "lga_code": "oyo_atiba",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -72991,7 +72991,7 @@
   },
   {
     "code": "oyo_ibadan_south_west_ward_11_sw9_1",
-    "name": "Ward 11 Sw9 1",
+    "name": "Ward 11 Sw9 I",
     "lga_code": "oyo_ibadan_south_west",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -73081,7 +73081,7 @@
   },
   {
     "code": "oyo_ibadan_south_west_ward_9_sw8_1",
-    "name": "Ward 9 Sw8 1",
+    "name": "Ward 9 Sw8 I",
     "lga_code": "oyo_ibadan_south_west",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -73771,7 +73771,7 @@
   },
   {
     "code": "oyo_itesiwaju_otu_i",
-    "name": "Otu 1",
+    "name": "Otu I",
     "lga_code": "oyo_itesiwaju",
     "pcode": null,
     "source": "inec",
@@ -76751,7 +76751,7 @@
   },
   {
     "code": "plateau_mangu_gindiri_1",
-    "name": "GINDIRI 1",
+    "name": "GINDIRI I",
     "lga_code": "plateau_mangu",
     "pcode": null,
     "source": "inec",
@@ -76761,7 +76761,7 @@
   },
   {
     "code": "plateau_mangu_gindiri_11",
-    "name": "GINDIRI 11",
+    "name": "GINDIRI II",
     "lga_code": "plateau_mangu",
     "pcode": null,
     "source": "inec",
@@ -76831,7 +76831,7 @@
   },
   {
     "code": "plateau_mangu_mangu_1",
-    "name": "MANGU 1",
+    "name": "MANGU I",
     "lga_code": "plateau_mangu",
     "pcode": null,
     "source": "inec",
@@ -76841,7 +76841,7 @@
   },
   {
     "code": "plateau_mangu_mangu_11",
-    "name": "Mangu 11",
+    "name": "Mangu II",
     "lga_code": "plateau_mangu",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -78591,7 +78591,7 @@
   },
   {
     "code": "rivers_degema_tomble_i",
-    "name": "Tomble I",
+    "name": "Tombia I",
     "lga_code": "rivers_degema",
     "pcode": null,
     "source": "inec",
@@ -78601,7 +78601,7 @@
   },
   {
     "code": "rivers_degema_tomble_ii",
-    "name": "Tomble II",
+    "name": "Tombia II",
     "lga_code": "rivers_degema",
     "pcode": null,
     "source": "inec",
@@ -78611,7 +78611,7 @@
   },
   {
     "code": "rivers_degema_tomble_iii",
-    "name": "Tomble III",
+    "name": "Tombia III",
     "lga_code": "rivers_degema",
     "pcode": null,
     "source": "inec",
@@ -78621,7 +78621,7 @@
   },
   {
     "code": "rivers_degema_tomble_iv",
-    "name": "Tomble IV",
+    "name": "Tombia IV",
     "lga_code": "rivers_degema",
     "pcode": null,
     "source": "inec",
