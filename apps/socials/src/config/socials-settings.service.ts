@@ -35,6 +35,23 @@ export class SocialsSettingsService {
     return row?.value === "true";
   }
 
+  async setAutoPublishInbound(enabled: boolean): Promise<boolean> {
+    const value = enabled ? "true" : "false";
+    await this.prisma.systemSetting.upsert({
+      where: { key: SocialsSettingsService.AUTO_PUBLISH_INBOUND_KEY },
+      create: {
+        key: SocialsSettingsService.AUTO_PUBLISH_INBOUND_KEY,
+        value,
+        category: "socials",
+        valueType: "boolean",
+        description:
+          "Auto-publish recommended INBOUND drafts (replies to us / mentions) without dashboard approval",
+      },
+      update: { value },
+    });
+    return enabled;
+  }
+
   async setAutoPublish(enabled: boolean): Promise<boolean> {
     const value = enabled ? "true" : "false";
     await this.prisma.systemSetting.upsert({

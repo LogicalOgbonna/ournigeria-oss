@@ -103,4 +103,28 @@ export class XOauthController {
   ): Promise<{ enabled: boolean }> {
     return { enabled: await this.settings.setAutoPublish(enabled === true) };
   }
+
+  @Get("auto-publish-inbound")
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({
+    summary:
+      "Whether recommended INBOUND drafts (replies to us / mentions) auto-publish",
+  })
+  async getAutoPublishInbound(): Promise<{ enabled: boolean }> {
+    return { enabled: await this.settings.getAutoPublishInbound() };
+  }
+
+  @Post("auto-publish-inbound")
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({
+    summary:
+      "Toggle auto-publish of recommended inbound drafts (DB-backed, live)",
+  })
+  async setAutoPublishInbound(
+    @Body("enabled") enabled: boolean,
+  ): Promise<{ enabled: boolean }> {
+    return {
+      enabled: await this.settings.setAutoPublishInbound(enabled === true),
+    };
+  }
 }
