@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { IdentifyCampaignService } from "../src/identify/identify-campaign.service.js";
 import { SafetyFilter } from "../src/intelligence/safety-filter.js";
 import { SocialsSettingsService } from "../src/config/socials-settings.service.js";
+import { CampaignTemplateProvider } from "../src/campaign/campaign-template.provider.js";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) }) as any;
 const publisher: any = { publishOriginal: () => { throw new Error("publishOriginal must NOT be called in automated tests"); } };
@@ -11,7 +12,7 @@ function assert(c: boolean, m: string) { if (!c) { console.error("FAIL:", m); pr
 
 async function main() {
   const settings = new SocialsSettingsService(prisma);
-  const svc = new IdentifyCampaignService(prisma, publisher, new SafetyFilter(), settings);
+  const svc = new IdentifyCampaignService(prisma, publisher, new SafetyFilter(), settings, new CampaignTemplateProvider(prisma));
 
   // (1) dryRun for lga_chairman (has a local pool) — no publish, no writes
   const preview = await svc.postOneCategory("lga_chairman", 0, { dryRun: true });

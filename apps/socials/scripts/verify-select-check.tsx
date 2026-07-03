@@ -9,8 +9,9 @@ const throwingPublisher: any = { publishOriginal() { throw new Error("publishOri
 const settingsStub: any = { getVerifyAutoPost: async () => false };
 const safetyStub: any = { check: () => ({ safe: true, warnings: [], blocked: false }) };
 
+const { CampaignTemplateProvider } = await import("../src/campaign/campaign-template.provider.js");
 const { ProposalVerifyService } = await import("../src/verify/proposal-verify.service.js");
-const svc = new ProposalVerifyService(prisma as any, throwingPublisher, safetyStub, settingsStub);
+const svc = new ProposalVerifyService(prisma as any, throwingPublisher, safetyStub, settingsStub, new CampaignTemplateProvider(prisma as any));
 
 const seeded = { officialId: "", pOffId: "", positionId: "", identifyPropId: "", changePropId: "" };
 try {

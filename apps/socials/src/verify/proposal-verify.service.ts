@@ -10,9 +10,9 @@ import {
   VerifyLevel,
   buildProposalVerifyUrl,
   fillVerifyTemplate,
-  pickVerifyTemplate,
   humanizeField,
 } from "./verify-content.js";
+import { CampaignTemplateProvider } from "../campaign/campaign-template.provider.js";
 
 /** Deterministic seed from the anchor id so template choice is stable per anchor. */
 function hashSeed(s: string): number {
@@ -51,6 +51,7 @@ export class ProposalVerifyService {
     private readonly publisher: TwitterPublisher,
     private readonly safetyFilter: SafetyFilter,
     private readonly settings: SocialsSettingsService,
+    private readonly templates: CampaignTemplateProvider,
   ) {}
 
   private sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
@@ -190,8 +191,8 @@ export class ProposalVerifyService {
       return results;
     }
 
-    /** Build the tweet for a candidate (pure — no side effects). */
-    buildPreview(p: QualifyingProposal): { text: string; url: string; safe: boolean } {
+    /** Build the tweet for a candidate (no writes; reads templates from DB). */
+    async buildPreview(p: QualifyingProposal): Promise<{ text: string; url: string; safe: boolean }> {
       let url: string, text: string;
       if (p.kind === "identify") {
         url = buildProposalVerifyUrl({
@@ -199,12 +200,14 @@ export class ProposalVerifyService {
           lgaCode: p.lgaCode, wardCode: p.wardCode, constituencyCode: p.constituencyCode,
           level: p.level!,
         });
-        text = fillVerifyTemplate(pickVerifyTemplate("identify", hashSeed(p.anchorId)), {
+        const tpl = await this.templates.pickVerify("identify", hashSeed(p.anchorId));
+        text = fillVerifyTemplate(tpl, {
           claim: p.displayValue ?? "your official", name: "", fieldLabel: "", value: "", url,
         });
       } else {
         url = buildProposalVerifyUrl({ kind: "change", slug: p.slug! });
-        text = fillVerifyTemplate(pickVerifyTemplate("change", hashSeed(p.anchorId)), {
+        const tpl = await this.templates.pickVerify("change", hashSeed(p.anchorId));
+        text = fillVerifyTemplate(tpl, {
           claim: "", name: p.officialName ?? "this official",
           fieldLabel: humanizeField(p.targetField!), value: p.proposedScalar ?? "", url,
         });
@@ -217,7 +220,7 @@ export class ProposalVerifyService {
       p: QualifyingProposal,
       opts: { dryRun: boolean },
     ): Promise<{ proposalId: string; kind: VerifyKind; text: string; url: string; safe: boolean; claimed: boolean } | null> {
-      const preview = this.buildPreview(p);
+      const preview = await this.buildPreview(p);
       if (opts.dryRun) return { proposalId: p.proposalId, kind: p.kind, ...preview, claimed: false };
 
       const claimed = await this.claimVerify(p);
