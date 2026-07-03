@@ -31,6 +31,10 @@ export function XConnectionCard() {
   const [busy, setBusy] = useState(false);
   const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
   const [savingAuto, setSavingAuto] = useState(false);
+  const [autoPublishInbound, setAutoPublishInbound] = useState<boolean | null>(
+    null,
+  );
+  const [savingAutoInbound, setSavingAutoInbound] = useState(false);
   const [banner, setBanner] = useState<
     { kind: "success" | "error"; text: string } | null
   >(null);
@@ -44,6 +48,9 @@ export function XConnectionCard() {
     socialsFetch("/v1/x-oauth/auto-publish")
       .then((r: { enabled: boolean }) => setAutoPublish(r.enabled))
       .catch(() => setAutoPublish(null));
+    socialsFetch("/v1/x-oauth/auto-publish-inbound")
+      .then((r: { enabled: boolean }) => setAutoPublishInbound(r.enabled))
+      .catch(() => setAutoPublishInbound(null));
   }, []);
 
   const toggleAutoPublish = useCallback(async (next: boolean) => {
@@ -69,6 +76,35 @@ export function XConnectionCard() {
       });
     } finally {
       setSavingAuto(false);
+    }
+  }, []);
+
+  const toggleAutoPublishInbound = useCallback(async (next: boolean) => {
+    setSavingAutoInbound(true);
+    setAutoPublishInbound(next); // optimistic
+    try {
+      const r: { enabled: boolean } = await socialsFetch(
+        "/v1/x-oauth/auto-publish-inbound",
+        { method: "POST", body: JSON.stringify({ enabled: next }) },
+      );
+      setAutoPublishInbound(r.enabled);
+      setBanner({
+        kind: "success",
+        text: r.enabled
+          ? "Inbound auto-publish ON — replies to us & mentions post without approval."
+          : "Inbound auto-publish OFF — every reply/mention draft waits for your approval.",
+      });
+    } catch (e) {
+      setAutoPublishInbound(!next); // revert
+      setBanner({
+        kind: "error",
+        text:
+          e instanceof Error
+            ? e.message
+            : "Could not update inbound auto-publish.",
+      });
+    } finally {
+      setSavingAutoInbound(false);
     }
   }, []);
 
@@ -216,6 +252,32 @@ export function XConnectionCard() {
                 onCheckedChange={toggleAutoPublish}
                 disabled={savingAuto}
                 aria-label="Toggle auto-publish"
+              />
+            )}
+          </div>
+        )}
+
+        {status?.connected && (
+          <div className="mt-3 flex items-start justify-between gap-4 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">
+                Auto-publish inbound replies &amp; mentions
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Separate from the toggle above. Inbound engagement (replies under
+                our posts and @mentions) is lower-trust, so it stays human-reviewed
+                even when general auto-publish is on. Turn this on only if you want
+                high-confidence inbound replies to post without approval.
+              </p>
+            </div>
+            {autoPublishInbound === null ? (
+              <Skeleton className="h-5 w-9 shrink-0" />
+            ) : (
+              <Switch
+                checked={autoPublishInbound}
+                onCheckedChange={toggleAutoPublishInbound}
+                disabled={savingAutoInbound}
+                aria-label="Toggle inbound auto-publish"
               />
             )}
           </div>
