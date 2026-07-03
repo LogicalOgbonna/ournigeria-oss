@@ -30,6 +30,26 @@ sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.dirname(_
 from ward_utils import WORKBOOK_TO_STATE, normalize_name  # noqa: E402
 
 
+def _sheet(wb, workbook: str, kind: str):
+    """Resolve a worksheet by kind ('SD'/'FC'/'SC').
+
+    INEC workbooks are inconsistent: some name sheets ``<STATE> SC`` (e.g. ABIA),
+    others use the bare ``SC`` (e.g. EBONYI, BAYELSA). Try the prefixed name
+    first, then the bare kind, then any sheet whose name ends with the kind
+    (case-insensitive) before giving up.
+    """
+    candidates = [f"{workbook} {kind}", kind]
+    for name in candidates:
+        if name in wb.sheetnames:
+            return wb[name]
+    for name in wb.sheetnames:
+        if name.strip().upper().endswith(kind):
+            return wb[name]
+    raise KeyError(
+        f"{workbook}: no '{kind}' worksheet (sheets: {wb.sheetnames})"
+    )
+
+
 def _confidence(score: float) -> str:
     if score >= 0.999:
         return "high"
@@ -50,8 +70,8 @@ def reconcile_state(workbook: str) -> tuple:
 
     path = fetch_state(workbook)
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-    sc_rows = [list(r) for r in wb[f"{workbook} SC"].iter_rows(values_only=True)]
-    sd_rows = [list(r) for r in wb[f"{workbook} SD"].iter_rows(values_only=True)]
+    sc_rows = [list(r) for r in _sheet(wb, workbook, "SC").iter_rows(values_only=True)]
+    sd_rows = [list(r) for r in _sheet(wb, workbook, "SD").iter_rows(values_only=True)]
     parsed_sc = parse_sc_rows(sc_rows)
     districts = parse_lga_rows(sd_rows)
 
