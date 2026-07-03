@@ -246,8 +246,23 @@ export class ProposalVerifyService {
 
       const autoPost = await this.settings.getVerifyAutoPost();
       if (autoPost) {
-        const publishedTweets = await this.publisher.publishOriginal(preview.text, "opinion_tweet");
-        const tweetId = publishedTweets[0]?.id;
+        let tweetId: string | undefined;
+        try {
+          const publishedTweets = await this.publisher.publishOriginal(preview.text, "opinion_tweet");
+          tweetId = publishedTweets[0]?.id;
+        } catch (e) {
+          // Publish failed (X auth/rate/duplicate). Do NOT leave the ledger stuck
+          // at 'claiming' (ON CONFLICT would block any retry). Mark 'failed' so the
+          // anchor is visibly not-served and surfaces for ops.
+          await this.prisma.proposalVerifyPost.updateMany({
+            where: { anchorType: p.anchorType, anchorId: p.anchorId },
+            data: { status: "failed" },
+          });
+          this.logger.error(
+            `verify publish FAILED ${p.anchorType}:${p.anchorId}: ${e instanceof Error ? e.message : e}`,
+          );
+          return null;
+        }
         const post = await this.prisma.socialPost.create({
           data: {
             platform: "twitter", postType: "proposal_verify", externalId: tweetId,
