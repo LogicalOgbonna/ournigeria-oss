@@ -114,3 +114,44 @@ def test_emit_corrections_migration_only_for_conflicts():
     assert "DELETE" in sql.upper()
     assert "w1" in sql
     assert "state_x_other" in sql
+
+
+def test_emit_corrections_skips_unresolved_proposed():
+    """A conflict whose proposed constituency did not resolve to a code
+    (proposed_constituency is None) must NOT emit a DELETE — deleting the
+    existing mapping would orphan the ward with nothing to replace it."""
+    conflicts = [
+        {
+            "tier": "state",
+            "ward_code": "w_orphan",
+            "existing_constituency": "state_kano_shanono",
+            "proposed_constituency": None,
+        },
+        {
+            "tier": "state",
+            "ward_code": "w_real",
+            "existing_constituency": "state_x_other",
+            "proposed_constituency": "state_x_a",
+        },
+    ]
+    sql = emit_corrections_migration(conflicts)
+    assert sql is not None
+    # the resolvable correction is emitted
+    assert "w_real" in sql
+    assert "state_x_other" in sql
+    # the unresolved one is NOT deleted
+    assert "w_orphan" not in sql
+    assert "state_kano_shanono" not in sql
+
+
+def test_emit_corrections_all_unresolved_returns_none():
+    """When every conflict is unresolvable, there is nothing safe to delete."""
+    conflicts = [
+        {
+            "tier": "state",
+            "ward_code": "w_orphan",
+            "existing_constituency": "state_kano_shanono",
+            "proposed_constituency": None,
+        }
+    ]
+    assert emit_corrections_migration(conflicts) is None
