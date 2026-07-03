@@ -32,6 +32,9 @@ export interface DraftRow {
   dataDomain: string | null;
   reviewStatus: string | null;
   status: string;
+  // 'roam' (or null on legacy) = discovered via topic search; 'inbound_reply' =
+  // a reply under one of our posts; 'mention' = an @ mention of the account.
+  source: string | null;
   createdAt: string;
   publishedAt: string | null;
 }

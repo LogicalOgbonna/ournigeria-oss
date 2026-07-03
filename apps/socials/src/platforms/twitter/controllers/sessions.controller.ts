@@ -23,7 +23,11 @@ interface CapturedSessionPayload {
   authorization: string;
   xClientTransactionId: string;
   xClientUuid: string;
-  searchTimelineOpHash: string;
+  // Each capture carries only the op-hash it saw; the other is preserved
+  // server-side. Both optional so a TweetDetail-only (or old-extension
+  // SearchTimeline-only) capture is accepted.
+  searchTimelineOpHash?: string;
+  tweetDetailOpHash?: string;
   path?: string;
 }
 
@@ -49,6 +53,7 @@ export class SessionsController {
       xClientTransactionId: body.xClientTransactionId,
       xClientUuid: body.xClientUuid,
       searchTimelineOpHash: body.searchTimelineOpHash,
+      tweetDetailOpHash: body.tweetDetailOpHash,
     });
     return { id: session.id, userName: session.userName, path: session.path };
   }
@@ -76,6 +81,7 @@ export class SessionsController {
         consecutiveErrors: s.consecutiveErrors,
         lastError: s.lastError,
         hasOpHash: !!s.searchTimelineOpHash,
+        hasTweetDetailHash: !!s.tweetDetailOpHash,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       })),

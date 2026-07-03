@@ -359,6 +359,10 @@ export class RoamerService implements OnModuleInit, OnModuleDestroy {
               likeCount: t.likeCount,
               isQuote: t.isQuote,
               isReply: t.isReply,
+              inReplyToTweetId: t.inReplyToId,
+              conversationId: t.conversationId,
+              quotedText: t.quotedText,
+              quotedAuthorHandle: t.quotedAuthorHandle,
               tweetCreatedAt: t.tweetCreatedAt,
             });
             await this.tweets.recordClassification({

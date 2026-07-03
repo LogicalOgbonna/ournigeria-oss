@@ -136,6 +136,7 @@ export class ReplyQueueService {
     dataQuery?: string;
     triggerTopic?: string;
     discoveredTweetId?: string;
+    source?: string;
   }) {
     const tweetId = data.originalTweet.id;
     return this.prisma.socialPost.create({
@@ -143,6 +144,7 @@ export class ReplyQueueService {
         platform: "twitter",
         postType: data.action,
         content: data.content,
+        source: data.source,
         // Reply fields (existing schema; reused for both reply and quote so
         // the dashboard always has author handle/text on hand without joining
         // the snapshot json).
@@ -454,6 +456,12 @@ export class ReplyQueueService {
   }
 
   async getFunnel() {
+    // The funnel measures ROAMING → draft conversion, so it counts only roamed
+    // tweets. Inbound (reply-inbox) tweets/drafts are excluded here so they
+    // don't skew the conversion rate. SocialsDiscoveredTweet.source is NOT NULL
+    // ('roam' default); SocialPost.source is nullable on legacy rows, so include
+    // null-or-roam there to keep historical posts counted.
+    const postRoam = { OR: [{ source: null }, { source: "roam" }] };
     const [
       scanned,
       passedClassifier,
@@ -463,32 +471,38 @@ export class ReplyQueueService {
       approved,
       published,
     ] = await Promise.all([
-      this.prisma.socialsDiscoveredTweet.count(),
+      this.prisma.socialsDiscoveredTweet.count({ where: { source: "roam" } }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { classifications: { some: { passedThreshold: true } } },
+        where: {
+          source: "roam",
+          classifications: { some: { passedThreshold: true } },
+        },
       }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { draftStatus: "skipped" },
+        where: { source: "roam", draftStatus: "skipped" },
       }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { draftStatus: "error" },
+        where: { source: "roam", draftStatus: "error" },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           reviewStatus: { in: ["pending", "recommended"] },
+          ...postRoam,
         },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           reviewStatus: "approved",
+          ...postRoam,
         },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           status: "published",
+          ...postRoam,
         },
       }),
     ]);

@@ -84,7 +84,7 @@ function showArmed(remainingMs) {
   armTimeout = setTimeout(async () => {
     clearInterval(countdownTimer);
     await chrome.storage.local.set({ armed: false });
-    showError("Timed out — no SearchTimeline request seen. Make sure you're on x.com and try again.");
+    showError("Timed out — no SearchTimeline/TweetDetail request seen. For the search hash arm on your home timeline; for the thread hash open any tweet, then arm. Make sure you're on x.com and try again.");
   }, remainingMs);
 }
 

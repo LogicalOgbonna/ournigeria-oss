@@ -43,15 +43,19 @@
 
     <section id="state-idle">
       <p>
-        Click <b>Arm</b>, then run any search on x.com. The next SearchTimeline
-        request will be captured.
+        Click <b>Arm</b>, then trigger the op you want to capture. Two hashes,
+        one session — capture each once:
       </p>
+      <ul>
+        <li><b>Search hash</b> — arm, then run any search on x.com.</li>
+        <li><b>Thread hash</b> — open any tweet, then arm (or reload it).</li>
+      </ul>
       <button id="arm">Arm capture</button>
     </section>
 
     <section id="state-armed" class="hidden">
-      <p>Waiting for a SearchTimeline request… <span id="countdown">60</span>s</p>
-      <p>Run any search on x.com now.</p>
+      <p>Waiting for a SearchTimeline/TweetDetail request… <span id="countdown">60</span>s</p>
+      <p>Run a search, or open/reload a tweet, on x.com now.</p>
       <button id="cancel" class="secondary">Cancel</button>
     </section>
 

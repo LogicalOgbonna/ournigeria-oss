@@ -7,6 +7,7 @@ import { PrismaService } from "@ournigeria/database";
 @Injectable()
 export class SocialsSettingsService {
   static readonly AUTO_PUBLISH_KEY = "socials.auto_publish";
+  static readonly AUTO_PUBLISH_INBOUND_KEY = "socials.auto_publish_inbound";
   static readonly IDENTIFY_AUTO_POST_KEY = "identify.auto_post";
   static readonly VERIFY_AUTO_POST_KEY = "verify.auto_post";
 
@@ -17,6 +18,19 @@ export class SocialsSettingsService {
   async getAutoPublish(): Promise<boolean> {
     const row = await this.prisma.systemSetting.findUnique({
       where: { key: SocialsSettingsService.AUTO_PUBLISH_KEY },
+    });
+    return row?.value === "true";
+  }
+
+  /**
+   * Whether INBOUND drafts (replies to us / mentions) may auto-publish. Kept
+   * SEPARATE from getAutoPublish and defaulting false: inbound engagement is
+   * lower-trust (trolls, bait, adversarial prompts), so it stays human-gated
+   * even when general roamed-draft auto-publish is on, until an operator
+   * explicitly opts in. */
+  async getAutoPublishInbound(): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: SocialsSettingsService.AUTO_PUBLISH_INBOUND_KEY },
     });
     return row?.value === "true";
   }
