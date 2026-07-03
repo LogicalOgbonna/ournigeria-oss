@@ -956,14 +956,17 @@ model DataProposal {
 model ProposalVote {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   proposalId String   @map("proposal_id") @db.Uuid
-  voterPhone String   @map("voter_phone") @db.VarChar(60)
+  voterPhone String?  @map("voter_phone") @db.VarChar(60)
+  voterIp    String?  @map("voter_ip") @db.VarChar(60)
   direction  Int      @db.SmallInt
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
 
   proposal DataProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   @@unique([proposalId, voterPhone], map: "uq_vote_proposal_voter")
+  @@unique([proposalId, voterIp], map: "uq_vote_proposal_voter_ip")
   @@index([voterPhone, createdAt(sort: Desc)], map: "idx_votes_phone_date")
+  @@index([voterIp, createdAt(sort: Desc)], map: "idx_votes_ip_date")
   @@map("proposal_votes")
 }
 

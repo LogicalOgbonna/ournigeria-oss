@@ -10,12 +10,15 @@ import {
   createProposal,
   claimProposal,
   getParties,
+  getSeatCandidates,
   type Official,
+  type SeatCandidate,
 } from "@/lib/api";
 import {
   useIdentifyForm, ctxFromParams, hasFullContext, roleConfig,
   RoleField, LocationField, LocationChip, NameField, PartyField,
   OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
+  SeatVerificationView,
 } from "@/components/proposals/identify-form";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
@@ -82,6 +85,42 @@ function IdentifyOfficialContent() {
   const locked = hasFullContext(ctx);
   const form = useIdentifyForm(ctx);
   const [passedGate, setPassedGate] = useState(locked);
+
+  // Fetch-existing-first: once the seat (role + full location) is known, check
+  // whether anyone has already proposed a name for it. If so, we show the
+  // verification view (confirm / suggest-different / add-source) instead of a
+  // blank form. Fails open — any fetch error falls back to the blank form.
+  const [candidates, setCandidates] = useState<SeatCandidate[] | null>(null);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [forceForm, setForceForm] = useState(false);
+
+  const seatReady = passedGate && !!form.role && form.locationComplete;
+  const seatKey = seatReady
+    ? [form.role, form.stateCode, form.lgaCode, form.wardCode, form.constituencyCode].join("|")
+    : null;
+
+  useEffect(() => {
+    if (!seatKey || !form.role) {
+      setCandidates(null);
+      return;
+    }
+    let cancelled = false;
+    setCandidatesLoading(true);
+    getSeatCandidates({
+      role: form.role,
+      stateCode: form.stateCode || undefined,
+      lgaCode: form.lgaCode || undefined,
+      wardCode: form.wardCode || undefined,
+      constituencyCode: form.constituencyCode || undefined,
+    })
+      .then((res) => { if (!cancelled) setCandidates(res.candidates || []); })
+      .catch(() => { if (!cancelled) setCandidates([]); }) // fail open → blank form
+      .finally(() => { if (!cancelled) setCandidatesLoading(false); });
+    return () => { cancelled = true; };
+  }, [seatKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const showVerification =
+    seatReady && !forceForm && !!candidates && candidates.length > 0;
 
   // Revalidate the newly-created official's page so it shows the proposal.
   useEffect(() => {
@@ -202,33 +241,50 @@ function IdentifyOfficialContent() {
           <>
             <div className="mb-6">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
-                Identify {roleConfig(form.role)?.label || "official"}
+                {showVerification
+                  ? `Is this the ${roleConfig(form.role)?.label || "official"}?`
+                  : `Identify ${roleConfig(form.role)?.label || "official"}`}
               </h1>
               {form.locationLabel() && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{form.locationLabel()}</p>
               )}
             </div>
-            <div className="space-y-5">
-              <LocationChip form={form} />
-              {!locked && (
-                <button
-                  type="button"
-                  onClick={() => setPassedGate(false)}
-                  className="text-xs text-emerald-600 hover:underline"
-                >
-                  ← Change position / location
-                </button>
-              )}
-              <NameField form={form} />
-              <PartyField form={form} />
-              <OptionalDetails form={form} />
-              <SourceField form={form} />
-              <ErrorBox message={form.error} />
-              <SubmitButton form={form} label="Submit Identification" />
-              <p className="text-xs text-slate-400 text-center">
-                Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
-              </p>
-            </div>
+            {candidatesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+              </div>
+            ) : showVerification ? (
+              <SeatVerificationView
+                form={form}
+                candidates={candidates!}
+                onSuggestDifferent={() => setForceForm(true)}
+              />
+            ) : (
+              <div className="space-y-5">
+                <LocationChip form={form} />
+                {(!locked || forceForm) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (forceForm) setForceForm(false);
+                      else { setForceForm(false); setPassedGate(false); }
+                    }}
+                    className="text-xs text-emerald-600 hover:underline"
+                  >
+                    ← {forceForm ? "Back to suggestions" : "Change position / location"}
+                  </button>
+                )}
+                <NameField form={form} />
+                <PartyField form={form} />
+                <OptionalDetails form={form} />
+                <SourceField form={form} />
+                <ErrorBox message={form.error} />
+                <SubmitButton form={form} label="Submit Identification" />
+                <p className="text-xs text-slate-400 text-center">
+                  Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>
