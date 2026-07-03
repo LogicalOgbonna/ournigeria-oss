@@ -1,6 +1,7 @@
 from reconcile_wards.parse import parse_sc_rows, parse_lga_rows
 from reconcile_wards.tests.fixtures.abia_sc_sample import ABIA_SC_ROWS
 from reconcile_wards.tests.fixtures.abia_sd_sample import ABIA_SD_ROWS
+from reconcile_wards.tests.fixtures.borno_sc_sample import BORNO_SC_ROWS
 
 
 def test_parses_state_constituencies():
@@ -18,6 +19,31 @@ def test_parses_all_24_constituencies_count_consistent():
     assert len(out) == 24
     for c in out:
         assert c.ra_count == len(c.wards), f"{c.name}: ra_count {c.ra_count} != {len(c.wards)} wards"
+
+
+def test_parses_borno_sc_with_separate_code_column():
+    # BORNO has a dedicated CODE column that shifts RA COMPOSITION + counts
+    # right by one relative to ABIA. Header-driven parsing must map by label,
+    # not fixed index, so this recovers instead of reading CODE as wards.
+    out = parse_sc_rows(BORNO_SC_ROWS)
+    assert len(out) >= 6
+
+    abadam = next(c for c in out if c.name == "Abadam")
+    assert abadam.code_label == "SC/190/BO"  # code from the CODE column
+    assert "Arege" in abadam.wards  # real ward, not a code fragment
+
+    # Count-check holds for every constituency whose source RA COMPOSITION is
+    # clean. Abadam is the one genuine source quirk in this window: INEC typed a
+    # period instead of a comma between two wards ("Jabullam. Kudokurgu"), so it
+    # parses 9 wards vs an ra_count of 10 — the pipeline surfaces that as a
+    # count_mismatch downstream, it is NOT a column-mapping failure. Every other
+    # constituency (RA count taken from the correct, shifted column) must hold.
+    clean = [c for c in out if c.name != "Abadam"]
+    assert len(clean) >= 5
+    for c in clean:
+        assert c.ra_count == len(c.wards), (
+            f"{c.name}: ra_count {c.ra_count} != {len(c.wards)} wards"
+        )
 
 
 def test_parses_senatorial_district_lgas():
