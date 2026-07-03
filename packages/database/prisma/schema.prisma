@@ -1580,6 +1580,22 @@ model IdentifyCampaignTarget {
   @@map("identify_campaign_targets")
 }
 
+model ProposalVerifyPost {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anchorType   String   @map("anchor_type") @db.VarChar(20)
+  anchorId     String   @map("anchor_id") @db.VarChar(100)
+  proposalId   String   @map("proposal_id") @db.Uuid
+  kind         String   @db.VarChar(20)
+  socialPostId String?  @map("social_post_id") @db.Uuid
+  tweetId      String?  @map("tweet_id") @db.VarChar(100)
+  status       String   @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([anchorType, anchorId], map: "uq_proposal_verify_anchor")
+  @@index([status], map: "idx_proposal_verify_status")
+  @@map("proposal_verify_posts")
+}
+
 // ============================================================
 // Socials Roamer (Twitter discovery + drafting pipeline)
 // ============================================================
