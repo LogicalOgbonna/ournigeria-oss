@@ -86,15 +86,10 @@ ALLOWED_MISSING: dict[str, set[tuple[str, str]]] = {
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_ezeke_amasiri"),
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_ibii_oziza_afikpo"),
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_poperi_amasiri"),
-        # Ishielu South "Ezzagu II (Nkomoro)": worksheet Nkomoro vs DB Nkomor —
-        # a spelling difference under ACCEPT.
-        ("state_ebonyi_ishielu_south", "ebonyi_ishielu_ezzagu_nkomor"),
-        # Izzi East Mgbalaku/Inyimagu I/II: worksheet & DB carry different
-        # compound spellings; held for review.
-        ("state_ebonyi_izzi_east", "ebonyi_izzi_mgbalaku_inyimagu_i"),
-        ("state_ebonyi_izzi_east", "ebonyi_izzi_mgbalaku_inyimagu_ii"),
-        # Ohaozara West "Umuchima" vs DB "Umic Hima": spelling-variant.
-        ("state_ebonyi_ohaozara_west", "ebonyi_ohaozara_umic_hima"),
+        # NOTE: four former abstentions were resolved by DB ward-NAME cleanup
+        # (task 3, wards.json): Ishielu South Ezzagu Nkomor->Nkomoro, Izzi East
+        # Mgbalaku->Mgbalaukwu Inyimagu I/II, Ohaozara West Umic Hima->Umuchima.
+        # These now reproduce, so they were pruned from this allow-list.
     },
     "bayelsa": {
         # Brass III / Sagbama III / Southern Ijaw III: unresolved-LGA
@@ -110,9 +105,10 @@ ALLOWED_MISSING: dict[str, set[tuple[str, str]]] = {
 }
 
 # Minimum share of existing worksheet-sourced pairs the pipeline must reproduce.
-# Actuals after roman/arabic/repeated-ones unification + multi-LGA scoping:
-# ebonyi 85.8% (97/113), bayelsa 95.2% (100/105).
-# (Was ebonyi 83.2% / bayelsa 86.7% before the matcher improvements.)
+# Actuals after roman/arabic/repeated-ones unification + multi-LGA scoping and
+# the task-3 DB ward-NAME cleanup: ebonyi ~89.4% (101/113), bayelsa 95.2%
+# (100/105). (Was ebonyi 85.8% / bayelsa 95.2% before the name fixes, and
+# 83.2% / 86.7% before the matcher improvements.)
 MIN_REPRODUCTION_RATE = 0.85
 
 # (workbook name, seed source slug)
