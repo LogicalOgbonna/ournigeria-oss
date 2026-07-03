@@ -94,3 +94,6 @@ packages/plans/
 
 # reconcile_wards workbook cache
 packages/database/scripts/reconcile_wards/.cache/
+
+# reconcile_wards transient proposal reports + residual worklists
+packages/database/scripts/reconcile_wards/reports/

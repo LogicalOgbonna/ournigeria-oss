@@ -16,7 +16,8 @@
     "seed:party-officers": "infisical run --path /api -- npx tsx scripts/seed-party-officers.ts",
     "seed:party-candidates": "infisical run --path /api -- npx tsx scripts/seed-party-candidates.ts",
     "seed:governor-defections": "infisical run --path /api -- npx tsx scripts/seed-governor-defections.ts",
-    "seed:ndc-defectors": "infisical run --path /api -- npx tsx scripts/seed-ndc-defectors.ts"
+    "seed:ndc-defectors": "infisical run --path /api -- npx tsx scripts/seed-ndc-defectors.ts",
+    "reconcile:wards": "cd scripts && python3 -m reconcile_wards.cli"
   },
   "dependencies": {
     "@prisma/adapter-pg": "catalog:",
