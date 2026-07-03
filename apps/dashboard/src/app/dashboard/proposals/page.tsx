@@ -21,10 +21,60 @@ import {
   ExternalLink,
   ArrowRight,
   User,
+  Crown,
 } from "lucide-react";
 
 const PUBLIC_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
+
+interface SeatCandidate {
+  id: string;
+  name: string;
+  partyAcronym: string | null;
+  sourceUrl: string | null;
+  trust?: "verified" | "anonymous";
+  proposerPhone: string | null;
+  status: string;
+  voteScore: number;
+  confirmCount: number;
+  disputeCount: number;
+  voteCount: number;
+  createdAt: string;
+}
+
+interface SeatGroup {
+  positionId: string;
+  officialId: string;
+  topVoteScore: number;
+  seat: {
+    role: string | null;
+    stateCode: string | null;
+    lgaCode: string | null;
+    wardCode: string | null;
+    constituencyCode: string | null;
+  };
+  candidates: SeatCandidate[];
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  councilor: "Ward Councilor",
+  lga_chairman: "LGA Chairman",
+  mha: "State Assembly",
+  representative: "House of Reps",
+  senator: "Senator",
+  governor: "Governor",
+};
+
+function seatLabel(seat: SeatGroup["seat"]): string {
+  const role = seat.role ? ROLE_LABELS[seat.role] || seat.role : "Seat";
+  const code =
+    seat.wardCode ||
+    seat.lgaCode ||
+    seat.constituencyCode ||
+    seat.stateCode ||
+    "—";
+  return `${role} · ${code}`;
+}
 
 interface ProposalItem {
   id: string;
@@ -120,7 +170,9 @@ async function proposalFetch(path: string, opts?: RequestInit) {
 }
 
 export default function ProposalsPage() {
+  const [viewMode, setViewMode] = useState<"flat" | "grouped">("flat");
   const [proposals, setProposals] = useState<ProposalItem[]>([]);
+  const [groups, setGroups] = useState<SeatGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("submitted");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -139,9 +191,25 @@ export default function ProposalsPage() {
     }
   }, [statusFilter]);
 
+  const loadGroups = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await proposalFetch(`/admin/queue/grouped?limit=50`);
+      setGroups(data.data);
+    } catch (err) {
+      console.error("Failed to load grouped proposals:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    loadProposals();
-  }, [loadProposals]);
+    if (viewMode === "grouped") {
+      loadGroups();
+    } else {
+      loadProposals();
+    }
+  }, [viewMode, loadProposals, loadGroups]);
 
   async function handleAction(id: string, action: "approve" | "reject" | "needs_evidence") {
     setActing(true);
@@ -151,6 +219,21 @@ export default function ProposalsPage() {
         body: JSON.stringify({ action }),
       });
       await loadProposals();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActing(false);
+    }
+  }
+
+  async function handleSeatAction(id: string, action: "approve" | "reject") {
+    setActing(true);
+    try {
+      await proposalFetch(`/admin/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action }),
+      });
+      await loadGroups();
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -200,22 +283,51 @@ export default function ProposalsPage() {
             Review and approve community-submitted data proposals
           </p>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="submitted">Submitted</SelectItem>
-            <SelectItem value="under_review">Under Review</SelectItem>
-            <SelectItem value="needs_evidence">Needs Evidence</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("flat")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === "flat"
+                  ? "bg-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Field changes
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grouped")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                viewMode === "grouped"
+                  ? "bg-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Identify (by seat)
+            </button>
+          </div>
+          {viewMode === "flat" && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="needs_evidence">Needs Evidence</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {/* Bulk actions */}
-      {selected.size > 0 && statusFilter === "submitted" && (
+      {viewMode === "flat" && selected.size > 0 && statusFilter === "submitted" && (
         <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <Button
@@ -239,8 +351,9 @@ export default function ProposalsPage() {
         </div>
       )}
 
-      {/* Proposals list */}
-      {loading ? (
+      {/* Proposals list (flat / field changes) */}
+      {viewMode === "flat" &&
+        (loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
@@ -454,7 +567,163 @@ export default function ProposalsPage() {
             })}
           </div>
         </div>
-      )}
+      ))}
+
+      {/* Grouped list (identify by seat) */}
+      {viewMode === "grouped" &&
+        (loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
+        ) : groups.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              No seats awaiting identification.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <Card key={group.positionId}>
+                <CardContent className="p-4 flex flex-col gap-3">
+                  {/* Seat header */}
+                  <div className="flex items-center justify-between gap-2">
+                    <a
+                      href={`${PUBLIC_SITE_URL}/officials/${group.officialId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 min-w-0 font-semibold text-sm text-emerald-700 dark:text-emerald-400 hover:underline"
+                      title={seatLabel(group.seat)}
+                    >
+                      <User className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{seatLabel(group.seat)}</span>
+                      <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+                    </a>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {group.candidates.length}{" "}
+                      {group.candidates.length === 1 ? "candidate" : "candidates"}
+                    </Badge>
+                  </div>
+
+                  {/* Ranked candidates */}
+                  <div className="flex flex-col gap-2">
+                    {group.candidates.map((cand, idx) => {
+                      const isLeader = idx === 0;
+                      const reviewable =
+                        cand.status === "submitted" ||
+                        cand.status === "under_review";
+                      return (
+                        <div
+                          key={cand.id}
+                          className={`rounded-lg border p-3 flex flex-col gap-2 ${
+                            isLeader
+                              ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20"
+                              : "border-border"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex items-center gap-1.5">
+                              {isLeader && (
+                                <Crown className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                              )}
+                              <span className="font-medium text-sm truncate">
+                                {cand.name}
+                              </span>
+                              {cand.partyAcronym && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] shrink-0"
+                                >
+                                  {cand.partyAcronym}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 rounded-md bg-muted/60 px-2 py-1">
+                              <span className="font-mono text-sm font-bold leading-none">
+                                {cand.voteScore > 0
+                                  ? `+${cand.voteScore}`
+                                  : cand.voteScore}
+                              </span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <span className="inline-flex items-center gap-0.5">
+                                  <ThumbsUp className="w-2.5 h-2.5" />
+                                  {cand.confirmCount}
+                                </span>
+                                <span className="inline-flex items-center gap-0.5">
+                                  <ThumbsDown className="w-2.5 h-2.5" />
+                                  {cand.disputeCount}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Metadata */}
+                          <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-xs text-muted-foreground">
+                            <span
+                              title={new Date(cand.createdAt).toLocaleString()}
+                            >
+                              {relativeTime(cand.createdAt)}
+                            </span>
+                            {cand.trust === "anonymous" || !cand.proposerPhone ? (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 font-medium">
+                                Anonymous
+                              </span>
+                            ) : (
+                              <span className="font-mono truncate max-w-full">
+                                by {cand.proposerPhone}
+                              </span>
+                            )}
+                            <span>{cand.voteCount} votes</span>
+                            {cand.sourceUrl && (
+                              <a
+                                href={cand.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-600 hover:underline inline-flex items-center gap-1"
+                              >
+                                Source <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          {reviewable && (
+                            <div className="flex items-center gap-1.5 pt-1">
+                              <Button
+                                size="sm"
+                                className="px-3"
+                                onClick={() =>
+                                  handleSeatAction(cand.id, "approve")
+                                }
+                                disabled={acting}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1 shrink-0" />{" "}
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="px-3 text-red-500 hover:text-red-600"
+                                onClick={() =>
+                                  handleSeatAction(cand.id, "reject")
+                                }
+                                disabled={acting}
+                              >
+                                <XCircle className="w-4 h-4 mr-1 shrink-0" /> Reject
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

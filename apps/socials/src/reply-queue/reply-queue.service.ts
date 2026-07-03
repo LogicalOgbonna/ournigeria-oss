@@ -188,7 +188,7 @@ export class ReplyQueueService {
     const where: Prisma.SocialPostWhereInput = {
       postType: filters?.postType
         ? filters.postType
-        : { in: ["reply", "quote"] },
+        : { in: ["reply", "quote", "identify_seat", "proposal_verify"] },
     };
 
     if (filters?.reviewStatus) {
@@ -222,16 +222,28 @@ export class ReplyQueueService {
     if (
       post.postType !== "reply" &&
       post.postType !== "quote" &&
-      post.postType !== "retweet"
+      post.postType !== "retweet" &&
+      post.postType !== "identify_seat" &&
+      post.postType !== "proposal_verify"
     ) {
       throw new Error(
-        `Can only approve reply, quote, or retweet drafts, got ${post.postType}`,
+        `Can only approve reply, quote, retweet, identify_seat, or proposal_verify drafts, got ${post.postType}`,
       );
     }
 
     let result: { id: string };
     try {
-      if (post.postType === "retweet") {
+      if (
+        post.postType === "identify_seat" ||
+        post.postType === "proposal_verify"
+      ) {
+        // A parked identify draft has no target tweet — post it as an original.
+        const published = await this.publisher.publishOriginal(
+          post.content,
+          "opinion_tweet",
+        );
+        result = published[0];
+      } else if (post.postType === "retweet") {
         const target = post.quotedTweetId ?? post.inReplyToId;
         if (!target) throw new Error("retweet draft missing target tweet id");
         result = await this.publisher.publishRetweet(target);
@@ -267,7 +279,7 @@ export class ReplyQueueService {
       throw err;
     }
 
-    return this.prisma.socialPost.update({
+    const updated = await this.prisma.socialPost.update({
       where: { id },
       data: {
         status: "published",
@@ -278,6 +290,24 @@ export class ReplyQueueService {
         reviewedAt: new Date(),
       },
     });
+
+    // Flip the identify campaign ledger row so the seat is marked posted and
+    // won't be re-drafted, and record the resulting tweet id for tracking.
+    if (post.postType === "identify_seat") {
+      await this.prisma.identifyCampaignTarget.updateMany({
+        where: { socialPostId: id },
+        data: { status: "posted", tweetId: result.id },
+      });
+    }
+
+    if (post.postType === "proposal_verify") {
+      await this.prisma.proposalVerifyPost.updateMany({
+        where: { socialPostId: id },
+        data: { status: "posted", tweetId: result.id },
+      });
+    }
+
+    return updated;
   }
 
   async reject(id: string, adminId: string) {

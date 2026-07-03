@@ -8,6 +8,8 @@ import { PrismaService } from "@ournigeria/database";
 export class SocialsSettingsService {
   static readonly AUTO_PUBLISH_KEY = "socials.auto_publish";
   static readonly AUTO_PUBLISH_INBOUND_KEY = "socials.auto_publish_inbound";
+  static readonly IDENTIFY_AUTO_POST_KEY = "identify.auto_post";
+  static readonly VERIFY_AUTO_POST_KEY = "verify.auto_post";
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -44,6 +46,58 @@ export class SocialsSettingsService {
         valueType: "boolean",
         description:
           "Auto-publish recommended reply/quote/retweet drafts without dashboard approval",
+      },
+      update: { value },
+    });
+    return enabled;
+  }
+
+  /** Whether the identify campaign auto-posts (true) or parks drafts for
+   * dashboard review (false). Defaults to false — human review stays on. */
+  async getIdentifyAutoPost(): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: SocialsSettingsService.IDENTIFY_AUTO_POST_KEY },
+    });
+    return row?.value === "true";
+  }
+
+  async setIdentifyAutoPost(enabled: boolean): Promise<boolean> {
+    const value = enabled ? "true" : "false";
+    await this.prisma.systemSetting.upsert({
+      where: { key: SocialsSettingsService.IDENTIFY_AUTO_POST_KEY },
+      create: {
+        key: SocialsSettingsService.IDENTIFY_AUTO_POST_KEY,
+        value,
+        category: "socials",
+        valueType: "boolean",
+        description:
+          "Auto-post identify-campaign tweets; when false, drafts park in the review queue",
+      },
+      update: { value },
+    });
+    return enabled;
+  }
+
+  /** Whether verify tweets auto-post (true) or park drafts for dashboard
+   *  review (false). Independent of identify.auto_post. Defaults to false. */
+  async getVerifyAutoPost(): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: SocialsSettingsService.VERIFY_AUTO_POST_KEY },
+    });
+    return row?.value === "true";
+  }
+
+  async setVerifyAutoPost(enabled: boolean): Promise<boolean> {
+    const value = enabled ? "true" : "false";
+    await this.prisma.systemSetting.upsert({
+      where: { key: SocialsSettingsService.VERIFY_AUTO_POST_KEY },
+      create: {
+        key: SocialsSettingsService.VERIFY_AUTO_POST_KEY,
+        value,
+        category: "socials",
+        valueType: "boolean",
+        description:
+          "Auto-post verify tweets; when false, drafts park in the review queue",
       },
       update: { value },
     });

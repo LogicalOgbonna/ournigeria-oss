@@ -61,6 +61,8 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
   }
 
   const original = draft.originalTweetSnapshot;
+  const isIdentify =
+    draft.postType === "identify_seat" || draft.postType === "proposal_verify";
   const isQuote = draft.postType === "quote";
   const targetTweetId = draft.inReplyToId ?? draft.quotedTweetId;
   const tweetUrl = targetTweetId
@@ -213,7 +215,11 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
         </div>
 
         {/* Preview */}
-        {isQuote ? (
+        {isIdentify ? (
+          <div className="rounded-lg border p-4 whitespace-pre-wrap text-sm">
+            {editing ? draftText : draft.content}
+          </div>
+        ) : isQuote ? (
           <TweetCard
             tweet={draftTweetData}
             variant="draft"
@@ -311,7 +317,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
         draft.reviewStatus === "recommended" ||
         draft.reviewStatus === "edited" ? (
           <div className="flex items-center gap-2 pt-1 flex-wrap">
-            {!editing && intentUrl && (
+            {!editing && !isIdentify && intentUrl && (
               <Button
                 asChild
                 size="sm"
@@ -324,7 +330,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
                 </a>
               </Button>
             )}
-            {!editing && repostUrl && (
+            {!editing && !isIdentify && repostUrl && (
               <Button
                 asChild
                 size="sm"
@@ -337,7 +343,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
                 </a>
               </Button>
             )}
-            {!editing && (
+            {!editing && !isIdentify && (
               <Button
                 size="sm"
                 variant="outline"
