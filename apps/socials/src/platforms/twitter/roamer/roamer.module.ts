@@ -6,6 +6,7 @@ import { RoamStateRepo } from "./roam-state.repo.js";
 import { RoamerService } from "./roamer.service.js";
 import { SessionRunRepo } from "./session-run.repo.js";
 import { TopicRepo } from "./topic.repo.js";
+import { TwitterConversationService } from "./twitter-conversation.service.js";
 import { TwitterGraphqlClient } from "./twitter-graphql.client.js";
 import { TwitterSearchService } from "./twitter-search.service.js";
 import { XTransactionService } from "./x-transaction.service.js";
@@ -21,6 +22,7 @@ import { XTransactionService } from "./x-transaction.service.js";
     XTransactionService,
     TwitterGraphqlClient,
     TwitterSearchService,
+    TwitterConversationService,
     RoamerService,
   ],
   exports: [
@@ -29,6 +31,7 @@ import { XTransactionService } from "./x-transaction.service.js";
     DiscoveredTweetRepo,
     RoamStateRepo,
     TwitterSearchService,
+    TwitterConversationService,
     ClassifierService,
     RoamerService,
   ],

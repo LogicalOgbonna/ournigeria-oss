@@ -162,6 +162,8 @@ export default function SocialQueuePage() {
             <SelectItem value="all">All types</SelectItem>
             <SelectItem value="reply">Replies</SelectItem>
             <SelectItem value="quote">Quotes</SelectItem>
+            <SelectItem value="identify_seat">Identify seat</SelectItem>
+            <SelectItem value="proposal_verify">Verify proposal</SelectItem>
           </SelectContent>
         </Select>
       </div>
