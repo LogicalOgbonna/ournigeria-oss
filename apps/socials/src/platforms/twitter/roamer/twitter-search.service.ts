@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { TwitterGraphqlClient } from "./twitter-graphql.client.js";
 
-const FEATURES = {
+export const FEATURES = {
   profile_label_improvements_pcf_label_in_post_enabled: true,
   rweb_tipjar_consumption_enabled: true,
   responsive_web_graphql_exclude_directive_enabled: true,
@@ -46,6 +46,14 @@ export interface RawTweet {
   isQuote: boolean;
   isReply: boolean;
   isRetweet: boolean;
+  /** Parent tweet id when this is a reply (in_reply_to_status_id_str). */
+  inReplyToId: string | null;
+  /** Conversation root id (conversation_id_str). */
+  conversationId: string | null;
+  /** Text of the tweet this one quotes, when it's a quote tweet. */
+  quotedText: string | null;
+  /** Handle of the quoted tweet's author. */
+  quotedAuthorHandle: string | null;
   tweetCreatedAt: Date;
   authorRestId: string;
   authorScreenName: string;
@@ -227,18 +235,35 @@ function extractTweet(entry: unknown): RawTweet | null {
     content?: {
       itemContent?: {
         tweet_results?: {
-          result?: {
-            tweet?: Record<string, unknown>;
-            rest_id?: string;
-            legacy?: Record<string, unknown>;
-            core?: { user_results?: { result?: Record<string, unknown> } };
-          } & Record<string, unknown>;
+          result?: unknown;
         };
       };
     };
   };
   const result = e?.content?.itemContent?.tweet_results?.result;
   if (!result) return null;
+  return parseTweetResult(result);
+}
+
+/**
+ * Parse a single X `tweet_results.result` object (the shape shared by
+ * SearchTimeline entries and TweetDetail conversation entries) into a RawTweet.
+ * Returns null for tombstones / unparseable results so callers can skip them.
+ * Exported so the conversation reader reuses the exact same fragile schema
+ * handling instead of duplicating it.
+ */
+export function parseTweetResult(resultRaw: unknown): RawTweet | null {
+  const result = resultRaw as {
+    tweet?: Record<string, unknown>;
+    rest_id?: string;
+    legacy?: Record<string, unknown>;
+    core?: { user_results?: { result?: Record<string, unknown> } };
+    __typename?: string;
+  } & Record<string, unknown>;
+  if (!result) return null;
+  // TweetTombstone (deleted / suspended / protected / age-gated) carries no
+  // legacy/user — bail so the thread just omits it.
+  if (result.__typename === "TweetTombstone") return null;
 
   // Sometimes wrapped in `tweet` (visibility-results form).
   const t = (result.tweet ?? result) as Record<string, unknown>;
@@ -252,6 +277,7 @@ function extractTweet(entry: unknown): RawTweet | null {
         favorite_count?: number;
         is_quote_status?: boolean;
         in_reply_to_status_id_str?: string;
+        conversation_id_str?: string;
         retweeted_status_result?: unknown;
         created_at?: string;
         id_str?: string;
@@ -301,6 +327,12 @@ function extractTweet(entry: unknown): RawTweet | null {
     ? rawAvatar.replace("_normal.", "_bigger.")
     : null;
 
+  // The quoted tweet is inlined (one level) as a sibling tweet_results.result;
+  // parse it with this same function to pull its text + author. Bounded by the
+  // payload's actual nesting (X inlines a single quote level).
+  const quotedResult = (t.quoted_status_result as { result?: unknown })?.result;
+  const quoted = quotedResult ? parseTweetResult(quotedResult) : null;
+
   return {
     id: (t.rest_id as string) ?? legacy.id_str ?? "",
     text: legacy.full_text ?? "",
@@ -312,6 +344,10 @@ function extractTweet(entry: unknown): RawTweet | null {
     isQuote: !!legacy.is_quote_status,
     isReply: !!legacy.in_reply_to_status_id_str,
     isRetweet: isRetweet,
+    inReplyToId: legacy.in_reply_to_status_id_str ?? null,
+    conversationId: legacy.conversation_id_str ?? null,
+    quotedText: quoted?.text ?? null,
+    quotedAuthorHandle: quoted?.authorScreenName ?? null,
     tweetCreatedAt: createdAt,
     authorRestId: userResult.rest_id ?? userLegacy?.id_str ?? "",
     authorScreenName: screenName,

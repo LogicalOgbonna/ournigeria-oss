@@ -167,6 +167,18 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
             <Badge variant="secondary" className="capitalize">
               {draft.postType}
             </Badge>
+            {draft.source && draft.source !== "roam" ? (
+              <Badge
+                variant="default"
+                title={
+                  draft.source === "mention"
+                    ? "Someone mentioned the account"
+                    : "A reply under one of our own posts"
+                }
+              >
+                {draft.source === "mention" ? "mention" : "reply to us"}
+              </Badge>
+            ) : null}
             {draft.reviewStatus ? (
               <Badge variant="outline" className="capitalize">
                 {draft.reviewStatus}

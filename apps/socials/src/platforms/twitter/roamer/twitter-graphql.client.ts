@@ -56,6 +56,9 @@ export class TwitterGraphqlClient {
     operationName: string;
     variables: Record<string, unknown>;
     features: Record<string, unknown>;
+    // Some ops (e.g. TweetDetail) 400 without a fieldToggles param. Optional so
+    // SearchTimeline callers are unaffected.
+    fieldToggles?: Record<string, unknown>;
   }): Promise<GraphqlGetResult> {
     const session = await this.sessions.getById(opts.sessionId);
 
@@ -63,6 +66,7 @@ export class TwitterGraphqlClient {
       url: `/${opts.opHash}/${opts.operationName}`,
       variables: opts.variables,
       features: opts.features,
+      ...(opts.fieldToggles ? { fieldToggles: opts.fieldToggles } : {}),
     });
     const url = `${TWITTER_BASE_API_URL}${query}`;
     // The transaction id is bound to the request path WITHOUT the query string.

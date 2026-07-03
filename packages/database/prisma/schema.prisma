@@ -1532,6 +1532,10 @@ model SocialPost {
   classifierScore       Float?  @map("classifier_score")
   classifierIntent      String? @map("classifier_intent") @db.VarChar(50)
   discoveredTweetId     String? @unique @map("discovered_tweet_id") @db.VarChar(100)
+  // Mirrors SocialsDiscoveredTweet.source onto the draft: 'roam' |
+  // 'inbound_reply' | 'mention'. Lets the dashboard badge/filter by source and
+  // the roamer funnel/analytics exclude inbound. Null on legacy rows.
+  source                String? @map("source") @db.VarChar(20)
 
   discoveredTweet SocialsDiscoveredTweet? @relation(fields: [discoveredTweetId], references: [id], onDelete: SetNull)
 
@@ -1558,8 +1562,13 @@ model SocialsBotSession {
   userName               String    @map("user_name") @db.VarChar(100)
   path                   String    @db.VarChar(200)
   searchTimelineOpHash   String?   @map("search_timeline_op_hash") @db.VarChar(100)
+  tweetDetailOpHash      String?   @map("tweet_detail_op_hash") @db.VarChar(100)
   status                 String    @default("idle") @db.VarChar(20) // idle | working | auth_failed
   cooldownUntil          DateTime? @map("cooldown_until") @db.Timestamptz()
+  // Separate from cooldownUntil (the roamer's SearchTimeline pacing): a
+  // TweetDetail 429 backs off conversation reads WITHOUT sidelining the session
+  // from roaming, and vice versa.
+  tweetDetailCooldownUntil DateTime? @map("tweet_detail_cooldown_until") @db.Timestamptz()
   startedWorkingAt       DateTime? @map("started_working_at") @db.Timestamptz()
   stoppedWorkingAt       DateTime? @map("stopped_working_at") @db.Timestamptz()
   lastUsedAt             DateTime  @map("last_used_at") @db.Timestamptz()
@@ -1619,6 +1628,19 @@ model SocialsDiscoveredTweet {
   likeCount             Int      @default(0) @map("like_count")
   isQuote               Boolean  @default(false) @map("is_quote")
   isReply               Boolean  @default(false) @map("is_reply")
+  // Thread context (Phase 2): parent tweet + conversation root so the drafter
+  // can read the tweets above a reply, and the quoted tweet's text so it can see
+  // what a quote-tweet is quoting — both captured at discovery.
+  inReplyToTweetId      String?  @map("in_reply_to_tweet_id") @db.VarChar(100)
+  conversationId        String?  @map("conversation_id") @db.VarChar(100)
+  quotedText            String?  @map("quoted_text") @db.Text
+  quotedAuthorHandle    String?  @map("quoted_author_handle") @db.VarChar(100)
+  // Phase 3 reply inbox: where this tweet came from. 'roam' = discovered via
+  // topic search (default); 'inbound_reply' = a reply under one of our posts;
+  // 'mention' = an @ mention of the account. ourPostId links an inbound_reply
+  // back to the SocialPost it sits under (null for roam/mention).
+  source                String   @default("roam") @map("source") @db.VarChar(20)
+  ourPostId             String?  @map("our_post_id") @db.VarChar(100)
   tweetCreatedAt        DateTime @map("tweet_created_at") @db.Timestamptz()
   draftStatus           String?  @map("draft_status") @db.VarChar(20) // null | drafted | error | skipped
   draftAttempts         Int      @default(0) @map("draft_attempts")

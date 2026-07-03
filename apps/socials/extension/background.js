@@ -1,14 +1,21 @@
-// Service worker. Listens for SearchTimeline GraphQL calls on x.com / twitter.com
-// while "armed", captures the auth-relevant headers, assembles the cookie blob,
-// resolves the screen_name via account/settings.json, and stashes the result
-// in chrome.storage.local for the popup to read.
+// Service worker. Listens for SearchTimeline / TweetDetail GraphQL calls on
+// x.com / twitter.com while "armed", captures the auth-relevant headers,
+// assembles the cookie blob, resolves the screen_name via account/settings.json,
+// and stashes the result in chrome.storage.local for the popup to read.
+//
+// Two op-hashes live on one session: capture on the home timeline to grab the
+// SearchTimeline hash (roaming), and open any tweet to grab the TweetDetail hash
+// (thread reading + reply inbox). Each capture fills its own hash field; the
+// server merges them onto the same session row (keyed by user_name+path).
 //
 // Payload shape (camelCase) matches POST /v1/sessions in apps/socials.
 
-const SEARCH_TIMELINE_FILTER = {
+const GRAPHQL_FILTER = {
   urls: [
     "*://x.com/i/api/graphql/*/SearchTimeline*",
     "*://twitter.com/i/api/graphql/*/SearchTimeline*",
+    "*://x.com/i/api/graphql/*/TweetDetail*",
+    "*://twitter.com/i/api/graphql/*/TweetDetail*",
   ],
 };
 
@@ -21,7 +28,7 @@ const HEADER_NAMES = new Set([
 
 chrome.webRequest.onSendHeaders.addListener(
   handleRequest,
-  SEARCH_TIMELINE_FILTER,
+  GRAPHQL_FILTER,
   ["requestHeaders", "extraHeaders"],
 );
 
@@ -39,9 +46,11 @@ async function handleRequest(details) {
       );
     }
 
-    const opHash = extractOpHash(details.url);
-    if (!opHash) {
-      throw new Error("could not parse SearchTimeline op hash from request URL");
+    const op = extractOp(details.url);
+    if (!op) {
+      throw new Error(
+        "could not parse SearchTimeline/TweetDetail op hash from request URL",
+      );
     }
 
     const cookieHeader = await buildCookieHeader();
@@ -65,9 +74,16 @@ async function handleRequest(details) {
       xClientTransactionId: headers["x-client-transaction-id"] ?? "",
       xClientUuid: headers["x-client-uuid"] ?? "",
       userName: userName ?? "",
+      // path stays the canonical session key so both hashes land on one row.
       path: "SearchTimeline",
-      searchTimelineOpHash: opHash,
     };
+    // Fill only the hash for the op we actually saw; the server preserves the
+    // other column so capturing one op never clobbers the other's hash.
+    if (op.operationName === "TweetDetail") {
+      payload.tweetDetailOpHash = op.opHash;
+    } else {
+      payload.searchTimelineOpHash = op.opHash;
+    }
 
     await chrome.storage.local.set({
       lastCapture: { payload, userNameResolved: !!userName, capturedAt: Date.now() },
@@ -116,9 +132,9 @@ function extractCsrf(cookieHeader) {
   return match ? match[1] : null;
 }
 
-function extractOpHash(url) {
-  const match = url.match(/\/graphql\/([^/]+)\/SearchTimeline/);
-  return match ? match[1] : null;
+function extractOp(url) {
+  const match = url.match(/\/graphql\/([^/]+)\/(SearchTimeline|TweetDetail)/);
+  return match ? { opHash: match[1], operationName: match[2] } : null;
 }
 
 async function fetchScreenName(opts) {
