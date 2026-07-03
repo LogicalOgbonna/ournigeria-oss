@@ -1,10 +1,25 @@
 import { hostname } from "node:os";
 import { Injectable, Logger } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
 import { PrismaService } from "@ournigeria/database";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
 import { SafetyFilter } from "../intelligence/safety-filter.js";
 import { SocialsSettingsService } from "../config/socials-settings.service.js";
-import { VerifyKind, VerifyLevel } from "./verify-content.js";
+import {
+  VerifyKind,
+  VerifyLevel,
+  buildProposalVerifyUrl,
+  fillVerifyTemplate,
+  pickVerifyTemplate,
+  humanizeField,
+} from "./verify-content.js";
+
+/** Deterministic seed from the anchor id so template choice is stable per anchor. */
+function hashSeed(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
 
 export interface QualifyingProposal {
   proposalId: string;
@@ -136,4 +151,142 @@ export class ProposalVerifyService {
       this.logger.log(`verify claimed ${p.anchorType}:${p.anchorId} (${p.kind}) on ${hostname()}`);
     return affected === 1;
   }
+
+    /** UTC 06–22 = 07:00–23:00 WAT active hours. Poller runs hourly. */
+    @Cron("0 0 6-22 * * *")
+    async runScheduled() {
+      if (this.running) { this.logger.log("verify poller already running — skip"); return; }
+      this.running = true;
+      try { await this.runOnce({ dryRun: false }); }
+      catch (e) { this.logger.error(`verify poller failed: ${e instanceof Error ? e.message : e}`); }
+      finally { this.running = false; }
+    }
+
+    /** Process up to CAP qualifying proposals with a jittered gap. dryRun builds
+     *  everything but performs NO publish and NO writes (for tests). */
+    async runOnce(opts: { dryRun: boolean }): Promise<Array<{
+      proposalId: string; kind: VerifyKind; text: string; url: string; safe: boolean; claimed: boolean;
+    }>> {
+      // Combined-volume guard: cap verify tweets per UTC day so identify (~15/day)
+      // + verify stays under X spam thresholds. Real runs only; counts posted+parked.
+      let limit = this.CAP;
+      if (!opts.dryRun) {
+        const since = new Date(); since.setUTCHours(0, 0, 0, 0);
+        const today = await this.prisma.socialPost.count({
+          where: { postType: "proposal_verify", createdAt: { gte: since } },
+        });
+        const remaining = Math.max(0, this.MAX_VERIFY_PER_DAY - today);
+        if (remaining === 0) { this.logger.log("verify daily cap reached — skip window"); return []; }
+        limit = Math.min(this.CAP, remaining);
+      }
+      const candidates = await this.findQualifying(limit);
+      const results: any[] = [];
+      for (let i = 0; i < candidates.length; i++) {
+        const r = await this.processProposal(candidates[i], opts);
+        if (r) results.push(r);
+        if (!opts.dryRun && i < candidates.length - 1)
+          await this.sleep(this.rand(30_000, 90_000));
+      }
+      return results;
+    }
+
+    /** Build the tweet for a candidate (pure — no side effects). */
+    buildPreview(p: QualifyingProposal): { text: string; url: string; safe: boolean } {
+      let url: string, text: string;
+      if (p.kind === "identify") {
+        url = buildProposalVerifyUrl({
+          kind: "identify", role: p.role!, stateCode: p.stateCode!,
+          lgaCode: p.lgaCode, wardCode: p.wardCode, constituencyCode: p.constituencyCode,
+          level: p.level!,
+        });
+        text = fillVerifyTemplate(pickVerifyTemplate("identify", hashSeed(p.anchorId)), {
+          claim: p.displayValue ?? "your official", name: "", fieldLabel: "", value: "", url,
+        });
+      } else {
+        url = buildProposalVerifyUrl({ kind: "change", slug: p.slug! });
+        text = fillVerifyTemplate(pickVerifyTemplate("change", hashSeed(p.anchorId)), {
+          claim: "", name: p.officialName ?? "this official",
+          fieldLabel: humanizeField(p.targetField!), value: p.proposedScalar ?? "", url,
+        });
+      }
+      const safety = this.safetyFilter.check(text, []);
+      return { text, url, safe: safety.safe && !safety.blocked };
+    }
+
+    async processProposal(
+      p: QualifyingProposal,
+      opts: { dryRun: boolean },
+    ): Promise<{ proposalId: string; kind: VerifyKind; text: string; url: string; safe: boolean; claimed: boolean } | null> {
+      const preview = this.buildPreview(p);
+      if (opts.dryRun) return { proposalId: p.proposalId, kind: p.kind, ...preview, claimed: false };
+
+      const claimed = await this.claimVerify(p);
+      if (!claimed) return null; // another node owns it (or already served)
+
+      // Stale-link guard: the proposal may have been approved/resolved between
+      // findQualifying and now. Re-check; if resolved, don't post a stale link.
+      if (!(await this.isStillPending(p))) {
+        await this.prisma.proposalVerifyPost.updateMany({
+          where: { anchorType: p.anchorType, anchorId: p.anchorId },
+          data: { status: "skipped" },
+        });
+        this.logger.log(`verify ${p.anchorType}:${p.anchorId} resolved before posting — skipped`);
+        return null;
+      }
+
+      if (!preview.safe) {
+        this.logger.warn(`verify ${p.anchorType}:${p.anchorId} unsafe — leaving ledger 'claiming'`);
+        return null;
+      }
+
+      const dataQuery = JSON.stringify({
+        kind: p.kind, anchorType: p.anchorType, anchorId: p.anchorId,
+        proposalId: p.proposalId, url: preview.url,
+      });
+
+      const autoPost = await this.settings.getVerifyAutoPost();
+      if (autoPost) {
+        const publishedTweets = await this.publisher.publishOriginal(preview.text, "opinion_tweet");
+        const tweetId = publishedTweets[0]?.id;
+        const post = await this.prisma.socialPost.create({
+          data: {
+            platform: "twitter", postType: "proposal_verify", externalId: tweetId,
+            content: preview.text, dataDomain: "officials", dataQuery,
+            status: "published", publishedAt: new Date(),
+          },
+        });
+        await this.prisma.proposalVerifyPost.updateMany({
+          where: { anchorType: p.anchorType, anchorId: p.anchorId },
+          data: { status: "posted", socialPostId: post.id, tweetId },
+        });
+        this.logger.log(`verify posted ${p.anchorType}:${p.anchorId}: ${tweetId}`);
+      } else {
+        const post = await this.prisma.socialPost.create({
+          data: {
+            platform: "twitter", postType: "proposal_verify",
+            content: preview.text, dataDomain: "officials", dataQuery,
+            status: "drafted", reviewStatus: "pending",
+          },
+        });
+        await this.prisma.proposalVerifyPost.updateMany({
+          where: { anchorType: p.anchorType, anchorId: p.anchorId },
+          data: { status: "drafted", socialPostId: post.id },
+        });
+        this.logger.log(`verify parked draft ${post.id} for ${p.anchorType}:${p.anchorId}`);
+      }
+      return { proposalId: p.proposalId, kind: p.kind, ...preview, claimed: true };
+    }
+
+    /** Is the proposal still worth verifying: still unresolved, and (identify) its
+     *  seat still unreviewed (not yet approved)? */
+    private async isStillPending(p: QualifyingProposal): Promise<boolean> {
+      const prop = await this.prisma.dataProposal.findUnique({
+        where: { id: p.proposalId },
+        select: { status: true, position: { select: { reviewStatus: true } } },
+      });
+      if (!prop) return false;
+      if (!["submitted", "under_review", "needs_evidence"].includes(prop.status)) return false;
+      if (p.kind === "identify" && prop.position?.reviewStatus !== "unreviewed") return false;
+      return true;
+    }
 }
