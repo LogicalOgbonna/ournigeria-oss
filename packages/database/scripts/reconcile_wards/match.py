@@ -26,8 +26,22 @@ ACCEPT = 0.86  # min score to accept a fuzzy match
 # name (e.g. "Ohafia North" -> "Ohafia").
 _DIRECTIONS = {"north", "south", "east", "west", "central"}
 
-# roman numeral -> arabic, applied as whole-token replacements after normalize.
-_ROMAN = [("iii", "3"), ("ii", "2"), ("iv", "4"), ("i", "1"), ("v", "5")]
+# Pure roman numerals 1..10 (lowercased, punctuation already stripped by
+# normalize_name). Longest keys first so "iii" wins over "ii"/"i" on exact
+# whole-token lookups (we do exact lookups, not substring, so order is moot but
+# kept explicit).
+_ROMAN_VALUE = {
+    "i": 1,
+    "ii": 2,
+    "iii": 3,
+    "iv": 4,
+    "v": 5,
+    "vi": 6,
+    "vii": 7,
+    "viii": 8,
+    "ix": 9,
+    "x": 10,
+}
 
 
 @dataclass
@@ -38,14 +52,59 @@ class Match:
     candidate: str | None = None
 
 
-def _roman_to_arabic(s: str) -> str:
-    for roman, arabic in _ROMAN:
-        s = re.sub(rf"\b{roman}\b", arabic, s)
-    return s
+def _numeral_value(tok: str) -> int | None:
+    """Return the integer value of a *numeral variant* token, else None.
+
+    Unifies the three ways a small ordinal shows up in Nigerian ward NAMES:
+
+      * proper roman           -- ``i``, ``ii``, ``iii``, ``iv`` ...  (worksheet)
+      * repeated-ones          -- ``1``, ``11``, ``111`` (DB stores II/III this
+        way — literal repeated digit-1, NOT eleven/one-hundred-eleven)
+      * mangled roman          -- ``1v`` / ``1x`` (a repeated-ones "1" fused onto
+        the rest of a roman numeral, e.g. DB ``Bassambiri 1V`` == IV)
+
+    Genuine multi-digit arabic (``10``, ``12``) is deliberately NOT collapsed:
+    only tokens made entirely of the digit ``1`` are read as repeated-ones, so
+    ``Ward 10`` / ``Mile 12`` keep their real value.
+    """
+    if not tok:
+        return None
+    # proper / mangled roman (``iv``, ``1v`` -> iv)
+    roman = tok.replace("1", "i") if tok and tok[0] == "1" else tok
+    if roman in _ROMAN_VALUE:
+        # "1", "11", "111" become "i", "ii", "iii" -> repeated-ones handled here
+        # too; but a lone-arabic "1" is also valid roman "i" == 1. Consistent.
+        return _ROMAN_VALUE[roman]
+    # repeated-ones beyond the roman table ("1111" == 4) -- all-ones only.
+    if set(tok) == {"1"}:
+        return len(tok)
+    # plain single/double arabic that is a real number (leave 10/12 as-is; only
+    # 1..10 map here so they can unify with roman I..X).
+    if tok.isdigit():
+        n = int(tok)
+        return n if 1 <= n <= 10 else None
+    return None
+
+
+def _canonicalize_numerals(s: str) -> str:
+    """Rewrite every standalone numeral-variant token to canonical bare arabic.
+
+    Applied to BOTH sides before scoring so ``II`` == ``2`` == ``11`` (all -> the
+    single-token ``"2"``). Bare arabic (no sentinel prefix) is used deliberately:
+    a longer token (e.g. a ``#`` sentinel) inflates the character mass a numeral
+    contributes to ``SequenceMatcher`` and drops fuzzy scores for names where a
+    roman numeral is incidental (``Ezzagu I (Ogboji)`` vs DB ``Ezzagu Ogboji``).
+    Distinct ordinals stay distinct because ``"1"`` != ``"2"``.
+    """
+    out = []
+    for tok in s.split():
+        val = _numeral_value(tok)
+        out.append(str(val) if val is not None else tok)
+    return " ".join(out)
 
 
 def _norm(s: str) -> str:
-    return _roman_to_arabic(normalize_name(s))
+    return _canonicalize_numerals(normalize_name(s))
 
 
 def match_one(name: str, candidates: list[tuple[str, str]]) -> Match:
@@ -166,3 +225,50 @@ def resolve_constituency_lga(
         if m.code is not None:
             return m.code
     return None
+
+
+def resolve_constituency_lgas(
+    parsed_sc,
+    districts,
+    state_lgas: list[tuple[str, str]],
+    state: str,
+    wards_by_lga: dict[str, list[tuple[str, str]]],
+) -> list[str]:
+    """Resolve the FULL set of LGA codes a state-constituency spans.
+
+    Many state constituencies are contained in one LGA, but some span several
+    (e.g. Aba Central draws wards from both Aba South and Aba North; the Ezza
+    North East/West pair splits one LGA's wards across two constituencies whose
+    wards sit in sibling LGAs). The single-LGA :func:`resolve_constituency_lga`
+    can only scope ward matching to one LGA, forcing the sibling LGA's wards onto
+    a fragile whole-state exact-only fallback (or into the residual worklist).
+
+    This resolver returns the primary LGA PLUS every additional LGA that actually
+    contains a *confident* (exact / ambiguity-safe fuzzy) match for one of the
+    constituency's parsed ward names. Evidence-based expansion keeps it safe: an
+    LGA is only added when its wards genuinely appear in the worksheet's ward
+    list, so scoping stays tight (no whole-state blast radius) and the existing
+    ACCEPT threshold + ambiguity gap continue to gate every ward match.
+
+    Returns an ordered list (primary first, then discovered siblings). Empty when
+    no LGA can be resolved at all.
+    """
+    primary = resolve_constituency_lga(parsed_sc, districts, state_lgas, state)
+    ordered: list[str] = [primary] if primary else []
+    seen: set[str] = set(ordered)
+
+    # Evidence pass: for each LGA, does any of its wards confidently match one of
+    # this constituency's parsed ward names? If so, the constituency spans it.
+    for lga_code, candidates in wards_by_lga.items():
+        if lga_code in seen or not candidates:
+            continue
+        hit = False
+        for wname in parsed_sc.wards:
+            m = match_one(wname, candidates)
+            if m.code is not None and not m.needs_review:
+                hit = True
+                break
+        if hit:
+            ordered.append(lga_code)
+            seen.add(lga_code)
+    return ordered

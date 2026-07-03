@@ -24,25 +24,30 @@ What "trustworthy" means here, precisely:
    eyeballing but do not gate the test.
 
 Why exact ``proposed ⊇ existing`` does NOT hold (documented, not silently
-loosened): the new matcher is deliberately stricter than the old ingest. Two
-old-method quirks account for every non-reproduced pair, and each is an
-*abstention*, not a wrong mapping:
+loosened): the new matcher is deliberately stricter than the old ingest. The
+remaining non-reproduced pairs are all *abstentions*, not wrong mappings, and
+stem from one residual quirk:
 
-  * **Unresolved-LGA constituencies** — some SC entries (e.g. Ebonyi Ezza North
-    East/West, Bayelsa Nembe I/II, Brass III) don't resolve to a single DB LGA,
-    so ward matching falls back to the whole-state pool with a strict
-    exact-only (score >= 0.999) gate. Wards whose worksheet spelling differs
-    from the DB name (``Amuda / Amawula`` vs DB ``Amuda Ama Wula``) don't clear
-    that bar and are held for review.
-  * **Malformed roman/arabic DB ward codes** — some DB wards are stored as
-    ``Bassambiri 11`` / ``Ogbolomabiri 111`` / ``Epie 11`` (literal digit-ones,
-    meaning II/III), which the fuzzy matcher treats as mutually ambiguous
-    (``1`` vs ``11`` vs ``111``) and holds for review rather than guessing.
+  * **Spelling-variant / unresolved-LGA constituencies** — some SC entries
+    (e.g. Ebonyi Afikpo North East/West, Ishielu South "Nkomoro", Bayelsa Brass
+    III, Sagbama III, Southern Ijaw III) either don't resolve to a DB LGA or
+    name their RAs with a spelling that differs from the DB ward name
+    (``Nkomoro`` vs DB ``Nkomor``, ``Umuchima`` vs ``Umic Hima``). Those don't
+    clear the ACCEPT threshold and are held for the human residual worklist.
 
-Both are data-quality issues in the DB, not parser/matcher faults, and the safe
-behaviour is exactly the abstention the pipeline performs. The allow-lists below
-pin the current abstention set so it can only shrink (an improvement) without a
-deliberate test update, and can never silently grow.
+    These are DB-side data-quality issues to fix in a separate cleanup task, not
+    parser/matcher faults, and the safe behaviour is exactly the abstention the
+    pipeline performs.
+
+Previously a SECOND quirk — **repeated-ones roman/arabic DB ward codes**
+(``Bassambiri 11`` / ``Ogbolomabiri 111`` / ``Epie 11`` meaning II/III) — also
+caused abstentions because the fuzzy matcher treated ``1`` / ``11`` / ``111`` as
+mutually ambiguous. The matcher now unifies roman, arabic, and repeated-ones
+numeral variants (``II`` == ``2`` == ``11``), so those pairs are reproduced and
+have been pruned from the allow-list below.
+
+The allow-lists below pin the current abstention set so it can only shrink (an
+improvement) without a deliberate test update, and can never silently grow.
 
 Requires the local docker DB (``ournigeria_db``) and network access to fetch the
 INEC workbooks; skips cleanly when either is unavailable.
@@ -65,8 +70,10 @@ CONSTITUENCY_WARDS = SEED_DIR / "constituency-wards.json"
 # --- GROWS, this test fails so a regression is caught.
 ALLOWED_MISSING: dict[str, set[tuple[str, str]]] = {
     "ebonyi": {
-        # Afikpo North East/West + Ishielu South + Izzi East + Ohaozara West:
-        # unresolved-LGA / spelling-variant abstentions.
+        # Afikpo North East/West: the DB stores these wards under an
+        # "afikpo_north_" LGA prefix while the worksheet spells the RA names
+        # differently (Itim/Nkpoghoro/Ohaisu…) — spelling-variant abstentions
+        # that need DB-side data cleanup, not matcher loosening.
         ("state_ebonyi_afikpo_north_east", "ebonyi_afikpo_north_itim_afikpo"),
         ("state_ebonyi_afikpo_north_east", "ebonyi_afikpo_north_nkpoghoro_afikpo"),
         ("state_ebonyi_afikpo_north_east", "ebonyi_afikpo_north_ohaisu_afikpo_a"),
@@ -79,36 +86,34 @@ ALLOWED_MISSING: dict[str, set[tuple[str, str]]] = {
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_ezeke_amasiri"),
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_ibii_oziza_afikpo"),
         ("state_ebonyi_afikpo_north_west", "ebonyi_afikpo_north_poperi_amasiri"),
-        ("state_ebonyi_ezza_north_east", "ebonyi_ezza_north_amuda_ama_wula"),
-        ("state_ebonyi_ezza_north_west", "ebonyi_ezza_north_ndieguazu_umuoghara"),
-        ("state_ebonyi_ezza_north_west", "ebonyi_ezza_north_oshiegbe_umuez_eokoha"),
+        # Ishielu South "Ezzagu II (Nkomoro)": worksheet Nkomoro vs DB Nkomor —
+        # a spelling difference under ACCEPT.
         ("state_ebonyi_ishielu_south", "ebonyi_ishielu_ezzagu_nkomor"),
+        # Izzi East Mgbalaku/Inyimagu I/II: worksheet & DB carry different
+        # compound spellings; held for review.
         ("state_ebonyi_izzi_east", "ebonyi_izzi_mgbalaku_inyimagu_i"),
         ("state_ebonyi_izzi_east", "ebonyi_izzi_mgbalaku_inyimagu_ii"),
+        # Ohaozara West "Umuchima" vs DB "Umic Hima": spelling-variant.
         ("state_ebonyi_ohaozara_west", "ebonyi_ohaozara_umic_hima"),
     },
     "bayelsa": {
-        # Nembe/Brass/Yenagoa: unresolved-LGA + malformed roman/arabic DB codes.
+        # Brass III / Sagbama III / Southern Ijaw III: unresolved-LGA
+        # (roman-suffixed constituencies whose LGA the collation doesn't pin)
+        # + spelling variants (Konsho vs kongho, Adoni, Central Boma). These are
+        # data-quality abstentions, never contradictions.
         ("state_bayelsa_brass_iii", "bayelsa_brass_konsho"),
         ("state_bayelsa_brass_iii", "bayelsa_brass_os_inibiri"),
-        ("state_bayelsa_nembe_i", "bayelsa_nembe_ogbolomabiri_11"),
-        ("state_bayelsa_nembe_i", "bayelsa_nembe_ogbolomabiri_111"),
-        ("state_bayelsa_nembe_i", "bayelsa_nembe_okoroma_11"),
-        ("state_bayelsa_nembe_ii", "bayelsa_nembe_bassambiri_11"),
-        ("state_bayelsa_nembe_ii", "bayelsa_nembe_bassambiri_111"),
-        ("state_bayelsa_nembe_ii", "bayelsa_nembe_bassambiri_1v"),
         ("state_bayelsa_sagbama_iii", "bayelsa_sagbama_adoni"),
         ("state_bayelsa_southern_ijaw_iii", "bayelsa_southern_ijaw_central_boma_i"),
         ("state_bayelsa_southern_ijaw_iii", "bayelsa_southern_ijaw_central_boma_ii"),
-        ("state_bayelsa_yenagoa_i", "bayelsa_yenegoa_epie_11"),
-        ("state_bayelsa_yenagoa_ii", "bayelsa_yenegoa_ekpetiama_11"),
-        ("state_bayelsa_yenagoa_iii", "bayelsa_yenegoa_biseni_11"),
     },
 }
 
 # Minimum share of existing worksheet-sourced pairs the pipeline must reproduce.
-# Actuals at time of writing: ebonyi 83.2% (94/113), bayelsa 86.7% (91/105).
-MIN_REPRODUCTION_RATE = 0.80
+# Actuals after roman/arabic/repeated-ones unification + multi-LGA scoping:
+# ebonyi 85.8% (97/113), bayelsa 95.2% (100/105).
+# (Was ebonyi 83.2% / bayelsa 86.7% before the matcher improvements.)
+MIN_REPRODUCTION_RATE = 0.85
 
 # (workbook name, seed source slug)
 STATES = [("EBONYI", "ebonyi"), ("BAYELSA", "bayelsa")]

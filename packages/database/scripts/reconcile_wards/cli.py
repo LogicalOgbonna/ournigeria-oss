@@ -21,7 +21,7 @@ import openpyxl
 from . import apply as apply_mod
 from . import db
 from .fetch import BASE, fetch_state
-from .match import match_one, resolve_constituency_lga
+from .match import match_one, resolve_constituency_lgas
 from .parse import parse_lga_rows, parse_sc_rows
 from .report import ConstituencyResult, WardResult, build_report, write_report
 
@@ -96,15 +96,43 @@ def reconcile_state(workbook: str) -> tuple:
         # match SC name -> DB state-constituency code
         cm = match_one(pc.name, state_consts)
         constituency_code = cm.code
-        lga_code = resolve_constituency_lga(pc, districts, state_lgas, state)
+        # Resolve the FULL set of LGAs this constituency spans. `lga_codes[0]` is
+        # the primary LGA; any trailing entries are sibling LGAs discovered by
+        # evidence (cross-LGA constituencies like Aba Central draw wards from >1
+        # LGA). Ward matching is TIERED so an evidence-discovered sibling can
+        # never override a within-primary match:
+        #   1. match against the primary LGA(s) pool first;
+        #   2. only wards that fail to resolve there consult the sibling pool;
+        #   3. only wards still unresolved fall back to a whole-state exact hit.
+        # This keeps sibling-LGA wards reachable (Ogbor I/II for Aba Central)
+        # without letting a coincidental same-name ward in another LGA (e.g. an
+        # exact "Uratta" in Aba North) beat a fuzzy in-LGA match ("Urtta" in
+        # Osisioma).
+        lga_codes = resolve_constituency_lgas(
+            pc, districts, state_lgas, state, wards_index
+        )
+        lga_code = lga_codes[0] if lga_codes else None
+        primary_lgas = lga_codes[:1]
+        sibling_lgas = lga_codes[1:]
 
-        ward_candidates = wards_index.get(lga_code, []) if lga_code else []
+        primary_pool = [
+            wc for lc in primary_lgas for wc in wards_index.get(lc, [])
+        ]
+        sibling_pool = [
+            wc for lc in sibling_lgas for wc in wards_index.get(lc, [])
+        ]
         ward_results: list[WardResult] = []
         for wname in pc.wards:
-            wm = match_one(wname, ward_candidates)
+            wm = match_one(wname, primary_pool)
+            if wm.code is None and sibling_pool:
+                # tier 2: sibling LGA(s) of a cross-LGA constituency.
+                sib = match_one(wname, sibling_pool)
+                if sib.code is not None:
+                    wm = sib
             if wm.code is None:
-                # fallback: exact/fuzzy match against the whole state's wards
-                # (cross-LGA constituency). Keep only a decisive (exact) hit here.
+                # tier 3 last-resort: exact match against the whole state's
+                # wards. Only a decisive (exact) hit is kept here so a fuzzy
+                # near-miss can never silently jump LGA scope.
                 fallback = match_one(wname, all_wards)
                 if fallback.code is not None and fallback.score >= 0.999:
                     wm = fallback
