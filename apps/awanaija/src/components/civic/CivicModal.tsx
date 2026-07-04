@@ -8,12 +8,14 @@ import { ActivityFeed } from "./ActivityFeed";
 import { OfficialCard } from "./OfficialCard";
 import { CivicTabSkeleton } from "./CivicTabSkeleton";
 import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
+import { usePersistedLocation } from "@/hooks/usePersistedLocation";
 
 const ROLE_ORDER = ["councilor", "lga_chairman", "mha", "rep", "representative", "senator", "governor"];
 
 type Tab = "reps" | "leaderboard" | "activity";
 
 export function CivicModal() {
+  const { location: persistedLocation, setLocation: setPersistedLocation } = usePersistedLocation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("reps");
   const [chain, setChain] = useState<ChainEntry[]>([]);
@@ -40,6 +42,22 @@ export function CivicModal() {
     };
   }, []);
 
+  // Pre-populate from the persisted location on open, so the modal and the
+  // home page stay in sync instead of each holding its own copy.
+  useEffect(() => {
+    if (open && !location && persistedLocation?.stateCode) {
+      handleLocationSelect({
+        stateCode: persistedLocation.stateCode,
+        stateName: persistedLocation.stateName,
+        lgaCode: persistedLocation.lgaCode,
+        lgaName: persistedLocation.lgaName,
+        wardCode: persistedLocation.wardCode,
+        wardName: persistedLocation.wardName,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, persistedLocation]);
+
   async function handleLocationSelect(loc: {
     stateCode: string;
     stateName: string;
@@ -49,6 +67,14 @@ export function CivicModal() {
     wardName?: string;
   }) {
     setLocation(loc);
+    setPersistedLocation({
+      stateCode: loc.stateCode,
+      stateName: loc.stateName,
+      lgaCode: loc.lgaCode,
+      lgaName: loc.lgaName,
+      wardCode: loc.wardCode,
+      wardName: loc.wardName,
+    });
     setLoading(true);
     try {
       const result = await getOfficialsByLocation({
@@ -159,7 +185,7 @@ export function CivicModal() {
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
                         Select your location to see who represents you
                       </p>
-                      <LocationPicker onLocationSelect={handleLocationSelect} />
+                      <LocationPicker onLocationSelect={handleLocationSelect} initialLocation={persistedLocation} />
                     </div>
                   )}
 

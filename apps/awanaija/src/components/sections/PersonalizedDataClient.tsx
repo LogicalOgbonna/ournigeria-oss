@@ -12,6 +12,7 @@ import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reve
 import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePersistedLocation, readPersistedLocation } from "@/hooks/usePersistedLocation";
 
 const DEFAULT_SECTOR_BARS: BarDatum[] = [
   { label: "Education", value: 0, color: "bg-blue-500" },
@@ -324,6 +325,7 @@ interface PersonalizedDataClientProps {
 }
 
 export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, children }: PersonalizedDataClientProps) {
+  const { setLocation: setPersistedLocation } = usePersistedLocation();
   const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
   const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -398,13 +400,9 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
       setData(newData);
       setLocationState("success");
 
-      try {
-        localStorage.setItem("awanaija_user_location", JSON.stringify({
-          stateCode, stateName, lgaCode, lgaName, wardCode, wardName, year, month
-        }));
-      } catch (e) {
-        console.error("Failed to save location to local storage", e);
-      }
+      setPersistedLocation({
+        stateCode, stateName, lgaCode, lgaName, wardCode, wardName, year, month
+      });
     } catch (err) {
       console.error(err);
       setLocationState("denied");
@@ -529,46 +527,44 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   }, []);
 
   useEffect(() => {
-    const loadFromStorage = () => {
-      const saved = localStorage.getItem("awanaija_user_location");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.year) setSelectedYear(parsed.year);
-          if (parsed.month) setSelectedMonth(parsed.month);
-          
-          fetchFullProfile(
-            parsed.stateCode, parsed.stateName,
-            parsed.lgaCode, parsed.lgaName,
-            parsed.wardCode, parsed.wardName,
-            parsed.year, parsed.month
-          );
-          return true;
-        } catch (e) {
-          console.error("Failed to parse saved location", e);
-        }
-      }
-      return false;
-    };
+    // SAVED WINS: a previously-persisted location always takes priority over
+    // auto-geolocation. Geolocation only runs on a genuine first visit (nothing
+    // saved yet). The explicit "detect my location" path (requestLocation, via
+    // the `request-location` window event or the "Use my current location"
+    // button) remains an opt-in that re-runs geolocation and overwrites the
+    // saved location via setPersistedLocation.
+    const saved = readPersistedLocation();
+    if (saved) {
+      if (saved.year) setSelectedYear(saved.year);
+      if (saved.month) setSelectedMonth(saved.month);
 
-        if (navigator.permissions) {
-          navigator.permissions.query({ name: "geolocation" }).then((result) => {
-            if (result.state === "granted") {
-              requestLocation();
-            } else {
-              const loaded = loadFromStorage();
-              if (!loaded) {
-                if (result.state === "prompt") {
-                  setLocationState("idle");
-                } else if (result.state === "denied") {
-                  setLocationState("success");
-                }
-              }
-            }
-          });
-        } else {
-      loadFromStorage();
+      fetchFullProfile(
+        saved.stateCode, saved.stateName,
+        saved.lgaCode ?? "", saved.lgaName ?? "",
+        saved.wardCode ?? "", saved.wardName ?? "",
+        saved.year, saved.month
+      );
+      return;
     }
+
+    // No saved location — first-visit behavior: check permission, auto-detect
+    // if already granted, otherwise show the idle "Use my current location" prompt.
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((result) => {
+        if (result.state === "granted") {
+          requestLocation();
+        } else if (result.state === "prompt") {
+          setLocationState("idle");
+        } else if (result.state === "denied") {
+          setLocationState("success");
+        }
+      });
+    } else {
+      // Browsers without the Permissions API: fall back to the idle prompt
+      // (same as "prompt" state above) so the user still sees a CTA.
+      setLocationState("idle");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
