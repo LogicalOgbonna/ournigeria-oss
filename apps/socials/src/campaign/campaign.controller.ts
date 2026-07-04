@@ -11,22 +11,16 @@ import { AdminAuthGuard } from "../platforms/twitter/guards/admin-auth.guard.js"
 import { SocialsSettingsService } from "../config/socials-settings.service.js";
 import { CampaignTemplateProvider } from "./campaign-template.provider.js";
 import type { IdentifyCategory } from "../identify/identify-content.js";
-import type { VerifyKind } from "../verify/verify-content.js";
+import { type VerifyKind, VERIFY_PLACEHOLDERS } from "../verify/verify-content.js";
 
 /** Allowed placeholders per campaign kind. Every template MUST contain {url}
- * and may ONLY reference names from this set. */
+ * and may ONLY reference names from this set. VERIFY_PLACEHOLDERS is the DI-free
+ * source of truth in verify-content.ts (shared with the drafter). */
 const IDENTIFY_PLACEHOLDERS = new Set([
   "ward",
   "lga",
   "constituency",
   "state",
-  "url",
-]);
-const VERIFY_PLACEHOLDERS = new Set([
-  "claim",
-  "name",
-  "fieldLabel",
-  "value",
   "url",
 ]);
 
@@ -161,7 +155,9 @@ export class CampaignController {
       }
 
       const found = new Set<string>();
-      for (const match of tpl.matchAll(/\{([a-z]+)\}/g)) {
+      // camelCase-aware: placeholders like {sourceNote}/{fieldLabel} must be
+      // seen so a camelCase typo is rejected, not silently passed through.
+      for (const match of tpl.matchAll(/\{([a-zA-Z]+)\}/g)) {
         found.add(match[1]);
       }
 
