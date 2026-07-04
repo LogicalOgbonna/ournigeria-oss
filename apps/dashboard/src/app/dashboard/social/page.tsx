@@ -82,6 +82,11 @@ export default function SocialQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/social/campaign">
+            <Button variant="outline" size="sm">
+              Campaign
+            </Button>
+          </Link>
           <Link href="/dashboard/social/topics">
             <Button variant="outline" size="sm">
               Topics
