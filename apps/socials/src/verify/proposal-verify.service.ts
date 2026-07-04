@@ -16,6 +16,13 @@ import {
 } from "./verify-content.js";
 import { CampaignTemplateProvider } from "../campaign/campaign-template.provider.js";
 
+/**
+ * Verify poller schedule (6-field cron: sec min hour day-of-month month day-of-week).
+ * Every 15 minutes within 06:00–22:00 UTC = 07:00–23:00 WAT active hours.
+ * Effective volume is still bounded by CAP (per run) and MAX_VERIFY_PER_DAY.
+ */
+const VERIFY_POLL_CRON = "0 */15 6-22 * * *";
+
 /** Deterministic seed from the anchor id so template choice is stable per anchor. */
 function hashSeed(s: string): number {
   let h = 0;
@@ -176,8 +183,8 @@ export class ProposalVerifyService {
     return affected === 1;
   }
 
-    /** UTC 06–22 = 07:00–23:00 WAT active hours. Poller runs hourly. */
-    @Cron("0 0 6-22 * * *")
+    /** UTC 06–22 = 07:00–23:00 WAT active hours. Poller runs every 15 min. */
+    @Cron(VERIFY_POLL_CRON)
     async runScheduled() {
       if (this.running) { this.logger.log("verify poller already running — skip"); return; }
       this.running = true;
