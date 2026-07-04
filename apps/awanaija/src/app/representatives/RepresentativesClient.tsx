@@ -83,12 +83,27 @@ export function RepresentativesClient({
     const url = globalThis.location.href;
     const text = getShareText();
 
-    if (navigator.share) {
+    // Native Web Share only on touch devices — on desktop it's unreliable
+    // (some browsers expose navigator.share but hang or silently fail with no
+    // share target, leaving the button doing nothing). Desktop goes straight
+    // to the in-app modal (X / Facebook / WhatsApp / Copy Link).
+    const isTouch =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(pointer: coarse)").matches;
+    const canNativeShare =
+      isTouch &&
+      typeof navigator !== "undefined" &&
+      !!navigator.share &&
+      (navigator.canShare ? navigator.canShare({ url }) : true);
+
+    if (canNativeShare) {
       try {
         await navigator.share({ title: text, url });
         return;
-      } catch {
-        // user cancelled — fall through
+      } catch (err) {
+        // User cancelled the native sheet — don't pop the fallback modal.
+        if (err instanceof Error && err.name === "AbortError") return;
+        // Any other failure falls through to the in-app modal.
       }
     }
 
