@@ -9,10 +9,10 @@ import {
   IdentifyCategory,
   reachTierCase,
   fillTemplate,
-  pickTemplate,
   buildIdentifyUrl,
   IdentifyLevel,
 } from "./identify-content.js";
+import { CampaignTemplateProvider } from "../campaign/campaign-template.provider.js";
 
 export interface SelectedSeat {
   category: IdentifyCategory;
@@ -37,6 +37,7 @@ export class IdentifyCampaignService {
     private readonly publisher: TwitterPublisher,
     private readonly safetyFilter: SafetyFilter,
     private readonly settings: SocialsSettingsService,
+    private readonly templates: CampaignTemplateProvider,
   ) {}
 
   /**
@@ -200,7 +201,8 @@ export class IdentifyCampaignService {
       lgaCode: seat.lgaCode, wardCode: category === "councilor" ? seat.seatCode : undefined,
       constituencyCode: seat.constituencyCode,
     });
-    const text = fillTemplate(pickTemplate(category, windowSlot), {
+    const tpl = await this.templates.pickIdentify(category, windowSlot);
+    const text = fillTemplate(tpl, {
       ward: seat.wardName ?? "", lga: seat.lgaName ?? "",
       constituency: seat.constituencyName ?? "", state: seat.stateName, url,
     });

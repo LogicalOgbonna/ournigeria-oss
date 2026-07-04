@@ -2,11 +2,12 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { IdentifyCampaignService } from "../src/identify/identify-campaign.service.js";
+import { CampaignTemplateProvider } from "../src/campaign/campaign-template.provider.js";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) }) as any;
 
 async function main() {
-  const svc = new IdentifyCampaignService(prisma, null as any, null as any, null as any);
+  const svc = new IdentifyCampaignService(prisma, null as any, null as any, null as any, new CampaignTemplateProvider(prisma));
   const date = new Date("2099-01-01");
   const slot = 3;
   await prisma.identifyCampaignRun.deleteMany({ where: { windowDate: date, windowSlot: slot } });

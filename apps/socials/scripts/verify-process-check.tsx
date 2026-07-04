@@ -9,8 +9,9 @@ let published = false;
 const throwingPublisher: any = { publishOriginal() { published = true; throw new Error("publishOriginal must NOT be called (toggle OFF)"); } };
 const settingsOff: any = { getVerifyAutoPost: async () => false };
 const realSafety = new (await import("../src/intelligence/safety-filter.js")).SafetyFilter();
+const { CampaignTemplateProvider } = await import("../src/campaign/campaign-template.provider.js");
 const { ProposalVerifyService } = await import("../src/verify/proposal-verify.service.js");
-const svc = new ProposalVerifyService(prisma as any, throwingPublisher, realSafety, settingsOff);
+const svc = new ProposalVerifyService(prisma as any, throwingPublisher, realSafety, settingsOff, new CampaignTemplateProvider(prisma as any));
 
 const seeded: Record<string, string> = {};
 const createdPostIds: string[] = [];

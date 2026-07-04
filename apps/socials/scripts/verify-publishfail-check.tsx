@@ -8,8 +8,9 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url 
 const throwingPublisher: any = { publishOriginal() { throw new Error("X publish failed (simulated)"); } };
 const settingsOn: any = { getVerifyAutoPost: async () => true }; // toggle ON → auto-post path
 const safetyStub: any = { check: () => ({ safe: true, warnings: [], blocked: false }) };
+const { CampaignTemplateProvider } = await import("../src/campaign/campaign-template.provider.js");
 const { ProposalVerifyService } = await import("../src/verify/proposal-verify.service.js");
-const svc = new ProposalVerifyService(prisma as any, throwingPublisher, safetyStub, settingsOn);
+const svc = new ProposalVerifyService(prisma as any, throwingPublisher, safetyStub, settingsOn, new CampaignTemplateProvider(prisma as any));
 
 const seeded: Record<string, string> = {};
 try {

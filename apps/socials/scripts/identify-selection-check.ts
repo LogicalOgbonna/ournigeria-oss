@@ -2,12 +2,13 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { IdentifyCampaignService } from "../src/identify/identify-campaign.service.js";
+import { CampaignTemplateProvider } from "../src/campaign/campaign-template.provider.js";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) }) as any;
 function assert(c: boolean, m: string) { if (!c) { console.error("FAIL:", m); process.exit(1); } }
 
 async function main() {
-  const svc = new IdentifyCampaignService(prisma, null as any, null as any, null as any);
+  const svc = new IdentifyCampaignService(prisma, null as any, null as any, null as any, new CampaignTemplateProvider(prisma));
 
   // NOTE: task brief assumed 0 wards locally; this DB has wards populated,
   // so councilor returns a real seat. Assert seat shape instead of null.
