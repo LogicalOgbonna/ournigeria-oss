@@ -166,10 +166,19 @@ export class SafetyFilter {
   check(content: string, toolResults?: unknown[]): SafetyResult {
     const warnings: string[] = [];
 
-    // 1. Keyword blocklist check
+    // 1. Keyword blocklist check — WHOLE-WORD match. A raw substring match
+    // false-flagged legitimate words ("ass" inside "State Assembly Member",
+    // the surname "Bassey", "Nassarawa"), silently dropping valid drafts. Word
+    // boundaries keep the intent (block the standalone slur/attack) without the
+    // Scunthorpe problem. Boundaries are placed on alnum edges only so keywords
+    // that end/adjoin punctuation still match.
     const lower = content.toLowerCase();
     for (const keyword of BLOCKED_KEYWORDS) {
-      if (lower.includes(keyword)) {
+      const pattern = new RegExp(
+        `(?<![a-z0-9])${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9])`,
+        "i",
+      );
+      if (pattern.test(lower)) {
         warnings.push(`Contains blocked keyword: "${keyword}"`);
       }
     }

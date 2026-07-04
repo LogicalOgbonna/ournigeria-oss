@@ -931,6 +931,9 @@ export class GeoService implements OnModuleInit {
     if (!ward) return null;
 
     const councilorPosition = ward.officialPositions[0];
+    const proposedIds = councilorPosition
+      ? await this.proposedOfficialIds([councilorPosition.official.id])
+      : new Set<string>();
     const councilor = councilorPosition ? {
       id: councilorPosition.official.id,
       slug: councilorPosition.official.slug,
@@ -939,6 +942,7 @@ export class GeoService implements OnModuleInit {
       phone: councilorPosition.official.phoneNumber || "N/A",
       image: councilorPosition.official.imageUrl,
       email: councilorPosition.official.email,
+      proposed: proposedIds.has(councilorPosition.official.id),
     } : null;
 
     return {

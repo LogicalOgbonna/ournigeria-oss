@@ -55,28 +55,32 @@ export function fillTemplate(tpl: string, v: TemplateVars): string {
  * >=4 human-approved variants per category with DIFFERENT sentence structures
  * (kills the spam-pattern signal alongside jitter + unique place names/URLs).
  * Warm, Nigerian-appropriate, no profanity/endorsement (passes SafetyFilter).
+ *
+ * HOUSE STYLE: multi-line, 3 blocks separated by blank lines (\n\n), matching the
+ * verify templates in verify-content.ts — [the gap] / [who'd know] / [CTA + {url}].
+ * Each category ships 3 English + 2 Pidgin variants. {url} always closes block 3.
  */
 export const IDENTIFY_TEMPLATES: Record<IdentifyCategory, string[]> = {
   councilor: [
-    "People of {ward} in {lga}, {state} — who is your Ward Councillor? Help your community put a name to the seat: {url}",
-    "Quick one for {ward}, {lga} ({state}): do you know the councillor representing your ward? Add the name here 👉 {url}",
-    "Your ward councillor works for YOU. If you're in {ward}, {lga}, {state}, tell us who it is so everybody can hold them accountable: {url}",
-    "We're mapping every ward councillor in Nigeria. {ward} in {lga}, {state} is still blank — who represents you? {url}",
-    "Naija, who be the councillor for {ward}, {lga} for {state}? Drop the name make we complete the record: {url}",
+    "Nobody's on record as the Ward Councillor for {ward}, {lga}, {state}.\n\nThe people who live there know exactly who it is. We don't, yet.\n\nOpen the link and add the name so the whole ward can hold them to account: {url}",
+    "Your ward councillor is the closest elected official to you, and the seat for {ward} in {lga}, {state} still has no name attached.\n\nIf you're from there, you'd know who it is.\n\nTap through and put it on record 👉 {url}",
+    "We're mapping every ward councillor in Nigeria, one seat at a time. {ward} in {lga}, {state} is still blank.\n\nWho represents you?\n\nOpen the link and add the name: {url}",
+    "Who be the councillor for {ward}, {lga} for {state}? We never get the name.\n\nIf you sabi the area, you go know am.\n\nOpen the link, drop the name make we complete the record: {url}",
+    "Naija, this ward never get name for our record. {ward} for {lga}, {state} — who be the Ward Councillor wey dey represent una?\n\nNa the people wey dey ground sabi pass.\n\nOpen the link, add the name: {url}",
   ],
   lga_chairman: [
-    "Who chairs {lga} Local Government in {state}? Help us name the person leading your LGA: {url}",
-    "{lga}, {state} — do you know your LGA Chairman? Add the name so residents can track what they're doing: {url}",
-    "Every LGA has a chairman controlling real budget. If you live in {lga}, {state}, tell us who yours is: {url}",
-    "We still don't have the chairman for {lga} LGA in {state}. Know the name? Put it on record here 👉 {url}",
-    "Abeg, who be the Chairman of {lga} Local Government for {state}? Help us complete am: {url}",
+    "There's no name on record for the Chairman of {lga} LGA in {state}.\n\nThat's the person controlling your local government budget. Somebody there knows exactly who it is.\n\nOpen the link and put it on record: {url}",
+    "Every LGA has a chairman signing off on real money, and {lga}, {state} still has no name attached to the seat.\n\nIf you live there, you'd know.\n\nTap through and add your LGA Chairman 👉 {url}",
+    "Who chairs {lga} Local Government in {state}? We're building a record every resident can check, and this one's still empty.\n\nHelp your community fill it.\n\nOpen the link and add the name: {url}",
+    "Who be the Chairman of {lga} Local Government for {state}? We never get the name o.\n\nNa the people wey dey the LGA sabi am well well.\n\nOpen the link, help us complete am: {url}",
+    "Naija, {lga} for {state} never get chairman name for our record.\n\nThis na the person wey dey control your LGA money. Who be am?\n\nOpen the link, drop the name: {url}",
   ],
   mha: [
-    "Who represents {constituency} in the {state} State House of Assembly? Help name your rep: {url}",
-    "{state} people — do you know your State Assembly member for {constituency}? Add the name here: {url}",
-    "Your state assembly rep votes on laws that touch your daily life. If you're in {constituency}, {state}, tell us who it is: {url}",
-    "{constituency} in {state} still has no name attached to its Assembly seat. Who represents you? {url}",
-    "Naija, who be your State House of Assembly member for {constituency}, {state}? Make we know am: {url}",
+    "No name's on record for the State Assembly member representing {constituency} in {state}.\n\nThat's the person voting on laws that touch your daily life. The people there know who it is.\n\nOpen the link and add the name: {url}",
+    "Your state assembly rep sits in the {state} House of Assembly and votes on your behalf. The seat for {constituency} still has no name attached.\n\nIf you're from there, you'd know.\n\nTap through and put it on record 👉 {url}",
+    "We're mapping every State Assembly seat in Nigeria. {constituency} in {state} is still blank.\n\nWho represents you in the House of Assembly?\n\nOpen the link and add the name: {url}",
+    "Who be your State House of Assembly member for {constituency}, {state}? We never get the name.\n\nNa una wey dey the constituency sabi am pass.\n\nOpen the link, make we know am: {url}",
+    "Naija, {constituency} for {state} never get name for im Assembly seat.\n\nWho be the person wey dey represent una for the State House of Assembly?\n\nOpen the link, add the name: {url}",
   ],
 };
 

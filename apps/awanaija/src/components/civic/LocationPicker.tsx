@@ -13,12 +13,25 @@ interface LocationPickerProps {
     wardCode?: string;
     wardName?: string;
   }) => void;
+  /**
+   * Optional seed location (e.g. from the persisted-location hook). When
+   * provided, the picker starts pre-populated at this location instead of
+   * running geolocation detection.
+   */
+  initialLocation?: {
+    stateCode: string;
+    stateName: string;
+    lgaCode?: string;
+    lgaName?: string;
+    wardCode?: string;
+    wardName?: string;
+  } | null;
 }
 
 type Step = "state" | "lga" | "ward";
 type DetectStatus = "idle" | "detecting" | "denied" | "failed";
 
-export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
+export function LocationPicker({ onLocationSelect, initialLocation }: LocationPickerProps) {
   const [step, setStep] = useState<Step>("state");
   const [states, setStates] = useState<{ code: string; name: string }[]>([]);
   const [lgas, setLgas] = useState<{ code: string; name: string }[]>([]);
@@ -43,6 +56,36 @@ export function LocationPicker({ onLocationSelect }: LocationPickerProps) {
       .then((data) => { if (mountedRef.current) setStates(data); })
       .catch(console.error)
       .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+
+    // A persisted/initial location wins over auto-geolocation, same priority
+    // rule as the home page: only detect via GPS when nothing is saved yet.
+    if (initialLocation?.stateCode) {
+      const state = { code: initialLocation.stateCode, name: initialLocation.stateName };
+      setPickedState(state);
+
+      if (initialLocation.lgaCode && initialLocation.lgaName) {
+        const lga = { code: initialLocation.lgaCode, name: initialLocation.lgaName };
+        setPickedLga(lga);
+        setStep("ward");
+        setLoadingItems(true);
+        getLgas(state.code)
+          .then((data) => { if (mountedRef.current) setLgas(data); })
+          .catch(console.error);
+        getWards(lga.code)
+          .then((data) => { if (mountedRef.current) setWards(data); })
+          .catch(console.error)
+          .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+      } else {
+        setStep("lga");
+        setLoadingItems(true);
+        getLgas(state.code)
+          .then((data) => { if (mountedRef.current) setLgas(data); })
+          .catch(console.error)
+          .finally(() => { if (mountedRef.current) setLoadingItems(false); });
+      }
+      return;
+    }
+
     tryGeolocate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

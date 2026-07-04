@@ -5,6 +5,7 @@ import { ImageStorageService } from "../images/image-storage.service";
 import { OfficialsService } from "../officials/officials.service";
 import { ProposalNotifierService } from "./proposal-notifier.service";
 import { validateSourceUrl, validateImageUrl, validateFacebookUrl } from "../lib/url-validation";
+import { buildIdentifyDisplayValue, composeGeo } from "./proposal-display";
 
 const VALID_TARGET_FIELDS = [
   "name",
@@ -229,6 +230,10 @@ export class ProposalsService {
       positionScope.stateCode = data.stateCode;
     }
 
+    const geoName = await this.resolveGeoName({
+      wardCode: data.wardCode, lgaCode: data.lgaCode,
+      constituencyCode: data.constituencyCode, stateCode: data.stateCode,
+    });
     const identifyProposalValue = this.buildIdentifyProposalValue({
       name: data.name.trim(),
       role,
@@ -237,6 +242,7 @@ export class ProposalsService {
       ...officialProfile,
       sourceUrl: data.sourceUrl || null,
       positionScope,
+      geoName,
     });
 
     const seat = this.seatKey(role, {
@@ -480,6 +486,29 @@ export class ProposalsService {
     return `${base}-${n}`;
   }
 
+  /** Resolve a human place string ("Pategi, Kwara") from scope codes. */
+  private async resolveGeoName(scope: {
+    wardCode?: string; lgaCode?: string; constituencyCode?: string; stateCode?: string;
+  }): Promise<string> {
+    const level = scope.constituencyCode ? "constituency" : scope.wardCode ? "ward" : "lga";
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT c.name AS constituency_name, w.name AS ward_name,
+              COALESCE(l.name, wl.name) AS lga_name, s.name AS state_name
+       FROM (SELECT 1) _
+       LEFT JOIN nigerian_lgas l ON l.code = $1
+       LEFT JOIN nigerian_constituencies c ON c.code = $2
+       LEFT JOIN nigerian_wards w ON w.code = $3
+       LEFT JOIN nigerian_lgas wl ON wl.code = w.lga_code
+       LEFT JOIN nigerian_states s ON s.code = COALESCE($4, l.state_code, c.state_code, wl.state_code)`,
+      scope.lgaCode ?? null, scope.constituencyCode ?? null, scope.wardCode ?? null, scope.stateCode ?? null,
+    );
+    const r = rows[0] ?? {};
+    return composeGeo({
+      level, constituencyName: r.constituency_name ?? undefined, wardName: r.ward_name ?? undefined,
+      lgaName: r.lga_name ?? undefined, stateName: r.state_name ?? undefined,
+    });
+  }
+
   private buildIdentifyProposalValue(data: {
     name: string;
     role: string;
@@ -496,25 +525,14 @@ export class ProposalsService {
     dateOfBirth: Date | null;
     sourceUrl: string | null;
     positionScope: Record<string, string>;
+    geoName: string;
   }) {
-    const scopeValue =
-      data.positionScope.wardCode ??
-      data.positionScope.lgaCode ??
-      data.positionScope.constituencyCode ??
-      data.positionScope.stateCode ??
-      null;
-
-    const displayParts = [
-      data.name,
-      data.partyAcronym ? `(${data.partyAcronym})` : null,
-      `for ${data.role.replace(/_/g, " ")}`,
-      scopeValue ? `in ${scopeValue}` : null,
-    ].filter(Boolean);
-
     return {
       value: data.name,
       type: "identify",
-      displayValue: displayParts.join(" "),
+      displayValue: buildIdentifyDisplayValue({
+        name: data.name, party: data.partyAcronym, role: data.role, geoName: data.geoName,
+      }),
       name: data.name,
       role: data.role,
       partyAcronym: data.partyAcronym,
