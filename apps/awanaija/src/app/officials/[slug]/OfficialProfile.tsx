@@ -77,9 +77,26 @@ function formatDateRange(startDate: string, endDate: string | null): string {
 export function OfficialProfile({
   official,
   peers = [],
+  showHelpComplete = true,
+  showChallenge = true,
+  showProposals = true,
+  showPeers = true,
+  topSlot,
+  bottomSlot,
+  whereServeLast = false,
 }: {
   official: Official;
   peers?: ChainEntry[];
+  showHelpComplete?: boolean;
+  showChallenge?: boolean;
+  showProposals?: boolean;
+  showPeers?: boolean;
+  topSlot?: React.ReactNode;
+  bottomSlot?: React.ReactNode;
+  /** Render the "Where they serve" block at the very end (after bottomSlot)
+   *  instead of its default mid-body position — used by the seat-confirm view
+   *  so the verify action precedes it. Real profile keeps the default order. */
+  whereServeLast?: boolean;
 }) {
   const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
@@ -136,6 +153,8 @@ export function OfficialProfile({
           <ArrowLeft className="w-4 h-4" />
           Back to officials
         </Link>
+
+        {topSlot}
 
         {/* Unverified-submission banner: this record exists only via a pending,
             admin-unapproved citizen "identify" proposal. */}
@@ -330,7 +349,7 @@ export function OfficialProfile({
         )}
 
         {/* Help Complete This Profile */}
-        {missingFields.length > 0 && (
+        {showHelpComplete && missingFields.length > 0 && (
           <section className="mb-9">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Help Complete This Profile
@@ -353,12 +372,12 @@ export function OfficialProfile({
         )}
 
         {/* Challenge / Correct Information */}
-        {filledFields.length > 0 && (
+        {showChallenge && filledFields.length > 0 && (
           <ChallengeButton officialId={official.id} fields={filledFields} />
         )}
 
         {/* Community Proposals */}
-        {official.proposals && official.proposals.length > 0 && (
+        {showProposals && official.proposals && official.proposals.length > 0 && (
           <section id="proposals">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Community Proposals ({official.proposals.length})
@@ -372,12 +391,14 @@ export function OfficialProfile({
         )}
 
         {/* Retention Phase 1 — explore the jurisdictions this official serves */}
-        <div className="mt-10">
-          <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
-        </div>
+        {!whereServeLast && (
+          <div className="mt-10">
+            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+          </div>
+        )}
 
         {/* Retention Phase 1 — the other people who represent this area */}
-        {peers.length > 0 && (
+        {showPeers && peers.length > 0 && (
           <section data-testid="peer-officials" className="mt-10">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Other representatives for {peerAreaLabel}
@@ -394,6 +415,14 @@ export function OfficialProfile({
               ))}
             </div>
           </section>
+        )}
+
+        {bottomSlot}
+
+        {whereServeLast && (
+          <div className="mt-10">
+            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+          </div>
         )}
       </div>
     </main>
