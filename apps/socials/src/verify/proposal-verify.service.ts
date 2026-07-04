@@ -11,6 +11,8 @@ import {
   buildProposalVerifyUrl,
   fillVerifyTemplate,
   humanizeField,
+  humanizeRole,
+  composeGeo,
 } from "./verify-content.js";
 import { CampaignTemplateProvider } from "../campaign/campaign-template.provider.js";
 
@@ -33,6 +35,14 @@ export interface QualifyingProposal {
   constituencyCode?: string;
   level?: VerifyLevel;
   displayValue?: string;
+  // identify: resolved human pieces used to compose the tweet (never raw codes).
+  personName?: string;
+  party?: string;
+  constituencyName?: string;
+  wardName?: string;
+  lgaName?: string;
+  stateName?: string;
+  sourceUrl?: string;
   officialName?: string;
   slug?: string;
   targetField?: string;
@@ -72,13 +82,19 @@ export class ProposalVerifyService {
              op.ward_code,
              COALESCE(op.lga_code, w.lga_code) AS lga_code,
              op.constituency_code,
-             COALESCE(op.state_code, l.state_code, c.state_code, wl.state_code) AS state_code
+             COALESCE(op.state_code, l.state_code, c.state_code, wl.state_code) AS state_code,
+             c.name AS constituency_name,
+             w.name AS ward_name,
+             COALESCE(l.name, wl.name) AS lga_name,
+             s.name AS state_name,
+             COALESCE(dp.source_url, dp.proposed_value->>'sourceUrl') AS source_url
       FROM data_proposals dp
       JOIN official_positions op ON op.id = dp.position_id
       LEFT JOIN nigerian_lgas l ON l.code = op.lga_code
       LEFT JOIN nigerian_constituencies c ON c.code = op.constituency_code
       LEFT JOIN nigerian_wards w ON w.code = op.ward_code
       LEFT JOIN nigerian_lgas wl ON wl.code = w.lga_code
+      LEFT JOIN nigerian_states s ON s.code = COALESCE(op.state_code, l.state_code, c.state_code, wl.state_code)
       WHERE dp.target_field = 'name'
         AND dp.status IN ('submitted','under_review','needs_evidence')
         AND dp.position_id IS NOT NULL
@@ -121,6 +137,13 @@ export class ProposalVerifyService {
         wardCode: r.ward_code ?? undefined,
         constituencyCode: r.constituency_code ?? undefined,
         level, displayValue: pv.displayValue ?? "your official",
+        personName: pv.name ?? undefined,
+        party: pv.partyAcronym ?? undefined,
+        constituencyName: r.constituency_name ?? undefined,
+        wardName: r.ward_name ?? undefined,
+        lgaName: r.lga_name ?? undefined,
+        stateName: r.state_name ?? undefined,
+        sourceUrl: r.source_url ?? undefined,
       });
     }
     for (const r of changeRows) {
@@ -201,14 +224,27 @@ export class ProposalVerifyService {
           level: p.level!,
         });
         const tpl = await this.templates.pickVerify("identify", hashSeed(p.anchorId));
+        // Compose from RESOLVED human pieces — never the raw displayValue/codes.
+        const geo =
+          composeGeo({
+            level: p.level!, constituencyName: p.constituencyName, wardName: p.wardName,
+            lgaName: p.lgaName, stateName: p.stateName,
+          }) || "your area";
+        const sourceNote = p.sourceUrl
+          ? `\n\nThe proposer shared this source: ${p.sourceUrl}`
+          : "";
         text = fillVerifyTemplate(tpl, {
-          claim: p.displayValue ?? "your official", name: "", fieldLabel: "", value: "", url,
+          claim: "", name: p.personName ?? "your official", party: p.party ?? "",
+          role: humanizeRole(p.role!), geo, sourceNote, fieldLabel: "", value: "", url,
         });
+        // Empty-party guard: the identify form requires a party, but if one is
+        // ever missing collapse the "({party})" remnant so we never render " ()".
+        if (!p.party) text = text.replace(/\s*\(\)/g, "");
       } else {
         url = buildProposalVerifyUrl({ kind: "change", slug: p.slug! });
         const tpl = await this.templates.pickVerify("change", hashSeed(p.anchorId));
         text = fillVerifyTemplate(tpl, {
-          claim: "", name: p.officialName ?? "this official",
+          claim: "", name: p.officialName ?? "this official", party: "", role: "", geo: "",
           fieldLabel: humanizeField(p.targetField!), value: p.proposedScalar ?? "", url,
         });
       }
