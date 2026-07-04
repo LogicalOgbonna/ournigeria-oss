@@ -372,11 +372,13 @@ export function OfficialProfile({
         )}
 
         {/* Retention Phase 1 — explore the jurisdictions this official serves */}
-        <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+        <div className="mt-10">
+          <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+        </div>
 
         {/* Retention Phase 1 — the other people who represent this area */}
         {peers.length > 0 && (
-          <section data-testid="peer-officials">
+          <section data-testid="peer-officials" className="mt-10">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Other representatives for {peerAreaLabel}
             </h2>
