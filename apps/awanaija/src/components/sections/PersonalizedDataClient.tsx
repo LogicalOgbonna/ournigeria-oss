@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -40,6 +40,7 @@ type GeoOfficial = {
   constituency?: string | null;
   email?: string | null;
   image?: string | null;
+  proposed?: boolean;
   [key: string]: unknown;
 };
 
@@ -106,6 +107,7 @@ type ProfileOfficialRow =
       contact?: string | null;
       contactType?: string;
       image?: string | null;
+      proposed?: boolean;
       [key: string]: unknown;
     };
 
@@ -191,21 +193,21 @@ export function transformProfileData(
   
   if (lgaDetails?.senator) {
     const sen = lgaDetails.senator;
-    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image });
+    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image, proposed: sen.proposed });
   } else {
     officials.push({ isMissing: true, role: "Senator" });
   }
   
   if (lgaDetails?.houseMembers?.[0]) {
     const rep = lgaDetails.houseMembers[0];
-    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image });
+    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image, proposed: rep.proposed });
   } else {
     officials.push({ isMissing: true, role: "House of Reps" });
   }
   
   if (lgaDetails?.stateAssemblyMembers?.[0]) {
     const mha = lgaDetails.stateAssemblyMembers[0];
-    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image });
+    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image, proposed: mha.proposed });
   } else {
     officials.push({ isMissing: true, role: "State House" });
   }
@@ -934,6 +936,12 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate mt-0.5">
                             {official.role}
                           </p>
+                          {official.proposed && (
+                            <span className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <AlertCircle className="w-3 h-3" />
+                              Proposed · unverified
+                            </span>
+                          )}
                           <div className="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <Calendar className="h-3 w-3" /> 
