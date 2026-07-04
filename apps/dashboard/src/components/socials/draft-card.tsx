@@ -216,7 +216,7 @@ export function DraftCard({ draft, onChanged }: DraftCardProps) {
 
         {/* Preview */}
         {isIdentify ? (
-          <div className="rounded-lg border p-4 whitespace-pre-wrap text-sm">
+          <div className="rounded-lg border p-4 whitespace-pre-wrap break-words text-sm">
             {editing ? draftText : draft.content}
           </div>
         ) : isQuote ? (
