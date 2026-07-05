@@ -6,7 +6,7 @@ import { Footer } from "@/components/sections/Footer";
 import type { Official, ChainEntry, Position } from "@/lib/api";
 import { formatOfficialLocation } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
 const SITE_URL = "https://ournigeria.ng";
 
 // Legacy /officials/<uuid> URLs 308-redirect to the slug. Matches a canonical UUID.

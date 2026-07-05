@@ -6,7 +6,7 @@ import { PartyProfile } from "./PartyProfile";
 import { stateLabel } from "@/lib/states";
 import type { PartyDetail } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
 const SITE_URL = "https://ournigeria.ng";
 
 async function getParty(acronym: string): Promise<PartyDetail | null> {
