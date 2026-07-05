@@ -16,8 +16,10 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
-import type { Official, Proposal } from "@/lib/api";
+import type { Official, Proposal, ChainEntry } from "@/lib/api";
 import { voteOnProposal, formatOfficialLocation } from "@/lib/api";
+import { RelatedLinks, type RelatedLink } from "@/components/civic/RelatedLinks";
+import { OfficialCard } from "@/components/civic/OfficialCard";
 
 const FIELD_LABELS: Record<string, string> = {
   name: "Name",
@@ -72,9 +74,33 @@ function formatDateRange(startDate: string, endDate: string | null): string {
   return `Since ${fmt(startDate)}`;
 }
 
-export function OfficialProfile({ official }: { official: Official }) {
+export function OfficialProfile({
+  official,
+  peers = [],
+  showHelpComplete = true,
+  showChallenge = true,
+  showProposals = true,
+  showPeers = true,
+  topSlot,
+  bottomSlot,
+  whereServeLast = false,
+}: {
+  official: Official;
+  peers?: ChainEntry[];
+  showHelpComplete?: boolean;
+  showChallenge?: boolean;
+  showProposals?: boolean;
+  showPeers?: boolean;
+  topSlot?: React.ReactNode;
+  bottomSlot?: React.ReactNode;
+  /** Render the "Where they serve" block at the very end (after bottomSlot)
+   *  instead of its default mid-body position — used by the seat-confirm view
+   *  so the verify action precedes it. Real profile keeps the default order. */
+  whereServeLast?: boolean;
+}) {
   const [imgError, setImgError] = useState(false);
   const position = official.positions?.[0];
+  const peerAreaLabel = position?.lga || position?.state || "this area";
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
     (f) => f === "partyAcronym" ? !position?.party : !(official as unknown as Record<string, unknown>)[f],
@@ -82,6 +108,39 @@ export function OfficialProfile({ official }: { official: Official }) {
   const filledFields = TRACKED_FIELDS.filter(
     (f) => f === "partyAcronym" ? !!position?.party : !!(official as unknown as Record<string, unknown>)[f],
   );
+
+  // Retention Phase 1 — link the jurisdictions this official serves so a one-shot
+  // profile visitor can explore the place, not just the person. Data-gated:
+  // a card renders only when its target page is reachable (state → LGA → ward).
+  const serveLinks: RelatedLink[] = [];
+  if (position?.state) {
+    const stateSlug = position.state.toLowerCase().replace(/\s+/g, "-");
+    serveLinks.push({ href: `/states/${stateSlug}`, label: position.state, sublabel: "State" });
+    if (position.lga) {
+      const lgaSlug = position.lga.toLowerCase().replace(/\s+/g, "-");
+      serveLinks.push({
+        href: `/states/${stateSlug}/${lgaSlug}`,
+        label: position.lga,
+        sublabel: "Local Government",
+      });
+      if (position.ward) {
+        const wardSlug = position.ward.toLowerCase().split("/")[0].replace(/\s+/g, "-");
+        serveLinks.push({
+          href: `/states/${stateSlug}/${lgaSlug}/${wardSlug}`,
+          label: position.ward,
+          sublabel: "Ward",
+        });
+      }
+    }
+  }
+  // Constituency is its own jurisdiction (senators/reps/MHAs) — link to its page.
+  if (position?.constituency && position?.constituencyCode) {
+    serveLinks.push({
+      href: `/constituencies/${position.constituencyCode}`,
+      label: position.constituency,
+      sublabel: "Constituency",
+    });
+  }
 
   return (
     <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
@@ -94,6 +153,8 @@ export function OfficialProfile({ official }: { official: Official }) {
           <ArrowLeft className="w-4 h-4" />
           Back to officials
         </Link>
+
+        {topSlot}
 
         {/* Unverified-submission banner: this record exists only via a pending,
             admin-unapproved citizen "identify" proposal. */}
@@ -288,7 +349,7 @@ export function OfficialProfile({ official }: { official: Official }) {
         )}
 
         {/* Help Complete This Profile */}
-        {missingFields.length > 0 && (
+        {showHelpComplete && missingFields.length > 0 && (
           <section className="mb-9">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Help Complete This Profile
@@ -311,12 +372,12 @@ export function OfficialProfile({ official }: { official: Official }) {
         )}
 
         {/* Challenge / Correct Information */}
-        {filledFields.length > 0 && (
+        {showChallenge && filledFields.length > 0 && (
           <ChallengeButton officialId={official.id} fields={filledFields} />
         )}
 
         {/* Community Proposals */}
-        {official.proposals && official.proposals.length > 0 && (
+        {showProposals && official.proposals && official.proposals.length > 0 && (
           <section id="proposals">
             <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
               Community Proposals ({official.proposals.length})
@@ -327,6 +388,41 @@ export function OfficialProfile({ official }: { official: Official }) {
               ))}
             </div>
           </section>
+        )}
+
+        {/* Retention Phase 1 — explore the jurisdictions this official serves */}
+        {!whereServeLast && (
+          <div className="mt-10">
+            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+          </div>
+        )}
+
+        {/* Retention Phase 1 — the other people who represent this area */}
+        {showPeers && peers.length > 0 && (
+          <section data-testid="peer-officials" className="mt-10">
+            <h2 className="font-heading text-base font-semibold text-slate-900 dark:text-white mb-4">
+              Other representatives for {peerAreaLabel}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {peers.map((entry) => (
+                <OfficialCard
+                  key={entry.official!.id}
+                  official={entry.official}
+                  position={entry.position}
+                  role={entry.role}
+                  showProposals={false}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {bottomSlot}
+
+        {whereServeLast && (
+          <div className="mt-10">
+            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+          </div>
         )}
       </div>
     </main>

@@ -136,6 +136,7 @@ export class ReplyQueueService {
     dataQuery?: string;
     triggerTopic?: string;
     discoveredTweetId?: string;
+    source?: string;
   }) {
     const tweetId = data.originalTweet.id;
     return this.prisma.socialPost.create({
@@ -143,6 +144,7 @@ export class ReplyQueueService {
         platform: "twitter",
         postType: data.action,
         content: data.content,
+        source: data.source,
         // Reply fields (existing schema; reused for both reply and quote so
         // the dashboard always has author handle/text on hand without joining
         // the snapshot json).
@@ -186,7 +188,7 @@ export class ReplyQueueService {
     const where: Prisma.SocialPostWhereInput = {
       postType: filters?.postType
         ? filters.postType
-        : { in: ["reply", "quote"] },
+        : { in: ["reply", "quote", "identify_seat", "proposal_verify"] },
     };
 
     if (filters?.reviewStatus) {
@@ -220,16 +222,28 @@ export class ReplyQueueService {
     if (
       post.postType !== "reply" &&
       post.postType !== "quote" &&
-      post.postType !== "retweet"
+      post.postType !== "retweet" &&
+      post.postType !== "identify_seat" &&
+      post.postType !== "proposal_verify"
     ) {
       throw new Error(
-        `Can only approve reply, quote, or retweet drafts, got ${post.postType}`,
+        `Can only approve reply, quote, retweet, identify_seat, or proposal_verify drafts, got ${post.postType}`,
       );
     }
 
     let result: { id: string };
     try {
-      if (post.postType === "retweet") {
+      if (
+        post.postType === "identify_seat" ||
+        post.postType === "proposal_verify"
+      ) {
+        // A parked identify draft has no target tweet — post it as an original.
+        const published = await this.publisher.publishOriginal(
+          post.content,
+          "opinion_tweet",
+        );
+        result = published[0];
+      } else if (post.postType === "retweet") {
         const target = post.quotedTweetId ?? post.inReplyToId;
         if (!target) throw new Error("retweet draft missing target tweet id");
         result = await this.publisher.publishRetweet(target);
@@ -265,7 +279,7 @@ export class ReplyQueueService {
       throw err;
     }
 
-    return this.prisma.socialPost.update({
+    const updated = await this.prisma.socialPost.update({
       where: { id },
       data: {
         status: "published",
@@ -276,6 +290,24 @@ export class ReplyQueueService {
         reviewedAt: new Date(),
       },
     });
+
+    // Flip the identify campaign ledger row so the seat is marked posted and
+    // won't be re-drafted, and record the resulting tweet id for tracking.
+    if (post.postType === "identify_seat") {
+      await this.prisma.identifyCampaignTarget.updateMany({
+        where: { socialPostId: id },
+        data: { status: "posted", tweetId: result.id },
+      });
+    }
+
+    if (post.postType === "proposal_verify") {
+      await this.prisma.proposalVerifyPost.updateMany({
+        where: { socialPostId: id },
+        data: { status: "posted", tweetId: result.id },
+      });
+    }
+
+    return updated;
   }
 
   async reject(id: string, adminId: string) {
@@ -424,6 +456,12 @@ export class ReplyQueueService {
   }
 
   async getFunnel() {
+    // The funnel measures ROAMING → draft conversion, so it counts only roamed
+    // tweets. Inbound (reply-inbox) tweets/drafts are excluded here so they
+    // don't skew the conversion rate. SocialsDiscoveredTweet.source is NOT NULL
+    // ('roam' default); SocialPost.source is nullable on legacy rows, so include
+    // null-or-roam there to keep historical posts counted.
+    const postRoam = { OR: [{ source: null }, { source: "roam" }] };
     const [
       scanned,
       passedClassifier,
@@ -433,32 +471,38 @@ export class ReplyQueueService {
       approved,
       published,
     ] = await Promise.all([
-      this.prisma.socialsDiscoveredTweet.count(),
+      this.prisma.socialsDiscoveredTweet.count({ where: { source: "roam" } }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { classifications: { some: { passedThreshold: true } } },
+        where: {
+          source: "roam",
+          classifications: { some: { passedThreshold: true } },
+        },
       }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { draftStatus: "skipped" },
+        where: { source: "roam", draftStatus: "skipped" },
       }),
       this.prisma.socialsDiscoveredTweet.count({
-        where: { draftStatus: "error" },
+        where: { source: "roam", draftStatus: "error" },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           reviewStatus: { in: ["pending", "recommended"] },
+          ...postRoam,
         },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           reviewStatus: "approved",
+          ...postRoam,
         },
       }),
       this.prisma.socialPost.count({
         where: {
           postType: { in: ["reply", "quote"] },
           status: "published",
+          ...postRoam,
         },
       }),
     ]);

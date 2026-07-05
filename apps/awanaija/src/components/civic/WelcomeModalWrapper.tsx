@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { WelcomeModal } from "./WelcomeModal";
+import { readPersistedLocation } from "@/hooks/usePersistedLocation";
 
 export function WelcomeModalWrapper() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Skip onboarding if the user already has a saved location — the page will
+    // load straight into it, so the "pick your location" prompt is redundant.
+    if (readPersistedLocation()) return;
     // Check if the user has seen the modal before
     const hasSeenModal = localStorage.getItem("hasSeenWelcomeModal");
     if (!hasSeenModal) {

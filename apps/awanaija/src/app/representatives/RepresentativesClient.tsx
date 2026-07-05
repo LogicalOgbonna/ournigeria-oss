@@ -3,10 +3,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Share2, Check, X, Link2 } from "lucide-react";
+import { ArrowLeft, Share2, Check, X, Link2, MapPin } from "lucide-react";
 import type { ChainEntry } from "@/lib/api";
 import { LocationPicker } from "@/components/civic/LocationPicker";
 import { NarrativeView } from "@/components/representatives/NarrativeView";
+import { usePersistedLocation } from "@/hooks/usePersistedLocation";
 
 export function RepresentativesClient({
   initialChain,
@@ -34,6 +35,7 @@ export function RepresentativesClient({
   } | null;
 }) {
   const router = useRouter();
+  const { location: persistedLocation, setLocation: setPersistedLocation } = usePersistedLocation();
   const [loading, setLoading] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -42,6 +44,31 @@ export function RepresentativesClient({
     const timeout = setTimeout(() => setLoading(false), 0);
     return () => clearTimeout(timeout);
   }, [initialLocation, initialChain]);
+
+  // Seed from the persisted location when the page was reached with no URL
+  // params at all — an explicit URL param always takes precedence (keeps
+  // shareable links working), this only fills in the "just landed here"
+  // case so the saved location shows without another manual pick.
+  // Exception: `?change=1` means the user explicitly asked to pick a different
+  // area, so we must NOT seed them back to their saved location — show the
+  // picker instead.
+  useEffect(() => {
+    const wantsChange =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).has("change");
+    if (!initialLocation && persistedLocation?.stateCode && !wantsChange) {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.set("state", persistedLocation.stateCode);
+      if (persistedLocation.stateName) params.set("stateName", persistedLocation.stateName);
+      if (persistedLocation.lgaCode) params.set("lga", persistedLocation.lgaCode);
+      if (persistedLocation.lgaName) params.set("lgaName", persistedLocation.lgaName);
+      if (persistedLocation.wardCode) params.set("ward", persistedLocation.wardCode);
+      if (persistedLocation.wardName) params.set("wardName", persistedLocation.wardName);
+      router.replace(`/representatives?${params.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLocation, persistedLocation]);
 
   const getShareText = useCallback(() => {
     const loc = initialLocation
@@ -56,12 +83,27 @@ export function RepresentativesClient({
     const url = globalThis.location.href;
     const text = getShareText();
 
-    if (navigator.share) {
+    // Native Web Share only on touch devices — on desktop it's unreliable
+    // (some browsers expose navigator.share but hang or silently fail with no
+    // share target, leaving the button doing nothing). Desktop goes straight
+    // to the in-app modal (X / Facebook / WhatsApp / Copy Link).
+    const isTouch =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(pointer: coarse)").matches;
+    const canNativeShare =
+      isTouch &&
+      typeof navigator !== "undefined" &&
+      !!navigator.share &&
+      (navigator.canShare ? navigator.canShare({ url }) : true);
+
+    if (canNativeShare) {
       try {
         await navigator.share({ title: text, url });
         return;
-      } catch {
-        // user cancelled — fall through
+      } catch (err) {
+        // User cancelled the native sheet — don't pop the fallback modal.
+        if (err instanceof Error && err.name === "AbortError") return;
+        // Any other failure falls through to the in-app modal.
       }
     }
 
@@ -87,6 +129,11 @@ export function RepresentativesClient({
     wardName?: string;
   }) {
     setLoading(true);
+
+    // Write-through: persist so other surfaces (home page, civic modal) stay
+    // in sync with the choice made here.
+    setPersistedLocation(loc);
+
     const params = new URLSearchParams();
     params.set("state", loc.stateCode);
     if (loc.stateName) params.set("stateName", loc.stateName);
@@ -94,10 +141,17 @@ export function RepresentativesClient({
     if (loc.lgaName) params.set("lgaName", loc.lgaName);
     if (loc.wardCode) params.set("ward", loc.wardCode);
     if (loc.wardName) params.set("wardName", loc.wardName);
-    
+
     // Server component will handle the fetch when URL changes
     router.push(`/representatives?${params.toString()}`);
   }
+
+  // `?change=1` = the user explicitly wants to pick a different area, so the
+  // picker must start blank (state list) rather than pre-seeded to their saved
+  // location.
+  const changeMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("change");
 
   return (
     <main className="flex-1 max-w-4xl mx-auto px-4 pt-24 pb-20 w-full">
@@ -121,7 +175,7 @@ export function RepresentativesClient({
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
             Select your location to see who represents you
           </p>
-          <LocationPicker onLocationSelect={handleLocationSelect} />
+          <LocationPicker onLocationSelect={handleLocationSelect} initialLocation={changeMode ? undefined : persistedLocation} />
         </div>
       )}
 
@@ -139,6 +193,35 @@ export function RepresentativesClient({
       {/* Narrative view */}
       {!loading && initialLocation && initialChain.length > 0 && (
         <>
+          {/* Prominent location bar — always visible so changing area is one
+              click, not a buried button at the bottom of the page. */}
+          <div className="max-w-3xl mx-auto mb-6 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/60 dark:bg-emerald-950/30 px-3 py-2.5 sm:px-4 sm:py-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <MapPin className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div className="min-w-0">
+                <p className="font-mono text-[10px] sm:text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  You are viewing
+                </p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  {[initialLocation.stateName, initialLocation.lgaName, initialLocation.wardName]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setLoading(true);
+                router.push("/representatives?change=1");
+              }}
+              aria-label="Change location"
+              className="shrink-0 inline-flex items-center rounded-full border border-emerald-300 dark:border-emerald-700 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 transition-colors"
+            >
+              <span className="sm:hidden">Change</span>
+              <span className="hidden sm:inline">Change location</span>
+            </button>
+          </div>
+
           <NarrativeView
             chain={initialChain}
             location={initialLocation}
@@ -160,11 +243,11 @@ export function RepresentativesClient({
               <button
                 onClick={() => {
                   setLoading(true);
-                  router.push("/representatives");
+                  router.push("/representatives?change=1");
                 }}
                 className="text-sm text-slate-500 hover:text-emerald-600 underline"
               >
-                Explore other areas
+                Change location
               </button>
             </div>
           </div>

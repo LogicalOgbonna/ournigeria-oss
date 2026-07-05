@@ -18,6 +18,10 @@ export interface DiscoveredTweetUpsert {
   likeCount: number;
   isQuote: boolean;
   isReply: boolean;
+  inReplyToTweetId: string | null;
+  conversationId: string | null;
+  quotedText: string | null;
+  quotedAuthorHandle: string | null;
   tweetCreatedAt: Date;
 }
 
@@ -54,6 +58,11 @@ export class DiscoveredTweetRepo {
         likeCount: data.likeCount,
         authorFollowers: data.authorFollowers,
         authorProfileImageUrl: data.authorProfileImageUrl,
+        // Backfill thread/quote context if an earlier discovery predated it.
+        inReplyToTweetId: data.inReplyToTweetId,
+        conversationId: data.conversationId,
+        quotedText: data.quotedText,
+        quotedAuthorHandle: data.quotedAuthorHandle,
       },
     });
   }

@@ -105,6 +105,33 @@ export async function getWards(lgaCode: string, init?: RequestInit) {
   );
 }
 
+export interface ConstituencyDetails {
+  code: string;
+  name: string;
+  type: string; // federal | state | senatorial
+  stateCode: string;
+  stateName: string;
+  representatives: {
+    id: string;
+    slug: string | null;
+    name: string;
+    role: string;
+    party: string;
+    image: string | null;
+    email: string | null;
+  }[];
+  wards: { code: string; name: string; lgaName: string }[];
+  lgas: { code: string; name: string }[];
+  projects: unknown[];
+}
+
+export async function getConstituencyDetails(code: string, init?: RequestInit) {
+  return apiFetch<ConstituencyDetails>(
+    `/geo/constituencies/${encodeURIComponent(code)}`,
+    init,
+  );
+}
+
 export async function getParties() {
   return apiFetch<{ acronym: string; name: string }[]>("/geo/parties");
 }
@@ -182,6 +209,40 @@ export async function identifyOfficial(data: {
     credentials: "include",
     body: JSON.stringify(data),
   });
+}
+
+export interface SeatCandidate {
+  id: string;
+  name: string;
+  partyAcronym: string | null;
+  sourceUrl: string | null;
+  voteScore: number;
+  confirmCount: number;
+  voteCount: number;
+  createdAt: string;
+}
+
+export interface SeatCandidatesResponse {
+  seat: { role: string; column: string; code: string };
+  hasCanonical: boolean;
+  official?: { id: string; name: string; slug: string | null; imageUrl: string | null };
+  positionId?: string;
+  candidates: SeatCandidate[];
+}
+
+export async function getSeatCandidates(params: {
+  role: string;
+  wardCode?: string;
+  lgaCode?: string;
+  constituencyCode?: string;
+  stateCode?: string;
+}) {
+  const qs = new URLSearchParams({ role: params.role });
+  if (params.wardCode) qs.set("wardCode", params.wardCode);
+  if (params.lgaCode) qs.set("lgaCode", params.lgaCode);
+  if (params.constituencyCode) qs.set("constituencyCode", params.constituencyCode);
+  if (params.stateCode) qs.set("stateCode", params.stateCode);
+  return apiFetch<SeatCandidatesResponse>(`/proposals/seat?${qs.toString()}`);
 }
 
 export async function claimProposal(proposalId: string) {

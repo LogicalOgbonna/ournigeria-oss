@@ -15,6 +15,7 @@ import {
 import {
   getParties, getStates, getLgas, getWards, getConstituencies,
   identifyOfficial, claimProposal,
+  type SeatCandidate,
 } from "@/lib/api";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
@@ -168,6 +169,39 @@ export function useIdentifyForm(ctx: ProposalContext) {
     }
   }
 
+  // Confirm an existing seat candidate: submits an identification with the given
+  // exact name so the API resolves it to a corroboration (not a duplicate).
+  // Unlike submit(), this is NOT gated on party — the name + seat is enough to
+  // corroborate an existing candidate.
+  async function confirmName(candidateName: string) {
+    if (!candidateName.trim() || !locationComplete) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const result = await identifyOfficial({
+        name: candidateName.trim(),
+        role,
+        partyAcronym: party || undefined,
+        sourceUrl: sourceUrl.trim() || undefined,
+        stateCode: stateCode || undefined,
+        lgaCode: lgaCode || undefined,
+        wardCode: wardCode || undefined,
+        constituencyCode: constituencyCode || undefined,
+      });
+      setNewOfficialId(result.officialId);
+      setNewProposalId(result.id);
+      setIsAnonymous(result.trust === "anonymous");
+      setName(candidateName.trim());
+      setSuccess(true);
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>;
+      if (e.status === 429) setError("You've submitted too many recently. Please try again later.");
+      else setError((e.message as string) || "Failed to submit");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return {
     role, setRole,
     stateCode, setStateCode, stateName, setStateName,
@@ -178,7 +212,7 @@ export function useIdentifyForm(ctx: ProposalContext) {
     profile, setProfile, sourceUrl, setSourceUrl,
     parties, submitting, success, newOfficialId, newProposalId, isAnonymous, setIsAnonymous,
     error, showAuth, setShowAuth,
-    depth, locationComplete, coreReady, locationLabel, submit,
+    depth, locationComplete, coreReady, locationLabel, submit, confirmName,
   };
 }
 
@@ -400,6 +434,109 @@ export function LocationChip({ form }: { form: IdentifyForm }) {
         </p>
         <p className="text-sm text-slate-700 dark:text-slate-300 truncate">{form.locationLabel()}</p>
       </div>
+    </div>
+  );
+}
+
+// ─── Seat verification (fetch-existing-first) ───────────────────────────────
+
+// Shown when the seat already has proposed candidate(s). Lets the citizen
+// corroborate the leading name (a "confirm"), suggest a different name (a
+// competing submission), or attach a source.
+export function SeatVerificationView({
+  form,
+  candidates,
+  onSuggestDifferent,
+}: {
+  form: IdentifyForm;
+  candidates: SeatCandidate[];
+  onSuggestDifferent: () => void;
+}) {
+  const [showSource, setShowSource] = useState(false);
+  const [leader, ...others] = candidates;
+  if (!leader) return null;
+
+  return (
+    <div className="space-y-5">
+      <LocationChip form={form} />
+
+      <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/30 p-4">
+        <p className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-400 font-semibold mb-1">
+          Someone said this seat is held by
+        </p>
+        <p className="text-lg font-bold text-slate-900 dark:text-white">{leader.name}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          {leader.partyAcronym ? `${leader.partyAcronym} · ` : ""}
+          {leader.confirmCount === 1
+            ? "1 person has confirmed this"
+            : `${leader.confirmCount} people have confirmed this`}
+        </p>
+
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => form.confirmName(leader.name)}
+            disabled={form.submitting}
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {form.submitting ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Confirming...</>
+            ) : (
+              <><Check className="w-4 h-4" /> Yes, confirm this</>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onSuggestDifferent}
+            disabled={form.submitting}
+            className="w-full py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+          >
+            Suggest a different name
+          </button>
+        </div>
+
+        <div className="mt-3">
+          {!showSource ? (
+            <button
+              type="button"
+              onClick={() => setShowSource(true)}
+              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:underline"
+            >
+              <Link2 className="w-3.5 h-3.5" /> Add a source
+            </button>
+          ) : (
+            <SourceField form={form} />
+          )}
+        </div>
+      </div>
+
+      {others.length > 0 && (
+        <div>
+          <p className="text-xs uppercase tracking-wide text-slate-400 font-medium mb-2">
+            Other proposed names
+          </p>
+          <ul className="space-y-1.5">
+            {others.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700"
+              >
+                <span className="text-sm text-slate-700 dark:text-slate-300 truncate">
+                  {c.name}
+                  {c.partyAcronym && (
+                    <span className="text-slate-400"> · {c.partyAcronym}</span>
+                  )}
+                </span>
+                <span className="text-xs text-slate-400 shrink-0 ml-2">
+                  {c.confirmCount === 1 ? "1 confirm" : `${c.confirmCount} confirms`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <ErrorBox message={form.error} />
     </div>
   );
 }

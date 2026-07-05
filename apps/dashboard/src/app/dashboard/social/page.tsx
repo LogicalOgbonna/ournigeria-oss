@@ -82,6 +82,11 @@ export default function SocialQueuePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/social/campaign">
+            <Button variant="outline" size="sm">
+              Campaign
+            </Button>
+          </Link>
           <Link href="/dashboard/social/topics">
             <Button variant="outline" size="sm">
               Topics
@@ -162,6 +167,8 @@ export default function SocialQueuePage() {
             <SelectItem value="all">All types</SelectItem>
             <SelectItem value="reply">Replies</SelectItem>
             <SelectItem value="quote">Quotes</SelectItem>
+            <SelectItem value="identify_seat">Identify seat</SelectItem>
+            <SelectItem value="proposal_verify">Verify proposal</SelectItem>
           </SelectContent>
         </Select>
       </div>

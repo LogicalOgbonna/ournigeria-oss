@@ -10,13 +10,20 @@ import {
   createProposal,
   claimProposal,
   getParties,
+  getSeatCandidates,
   type Official,
+  type SeatCandidate,
 } from "@/lib/api";
+import { Navbar } from "@/components/sections/Navbar";
+import { Footer } from "@/components/sections/Footer";
 import {
   useIdentifyForm, ctxFromParams, hasFullContext, roleConfig,
   RoleField, LocationField, LocationChip, NameField, PartyField,
   OptionalDetails, SourceField, SubmitButton, ErrorBox, AuthModal,
+  SeatVerificationView,
 } from "@/components/proposals/identify-form";
+import { SeatVerifyBar } from "@/components/proposals/SeatVerifyBar";
+import { OfficialProfile } from "@/app/officials/[slug]/OfficialProfile";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
 
 const FIELD_LABELS: Record<string, string> = {
@@ -54,9 +61,13 @@ const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
 
 export default function NewProposalPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]" />}>
-      <NewProposalContent />
-    </Suspense>
+    <div className="min-h-screen flex flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+      <Navbar />
+      <Suspense fallback={<div className="flex-grow pt-24" />}>
+        <NewProposalContent />
+      </Suspense>
+      <Footer />
+    </div>
   );
 }
 
@@ -83,6 +94,79 @@ function IdentifyOfficialContent() {
   const form = useIdentifyForm(ctx);
   const [passedGate, setPassedGate] = useState(locked);
 
+  // Fetch-existing-first: once the seat (role + full location) is known, check
+  // whether anyone has already proposed a name for it. If so, we show the
+  // verification view (confirm / suggest-different / add-source) instead of a
+  // blank form. Fails open — any fetch error falls back to the blank form.
+  const [candidates, setCandidates] = useState<SeatCandidate[] | null>(null);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [forceForm, setForceForm] = useState(false);
+  // Canonical official id for the seat, if one exists (populated by the same
+  // /proposals/seat response that gives us `candidates`).
+  const [canonicalOfficialId, setCanonicalOfficialId] = useState<string | null>(null);
+
+  const seatReady = passedGate && !!form.role && form.locationComplete;
+  const seatKey = seatReady
+    ? [form.role, form.stateCode, form.lgaCode, form.wardCode, form.constituencyCode].join("|")
+    : null;
+
+  useEffect(() => {
+    if (!seatKey || !form.role) {
+      setCandidates(null);
+      setCanonicalOfficialId(null);
+      return;
+    }
+    let cancelled = false;
+    setCandidatesLoading(true);
+    getSeatCandidates({
+      role: form.role,
+      stateCode: form.stateCode || undefined,
+      lgaCode: form.lgaCode || undefined,
+      wardCode: form.wardCode || undefined,
+      constituencyCode: form.constituencyCode || undefined,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setCandidates(res.candidates || []);
+        setCanonicalOfficialId(res.hasCanonical && res.official?.id ? res.official.id : null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCandidates([]); // fail open → blank form
+        setCanonicalOfficialId(null);
+      })
+      .finally(() => { if (!cancelled) setCandidatesLoading(false); });
+    return () => { cancelled = true; };
+  }, [seatKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const showVerification =
+    seatReady && !forceForm && !!candidates && candidates.length > 0;
+
+  // Seat-verify path landing on an already-proposed seat: fetch the full
+  // canonical official (hero + positions + bio + contact) so we can show the
+  // real profile page instead of a bare confirmation card, with the confirm
+  // actions in a banner on top. Fails open — no canonical official, or a
+  // failed fetch, falls back to the plain SeatVerificationView card.
+  const [fullOfficial, setFullOfficial] = useState<Official | null>(null);
+  const [fullOfficialLoading, setFullOfficialLoading] = useState(false);
+  const [fullOfficialError, setFullOfficialError] = useState(false);
+
+  useEffect(() => {
+    if (!showVerification || !canonicalOfficialId) {
+      setFullOfficial(null);
+      setFullOfficialError(false);
+      return;
+    }
+    let cancelled = false;
+    setFullOfficialLoading(true);
+    setFullOfficialError(false);
+    getOfficialById(canonicalOfficialId)
+      .then((res) => { if (!cancelled) setFullOfficial(res); })
+      .catch(() => { if (!cancelled) setFullOfficialError(true); })
+      .finally(() => { if (!cancelled) setFullOfficialLoading(false); });
+    return () => { cancelled = true; };
+  }, [showVerification, canonicalOfficialId]);
+
   // Revalidate the newly-created official's page so it shows the proposal.
   useEffect(() => {
     if (form.success && form.newOfficialId) {
@@ -101,8 +185,8 @@ function IdentifyOfficialContent() {
 
   if (form.success) {
     return (
-      <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-        <div className="max-w-lg mx-auto px-4 pt-20 text-center">
+      <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+        <div className="max-w-lg mx-auto px-4 pb-8 text-center">
           <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-heading mb-2">
             Official Identified!
@@ -158,9 +242,44 @@ function IdentifyOfficialContent() {
     );
   }
 
+  // Seat-verify-with-full-profile path: a canonical official already exists
+  // for this seat, so show the real profile (hero + positions + details)
+  // with the confirm/suggest-different banner on top instead of the bare
+  // confirmation card. Falls back to the plain SeatVerificationView below if
+  // there's no canonical official, or if the full official fetch fails.
+  if (passedGate && showVerification && canonicalOfficialId && !fullOfficialError) {
+    if (fullOfficialLoading || !fullOfficial) {
+      return (
+        <main className="flex-grow pt-24 flex items-center justify-center bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+        </main>
+      );
+    }
+    return (
+      <OfficialProfile
+        official={fullOfficial}
+        peers={[]}
+        showHelpComplete={false}
+        showChallenge={false}
+        showProposals={false}
+        showPeers={false}
+        whereServeLast
+        bottomSlot={
+          <div className="mt-10">
+            <SeatVerifyBar
+              form={form}
+              candidates={candidates!}
+              onSuggestDifferent={() => setForceForm(true)}
+            />
+          </div>
+        }
+      />
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+      <div className="max-w-lg mx-auto px-4 pb-8">
         <Link
           href="/representatives"
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-600 mb-6"
@@ -202,33 +321,50 @@ function IdentifyOfficialContent() {
           <>
             <div className="mb-6">
               <h1 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
-                Identify {roleConfig(form.role)?.label || "official"}
+                {showVerification
+                  ? `Is this the ${roleConfig(form.role)?.label || "official"}?`
+                  : `Identify ${roleConfig(form.role)?.label || "official"}`}
               </h1>
               {form.locationLabel() && (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{form.locationLabel()}</p>
               )}
             </div>
-            <div className="space-y-5">
-              <LocationChip form={form} />
-              {!locked && (
-                <button
-                  type="button"
-                  onClick={() => setPassedGate(false)}
-                  className="text-xs text-emerald-600 hover:underline"
-                >
-                  ← Change position / location
-                </button>
-              )}
-              <NameField form={form} />
-              <PartyField form={form} />
-              <OptionalDetails form={form} />
-              <SourceField form={form} />
-              <ErrorBox message={form.error} />
-              <SubmitButton form={form} label="Submit Identification" />
-              <p className="text-xs text-slate-400 text-center">
-                Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
-              </p>
-            </div>
+            {candidatesLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+              </div>
+            ) : showVerification ? (
+              <SeatVerificationView
+                form={form}
+                candidates={candidates!}
+                onSuggestDifferent={() => setForceForm(true)}
+              />
+            ) : (
+              <div className="space-y-5">
+                <LocationChip form={form} />
+                {(!locked || forceForm) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (forceForm) setForceForm(false);
+                      else { setForceForm(false); setPassedGate(false); }
+                    }}
+                    className="text-xs text-emerald-600 hover:underline"
+                  >
+                    ← {forceForm ? "Back to suggestions" : "Change position / location"}
+                  </button>
+                )}
+                <NameField form={form} />
+                <PartyField form={form} />
+                <OptionalDetails form={form} />
+                <SourceField form={form} />
+                <ErrorBox message={form.error} />
+                <SubmitButton form={form} label="Submit Identification" />
+                <p className="text-xs text-slate-400 text-center">
+                  Identifications are reviewed by admin before being published. You can submit up to 5 proposals per day.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -340,7 +476,7 @@ function EditOfficialContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)] flex items-center justify-center">
+      <main className="flex-grow pt-24 flex items-center justify-center bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
         <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
       </main>
     );
@@ -348,8 +484,8 @@ function EditOfficialContent() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-        <div className="max-w-lg mx-auto px-4 pt-20 text-center">
+      <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+        <div className="max-w-lg mx-auto px-4 pb-8 text-center">
           <CheckCircle className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-heading mb-2">
             Proposal Submitted!
@@ -399,8 +535,8 @@ function EditOfficialContent() {
   // No officialId and no role — show error
   if (!officialId) {
     return (
-      <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-        <div className="max-w-lg mx-auto px-4 pt-20 text-center">
+      <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+        <div className="max-w-lg mx-auto px-4 pb-8 text-center">
           <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
             Missing Context
@@ -420,8 +556,8 @@ function EditOfficialContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-      <div className="max-w-lg mx-auto px-4 pt-6 pb-8">
+    <main className="flex-grow pt-24 bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.10_0.005_160)]">
+      <div className="max-w-lg mx-auto px-4 pb-8">
         <Link
           href={official ? `/officials/${official.slug ?? official.id}` : "/"}
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-emerald-600 mb-6"

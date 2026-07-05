@@ -34,6 +34,16 @@ export interface AgentClassification {
   reason: string;
 }
 
+export interface ThreadContextInput {
+  /**
+   * Ancestor tweets oldest-first (root → immediate parent). The tweet being
+   * responded to is NOT included — it's the focal `discoveredTweet`.
+   */
+  ancestors: Array<{ authorHandle: string; text: string }>;
+  /** The tweet the discovered tweet quotes, when it's a quote tweet. */
+  quoted?: { authorHandle: string; text: string } | null;
+}
+
 export interface AgentResult {
   action: "quote" | "reply" | "retweet" | "skip";
   text: string;
@@ -246,22 +256,65 @@ export class AgentService {
       discoveredTweet: DiscoveredTweetSnapshot;
       topic: AgentTopicContext;
       classification: AgentClassification;
+      threadContext?: ThreadContextInput;
+      inbound?: { kind: "inbound_reply" | "mention"; ourPostText?: string };
     },
     toolExecutor: (
       name: string,
       args: Record<string, unknown>,
     ) => Promise<unknown>,
   ): Promise<AgentResult | null> {
-    const { discoveredTweet, topic, classification } = input;
+    const { discoveredTweet, topic, classification, threadContext, inbound } =
+      input;
 
-    const userPrompt = `You are responding to this tweet:
+    // Inbound engagement (a reply to us / a mention) is framed differently: we
+    // KNOW they engaged us, so reply in context, and never quote/retweet.
+    const inboundIntro = !inbound
+      ? ""
+      : inbound.kind === "inbound_reply"
+        ? `This is a REPLY to OurNigeria's OWN post — someone engaged us. Reply to them directly and in context.${inbound.ourPostText ? `\n\nOurNigeria's original post:\n"""\n${inbound.ourPostText}\n"""` : ""}\n\n`
+        : `This is a MENTION of OurNigeria — someone tagged the account. Reply only if there's a real, data-backed point to make.\n\n`;
+    const actionLine = inbound
+      ? `2. Decide reply / skip ONLY (never quote or retweet for inbound engagement). Skip is fine if the data isn't there or a reply adds no value.`
+      : `2. Decide quote / reply / skip. Skip is fine if data isn't there or response would be weak.`;
+
+    // When the tweet is a reply / quote, show the surrounding conversation so
+    // the agent grounds its response in the thread instead of the lone tweet.
+    const hasAncestors = !!threadContext?.ancestors?.length;
+    const hasQuoted = !!threadContext?.quoted?.text;
+    let contextBlock = "";
+    if (hasAncestors) {
+      const chain = threadContext!.ancestors
+        .map((a) => `@${a.authorHandle}: ${a.text}`)
+        .join("\n");
+      contextBlock += `Conversation so far (oldest first — you are replying to the LAST tweet, shown under "Tweet text" below):
+"""
+${chain}
+"""
+
+`;
+    }
+    if (hasQuoted) {
+      contextBlock += `The tweet you're responding to QUOTES this tweet:
+"""
+@${threadContext!.quoted!.authorHandle}: ${threadContext!.quoted!.text}
+"""
+
+`;
+    }
+    const contextInstruction =
+      hasAncestors || hasQuoted
+        ? `\n0. Read the conversation/quoted tweet above first. Respond to the tweet IN CONTEXT — answer what the thread is actually asking, don't treat the last tweet as if it stands alone, and don't repeat a point already made above. Never quote-tweet a mid-thread reply.`
+        : "";
+
+    const userPrompt = `${inboundIntro}You are responding to this tweet:
 
 Author: ${discoveredTweet.authorName} (@${discoveredTweet.authorScreenName})
 Followers: ${discoveredTweet.authorFollowers}
 Engagement: ${discoveredTweet.likeCount} likes, ${discoveredTweet.replyCount} replies, ${discoveredTweet.quoteCount} quotes
 Posted: ${discoveredTweet.tweetCreatedAt.toISOString()}
 
-Tweet text:
+${contextBlock}Tweet text:
 """
 ${discoveredTweet.text}
 """
@@ -271,9 +324,9 @@ Topic description: ${topic.description}
 
 Classifier said: relevance ${classification.score.toFixed(2)}, intent="${classification.intent}", reason="${classification.reason}"
 
-Your job:
+Your job:${contextInstruction}
 1. Search OurNigeria's data tools for facts that meaningfully respond to this tweet. Prefer the ${topic.domain}_search tool first, but use others if relevant.
-2. Decide quote / reply / skip. Skip is fine if data isn't there or response would be weak.
+${actionLine}
 3. Return the JSON object only.`;
 
     const collectedToolResults: unknown[] = [];

@@ -6190,5 +6190,13 @@
     "source_url": null,
     "source_date": null,
     "confidence": "high"
+  },
+  {
+    "senatorial_district_code": "sen_borno_north",
+    "lga_code": "borno_kaga",
+    "source": "inec_borno_sd_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/BORNO.xlsx",
+    "source_date": "2026-07",
+    "confidence": "high"
   }
 ]

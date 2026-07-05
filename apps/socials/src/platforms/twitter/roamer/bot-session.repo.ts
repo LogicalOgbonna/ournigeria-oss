@@ -115,7 +115,11 @@ export class BotSessionRepo {
     authorization: string;
     xClientTransactionId: string;
     xClientUuid: string;
-    searchTimelineOpHash: string;
+    // Each capture carries only the op-hash it saw. Set just that column so
+    // capturing SearchTimeline doesn't wipe a previously-captured TweetDetail
+    // hash (and vice versa).
+    searchTimelineOpHash?: string | null;
+    tweetDetailOpHash?: string | null;
   }) {
     const now = new Date();
     const data = {
@@ -124,7 +128,6 @@ export class BotSessionRepo {
       authorization: input.authorization,
       xClientTransactionId: input.xClientTransactionId,
       xClientUuid: input.xClientUuid,
-      searchTimelineOpHash: input.searchTimelineOpHash,
       lastUsedAt: now,
       // A fresh capture means this session is good to use again: make it
       // immediately claimable and clear any prior working/error/cooldown state.
@@ -134,11 +137,101 @@ export class BotSessionRepo {
       consecutiveErrors: 0,
       cooldownUntil: null,
       lastError: null,
+      // Only touch a hash column when this capture actually carried it, so
+      // capturing one op never nulls the other op's stored hash.
+      ...(input.searchTimelineOpHash
+        ? { searchTimelineOpHash: input.searchTimelineOpHash }
+        : {}),
+      ...(input.tweetDetailOpHash
+        ? { tweetDetailOpHash: input.tweetDetailOpHash }
+        : {}),
     };
+
     return this.prisma.socialsBotSession.upsert({
       where: { userName_path: { userName: input.userName, path: input.path } },
       create: { ...data, userName: input.userName, path: input.path },
       update: data,
+    });
+  }
+
+  /**
+   * How many sessions carry a TweetDetail op-hash — i.e. can serve conversation
+   * reads (thread context + reply inbox). Zero means those features no-op until
+   * an operator re-captures with the updated extension.
+   */
+  async countWithTweetDetailHash(): Promise<number> {
+    return this.prisma.socialsBotSession.count({
+      where: { tweetDetailOpHash: { not: null } },
+    });
+  }
+
+  /**
+   * Pick a session for a light, one-shot conversation read (TweetDetail).
+   *
+   * Deliberately NOT `claimRandomIdle`: that flips a session to `working` for
+   * the roamer's 300s pagination window. Here we only READ one tweet, so we take
+   * a session WITHOUT locking it — and only an `idle` one, never a `working`
+   * session the roamer is actively paginating on (protects its rate budget; a
+   * 429 there = a 30-min roam cooldown). Respects the separate
+   * `tweetDetailCooldownUntil` backoff, ignores the roamer's `cooldownUntil`
+   * (that's SearchTimeline pacing, not an X-side limit on a single read).
+   *
+   * Returns null when nothing suitable is free — callers MUST degrade (draft
+   * without thread context / skip the inbox cycle), never block.
+   */
+  async pickForRead(opts?: {
+    op?: "tweetDetail" | "search";
+  }): Promise<SocialsBotSession | null> {
+    const op = opts?.op ?? "tweetDetail";
+    const now = new Date();
+    return this.prisma.socialsBotSession.findFirst({
+      where: {
+        status: "idle",
+        ...(op === "tweetDetail"
+          ? { tweetDetailOpHash: { not: null } }
+          : { searchTimelineOpHash: { not: null } }),
+        // tweetDetailCooldownUntil doubles as the generic read backoff for both
+        // op types (a 429 on either should pause light reads on that session).
+        OR: [
+          { tweetDetailCooldownUntil: null },
+          { tweetDetailCooldownUntil: { lt: now } },
+        ],
+      },
+      orderBy: { lastUsedAt: "asc" },
+    });
+  }
+
+  /**
+   * Free sessions stuck in `working` past a crash. The roamer flips a session to
+   * `working` for one window (≤ ROAM_WINDOW_MS ≈ 300s); if the process dies
+   * mid-window the row never returns to `idle` and becomes permanently
+   * unclaimable. maxAgeMs must exceed a legit roam window so we only reap truly
+   * stuck rows. Returns how many were reaped.
+   */
+  async reapStuckWorking(maxAgeMs: number): Promise<number> {
+    const cutoff = new Date(Date.now() - maxAgeMs);
+    const res = await this.prisma.socialsBotSession.updateMany({
+      where: { status: "working", startedWorkingAt: { lt: cutoff } },
+      data: { status: "idle", stoppedWorkingAt: new Date() },
+    });
+    return res.count;
+  }
+
+  /** Back off TweetDetail reads on a session after a 429, without touching its
+   * roam status/cooldown. */
+  async markTweetDetailRateLimited(sessionId: string, cooldownMs: number) {
+    return this.prisma.socialsBotSession.update({
+      where: { id: sessionId },
+      data: { tweetDetailCooldownUntil: new Date(Date.now() + cooldownMs) },
+    });
+  }
+
+  /** Clear only the TweetDetail op-hash (stale/404) — leaves the SearchTimeline
+   * hash and the session otherwise intact so roaming continues. */
+  async clearTweetDetailOpHash(sessionId: string) {
+    return this.prisma.socialsBotSession.update({
+      where: { id: sessionId },
+      data: { tweetDetailOpHash: null },
     });
   }
 

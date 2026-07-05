@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getStates, getLgas, getWards, getOfficials } from '@/lib/api';
+import { getStates, getLgas, getWards, getOfficials, getConstituencies } from '@/lib/api';
 
 export const revalidate = 86400; // Revalidate every 24 hours
 
@@ -38,6 +38,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       });
+
+      // Constituencies in this state (federal/state/senatorial) — SEO pages.
+      try {
+        const constituencies = await getConstituencies(state.code);
+        for (const c of constituencies) {
+          dynamicRoutes.push({
+            url: `${baseUrl}/constituencies/${encodeURIComponent(c.code)}`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly' as const,
+            priority: 0.6,
+          });
+        }
+      } catch {
+        console.warn(`sitemap: constituencies for ${state.name} failed`);
+      }
 
       try {
         const lgas = await getLgas(state.code);
