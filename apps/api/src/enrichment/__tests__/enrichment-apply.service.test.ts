@@ -126,7 +126,7 @@ describe("EnrichmentApplyService.apply — create branch (integration)", () => {
     await svc.apply(p.id, ADMIN);
 
     const pos = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT op.official_id, op.party_acronym, op.start_date, o.name, o.slug, o.completeness_score
+      `SELECT op.official_id, op.party_acronym, op.start_date, o.name, o.slug, o.official_type, o.completeness_score
        FROM official_positions op JOIN nigerian_officials o ON o.id = op.official_id
        WHERE op.ward_code = $1 AND op.role = 'councilor'`, WARD);
     expect(pos.length).toBe(1);
@@ -134,6 +134,11 @@ describe("EnrichmentApplyService.apply — create branch (integration)", () => {
     expect(pos[0].party_acronym).toBe("ZLP");
     // The created official gets a human-readable slug (not a null → UUID-fallback URL).
     expect(pos[0].slug).toBe("created-councilor");
+    // A councilor is an elected official — the person-level official_type must be set
+    // to 'elected' (mirrors the assembly-member create path), not left NULL, so the
+    // record matches official_type='elected' filters and the schema's "every official
+    // is elected" invariant (backfill in migration 20260612030815).
+    expect(pos[0].official_type).toBe("elected");
     expect(Number(pos[0].completeness_score)).toBeGreaterThan(0);
 
     const after = await prisma.changeProposal.findUnique({ where: { id: p.id } });

@@ -211,8 +211,12 @@ export class EnrichmentApplyService {
       // official gets a human-readable /officials/<slug> URL instead of falling back to its UUID.
       const slug = await this.generateUniqueOfficialSlug(tx, entity.official.name, entity.meta?.state);
 
+      // A councilor is an elected official (SIEC LG election), so the person-level
+      // official_type is 'elected' — mirrors the assembly-member create path
+      // (creatable.registry.ts) and the schema invariant that every official is
+      // elected (backfill in migration 20260612030815). chk_official_type permits it.
       const created = await tx.$queryRawUnsafe<{ id: string }[]>(
-        `INSERT INTO nigerian_officials (name, slug) VALUES ($1, $2) RETURNING id`,
+        `INSERT INTO nigerian_officials (name, slug, official_type) VALUES ($1, $2, 'elected') RETURNING id`,
         entity.official.name, slug,
       );
       officialId = created[0].id;
