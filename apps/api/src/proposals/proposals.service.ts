@@ -787,7 +787,8 @@ export class ProposalsService {
         targetField: "name",
         status: { in: ["submitted", "under_review", "needs_evidence"] },
       },
-      orderBy: [{ voteScore: "desc" }, { createdAt: "asc" }],
+      // Rank by votes; newest breaks ties (recent -> oldest).
+      orderBy: [{ voteScore: "desc" }, { createdAt: "desc" }],
       select: {
         id: true, proposedValue: true, sourceUrl: true, voteScore: true,
         upvoteCount: true, createdAt: true, _count: { select: { votes: true } },
@@ -823,7 +824,8 @@ export class ProposalsService {
     const [proposals, total] = await Promise.all([
       this.prisma.dataProposal.findMany({
         where: { status },
-        orderBy: [{ voteScore: "desc" }, { createdAt: "asc" }],
+        // LIFO admin queue: newest submissions first (recent -> oldest).
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip,
         take: limit,
         include: {
@@ -905,7 +907,7 @@ export class ProposalsService {
         positionId: { not: null },
         proposedValue: { path: ["type"], equals: "identify" },
       },
-      orderBy: [{ createdAt: "asc" }],
+      orderBy: [{ createdAt: "desc" }],
       select: {
         id: true, positionId: true, officialId: true, proposedValue: true, sourceUrl: true,
         trust: true, proposerPhone: true, status: true, voteScore: true, upvoteCount: true,
@@ -951,7 +953,7 @@ export class ProposalsService {
     }
 
     const all = Array.from(groups.values()).map((g) => {
-      g.candidates.sort((a: any, b: any) => b.voteScore - a.voteScore || a.createdAt.localeCompare(b.createdAt));
+      g.candidates.sort((a: any, b: any) => b.voteScore - a.voteScore || b.createdAt.localeCompare(a.createdAt));
       g.topVoteScore = g.candidates[0]?.voteScore ?? 0;
       return g;
     });
