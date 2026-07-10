@@ -187,6 +187,9 @@ model StateProfile {
   financeMinistryUrl String? @map("finance_ministry_url") @db.Text
   assemblyWebsiteUrl String? @map("assembly_website_url") @db.Text
   inecInfoUrl        String? @map("inec_info_url") @db.Text
+  // State Independent Electoral Commission (SIEC) — the state body that runs
+  // Local Government elections, distinct from the federal INEC (inecInfoUrl).
+  stateElectoralCommissionUrl String? @map("state_electoral_commission_url") @db.Text
 
   // Contact & accountability
   contactAddress     String? @map("contact_address") @db.Text

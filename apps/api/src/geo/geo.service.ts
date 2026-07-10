@@ -560,6 +560,7 @@ export class GeoService implements OnModuleInit {
               financeMinistry: state.stateProfile.financeMinistryUrl,
               assembly: state.stateProfile.assemblyWebsiteUrl,
               inec: state.stateProfile.inecInfoUrl,
+              stateElectoral: state.stateProfile.stateElectoralCommissionUrl,
             },
             contact: {
               address: state.stateProfile.contactAddress,
