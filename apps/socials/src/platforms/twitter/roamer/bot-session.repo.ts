@@ -242,6 +242,25 @@ export class BotSessionRepo {
     });
   }
 
+  /**
+   * Sessions eligible for a proactive health probe: `idle`, carrying a
+   * SearchTimeline hash, and past any cooldown. Deliberately excludes
+   * `auth_failed` (already known dead — probing again just wastes a request and
+   * re-alerts) and `working` (the roamer is mid-window on it; a probe would
+   * steal its SearchTimeline rate budget and risk a 429 that stalls roaming).
+   */
+  async listHealthProbeable(): Promise<SocialsBotSession[]> {
+    const now = new Date();
+    return this.prisma.socialsBotSession.findMany({
+      where: {
+        status: "idle",
+        searchTimelineOpHash: { not: null },
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: now } }],
+      },
+      orderBy: { lastUsedAt: "asc" },
+    });
+  }
+
   async claimableCount(): Promise<number> {
     return this.prisma.socialsBotSession.count({
       where: {

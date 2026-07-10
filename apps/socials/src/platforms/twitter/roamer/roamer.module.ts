@@ -4,6 +4,7 @@ import { ClassifierService } from "./classifier.service.js";
 import { DiscoveredTweetRepo } from "./discovered-tweet.repo.js";
 import { RoamStateRepo } from "./roam-state.repo.js";
 import { RoamerService } from "./roamer.service.js";
+import { SessionHealthService } from "./session-health.service.js";
 import { SessionRunRepo } from "./session-run.repo.js";
 import { TopicRepo } from "./topic.repo.js";
 import { TwitterConversationService } from "./twitter-conversation.service.js";
@@ -24,6 +25,7 @@ import { XTransactionService } from "./x-transaction.service.js";
     TwitterSearchService,
     TwitterConversationService,
     RoamerService,
+    SessionHealthService,
   ],
   exports: [
     BotSessionRepo,

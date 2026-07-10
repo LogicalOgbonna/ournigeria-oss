@@ -37,6 +37,8 @@ export interface SocialsEnvConfig {
   ROAM_DAILY_SUMMARY_MS?: number;
   ROAM_PRUNE_INTERVAL_MS?: number;
   ROAM_TWEET_SEEN_TTL_DAYS?: number;
+  // Proactive session-health sweep cadence. <= 0 disables it.
+  SOCIALS_SESSION_HEALTH_INTERVAL_MS?: number;
   // Drafter pacing
   SOCIALS_DRAFTER_INTERVAL_MS?: number;
   SOCIALS_DRAFTER_BACKLOG_CAP?: number;
@@ -143,6 +145,11 @@ export function validateEnv(
     ROAM_DAILY_SUMMARY_MS: num("ROAM_DAILY_SUMMARY_MS", 86_400_000),
     ROAM_PRUNE_INTERVAL_MS: num("ROAM_PRUNE_INTERVAL_MS", 86_400_000),
     ROAM_TWEET_SEEN_TTL_DAYS: num("ROAM_TWEET_SEEN_TTL_DAYS", 30),
+    // Default: sweep every 15 min. Set to 0 in Infisical to disable.
+    SOCIALS_SESSION_HEALTH_INTERVAL_MS: num(
+      "SOCIALS_SESSION_HEALTH_INTERVAL_MS",
+      900_000,
+    ),
     SOCIALS_DRAFTER_INTERVAL_MS: num("SOCIALS_DRAFTER_INTERVAL_MS", 30_000),
     SOCIALS_DRAFTER_BACKLOG_CAP: num("SOCIALS_DRAFTER_BACKLOG_CAP", 50),
     SOCIALS_AGENT_DAILY_BUDGET_USD: num("SOCIALS_AGENT_DAILY_BUDGET_USD", 1),
