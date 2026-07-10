@@ -45,6 +45,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://bsiec.benuestate.gov.ng/",
     "contactAddress": "Government House, Kashim Ibrahim Way, Old GRA, Makurdi, Benue State",
     "contactPhone": null,
     "contactEmail": "info@benuestate.gov.ng",
@@ -64,7 +65,8 @@
       "officialWebsiteUrl": "https://benuestate.gov.ng/",
       "contactAddress": "https://benuestate.gov.ng/contact/",
       "contactEmail": "https://benuestate.gov.ng/contact/",
-      "twitterUrl": "https://x.com/benuestategovt"
+      "twitterUrl": "https://x.com/benuestategovt",
+      "stateElectoralCommissionUrl": "https://bsiec.benuestate.gov.ng/"
     }
   },
   "kogi": {
@@ -78,6 +80,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Ministry of Information & Communications, State Secretariat, Lokoja, Kogi State",
     "contactPhone": null,
     "contactEmail": "info@kogistate.gov.ng",
@@ -113,6 +116,7 @@
     "financeMinistryUrl": "https://mof.kw.gov.ng/",
     "assemblyWebsiteUrl": "https://hoa.kw.gov.ng/",
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -147,6 +151,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Nasarawa State Government House, Shendam Road, Lafia, Nasarawa State",
     "contactPhone": null,
     "contactEmail": "info@nasarawastate.gov.ng",
@@ -179,6 +184,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Yakubu Lame Road, Minna 920101, Niger State",
     "contactPhone": null,
     "contactEmail": "info@nigerstate.gov.ng",
@@ -213,6 +219,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://plasiec.ng/",
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -230,7 +237,8 @@
       "landAreaSqKm": "https://en.wikipedia.org/wiki/Plateau_State",
       "officialWebsiteUrl": "https://plateaustate.gov.ng/",
       "newsUrl": "https://www.plateaustate.gov.ng/news/",
-      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Plateau_State_Coat_of_arms.jpg"
+      "sealImageUrl": "https://commons.wikimedia.org/wiki/File:Plateau_State_Coat_of_arms.jpg",
+      "stateElectoralCommissionUrl": "https://plasiec.ng/"
     }
   },
   "fct": {
@@ -244,6 +252,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Plot 1, Kapital Street, Area 11, Garki, PMB 24, FCT Abuja",
     "contactPhone": null,
     "contactEmail": null,
@@ -280,6 +289,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Adamawa State Government House, Dougirei, Yola, Adamawa State",
     "contactPhone": null,
     "contactEmail": "info@adamawastate.gov.ng",
@@ -312,6 +322,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Government House, Bauchi, Bauchi State",
     "contactPhone": null,
     "contactEmail": null,
@@ -343,6 +354,7 @@
     "financeMinistryUrl": "https://pfm.bo.gov.ng/",
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -374,6 +386,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Government House, Jibiro Road, Gombe, Gombe State",
     "contactPhone": null,
     "contactEmail": "info@gombestate.gov.ng",
@@ -406,6 +419,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": "info@tarabastate.gov.ng",
@@ -438,6 +452,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -468,6 +483,7 @@
     "financeMinistryUrl": "https://jsbepd.org/",
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Jigawa State Government House, Dutse, Jigawa State",
     "contactPhone": null,
     "contactEmail": "webmaster@jigawastate.gov.ng",
@@ -502,6 +518,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Sir Kashim Ibrahim House, 44 Polytechnic Road, Badiko, Kaduna, Kaduna State, Nigeria",
     "contactPhone": "0817 0189 999",
     "contactEmail": "info@kdsg.gov.ng",
@@ -535,6 +552,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -568,6 +586,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": "https://www.houseofassembly.kt.gov.ng/",
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -599,6 +618,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Gwadangaji Secretariat Complex, Birnin Kebbi, Kebbi State",
     "contactPhone": null,
     "contactEmail": "info@kebbistate.gov.ng",
@@ -631,6 +651,7 @@
     "financeMinistryUrl": "https://mof.sk.gov.ng/",
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -663,6 +684,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": "https://zsha.zamfara.gov.ng/",
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": "info@zamfara.gov.ng",
@@ -696,6 +718,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -726,6 +749,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -757,6 +781,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -791,6 +816,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -821,6 +847,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -852,6 +879,7 @@
     "financeMinistryUrl": "https://www.aksminfinance.ak.gov.ng/",
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://www.iec.ak.gov.ng/",
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": "info@akwaibomstate.gov.ng",
@@ -873,7 +901,8 @@
       "contactEmail": "https://akwaibomstate.gov.ng/",
       "twitterUrl": "https://akwaibomstate.gov.ng/",
       "facebookUrl": "https://www.facebook.com/aksgovt/",
-      "instagramUrl": "https://www.instagram.com/akwaibomstategovt/"
+      "instagramUrl": "https://www.instagram.com/akwaibomstategovt/",
+      "stateElectoralCommissionUrl": "https://www.iec.ak.gov.ng/"
     }
   },
   "bayelsa": {
@@ -887,6 +916,7 @@
     "financeMinistryUrl": "https://www.mof.by.gov.ng/",
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Government Secretariat, Yenagoa",
     "contactPhone": "+234 806 873 4449",
     "contactEmail": "info@bayelsastate.gov.ng",
@@ -923,6 +953,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -953,6 +984,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Government House, P.M.B. 5001, Asaba, Delta State",
     "contactPhone": "+2348062156341",
     "contactEmail": "admin@deltastate.gov.ng",
@@ -987,6 +1019,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://edsiec.edostate.gov.ng/",
     "contactAddress": "Government House Complex, G.R.A, Benin City, Edo State",
     "contactPhone": null,
     "contactEmail": "info@edostate.gov.ng",
@@ -1007,7 +1040,8 @@
       "contactAddress": "https://edostate.gov.ng/contact/",
       "contactEmail": "https://edostate.gov.ng/contact/",
       "twitterUrl": "https://x.com/EdoStateGovt",
-      "facebookUrl": "https://www.facebook.com/EdoStateGovt/"
+      "facebookUrl": "https://www.facebook.com/EdoStateGovt/",
+      "stateElectoralCommissionUrl": "https://edostate.gov.ng/"
     }
   },
   "rivers": {
@@ -1021,6 +1055,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": "info@riversstate.gov.ng",
@@ -1051,6 +1086,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": "https://www.hoa.ek.gov.ng/",
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://www.ekitistate.gov.ng/executive-council/mdas/ekiti-state-independent-electoral-commission-siec",
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -1071,7 +1107,8 @@
       "officialWebsiteUrl": "https://www.ekitistate.gov.ng/",
       "assemblyWebsiteUrl": "https://www.hoa.ek.gov.ng/",
       "twitterUrl": "https://twitter.com/ekitistategov?lang=en",
-      "facebookUrl": "https://www.facebook.com/ekitistategov/"
+      "facebookUrl": "https://www.facebook.com/ekitistategov/",
+      "stateElectoralCommissionUrl": "https://www.ekitistate.gov.ng/executive-council/mdas/ekiti-state-independent-electoral-commission-siec"
     }
   },
   "lagos": {
@@ -1085,6 +1122,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://lasiec.gov.ng/",
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -1105,7 +1143,8 @@
       "officialWebsiteUrl": "https://lagosstate.gov.ng/",
       "twitterUrl": "https://x.com/followlasg",
       "facebookUrl": "https://www.facebook.com/followlasg",
-      "instagramUrl": "https://www.instagram.com/lagosstategovt/"
+      "instagramUrl": "https://www.instagram.com/lagosstategovt/",
+      "stateElectoralCommissionUrl": "https://lasiec.gov.ng/"
     }
   },
   "ogun": {
@@ -1119,6 +1158,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": null,
     "contactPhone": null,
     "contactEmail": null,
@@ -1153,6 +1193,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Governor's Office, Alagbaka, Akure, Ondo State",
     "contactPhone": null,
     "contactEmail": "info@ondostate.gov.ng",
@@ -1190,6 +1231,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": null,
     "contactAddress": "Bola Ige House, State Secretariat, Abere, Osogbo, Osun State",
     "contactPhone": null,
     "contactEmail": null,
@@ -1224,6 +1266,7 @@
     "financeMinistryUrl": null,
     "assemblyWebsiteUrl": null,
     "inecInfoUrl": null,
+    "stateElectoralCommissionUrl": "https://oyostate.gov.ng/oyo-state-independent-electoral-commission/",
     "contactAddress": "Oyo State Government Secretariat, Agodi, Ibadan, Oyo State",
     "contactPhone": null,
     "contactEmail": "info@oyostate.gov.ng",
@@ -1244,7 +1287,8 @@
       "officialWebsiteUrl": "https://oyostate.gov.ng/",
       "contactAddress": "https://oyostate.gov.ng/",
       "contactEmail": "https://oyostate.gov.ng/",
-      "twitterUrl": "https://twitter.com/oyostategovt"
+      "twitterUrl": "https://twitter.com/oyostategovt",
+      "stateElectoralCommissionUrl": "https://oyostate.gov.ng/oyo-state-independent-electoral-commission/"
     }
   }
 }
