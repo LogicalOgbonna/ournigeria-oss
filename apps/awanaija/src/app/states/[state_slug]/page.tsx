@@ -553,6 +553,7 @@ export default async function StatePage({
                       { label: "State Government", href: profile.links.official },
                       { label: "Ministry of Finance", href: profile.links.financeMinistry },
                       { label: "House of Assembly", href: profile.links.assembly },
+                      { label: "State Electoral Commission", href: profile.links.stateElectoral },
                       { label: "INEC (Electoral)", href: profile.links.inec },
                     ]
                       .filter((l) => l.href)
