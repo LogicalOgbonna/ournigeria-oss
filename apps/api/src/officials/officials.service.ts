@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService, UUID_RE } from "@ournigeria/database";
+import { PrismaService, UUID_RE, Prisma } from "@ournigeria/database";
 import { EvidenceService, EvidenceView } from "../evidence/evidence.service";
 import { CompletenessService } from "../completeness/completeness.service";
 
@@ -93,9 +93,7 @@ export class OfficialsService {
   async getByIdOrSlug(idOrSlug: string) {
     // Legacy UUID URLs resolve by id; new SEO URLs resolve by slug.
     const where = UUID_RE.test(idOrSlug) ? { id: idOrSlug } : { slug: idOrSlug };
-    const official = await this.prisma.nigerianOfficial.findUnique({
-      where,
-      include: {
+    const include = {
         // Full career history (Plan 45) — ongoing positions (endDate null) sort
         // first so existing positions[0] consumers keep seeing the current office.
         positions: {
@@ -134,8 +132,25 @@ export class OfficialsService {
           orderBy: { filedDate: "desc" },
           include: { relatedCorruptionCase: { select: { slug: true, title: true, status: true } } },
         },
-      },
-    });
+    } satisfies Prisma.NigerianOfficialInclude;
+
+    let official = await this.prisma.nigerianOfficial.findUnique({ where, include });
+
+    // Slug miss? It may be a former slug of a renamed official. Fall back to the
+    // alias table so old links still resolve; the caller compares official.slug to
+    // the requested slug and 308-redirects to the canonical URL.
+    if (!official && !UUID_RE.test(idOrSlug)) {
+      const alias = await this.prisma.officialSlugAlias.findUnique({
+        where: { slug: idOrSlug },
+        select: { officialId: true },
+      });
+      if (alias) {
+        official = await this.prisma.nigerianOfficial.findUnique({
+          where: { id: alias.officialId },
+          include,
+        });
+      }
+    }
 
     if (!official) {
       throw new NotFoundException("Official not found");

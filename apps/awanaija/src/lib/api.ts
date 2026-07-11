@@ -176,6 +176,14 @@ export async function createProposal(data: {
   targetField: string;
   proposedValue: string;
   sourceUrl?: string;
+  // Only for targetField "name": correction (rename same person) vs succession
+  // (previous term ended → a new official). Ignored server-side for other fields.
+  nameChangeKind?: "correction" | "succession";
+  // Only for targetField "partyAcronym": correction (fix wrong party in place) vs
+  // defection (record a dated party change, keep history).
+  partyChangeKind?: "correction" | "defection";
+  // Effective date (YYYY-MM-DD) for a succession/defection event.
+  effectiveDate?: string;
 }) {
   return apiFetch<{ id: string; status: string; trust: "verified" | "anonymous" }>("/proposals", {
     method: "POST",

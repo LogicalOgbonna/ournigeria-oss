@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { PrismaService, slugifyName } from "@ournigeria/database";
+import { PrismaService, slugifyName, Prisma } from "@ournigeria/database";
 import { randomBytes } from "crypto";
 import { ImageStorageService } from "../images/image-storage.service";
 import { OfficialsService } from "../officials/officials.service";
@@ -27,8 +27,21 @@ const VALID_TARGET_FIELDS = [
 
 const RELATIONAL_FIELDS = new Set(["partyAcronym", "wardCode", "lgaCode"]);
 
-const MAX_PROPOSALS_PER_DAY = 30;
-const MAX_ANON_PROPOSALS_PER_HOUR = 5;
+/** YYYY-MM-DD. Used to validate a user-supplied succession/defection effective date. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parse a stored effective date ("YYYY-MM-DD") into a Date, or null if absent/invalid.
+ * Callers fall back to `new Date()` (today) when this returns null.
+ */
+function parseEffectiveDate(raw: unknown): Date | null {
+  if (typeof raw !== "string" || !ISO_DATE_RE.test(raw)) return null;
+  const d = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const MAX_PROPOSALS_PER_DAY = 50;
+const MAX_ANON_PROPOSALS_PER_HOUR = 30;
 const MAX_VOTES_PER_DAY = 20;
 
 /** Mask a proposer phone for admin display: +2348012345678 -> +234•••5678 */
@@ -56,6 +69,15 @@ export class ProposalsService {
     targetField: string;
     proposedValue: any;
     sourceUrl?: string;
+    // Only meaningful for targetField "name": is this a correction (same person,
+    // wrong name) or a succession (previous term ended, a new person holds the seat)?
+    nameChangeKind?: "correction" | "succession";
+    // Only meaningful for targetField "partyAcronym": a correction (wrong party
+    // recorded) or a defection (the official actually changed party on a date)?
+    partyChangeKind?: "correction" | "defection";
+    // The real date a succession/defection took effect (YYYY-MM-DD). Falls back to
+    // "today" at approval time when omitted.
+    effectiveDate?: string;
   }) {
     if (!VALID_TARGET_FIELDS.includes(data.targetField as any)) {
       throw new BadRequestException(`Invalid target field: ${data.targetField}`);
@@ -106,6 +128,21 @@ export class ProposalsService {
       await this.checkProposalRateLimit(data.proposerPhone!);
     }
 
+    // Persist the intent (+ effective date) alongside the value so approval knows
+    // whether to apply in place (correction) or record a dated, history-preserving
+    // event: a succession (new official) for a name, a defection (new party
+    // affiliation) for a party. Anything not explicitly the event kind = correction.
+    const pv: Record<string, unknown> = { value: data.proposedValue };
+    if (data.targetField === "name") {
+      pv.nameChangeKind = data.nameChangeKind === "succession" ? "succession" : "correction";
+    } else if (data.targetField === "partyAcronym") {
+      pv.partyChangeKind = data.partyChangeKind === "defection" ? "defection" : "correction";
+    }
+    if (data.effectiveDate && ISO_DATE_RE.test(data.effectiveDate)) {
+      pv.effectiveDate = data.effectiveDate;
+    }
+    const proposedValue = pv as Prisma.InputJsonObject;
+
     const proposal = await this.prisma.dataProposal.create({
       data: {
         officialId: data.officialId,
@@ -114,7 +151,7 @@ export class ProposalsService {
         proposerIp: data.proposerIp ?? null,
         trust: data.trust,
         targetField: data.targetField,
-        proposedValue: { value: data.proposedValue },
+        proposedValue,
         sourceUrl: data.sourceUrl ?? null,
         status: "submitted",
       },
@@ -466,12 +503,18 @@ export class ProposalsService {
     tx: { nigerianOfficial: { findMany: (args: any) => Promise<{ slug: string | null }[]> } },
     name: string,
     stateCode?: string,
+    excludeOfficialId?: string,
   ): Promise<string> {
     let base = slugifyName(name);
     if (!base) base = `official-${randomBytes(4).toString("hex")}`;
 
     const rows = await tx.nigerianOfficial.findMany({
-      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      // Exclude the official being renamed so its current slug doesn't count as
+      // "used" against itself (otherwise a light edit would needlessly get a -2).
+      where: {
+        OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }],
+        ...(excludeOfficialId ? { id: { not: excludeOfficialId } } : {}),
+      },
       select: { slug: true },
     });
     const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
@@ -484,6 +527,229 @@ export class ProposalsService {
     let n = 2;
     while (used.has(`${base}-${n}`)) n++;
     return `${base}-${n}`;
+  }
+
+  /**
+   * Regenerate an official's canonical slug from a corrected name and preserve the
+   * old slug as a redirectable alias so /officials/<old-slug> keeps working. Must
+   * run inside the caller's transaction so name + slug + alias commit atomically.
+   * No-op when the new name maps to the same slug. Returns the new slug, or null
+   * when unchanged.
+   */
+  private async reslugOfficial(
+    tx: any,
+    officialId: string,
+    oldSlug: string | null,
+    newName: string,
+    stateCode?: string,
+  ): Promise<string | null> {
+    const newSlug = await this.generateUniqueOfficialSlug(tx, newName, stateCode, officialId);
+    if (oldSlug && newSlug === oldSlug) return null;
+
+    // The new canonical slug must never also live in the alias table (a slug is
+    // either a live official or an alias, never both) — drop any stale alias.
+    await tx.officialSlugAlias.deleteMany({ where: { slug: newSlug } });
+    await tx.nigerianOfficial.update({ where: { id: officialId }, data: { slug: newSlug } });
+
+    // Record the previous slug so old links redirect. Idempotent + re-points an
+    // existing alias if this official is renamed more than once.
+    if (oldSlug && oldSlug !== newSlug) {
+      await tx.officialSlugAlias.upsert({
+        where: { slug: oldSlug },
+        update: { officialId },
+        create: { slug: oldSlug, officialId },
+      });
+    }
+    return newSlug;
+  }
+
+  /** Primary position state code for an official (slug collision suffix). */
+  private async officialStateCode(tx: any, officialId: string): Promise<string | undefined> {
+    const pos = await tx.officialPosition.findFirst({
+      where: { officialId, stateCode: { not: null } },
+      select: { stateCode: true },
+    });
+    return pos?.stateCode ?? undefined;
+  }
+
+  /**
+   * Apply a name change that represents a *succession* — the incumbent's tenure
+   * ended and someone new now holds the seat. We must NOT rename the existing
+   * official (that would reattribute their whole record). Instead we:
+   *   1. mark the incumbent's seat position `ended` (term_end),
+   *   2. mint a NEW official (fresh slug) copying the seat's scope,
+   * leaving the old official + slug + history intact so old URLs keep resolving.
+   */
+  private async applySuccession(
+    proposal: { id: string; officialId: string; positionId: string | null; sourceUrl: string | null },
+    newName: string,
+    adminId: string,
+    // When the new official's term actually began (e.g. the election year). The old
+    // holder's tenure ends on this same date. Falls back to today when unknown.
+    effectiveDate: Date | null,
+  ): Promise<string> {
+    const effective = effectiveDate ?? new Date();
+    return this.prisma.$transaction(async (tx) => {
+      // The incumbent seat: the proposal's position if set, else the official's
+      // current active position. This is the seat the newcomer inherits.
+      const incumbent = proposal.positionId
+        ? await tx.officialPosition.findUnique({ where: { id: proposal.positionId } })
+        : await tx.officialPosition.findFirst({
+            where: { officialId: proposal.officialId, status: "active" },
+            orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
+          });
+      if (!incumbent) {
+        throw new BadRequestException("Cannot process succession: no active position for this official");
+      }
+
+      // 1. End the incumbent's tenure ON the successor's start date — drops them out
+      //    of every "current" view but keeps the row as history tied to the person.
+      await tx.officialPosition.update({
+        where: { id: incumbent.id },
+        data: { status: "ended", endDate: effective, endReason: "term_end" },
+      });
+
+      // 2. New person, new official row + a fresh active position on the same seat,
+      //    starting on the real tenure date (not "today").
+      const oldOfficial = await tx.nigerianOfficial.findUnique({
+        where: { id: proposal.officialId },
+        select: { officialType: true },
+      });
+      const slug = await this.generateUniqueOfficialSlug(tx, newName, incumbent.stateCode ?? undefined);
+      const newOfficial = await tx.nigerianOfficial.create({
+        data: { name: newName, slug, officialType: oldOfficial?.officialType ?? null, completenessScore: 0 },
+      });
+      const newPosition = await tx.officialPosition.create({
+        data: {
+          officialId: newOfficial.id,
+          role: incumbent.role,
+          appointmentType: incumbent.appointmentType,
+          stateCode: incumbent.stateCode,
+          constituencyCode: incumbent.constituencyCode,
+          lgaCode: incumbent.lgaCode,
+          wardCode: incumbent.wardCode,
+          partyAcronym: null,
+          startDate: effective,
+          sourceType: "manual",
+          sourceUrl: proposal.sourceUrl ?? null,
+          confidence: "low",
+          reviewStatus: "unreviewed",
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          eventType: "proposal_succession",
+          targetType: "official",
+          targetId: newOfficial.id,
+          metadata: {
+            proposalId: proposal.id,
+            predecessorOfficialId: proposal.officialId,
+            endedPositionId: incumbent.id,
+            newPositionId: newPosition.id,
+            newName,
+            effectiveDate: effective.toISOString().slice(0, 10),
+          },
+        },
+      });
+
+      return newOfficial.id;
+    });
+  }
+
+  /**
+   * Apply a party change that is a real *defection* (not a data correction). We keep
+   * the affiliation timeline instead of silently overwriting the seat's party:
+   *   1. close any open affiliation (endDate = effective date),
+   *   2. backfill a closed affiliation for the party the seat currently shows, if it
+   *      differs and no affiliation row exists (so the "left" party is visible),
+   *   3. add a new open affiliation for the new party (startDate = effective date),
+   *   4. update the position's current party so "current" views stay correct.
+   */
+  private async applyPartyChange(
+    proposal: { id: string; officialId: string; positionId: string | null; sourceUrl: string | null },
+    newParty: string,
+    adminId: string,
+    effectiveDate: Date | null,
+  ): Promise<void> {
+    const effective = effectiveDate ?? new Date();
+    await this.prisma.$transaction(async (tx) => {
+      const position = proposal.positionId
+        ? await tx.officialPosition.findUnique({
+            where: { id: proposal.positionId },
+            select: { id: true, partyAcronym: true },
+          })
+        : null;
+      const oldParty = position?.partyAcronym ?? null;
+
+      // No-op guard: same party → nothing to record.
+      if (oldParty && oldParty === newParty) {
+        await tx.officialPosition.update({ where: { id: position!.id }, data: { partyAcronym: newParty } });
+        return;
+      }
+
+      // 1. Close any still-open affiliation as of the defection date.
+      await tx.officialPartyAffiliation.updateMany({
+        where: { officialId: proposal.officialId, endDate: null },
+        data: { endDate: effective },
+      });
+
+      // 2. If the seat showed a prior party and there's no affiliation row for it,
+      //    backfill a closed one so the timeline shows what they left.
+      if (oldParty && oldParty !== newParty) {
+        const existingOld = await tx.officialPartyAffiliation.findFirst({
+          where: { officialId: proposal.officialId, partyAcronym: oldParty },
+          select: { id: true },
+        });
+        if (!existingOld) {
+          await tx.officialPartyAffiliation.create({
+            data: {
+              officialId: proposal.officialId,
+              partyAcronym: oldParty,
+              startDate: null,
+              endDate: effective,
+              reason: "Party held before recorded defection",
+              sourceType: "manual",
+              reviewStatus: "reviewed",
+              reviewedBy: adminId,
+            },
+          });
+        }
+      }
+
+      // 3. New open affiliation for the party they defected to.
+      await tx.officialPartyAffiliation.create({
+        data: {
+          officialId: proposal.officialId,
+          partyAcronym: newParty,
+          startDate: effective,
+          endDate: null,
+          reason: "Party change (citizen proposal)",
+          sourceType: "manual",
+          reviewStatus: "reviewed",
+          reviewedBy: adminId,
+        },
+      });
+
+      // 4. Keep the seat's current party correct for "current" views.
+      if (position) {
+        await tx.officialPosition.update({ where: { id: position.id }, data: { partyAcronym: newParty } });
+      }
+
+      await tx.activityLog.create({
+        data: {
+          eventType: "proposal_party_defection",
+          targetType: "official",
+          targetId: proposal.officialId,
+          metadata: {
+            proposalId: proposal.id,
+            fromParty: oldParty,
+            toParty: newParty,
+            effectiveDate: effective.toISOString().slice(0, 10),
+          },
+        },
+      });
+    });
   }
 
   /** Resolve a human place string ("Pategi, Kwara") from scope codes. */
@@ -964,7 +1230,18 @@ export class ProposalsService {
     return { data: all.slice(start, start + limit), total, page, limit };
   }
 
-  async approve(proposalId: string, adminId: string) {
+  async approve(
+    proposalId: string,
+    adminId: string,
+    // Admin can override the submitter's stated intent + effective date at review
+    // time — the authoritative gate for correction vs succession (name) and
+    // correction vs defection (party).
+    overrides?: {
+      nameChangeKind?: "correction" | "succession";
+      partyChangeKind?: "correction" | "defection";
+      effectiveDate?: string;
+    },
+  ) {
     const proposal = await this.prisma.dataProposal.findUnique({
       where: { id: proposalId },
       include: { official: true },
@@ -993,12 +1270,52 @@ export class ProposalsService {
       value = (await this.imageStorage.storeOfficialImage(value, proposal.officialId)).url;
     }
 
+    // A name proposal is either an "identify" (fills an empty seat — handled below
+    // as a no-op here since the official was created with the right name) or a
+    // change to an already-named official. A change carries an explicit intent:
+    //   correction → same person, wrong/misspelled name
+    //   succession → the previous holder's tenure ended and a NEW person holds it
+    const pvRaw = proposal.proposedValue as any;
+    const isIdentifyName = proposal.targetField === "name" && pvRaw?.type === "identify";
+    const isNameChange = proposal.targetField === "name" && !isIdentifyName;
+    const storedNameChangeKind: "correction" | "succession" =
+      pvRaw?.nameChangeKind === "succession" ? "succession" : "correction";
+    const nameChangeKind = overrides?.nameChangeKind ?? storedNameChangeKind;
+
+    const storedPartyChangeKind: "correction" | "defection" =
+      pvRaw?.partyChangeKind === "defection" ? "defection" : "correction";
+    const partyChangeKind = overrides?.partyChangeKind ?? storedPartyChangeKind;
+
+    // Effective date for a dated event (succession/defection): admin override wins,
+    // else the submitter's date, else null → the apply methods use today.
+    const effectiveDate =
+      parseEffectiveDate(overrides?.effectiveDate) ?? parseEffectiveDate(pvRaw?.effectiveDate);
+
     // Apply the change based on target field
-    if (RELATIONAL_FIELDS.has(proposal.targetField) && proposal.positionId) {
-      // Position-level update
+    if (proposal.targetField === "partyAcronym" && proposal.positionId && partyChangeKind === "defection") {
+      // Real party change: record it as a dated affiliation event (keep history),
+      // don't silently overwrite the party the seat was previously held under.
+      await this.applyPartyChange(proposal, String(value), adminId, effectiveDate);
+    } else if (RELATIONAL_FIELDS.has(proposal.targetField) && proposal.positionId) {
+      // Position-level update (party correction, ward/lga fix)
       await this.prisma.officialPosition.update({
         where: { id: proposal.positionId },
         data: { [proposal.targetField]: value },
+      });
+    } else if (isNameChange && nameChangeKind === "succession") {
+      // Tenure ended: end the incumbent's seat and mint a NEW official + position.
+      // The existing official (and its slug + history) is left untouched.
+      await this.applySuccession(proposal, String(value), adminId, effectiveDate);
+    } else if (isNameChange) {
+      // Wrong name: rename in place, regenerate the slug from the new name, and
+      // preserve the old slug as a redirectable alias — all in one transaction.
+      await this.prisma.$transaction(async (tx) => {
+        await tx.nigerianOfficial.update({
+          where: { id: proposal.officialId },
+          data: { name: value },
+        });
+        const stateCode = await this.officialStateCode(tx, proposal.officialId);
+        await this.reslugOfficial(tx, proposal.officialId, proposal.official!.slug, String(value), stateCode);
       });
     } else {
       // Official-level update
@@ -1189,7 +1506,7 @@ export class ProposalsService {
       where: { proposerPhone: phone, createdAt: { gte: dayAgo } },
     });
     if (count >= MAX_PROPOSALS_PER_DAY) {
-      throw new ForbiddenException("Daily proposal limit reached (5 per day). Try again tomorrow.");
+      throw new ForbiddenException("Daily proposal limit reached (50 per day). Try again tomorrow.");
     }
   }
 

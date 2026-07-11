@@ -177,6 +177,8 @@ export default function ProposalsPage() {
   const [statusFilter, setStatusFilter] = useState("submitted");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState(false);
+  // Per-proposal effective date (YYYY-MM-DD) for a succession/defection approval.
+  const [effectiveDates, setEffectiveDates] = useState<Record<string, string>>({});
 
   const loadProposals = useCallback(async () => {
     setLoading(true);
@@ -211,12 +213,43 @@ export default function ProposalsPage() {
     }
   }, [viewMode, loadProposals, loadGroups]);
 
-  async function handleAction(id: string, action: "approve" | "reject" | "needs_evidence") {
+  async function handleAction(
+    id: string,
+    action: "approve" | "reject" | "needs_evidence",
+    // For name/party proposals: the authoritative correction-vs-event decision plus
+    // the effective date of a succession/defection.
+    opts?: {
+      nameChangeKind?: "correction" | "succession";
+      partyChangeKind?: "correction" | "defection";
+      effectiveDate?: string;
+    },
+  ) {
+    if (
+      opts?.nameChangeKind === "succession" &&
+      !confirm(
+        "Approve as a NEW officeholder?\n\nThis ends the current official's tenure and creates a brand-new official for the new name. The existing official (and their record) is kept unchanged. This cannot be undone from here.",
+      )
+    ) {
+      return;
+    }
+    if (
+      opts?.partyChangeKind === "defection" &&
+      !confirm(
+        "Approve as a real party change (defection)?\n\nThis records a dated party affiliation and keeps the previous party as history, rather than overwriting it.",
+      )
+    ) {
+      return;
+    }
     setActing(true);
     try {
       await proposalFetch(`/admin/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({
+          action,
+          ...(opts?.nameChangeKind ? { nameChangeKind: opts.nameChangeKind } : {}),
+          ...(opts?.partyChangeKind ? { partyChangeKind: opts.partyChangeKind } : {}),
+          ...(opts?.effectiveDate ? { effectiveDate: opts.effectiveDate } : {}),
+        }),
       });
       await loadProposals();
     } catch (err: any) {
@@ -392,6 +425,28 @@ export default function ProposalsPage() {
               const reviewable =
                 proposal.status === "submitted" ||
                 proposal.status === "under_review";
+              // A name change is either a correction (rename same official) or a
+              // succession (new officeholder → new official). Identify proposals
+              // (type:"identify") fill an empty seat and are handled elsewhere.
+              const isNameChange =
+                proposal.targetField === "name" &&
+                (proposal.proposedValue as any)?.type !== "identify";
+              const submittedIntent: "correction" | "succession" =
+                (proposal.proposedValue as any)?.nameChangeKind === "succession"
+                  ? "succession"
+                  : "correction";
+              // A party change is either a correction (fix wrong party in place) or a
+              // defection (dated affiliation event that preserves history).
+              const isPartyChange = proposal.targetField === "partyAcronym";
+              const submittedPartyIntent: "correction" | "defection" =
+                (proposal.proposedValue as any)?.partyChangeKind === "defection"
+                  ? "defection"
+                  : "correction";
+              const submittedEffectiveDate =
+                (proposal.proposedValue as any)?.effectiveDate as string | undefined;
+              const effDate = effectiveDates[proposal.id] ?? submittedEffectiveDate ?? "";
+              const setEffDate = (v: string) =>
+                setEffectiveDates((m) => ({ ...m, [proposal.id]: v }));
 
               return (
                 <Card key={proposal.id} className="flex flex-col h-full">
@@ -529,8 +584,148 @@ export default function ProposalsPage() {
                       )}
                     </div>
 
+                    {/* Name change: make the correction-vs-succession call explicit. */}
+                    {reviewable && isNameChange && (
+                      <div className="mt-auto rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 p-2 flex flex-col gap-1.5">
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                          Submitted as{" "}
+                          <span className="font-semibold">
+                            {submittedIntent === "succession" ? "new officeholder" : "name correction"}
+                          </span>
+                          . Confirm how to apply:
+                        </p>
+                        <label className="text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          Term start (for new holder):
+                          <input
+                            type="date"
+                            value={effDate}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={(e) => setEffDate(e.target.value)}
+                            className="rounded border border-amber-300/60 bg-white dark:bg-slate-900 px-1.5 py-0.5 text-[11px]"
+                          />
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            className="flex-1 px-2"
+                            onClick={() => handleAction(proposal.id, "approve", { nameChangeKind: "correction" })}
+                            disabled={acting}
+                            title="Same person — rename and redirect the old URL"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1 shrink-0" /> Correction
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 px-2"
+                            onClick={() =>
+                              handleAction(proposal.id, "approve", {
+                                nameChangeKind: "succession",
+                                effectiveDate: effDate || undefined,
+                              })
+                            }
+                            disabled={acting}
+                            title="New person — end the current tenure and create a new official"
+                          >
+                            <User className="w-4 h-4 mr-1 shrink-0" /> New holder
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 px-2"
+                            onClick={() => handleAction(proposal.id, "needs_evidence")}
+                            disabled={acting}
+                            title="Needs evidence"
+                          >
+                            <AlertCircle className="w-4 h-4 mr-1 shrink-0 text-orange-500" /> Evidence
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-1 px-2 text-red-500 hover:text-red-600"
+                            onClick={() => handleAction(proposal.id, "reject")}
+                            disabled={acting}
+                          >
+                            <XCircle className="w-4 h-4 mr-1 shrink-0" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Party change: correction (fix in place) vs defection (dated event). */}
+                    {reviewable && isPartyChange && (
+                      <div className="mt-auto rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 p-2 flex flex-col gap-1.5">
+                        <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                          Submitted as{" "}
+                          <span className="font-semibold">
+                            {submittedPartyIntent === "defection" ? "party defection" : "party correction"}
+                          </span>
+                          . Confirm how to apply:
+                        </p>
+                        <label className="text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          Defection date:
+                          <input
+                            type="date"
+                            value={effDate}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={(e) => setEffDate(e.target.value)}
+                            className="rounded border border-amber-300/60 bg-white dark:bg-slate-900 px-1.5 py-0.5 text-[11px]"
+                          />
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            className="flex-1 px-2"
+                            onClick={() => handleAction(proposal.id, "approve", { partyChangeKind: "correction" })}
+                            disabled={acting}
+                            title="Wrong party recorded — fix in place"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1 shrink-0" /> Correction
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 px-2"
+                            onClick={() =>
+                              handleAction(proposal.id, "approve", {
+                                partyChangeKind: "defection",
+                                effectiveDate: effDate || undefined,
+                              })
+                            }
+                            disabled={acting}
+                            title="Real party change — record a dated affiliation, keep history"
+                          >
+                            <User className="w-4 h-4 mr-1 shrink-0" /> Defection
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 px-2"
+                            onClick={() => handleAction(proposal.id, "needs_evidence")}
+                            disabled={acting}
+                            title="Needs evidence"
+                          >
+                            <AlertCircle className="w-4 h-4 mr-1 shrink-0 text-orange-500" /> Evidence
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="flex-1 px-2 text-red-500 hover:text-red-600"
+                            onClick={() => handleAction(proposal.id, "reject")}
+                            disabled={acting}
+                          >
+                            <XCircle className="w-4 h-4 mr-1 shrink-0" /> Reject
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions pinned to bottom */}
-                    {reviewable && (
+                    {reviewable && !isNameChange && !isPartyChange && (
                       <div className="mt-auto flex items-center gap-1.5 pt-1">
                         <Button
                           size="sm"

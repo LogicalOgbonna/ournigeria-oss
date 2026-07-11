@@ -9,10 +9,6 @@ import { formatOfficialLocation } from "@/lib/api";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
 const SITE_URL = "https://ournigeria.ng";
 
-// Legacy /officials/<uuid> URLs 308-redirect to the slug. Matches a canonical UUID.
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 // Humanized role labels for titles/descriptions/JSON-LD.
 const ROLE_LABELS: Record<string, string> = {
   governor: "Governor",
@@ -131,8 +127,9 @@ export default async function OfficialPage({
   const official = await getOfficial(slug);
   if (!official) notFound();
 
-  // Back-compat: legacy UUID URLs permanently redirect to the canonical slug URL.
-  if (UUID_RE.test(slug) && official.slug && official.slug !== slug) {
+  // Canonicalize the URL: legacy UUID links AND former slugs (a renamed official
+  // resolved via the slug-alias table) permanently redirect to the current slug.
+  if (official.slug && official.slug !== slug) {
     permanentRedirect(`/officials/${official.slug}`);
   }
 

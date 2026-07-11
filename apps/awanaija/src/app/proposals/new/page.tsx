@@ -409,6 +409,14 @@ function EditOfficialContent() {
   }, [fieldParam]);
   const [proposedValue, setProposedValue] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  // Only used when correcting a name: is this the same person (wrong name) or a
+  // new officeholder (previous term ended)? Drives rename-vs-new-official on approval.
+  const [nameChangeKind, setNameChangeKind] = useState<"correction" | "succession">("correction");
+  // Only used for a party change: wrong party recorded (correction) or a real
+  // defection (add a dated affiliation record, keep history)?
+  const [partyChangeKind, setPartyChangeKind] = useState<"correction" | "defection">("correction");
+  // The real date a succession/defection took effect (YYYY-MM-DD).
+  const [effectiveDate, setEffectiveDate] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -447,6 +455,13 @@ function EditOfficialContent() {
         targetField,
         proposedValue: proposedValue.trim(),
         sourceUrl: sourceUrl.trim() || undefined,
+        nameChangeKind: targetField === "name" ? nameChangeKind : undefined,
+        partyChangeKind: targetField === "partyAcronym" ? partyChangeKind : undefined,
+        effectiveDate:
+          (targetField === "name" && nameChangeKind === "succession") ||
+          (targetField === "partyAcronym" && partyChangeKind === "defection")
+            ? effectiveDate || undefined
+            : undefined,
       });
       setProposalId(result.id);
       setIsAnonymous(result.trust === "anonymous");
@@ -663,6 +678,126 @@ function EditOfficialContent() {
               )}
             </div>
           ) : null}
+
+          {/* Name change intent — correction (same person) vs succession (new holder) */}
+          {targetField === "name" && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Why is the name changing?
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-start gap-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="nameChangeKind"
+                    value="correction"
+                    checked={nameChangeKind === "correction"}
+                    onChange={() => setNameChangeKind("correction")}
+                    className="mt-0.5 accent-emerald-600"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium text-slate-900 dark:text-white">Correcting a wrong name</span>
+                    <span className="block text-slate-500 dark:text-slate-400">
+                      Same person — the name shown is misspelled or incorrect.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="nameChangeKind"
+                    value="succession"
+                    checked={nameChangeKind === "succession"}
+                    onChange={() => setNameChangeKind("succession")}
+                    className="mt-0.5 accent-emerald-600"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium text-slate-900 dark:text-white">A new person holds this seat</span>
+                    <span className="block text-slate-500 dark:text-slate-400">
+                      The previous holder&apos;s term ended — this is a different official.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              {nameChangeKind === "succession" && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    When did their term start?
+                  </label>
+                  <input
+                    type="date"
+                    value={effectiveDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setEffectiveDate(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    e.g. their election or inauguration date. Leave blank if unknown.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Party change intent — correction (wrong party) vs defection (dated change) */}
+          {targetField === "partyAcronym" && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                Why is the party changing?
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-start gap-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="partyChangeKind"
+                    value="correction"
+                    checked={partyChangeKind === "correction"}
+                    onChange={() => setPartyChangeKind("correction")}
+                    className="mt-0.5 accent-emerald-600"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium text-slate-900 dark:text-white">Correcting a wrong party</span>
+                    <span className="block text-slate-500 dark:text-slate-400">
+                      The party on record is simply wrong.
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="partyChangeKind"
+                    value="defection"
+                    checked={partyChangeKind === "defection"}
+                    onChange={() => setPartyChangeKind("defection")}
+                    className="mt-0.5 accent-emerald-600"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium text-slate-900 dark:text-white">They actually changed party</span>
+                    <span className="block text-slate-500 dark:text-slate-400">
+                      A real defection — we&apos;ll keep the previous party as history.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              {partyChangeKind === "defection" && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    When did they change party?
+                  </label>
+                  <input
+                    type="date"
+                    value={effectiveDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setEffectiveDate(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    The defection date. Leave blank if unknown.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Source URL */}
           <div>

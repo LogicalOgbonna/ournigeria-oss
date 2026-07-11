@@ -13,7 +13,7 @@ export class ProposalsController {
   async create(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
       const { userId, phone } = await this.resolveProposer(req);
-      const { officialId, positionId, targetField, proposedValue, sourceUrl } = body;
+      const { officialId, positionId, targetField, proposedValue, sourceUrl, nameChangeKind, partyChangeKind, effectiveDate } = body;
       if (!officialId || !targetField || proposedValue === undefined) {
         return res.status(HttpStatus.BAD_REQUEST).json({
           error: "officialId, targetField, and proposedValue are required",
@@ -28,6 +28,9 @@ export class ProposalsController {
         targetField,
         proposedValue,
         sourceUrl,
+        nameChangeKind,
+        partyChangeKind,
+        effectiveDate,
       });
       return res.status(HttpStatus.CREATED).json(result);
     } catch (err: any) {
@@ -263,7 +266,12 @@ export class ProposalsController {
   @Patch("admin/:id")
   async adminAction(
     @Param("id") id: string,
-    @Body() body: { action: "approve" | "reject" | "needs_evidence" },
+    @Body() body: {
+      action: "approve" | "reject" | "needs_evidence";
+      nameChangeKind?: "correction" | "succession";
+      partyChangeKind?: "correction" | "defection";
+      effectiveDate?: string;
+    },
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -271,7 +279,11 @@ export class ProposalsController {
       const adminId = (req as any).adminId;
       let result;
       if (body.action === "approve") {
-        result = await this.service.approve(id, adminId);
+        result = await this.service.approve(id, adminId, {
+          nameChangeKind: body.nameChangeKind,
+          partyChangeKind: body.partyChangeKind,
+          effectiveDate: body.effectiveDate,
+        });
       } else if (body.action === "reject") {
         result = await this.service.reject(id, adminId);
       } else if (body.action === "needs_evidence") {

@@ -289,8 +289,24 @@ model NigerianOfficial {
   legalCases        OfficialLegalCase[]
   enrichmentAttempts EnrichmentAttempt[]
   partyOfficerRoles PartyOfficer[]
+  slugAliases       OfficialSlugAlias[]
 
   @@map("nigerian_officials")
+}
+
+/// Old slugs an official has been known by. On a name *correction* the canonical
+/// slug is regenerated from the new name and the previous slug is recorded here so
+/// existing URLs (/officials/<old-slug>) 308-redirect to the current one. A slug
+/// is never both a live canonical slug and an alias at the same time.
+model OfficialSlugAlias {
+  slug       String   @id @db.VarChar(160)
+  officialId String   @map("official_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_slug_alias_official")
+  @@map("official_slug_aliases")
 }
 
 /// Exclusive arcs: exactly one of state_code, constituency_code, lga_code, ward_code

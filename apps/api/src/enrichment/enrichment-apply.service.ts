@@ -71,6 +71,14 @@ export class EnrichmentApplyService {
         targetPk,
       );
 
+      // A corrected official name must carry its slug forward, and preserve the
+      // old slug as a redirectable alias — same as the citizen correction path.
+      // Agents only ever *correct* a name; a succession (new officeholder) is a
+      // human review decision, never applied here.
+      if (proposal.targetTable === "nigerian_officials" && proposal.targetField === "name") {
+        await this.reslugOfficialInTx(tx, targetPk, String(value));
+      }
+
       // The approved fact carries its proposal sources forward as live evidence
       // (Plan 45c): official flat fields key as official_field + field name.
       if (proposal.targetTable === "nigerian_officials") {
@@ -310,12 +318,18 @@ export class EnrichmentApplyService {
     tx: { nigerianOfficial: { findMany: (args: any) => Promise<{ slug: string | null }[]> } },
     name: string,
     stateCode?: string,
+    excludeOfficialId?: string,
   ): Promise<string> {
     let base = slugifyName(name);
     if (!base) base = `official-${randomBytes(4).toString("hex")}`;
 
     const rows = await tx.nigerianOfficial.findMany({
-      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
+      // Exclude the official being renamed so its current slug doesn't count as
+      // "used" against itself (a light edit shouldn't needlessly get a -2 suffix).
+      where: {
+        OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }],
+        ...(excludeOfficialId ? { id: { not: excludeOfficialId } } : {}),
+      },
       select: { slug: true },
     });
     const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
@@ -328,5 +342,40 @@ export class EnrichmentApplyService {
     let n = 2;
     while (used.has(`${base}-${n}`)) n++;
     return `${base}-${n}`;
+  }
+
+  /**
+   * After a name correction, regenerate the official's slug and preserve the old
+   * one as a redirectable alias. Runs inside the apply tx as enrichment_apply
+   * (granted SELECT/INSERT/UPDATE/DELETE on official_slug_aliases + UPDATE on
+   * nigerian_officials). No-op when the corrected name maps to the same slug.
+   */
+  private async reslugOfficialInTx(tx: any, officialId: string, newName: string): Promise<void> {
+    const official = await tx.nigerianOfficial.findUnique({
+      where: { id: officialId },
+      select: { slug: true },
+    });
+    const oldSlug: string | null = official?.slug ?? null;
+    const stateCode =
+      (
+        await tx.officialPosition.findFirst({
+          where: { officialId, stateCode: { not: null } },
+          select: { stateCode: true },
+        })
+      )?.stateCode ?? undefined;
+
+    const newSlug = await this.generateUniqueOfficialSlug(tx, newName, stateCode, officialId);
+    if (oldSlug && newSlug === oldSlug) return;
+
+    // A slug is either a live canonical slug or an alias, never both.
+    await tx.officialSlugAlias.deleteMany({ where: { slug: newSlug } });
+    await tx.nigerianOfficial.update({ where: { id: officialId }, data: { slug: newSlug } });
+    if (oldSlug && oldSlug !== newSlug) {
+      await tx.officialSlugAlias.upsert({
+        where: { slug: oldSlug },
+        update: { officialId },
+        create: { slug: oldSlug, officialId },
+      });
+    }
   }
 }
