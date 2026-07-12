@@ -13,14 +13,14 @@ export class TelegramService {
     this.chatId = config.get("SOCIALS_OPS_CHAT_ID");
   }
 
-  async notify(message: string, chatIdOverride?: string): Promise<void> {
+  async notify(message: string, chatIdOverride?: string): Promise<boolean> {
     const token = this.token;
     const chatId = chatIdOverride ?? this.chatId;
     if (!token || !chatId) {
       this.logger.warn(
         `missing TELEGRAM_BOT_TOKEN or SOCIALS_OPS_CHAT_ID; dropping: ${message.slice(0, 120)}`,
       );
-      return;
+      return false;
     }
 
     try {
@@ -41,11 +41,14 @@ export class TelegramService {
       if (!res.ok) {
         const body = await res.text();
         this.logger.error(`telegram ${res.status}: ${body.slice(0, 200)}`);
+        return false;
       }
+      return true;
     } catch (err) {
       this.logger.error(
         `notify failed: ${err instanceof Error ? err.message : err}`,
       );
+      return false;
     }
   }
 }

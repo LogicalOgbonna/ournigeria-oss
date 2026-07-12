@@ -3,9 +3,10 @@ import { CronService } from "./cron.service.js";
 import { PlatformModule } from "../platforms/platform.module.js";
 import { IntelligenceModule } from "../intelligence/intelligence.module.js";
 import { ContentModule } from "../content/content.module.js";
+import { DraftDigestNotifierService } from "./draft-digest-notifier.service.js";
 
 @Module({
   imports: [PlatformModule, IntelligenceModule, ContentModule],
-  providers: [CronService],
+  providers: [CronService, DraftDigestNotifierService],
 })
 export class SchedulerModule {}

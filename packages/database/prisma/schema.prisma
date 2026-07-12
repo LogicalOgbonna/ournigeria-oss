@@ -1541,9 +1541,10 @@ model SocialPost {
   inReplyToText String?   @map("in_reply_to_text") @db.Text // Text of original tweet
   inReplyToUser String?   @map("in_reply_to_user") @db.VarChar(100) // Username of original tweeter
   confidence    Float? // 0-1 composite score
-  reviewStatus  String?   @map("review_status") @db.VarChar(20) // 'pending', 'approved', 'rejected', 'edited'
-  reviewedBy    String?   @map("reviewed_by") @db.Uuid // Admin user ID who approved/rejected
-  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+  reviewStatus       String?   @map("review_status") @db.VarChar(20) // 'pending', 'approved', 'rejected', 'edited'
+  reviewedBy         String?   @map("reviewed_by") @db.Uuid // Admin user ID who approved/rejected
+  reviewedAt         DateTime? @map("reviewed_at") @db.Timestamptz()
+  telegramNotifiedAt DateTime? @map("telegram_notified_at") @db.Timestamptz()
 
   // Quote/draft pipeline fields (roamer + drafter)
   quotedTweetId         String? @map("quoted_tweet_id") @db.VarChar(100) // Twitter ID of quoted tweet
@@ -1564,6 +1565,7 @@ model SocialPost {
   @@index([platform, status], map: "idx_social_posts_platform_status")
   @@index([platform, createdAt(sort: Desc)], map: "idx_social_posts_platform_date")
   @@index([reviewStatus], map: "idx_social_posts_review_status")
+  @@index([telegramNotifiedAt, createdAt(sort: Desc)], map: "idx_social_posts_telegram_notified")
   @@map("social_posts")
 }
 
