@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Users, ArrowUpRight } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
+import { Show } from "@/components/ui/Show";
 
 interface Rep {
   id: string;
@@ -109,24 +110,26 @@ export function StateOfficialsAccordion({ constituencies }: StateOfficialsAccord
                   {items.length} {items.length === 1 ? unit : `${unit === "constituency" ? "constituencies" : unit + "s"}`}
                 </p>
               </div>
-              {isOpen ? (
+              <Show when={isOpen}>
                 <ChevronDown className="w-5 h-5 text-emerald-500 transition-colors" />
-              ) : (
+              </Show>
+              <Show when={!isOpen}>
                 <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-              )}
+              </Show>
             </button>
 
-            {isOpen && (
+            <Show when={isOpen}>
               <div className="border-t border-border p-2 space-y-2 max-h-[360px] overflow-y-auto scrollbar-theme">
-                {items.length > 0 ? (
-                  items.map((c) => renderConstituency(c, repRole))
-                ) : (
+                <Show when={items.length > 0}>
+                  {items.map((c) => renderConstituency(c, repRole))}
+                </Show>
+                <Show when={items.length === 0}>
                   <p className="p-4 text-sm text-center text-muted-foreground">
                     No {label.toLowerCase()} found.
                   </p>
-                )}
+                </Show>
               </div>
-            )}
+            </Show>
           </div>
         );
       })}

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, MessageCircleCheck, Send, ShieldCheck, type LucideIcon } from "lucide-react";
 import { APP_URL } from "@/lib/constants";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
+import { Show } from "@/components/ui/Show";
 import { toast } from "sonner";
 import posthog from "posthog-js";
 
@@ -170,9 +171,8 @@ export function LandingLoginForm() {
         return;
       }
 
-      if (data.user?.id) {
-        posthog.identify(String(data.user.id));
-      }
+      const userId = data.user?.id ?? data.userId;
+      if (userId) posthog.identify(String(userId));
       posthog.capture("login_completed", { method: "whatsapp" });
       globalThis.location.replace(buildAppRedirectUrl(redirectTarget, data.authToken));
     } catch {
@@ -226,7 +226,7 @@ export function LandingLoginForm() {
 
             {/* Fixed-height panel region so switching tabs doesn't shift layout */}
             <div className="flex min-h-[292px] flex-col">
-            {activeTab === "telegram" && (
+            <Show when={activeTab === "telegram"}>
             <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-600 dark:text-sky-400">
@@ -236,11 +236,12 @@ export function LandingLoginForm() {
               </div>
 
               <div className="mt-2 flex flex-col items-center justify-center">
-                {isCheckingSession ? (
+                <Show when={isCheckingSession}>
                   <div className="flex h-[48px] items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
-                ) : (
+                </Show>
+                <Show when={!isCheckingSession}>
                   <TelegramDeepLinkLogin
                     onAuthenticated={async () => {
                       try {
@@ -256,7 +257,7 @@ export function LandingLoginForm() {
                       }
                     }}
                   />
-                )}
+                </Show>
               </div>
 
               <div className="mt-auto flex items-start gap-3 rounded-xl bg-muted p-4">
@@ -266,9 +267,9 @@ export function LandingLoginForm() {
                 </p>
               </div>
             </div>
-          )}
+          </Show>
 
-          {activeTab === "whatsapp" && step === "phone" && (
+          <Show when={activeTab === "whatsapp" && step === "phone"}>
             <div className="flex flex-1 flex-col">
               <div className="mb-6 flex justify-center">
                 <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -301,7 +302,7 @@ export function LandingLoginForm() {
                 disabled={isSubmitting || phoneNumber.length < 10}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-destructive/80 px-4 py-2 text-base font-semibold text-white transition hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                <Show when={isSubmitting}><Loader2 className="h-5 w-5 animate-spin" /></Show>
                 Coming Soon
                 <ArrowRight className="h-5 w-5" />
               </button>
@@ -313,9 +314,9 @@ export function LandingLoginForm() {
                 </p>
               </div>
             </div>
-          )}
+          </Show>
 
-          {activeTab === "whatsapp" && step === "otp" && (
+          <Show when={activeTab === "whatsapp" && step === "otp"}>
             <div className="flex flex-1 flex-col">
               <div className="mb-6 flex items-center justify-between">
                 <button
@@ -360,7 +361,7 @@ export function LandingLoginForm() {
                 disabled={otpCode.length !== 6 || isSubmitting}
                 className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                <Show when={isSubmitting}><Loader2 className="h-4 w-4 animate-spin" /></Show>
                 Verify OTP
               </button>
 
@@ -375,7 +376,7 @@ export function LandingLoginForm() {
                 </button>
               </div>
             </div>
-          )}
+          </Show>
           </div>
         </div>
 

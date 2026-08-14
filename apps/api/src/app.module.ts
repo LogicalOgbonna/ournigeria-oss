@@ -20,6 +20,7 @@ import { OfficialsModule } from "./officials/officials.module";
 import { PartiesModule } from "./parties/parties.module";
 import { ProposalsModule } from "./proposals/proposals.module";
 import { GeoModule } from "./geo/geo.module";
+import { ElectionModule } from "./election/election.module";
 import { CompletenessModule } from "./completeness/completeness.module";
 import { ActivityModule } from "./activity/activity.module";
 import { ContactModule } from "./contact/contact.module";
@@ -53,6 +54,7 @@ import { ImportsModule } from "./admin/imports/imports.module";
     PartiesModule,
     ProposalsModule,
     GeoModule,
+    ElectionModule,
     CompletenessModule,
     ActivityModule,
     ContactModule,

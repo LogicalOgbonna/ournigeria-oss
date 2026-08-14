@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PartyCard } from "@/components/civic/PartyCard";
+import { Show } from "@/components/ui/Show";
 import type { PartyListItem } from "@/lib/api";
 
 type Sort = "seats" | "name" | "governorships" | "completeness";
@@ -77,17 +78,18 @@ export function PartiesDirectory({ parties }: { readonly parties: PartyListItem[
       </div>
 
       {/* Grid (already rank-ordered by the active sort) */}
-      {visible.length === 0 ? (
+      <Show when={visible.length === 0}>
         <p className="rounded-xl border border-dashed border-border p-8 text-center text-muted-foreground">
           No parties match &ldquo;{search}&rdquo;.
         </p>
-      ) : (
+      </Show>
+      <Show when={visible.length !== 0}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((p) => (
             <PartyCard key={p.acronym} party={p} />
           ))}
         </div>
-      )}
+      </Show>
     </div>
   );
 }

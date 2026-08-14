@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, RefreshCw, Send } from "lucide-react";
 import posthog from "posthog-js";
+import { Show } from "@/components/ui/Show";
 
 const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "";
 const API_BASE = "/api";
@@ -65,8 +66,17 @@ export function TelegramDeepLinkLogin({
       if (data.status === "authenticated") {
         clearTimer();
         sessionStorage.removeItem(STORAGE_KEY);
-        // Capture before onAuthenticated() — it usually redirects, and we don't
-        // want the event dropped on navigation.
+        try {
+          const profileResponse = await fetch(`${API_BASE}/auth/profile`, {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (profileResponse.ok) {
+            const profile = await profileResponse.json();
+            const userId = profile?.id ?? profile?.user?.id ?? profile?.userId;
+            if (userId) posthog.identify(String(userId));
+          }
+        } catch {}
         posthog.capture("login_completed", { method: "telegram" });
         await onAuthenticated();
         return;
@@ -194,39 +204,34 @@ export function TelegramDeepLinkLogin({
   // phase === "waiting"
   return (
     <div className="flex w-full flex-col items-center gap-4 text-center">
-      {mobile ? (
-        <>
+      <Show when={mobile}>
           <p className="text-sm text-muted-foreground">
             Opening Telegram… press <b>Start</b>, then come back here.
           </p>
-          {(appLink || deepLink) && (
+          <Show when={!!(appLink || deepLink)}>
             <a href={appLink ?? deepLink ?? "#"} className={primaryBtn}>
               <Send className="h-4 w-4" /> Didn&apos;t open? Tap to open Telegram
             </a>
-          )}
-        </>
-      ) : (
-        <>
+          </Show>
+      </Show>
+      <Show when={!mobile}>
           <p className="text-sm text-muted-foreground">
             Scan with your phone&apos;s Telegram, then tap <b>Start</b>:
           </p>
-          {deepLink && (
+          <Show when={!!deepLink}>
             <div className="rounded-xl bg-white p-4">
-              <QRCodeSVG value={deepLink} size={196} />
+              <QRCodeSVG value={deepLink!} size={196} />
             </div>
-          )}
-          {deepLink && (
             <a
-              href={deepLink}
+              href={deepLink!}
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-muted-foreground underline hover:text-foreground"
             >
               Open in Telegram Desktop instead
             </a>
-          )}
-        </>
-      )}
+          </Show>
+      </Show>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Loader2 className="h-3 w-3 animate-spin" /> Waiting for confirmation…
       </div>

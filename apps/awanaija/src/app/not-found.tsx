@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
 import { AlertCircle, Home, Search } from "lucide-react";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex flex-col">
-      <Navbar />
-      
+    <PageLayout>
       <div className="flex-1 flex items-center justify-center relative overflow-hidden py-32">
         {/* Deep gradient background */}
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
@@ -50,8 +47,6 @@ export default function NotFound() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </main>
+    </PageLayout>
   );
 }

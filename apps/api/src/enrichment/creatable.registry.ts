@@ -460,6 +460,35 @@ function electionEntity(): CreatableEntity {
          VALUES (${placeholders.join(", ")}) RETURNING id`,
         ...values,
       );
+
+      // For primary winners, create a contested position so their profile
+      // page reflects the office they're running for.
+      // Only gubernatorial can be created here — senator/rep need constituency_code
+      // which the import-level data doesn't carry, and there's no president role.
+      if (payload.isPrimary && payload.electionType === "gubernatorial" && payload.stateCode) {
+        const stateCode = payload.stateCode as string;
+        const alreadyExists = await tx.$queryRawUnsafe<unknown[]>(
+          `SELECT 1 FROM official_positions
+           WHERE official_id = $1::uuid AND role = 'governor' AND state_code = $2
+           LIMIT 1`,
+          officialId,
+          stateCode,
+        );
+        if (alreadyExists.length === 0) {
+          await tx.$queryRawUnsafe(
+            `INSERT INTO official_positions
+               (official_id, role, state_code, status, appointment_type,
+                confidence, source_type, review_status, reviewed_by, last_verified_at)
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
+                     $3, 'manual', 'reviewed', $4, now())`,
+            officialId,
+            stateCode,
+            ctx.confidence,
+            ctx.adminId,
+          );
+        }
+      }
+
       return { id: rows[0].id, officialId };
     },
   };

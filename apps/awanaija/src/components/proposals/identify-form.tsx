@@ -18,6 +18,8 @@ import {
   type SeatCandidate,
 } from "@/lib/api";
 import { TelegramDeepLinkLogin } from "@/components/auth/TelegramDeepLinkLogin";
+import { Show } from "@/components/ui/Show";
+import posthog from "posthog-js";
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -258,7 +260,7 @@ export function SearchSelect({
         </span>
         <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
       </button>
-      {open && !disabled && (
+      <Show when={open && !disabled}>
         <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
           <div className="relative p-2">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -289,7 +291,7 @@ export function SearchSelect({
             )}
           </div>
         </div>
-      )}
+      </Show>
     </div>
   );
 }
@@ -297,7 +299,7 @@ export function SearchSelect({
 function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-      {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+      {children}<Show when={!!required}><span className="text-red-500 ml-0.5">*</span></Show>
     </label>
   );
 }
@@ -376,7 +378,7 @@ export function LocationField({ form }: { form: IdentifyForm }) {
         />
       </div>
 
-      {(depth === "lga" || depth === "ward") && (
+      <Show when={depth === "lga" || depth === "ward"}>
         <div>
           <Label required>LGA</Label>
           <SearchSelect
@@ -390,9 +392,9 @@ export function LocationField({ form }: { form: IdentifyForm }) {
             }}
           />
         </div>
-      )}
+      </Show>
 
-      {depth === "ward" && (
+      <Show when={depth === "ward"}>
         <div>
           <Label required>Ward</Label>
           <SearchSelect
@@ -403,9 +405,9 @@ export function LocationField({ form }: { form: IdentifyForm }) {
             onChange={(code, n) => { form.setWardCode(code); form.setWardName(n); }}
           />
         </div>
-      )}
+      </Show>
 
-      {depth === "constituency" && (
+      <Show when={depth === "constituency"}>
         <div>
           <Label required>
             {ctype === "state" ? "State Constituency" : ctype === "senatorial" ? "Senatorial District" : "Federal Constituency"}
@@ -418,7 +420,7 @@ export function LocationField({ form }: { form: IdentifyForm }) {
             onChange={(code, n) => { form.setConstituencyCode(code); form.setConstituencyName(n); }}
           />
         </div>
-      )}
+      </Show>
     </div>
   );
 }
@@ -479,11 +481,12 @@ export function SeatVerificationView({
             disabled={form.submitting}
             className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {form.submitting ? (
+            <Show when={form.submitting}>
               <><Loader2 className="w-4 h-4 animate-spin" /> Confirming...</>
-            ) : (
+            </Show>
+            <Show when={!form.submitting}>
               <><Check className="w-4 h-4" /> Yes, confirm this</>
-            )}
+            </Show>
           </button>
           <button
             type="button"
@@ -496,7 +499,7 @@ export function SeatVerificationView({
         </div>
 
         <div className="mt-3">
-          {!showSource ? (
+          <Show when={!showSource}>
             <button
               type="button"
               onClick={() => setShowSource(true)}
@@ -504,13 +507,14 @@ export function SeatVerificationView({
             >
               <Link2 className="w-3.5 h-3.5" /> Add a source
             </button>
-          ) : (
+          </Show>
+          <Show when={showSource}>
             <SourceField form={form} />
-          )}
+          </Show>
         </div>
       </div>
 
-      {others.length > 0 && (
+      <Show when={others.length > 0}>
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-400 font-medium mb-2">
             Other proposed names
@@ -534,7 +538,7 @@ export function SeatVerificationView({
             ))}
           </ul>
         </div>
-      )}
+      </Show>
 
       <ErrorBox message={form.error} />
     </div>
@@ -604,13 +608,13 @@ export function OptionalDetails({ form, defaultOpen = false }: { form: IdentifyF
         <span>Add more details <span className="text-slate-400 font-normal">(optional{filled ? ` · ${filled} added` : ""})</span></span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && (
+      <Show when={open}>
         <div className="px-4 pb-4 space-y-4 border-t border-slate-100 dark:border-slate-800 pt-4">
           <PhotoField value={form.imageUrl} onChange={form.setImageUrl} />
           {PROFILE_FIELDS.map((f) => (
             <div key={f.key}>
               <Label>{f.label}</Label>
-              {f.kind === "textarea" ? (
+              <Show when={f.kind === "textarea"}>
                 <textarea
                   rows={f.key === "biography" ? 4 : 3}
                   value={form.profile[f.key]}
@@ -618,7 +622,8 @@ export function OptionalDetails({ form, defaultOpen = false }: { form: IdentifyF
                   placeholder={"placeholder" in f ? f.placeholder : undefined}
                   className={`${inputCls} resize-y`}
                 />
-              ) : f.kind === "gender" ? (
+              </Show>
+              <Show when={f.kind === "gender"}>
                 <select
                   value={form.profile[f.key]}
                   onChange={(e) => form.setProfile((c) => ({ ...c, [f.key]: e.target.value }))}
@@ -628,7 +633,8 @@ export function OptionalDetails({ form, defaultOpen = false }: { form: IdentifyF
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
-              ) : (
+              </Show>
+              <Show when={f.kind !== "textarea" && f.kind !== "gender"}>
                 <input
                   type={f.kind === "email" ? "email" : f.kind === "date" ? "date" : "text"}
                   value={form.profile[f.key]}
@@ -636,11 +642,11 @@ export function OptionalDetails({ form, defaultOpen = false }: { form: IdentifyF
                   placeholder={"placeholder" in f ? f.placeholder : undefined}
                   className={inputCls}
                 />
-              )}
+              </Show>
             </div>
           ))}
         </div>
-      )}
+      </Show>
     </div>
   );
 }
@@ -690,21 +696,25 @@ export function PhotoField({ value, onChange }: { value: string; onChange: (v: s
           <Upload className="w-3.5 h-3.5" /> Upload
         </button>
       </div>
-      {mode === "url" ? (
+      <Show when={mode === "url"}>
         <input type="url" value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://example.com/photo.jpg" className={inputCls} />
-      ) : preview ? (
+      </Show>
+      <Show when={mode !== "url" && !!preview}>
         <div className="relative inline-block">
-          <img src={preview} alt="preview" className="w-24 h-24 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
+          <img src={preview!} alt="preview" className="w-24 h-24 rounded-lg object-cover border border-slate-200 dark:border-slate-700" />
           <button type="button" onClick={() => { setPreview(null); onChange(""); }} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"><X className="w-3.5 h-3.5" /></button>
-          {uploading && <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-white" /></div>}
+          <Show when={uploading}>
+            <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-white" /></div>
+          </Show>
         </div>
-      ) : (
+      </Show>
+      <Show when={mode !== "url" && !preview}>
         <label className="flex flex-col items-center justify-center w-full h-28 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-pointer hover:border-emerald-400">
           <ImageIcon className="w-7 h-7 text-slate-400 mb-1" />
           <span className="text-sm text-slate-500">Click to select an image</span>
           <input type="file" accept="image/*" onChange={onFile} className="hidden" />
         </label>
-      )}
+      </Show>
     </div>
   );
 }
@@ -743,12 +753,12 @@ export function SuccessCard({ form }: { form: IdentifyForm }) {
       <p className="text-slate-600 dark:text-slate-400 mb-6">
         <span className="font-medium">{form.name}</span> submitted as {roleConfig(form.role)?.label}. Under review.
       </p>
-      {form.newOfficialId && (
+      <Show when={!!form.newOfficialId}>
         <Link href={`/officials/${form.newOfficialId}`} className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg">
           View Profile
         </Link>
-      )}
-      {form.isAnonymous && form.newProposalId && !showAuth && (
+      </Show>
+      <Show when={form.isAnonymous && !!form.newProposalId && !showAuth}>
         <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
           Want to track this contribution?{" "}
           <button type="button" onClick={() => setShowAuth(true)} className="font-medium text-emerald-600 hover:underline">
@@ -756,8 +766,8 @@ export function SuccessCard({ form }: { form: IdentifyForm }) {
           </button>{" "}
           and we&apos;ll notify you when it&apos;s reviewed.
         </p>
-      )}
-      {showAuth && form.newProposalId && (
+      </Show>
+      <Show when={showAuth && !!form.newProposalId}>
         <AuthModal
           onVerified={() => {
             setShowAuth(false);
@@ -766,7 +776,7 @@ export function SuccessCard({ form }: { form: IdentifyForm }) {
           }}
           onClose={() => setShowAuth(false)}
         />
-      )}
+      </Show>
     </div>
   );
 }
@@ -790,7 +800,11 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
     return false;
   }
 
-  useEffect(() => { if (countdown <= 0) return; const t = setTimeout(() => setCountdown((c) => c - 1), 1000); return () => clearTimeout(t); }, [countdown]);
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   async function sendOtp() {
     const full = phone.startsWith("+") ? phone : `+234${phone.replace(/^0/, "")}`;
@@ -810,25 +824,32 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
     try {
       const r = await fetch("/api/auth/verify-otp", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ phoneNumber: full, code: c }) });
       const d = await r.json(); if (!r.ok) { setErr(d.error || "Verification failed"); return; }
+      const userId = d.user?.id ?? d.userId;
+      if (userId) posthog.identify(String(userId));
       onVerified();
     } catch { setErr("Network error."); } finally { setLoading(false); }
   }
 
   const codeStr = code.join("");
-  useEffect(() => { if (codeStr.length === 6 && step === "code" && !loading) verify(); /* eslint-disable-next-line */ }, [codeStr]);
+  useEffect(() => {
+    // Auto-submit once all 6 digits are entered. Intentionally keyed on
+    // `codeStr` only — re-running on step/loading/verify would double-submit.
+    if (codeStr.length === 6 && step === "code" && !loading) verify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeStr]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
         <div className="p-5 pb-0">
-          <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4 text-slate-500" /></button>
+          <button type="button" onClick={onClose} className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"><X className="w-4 h-4 text-slate-500" /></button>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Verify to contribute</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Sign in to submit your proposal.</p>
         </div>
         <div className="flex border-b border-slate-200 dark:border-slate-700 px-5">
           {(["telegram", "whatsapp"] as const).map((t) => (
-            <button key={t} onClick={() => { setTab(t); setErr(null); }}
+            <button type="button" key={t} onClick={() => { setTab(t); setErr(null); }}
               className={`flex-1 pb-3 text-sm font-medium capitalize ${tab === t ? "border-b-2 border-emerald-500 text-emerald-600" : "text-slate-400"}`}>
               {t}
             </button>
@@ -836,7 +857,7 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
         </div>
         <div className="p-5">
           <ErrorBox message={err} />
-          {tab === "telegram" ? (
+          <Show when={tab === "telegram"}>
             <div className="space-y-3 pt-1">
               <p className="text-center text-sm text-slate-500">Sign in with your Telegram account.</p>
               <div className="flex min-h-[40px] items-center justify-center">
@@ -848,17 +869,19 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
                 />
               </div>
             </div>
-          ) : step === "phone" ? (
+          </Show>
+          <Show when={tab !== "telegram" && step === "phone"}>
             <div className="space-y-3 pt-1">
               <div className="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500">
                 <span className="flex items-center px-3 bg-slate-50 dark:bg-slate-800 text-sm text-slate-400 border-r border-slate-300 dark:border-slate-700">+234</span>
                 <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="XXX XXX XXXX" className="flex-1 px-3 py-3 text-sm bg-white dark:bg-slate-800 focus:outline-none" autoFocus />
               </div>
-              <button onClick={sendOtp} disabled={loading || phone.length < 7} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
+              <button type="button" onClick={sendOtp} disabled={loading || phone.length < 7} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />} Send code
               </button>
             </div>
-          ) : (
+          </Show>
+          <Show when={tab !== "telegram" && step !== "phone"}>
             <div className="space-y-3 pt-1">
               <button type="button" onClick={() => { setStep("phone"); setCode(["", "", "", "", "", ""]); setErr(null); }} className="inline-flex items-center gap-1 text-xs text-slate-400"><ArrowLeft className="h-3 w-3" /> Change number</button>
               <div className="flex justify-center gap-2">
@@ -868,7 +891,7 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
                     className="h-12 w-10 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-center text-xl font-bold focus:border-emerald-500 outline-none" autoFocus={i === 0} />
                 ))}
               </div>
-              <button onClick={verify} disabled={codeStr.length !== 6 || loading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
+              <button type="button" onClick={verify} disabled={codeStr.length !== 6 || loading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />} Verify
               </button>
               <div className="text-center">
@@ -877,7 +900,7 @@ export function AuthModal({ onVerified, onClose }: { onVerified: () => void; onC
                 </button>
               </div>
             </div>
-          )}
+          </Show>
         </div>
       </div>
     </div>

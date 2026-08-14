@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { geoMercator, geoPath } from "d3-geo";
 import type { FeatureCollection, Geometry } from "geojson";
 import nigeriaGeoRaw from "@/data/nigeria-states.geo.json";
+import { Show } from "@/components/ui/Show";
 
 type StateProps = { stateCode: string; name: string };
 const NIGERIA = nigeriaGeoRaw as unknown as FeatureCollection<Geometry, StateProps>;
@@ -102,15 +103,16 @@ export function NigeriaChoropleth({ valuesByState, breakdownByState, color, clas
           style={{ left: hover.x + 12, top: hover.y + 12 }}
         >
           <div className="font-medium text-foreground">{hover.name}</div>
-          {lines.length > 0 ? (
+          <Show when={lines.length > 0}>
             <div className="mt-1 space-y-0.5 font-mono text-muted-foreground">
               {lines.map((l) => (
                 <div key={l}>{l}</div>
               ))}
             </div>
-          ) : (
+          </Show>
+          <Show when={lines.length === 0}>
             <div className="mt-1 font-mono text-muted-foreground">No seats held</div>
-          )}
+          </Show>
         </div>
       )}
     </div>

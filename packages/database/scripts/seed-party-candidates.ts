@@ -76,6 +76,7 @@ async function main() {
     alreadyExisted: 0,
     officialsCreated: 0,
     officialsReused: 0,
+    positionsCreated: 0,
     skippedUnknownParty: [] as string[],
     skippedBadState: [] as string[],
   };
@@ -122,28 +123,51 @@ async function main() {
       if (existing.length > 0) {
         stats.alreadyExisted += 1;
         console.log(`  · ${acronym.padEnd(7)} ${c.electionType.padEnd(13)} ${c.year}  ${c.candidateName}  [exists]`);
-        continue;
+      } else {
+        const notes = c.sourceUrl ? `Source: ${c.sourceUrl}` : null;
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO official_elections
+             (official_id, election_type, is_primary, year, election_date, party_acronym,
+              state_code, result, votes, winner_name, notes, confidence, source_type, review_status)
+           VALUES ($1, $2, true, $3, $4::date, $5, $6, 'won', $7, $8, $9, $10, 'import', 'unreviewed')`,
+          res.id,
+          c.electionType,
+          c.year,
+          c.electionDate ?? null,
+          acronym,
+          c.stateCode ?? null,
+          c.votes ?? null,
+          c.candidateName.trim(),
+          notes,
+          c.confidence ?? 'medium',
+        );
+        stats.inserted += 1;
+        console.log(`  + ${acronym.padEnd(7)} ${c.electionType.padEnd(13)} ${c.year}  ${c.candidateName}  [${res.created ? 'new official' : 'reused official'}]`);
       }
 
-      const notes = c.sourceUrl ? `Source: ${c.sourceUrl}` : null;
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO official_elections
-           (official_id, election_type, is_primary, year, election_date, party_acronym,
-            state_code, result, votes, winner_name, notes, confidence, source_type, review_status)
-         VALUES ($1, $2, true, $3, $4::date, $5, $6, 'won', $7, $8, $9, $10, 'import', 'unreviewed')`,
-        res.id,
-        c.electionType,
-        c.year,
-        c.electionDate ?? null,
-        acronym,
-        c.stateCode ?? null,
-        c.votes ?? null,
-        c.candidateName.trim(),
-        notes,
-        c.confidence ?? 'medium',
-      );
-      stats.inserted += 1;
-      console.log(`  + ${acronym.padEnd(7)} ${c.electionType.padEnd(13)} ${c.year}  ${c.candidateName}  [${res.created ? 'new official' : 'reused official'}]`);
+      // Ensure gubernatorial primary winners have a contested position so their
+      // profile page shows the office they're running for.
+      if (c.electionType === 'gubernatorial' && c.stateCode) {
+        const posExists = await prisma.$queryRawUnsafe<unknown[]>(
+          `SELECT 1 FROM official_positions
+           WHERE official_id = $1 AND role = 'governor' AND state_code = $2 LIMIT 1`,
+          res.id,
+          c.stateCode,
+        );
+        if (posExists.length === 0) {
+          await prisma.$executeRawUnsafe(
+            `INSERT INTO official_positions
+               (official_id, role, state_code, status, appointment_type,
+                confidence, source_type, review_status)
+             VALUES ($1, 'governor', $2, 'contesting', 'elected', $3, 'manual', 'unreviewed')`,
+            res.id,
+            c.stateCode,
+            c.confidence ?? 'medium',
+          );
+          stats.positionsCreated += 1;
+          console.log(`  → position created: governor/${c.stateCode} [contested]`);
+        }
+      }
     }
   }
 
@@ -152,6 +176,7 @@ async function main() {
   console.log(`  Election rows already existed:   ${stats.alreadyExisted}`);
   console.log(`  Officials created (new people):  ${stats.officialsCreated}`);
   console.log(`  Officials reused (existing):     ${stats.officialsReused}`);
+  console.log(`  Positions created (contested):   ${stats.positionsCreated}`);
   if (stats.skippedUnknownParty.length) console.log(`  Skipped unknown parties: ${stats.skippedUnknownParty.join(', ')}`);
   if (stats.skippedBadState.length) console.log(`  Skipped bad state codes: ${stats.skippedBadState.join('; ')}`);
 

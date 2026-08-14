@@ -15,6 +15,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { BackButton } from "@/components/ui/BackButton";
+import { Show } from "@/components/ui/Show";
 import type {
   Official,
   Position,
@@ -274,9 +276,11 @@ export function MagazineProfile({ official }: { official: Official }) {
       {/* hero */}
       <header className="relative pt-6 pb-7 max-md:pt-5 max-md:pb-5 bg-gradient-to-b from-[oklch(0.13_0.015_160)] to-[oklch(0.10_0.005_160)]">
         <div className="max-w-[1040px] mx-auto px-[72px] max-md:px-6">
-          <Link href="/officials" className="inline-flex items-center gap-2.5 text-sm text-slate-300/70 hover:text-emerald-400 whitespace-nowrap">
-            <span className="text-base leading-none">←</span><span>Back to officials</span>
-          </Link>
+          <BackButton
+            fallbackHref="/officials"
+            fallbackLabel="officials"
+            className="gap-2.5 whitespace-nowrap text-slate-300/70 hover:text-emerald-400"
+          />
           <div className="flex gap-6 items-start mt-5 max-md:flex-col max-md:items-center max-md:text-center max-md:gap-0">
             <div className="w-[104px] h-[104px] max-md:w-[88px] max-md:h-[88px] shrink-0 rounded-2xl overflow-hidden border border-emerald-400/30 bg-gradient-to-br from-emerald-900 to-[oklch(0.3_0.06_160)] flex items-center justify-center font-serif text-emerald-400 text-[38px] max-md:text-[32px]">
               {official.imageUrl && !imgError ? (
@@ -289,8 +293,8 @@ export function MagazineProfile({ official }: { official: Official }) {
             <div className="flex-1 pt-0.5 max-md:mt-3.5 max-md:w-full">
               <span className="font-mono text-[11px] max-md:text-[10px] tracking-[0.14em] uppercase text-emerald-400">{overline}</span>
               <h1 className="font-serif font-normal text-[31px] max-md:text-[27px] leading-[1.1] tracking-[-0.01em] mt-1">{official.name}</h1>
-              {jurisdiction && <div className="text-[15px] max-md:text-[14px] text-slate-300/70 mt-0.5">{jurisdiction}</div>}
-              {since && <div className="text-[13px] max-md:text-[12.5px] text-slate-500 mt-1">Since {since}</div>}
+              <Show when={!!jurisdiction}><div className="text-[15px] max-md:text-[14px] text-slate-300/70 mt-0.5">{jurisdiction}</div></Show>
+              <Show when={!!since}><div className="text-[13px] max-md:text-[12.5px] text-slate-500 mt-1">Since {since}</div></Show>
               <div className="flex items-center gap-4 max-md:gap-3 mt-3.5 max-md:mt-3 w-full">
                 <div className="flex-1 h-[5px] rounded-[3px] bg-[oklch(0.22_0.01_160)] overflow-hidden">
                   <div className="h-full rounded-[3px] bg-gradient-to-r from-emerald-900 to-emerald-400" style={{ width: `${completeness}%` }} />
@@ -304,10 +308,10 @@ export function MagazineProfile({ official }: { official: Official }) {
       </header>
 
       <div className="px-[72px] pb-[70px] max-w-[1040px] mx-auto max-md:px-6 max-md:pb-14 max-md:max-w-full">
-        {bio && <p className="text-[15px] max-md:text-sm leading-[1.7] text-slate-300/80 max-w-[760px] mt-6 max-md:mt-5">{bio}</p>}
+        <Show when={!!bio}><p className="text-[15px] max-md:text-sm leading-[1.7] text-slate-300/80 max-w-[760px] mt-6 max-md:mt-5">{bio}</p></Show>
 
         {/* pull-stat band */}
-        {stats.length > 0 && (
+        <Show when={stats.length > 0}>
           <div className="grid mt-[30px] border-y border-[oklch(0.28_0.012_160)] max-md:grid-cols-2" style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}>
             {stats.map((s, i) => (
               <div key={s.l} className={`py-[22px] px-[18px] max-md:py-[18px] max-md:px-3 text-center ${i ? "border-l border-[oklch(0.28_0.012_160)] max-md:border-l-0" : ""} ${i % 2 ? "max-md:border-l max-md:border-[oklch(0.28_0.012_160)]" : ""} ${i > 1 ? "max-md:border-t max-md:border-[oklch(0.28_0.012_160)]" : ""}`}>
@@ -316,10 +320,10 @@ export function MagazineProfile({ official }: { official: Official }) {
               </div>
             ))}
           </div>
-        )}
+        </Show>
 
         {/* political career — full history */}
-        {positions.length > 0 && (
+        <Show when={positions.length > 0}>
           <section>
             <SecTitle title="Political Career" count={positions.length} />
             <div className="grid grid-cols-2 max-md:grid-cols-1 gap-x-10 gap-y-1">
@@ -334,10 +338,10 @@ export function MagazineProfile({ official }: { official: Official }) {
               ))}
             </div>
           </section>
-        )}
+        </Show>
 
         {/* elections — scoreboard */}
-        {elections.length > 0 && (
+        <Show when={elections.length > 0}>
           <section>
             <SecTitle title="Elections Contested" count={elections.length} />
             <div className="grid grid-cols-4 max-md:grid-cols-1 gap-4 max-md:gap-3">
@@ -357,13 +361,13 @@ export function MagazineProfile({ official }: { official: Official }) {
               ))}
             </div>
           </section>
-        )}
+        </Show>
 
         {/* two-column editorial grid */}
-        {(education.length > 0 || parties.length > 0 || family.length > 0 || careers.length > 0 || assets.length > 0 || awards.length > 0 || pubs.length > 0) && (
+        <Show when={education.length > 0 || parties.length > 0 || family.length > 0 || careers.length > 0 || assets.length > 0 || awards.length > 0 || pubs.length > 0}>
           <div className="grid grid-cols-2 max-md:grid-cols-1 gap-x-14">
             <div>
-              {education.length > 0 && (
+              <Show when={education.length > 0}>
                 <section>
                   <SecTitle title="Education" count={education.length} />
                   {education.map((e) => (
@@ -376,8 +380,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {parties.length > 0 && (
+              </Show>
+              <Show when={parties.length > 0}>
                 <section>
                   <SecTitle title="Party Affiliations" count={parties.length} />
                   {parties.map((p) => (
@@ -390,8 +394,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {committees.length > 0 && (
+              </Show>
+              <Show when={committees.length > 0}>
                 <section>
                   <SecTitle title="Committees" count={committees.length} />
                   {committees.map((c) => (
@@ -404,8 +408,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {family.length > 0 && (
+              </Show>
+              <Show when={family.length > 0}>
                 <section>
                   <SecTitle title="Family" count={family.length} />
                   {family.map((f) => (
@@ -422,10 +426,10 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </div>
                   ))}
                 </section>
-              )}
+              </Show>
             </div>
             <div>
-              {careers.length > 0 && (
+              <Show when={careers.length > 0}>
                 <section>
                   <SecTitle title="Career Before Politics" count={careers.length} />
                   {careers.map((c) => (
@@ -438,8 +442,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {bills.length > 0 && (
+              </Show>
+              <Show when={bills.length > 0}>
                 <section>
                   <SecTitle title="Sponsored Bills" count={bills.length} />
                   {bills.map((b) => (
@@ -452,8 +456,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {assets.length > 0 && (
+              </Show>
+              <Show when={assets.length > 0}>
                 <section>
                   <SecTitle title="Asset Declarations" count={assets.length} />
                   {assets.map((a) => (
@@ -464,8 +468,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {awards.length > 0 && (
+              </Show>
+              <Show when={awards.length > 0}>
                 <section>
                   <SecTitle title="Awards & Honours" count={awards.length} />
                   {awards.map((a) => (
@@ -478,8 +482,8 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </ProvRow>
                   ))}
                 </section>
-              )}
-              {pubs.length > 0 && (
+              </Show>
+              <Show when={pubs.length > 0}>
                 <section>
                   <SecTitle title="Publications" count={pubs.length} />
                   {pubs.map((p) => (
@@ -489,13 +493,13 @@ export function MagazineProfile({ official }: { official: Official }) {
                     </div>
                   ))}
                 </section>
-              )}
+              </Show>
             </div>
           </div>
-        )}
+        </Show>
 
         {/* legal & integrity — red register (personal legal + linked corruption) */}
-        {(legal.length > 0 || corruption.length > 0) && (
+        <Show when={legal.length > 0 || corruption.length > 0}>
           <section>
             <SecTitle title="Legal & Integrity" count={legal.length + corruption.length} red />
             {legal.map((l) => (
@@ -534,7 +538,7 @@ export function MagazineProfile({ official }: { official: Official }) {
               </div>
             ))}
           </section>
-        )}
+        </Show>
       </div>
     </div>
   );

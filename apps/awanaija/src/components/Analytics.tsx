@@ -1,6 +1,7 @@
 'use client';
 
 import Script from 'next/script';
+import { Show } from '@/components/ui/Show';
 
 export function Analytics() {
   const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -15,7 +16,7 @@ export function Analytics() {
       />
 
       {/* Google Analytics 4 */}
-      {gaId && (
+      <Show when={!!gaId}>
         <>
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
@@ -32,7 +33,7 @@ export function Analytics() {
             `}
           </Script>
         </>
-      )}
+      </Show>
     </>
   );
 }

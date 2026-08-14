@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X, Landmark, Menu, Heart } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGIN_URL } from "@/lib/constants";
+import { Show } from "@/components/ui/Show";
 
 export function Navbar() {
   const [morphed, setMorphed] = useState(false);
@@ -174,7 +175,8 @@ export function Navbar() {
               aria-label="Toggle menu"
               aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Show when={mobileMenuOpen}><X className="h-5 w-5" /></Show>
+              <Show when={!mobileMenuOpen}><Menu className="h-5 w-5" /></Show>
             </button>
 
             {/* Desktop: "Ask Now" dropdown */}
@@ -196,7 +198,7 @@ export function Navbar() {
                 </span>
               </button>
 
-              {isDropdownOpen && (
+              <Show when={isDropdownOpen}>
                 <div className="absolute right-0 top-full pt-2 w-48 z-50">
                   <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 flex flex-col gap-1">
                     <a
@@ -227,13 +229,13 @@ export function Navbar() {
                     </button>
                   </div>
                 </div>
-              )}
+              </Show>
             </div>
           </div>
         </div>
 
         {/* Mobile menu panel */}
-        {mobileMenuOpen && (
+        <Show when={mobileMenuOpen}>
           <div className="md:hidden mt-2 rounded-3xl border border-border/50 bg-background/95 backdrop-blur-2xl shadow-xl shadow-black/10 p-4 max-h-[75vh] overflow-y-auto animate-in fade-in slide-in-from-top-2">
             {/* Ask the platform */}
             <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ask Questions</div>
@@ -276,11 +278,11 @@ export function Navbar() {
               <Heart className="h-4 w-4" /> Back Our Mission
             </Link>
           </div>
-        )}
+        </Show>
       </nav>
 
       {/* WhatsApp Modal */}
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
             <button
@@ -307,7 +309,7 @@ export function Navbar() {
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

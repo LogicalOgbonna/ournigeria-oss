@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
+import { Show } from "@/components/ui/Show";
 
 interface Councilor {
   id: string;
@@ -50,14 +51,15 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               {councilors?.length || wardCount} Councilors
             </p>
           </div>
-          {isOpen ? (
+          <Show when={isOpen}>
             <ChevronDown className="w-5 h-5 text-emerald-500 transition-colors" />
-          ) : (
+          </Show>
+          <Show when={!isOpen}>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-          )}
+          </Show>
         </button>
 
-        {isOpen && (
+        <Show when={isOpen}>
           <div className="border-t border-border p-2 space-y-1 max-h-[300px] overflow-y-auto scrollbar-theme">
             {councilors && councilors.length > 0 ? (
               councilors.map((councilor, i) => (
@@ -110,10 +112,10 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               </div>
             )}
           </div>
-        )}
+        </Show>
       </div>
 
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-[10px] shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between p-4 border-b border-border">
@@ -148,7 +150,7 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

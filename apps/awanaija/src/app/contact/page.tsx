@@ -1,5 +1,4 @@
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export const metadata = {
   title: "Contact Us | OurNigeria",
@@ -8,9 +7,7 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen flex flex-col">
-      <Navbar />
-      
+    <PageLayout>
       <div className="flex-1 bg-background pt-32 pb-16 flex items-center justify-center">
         <div className="container mx-auto px-4 max-w-xl">
           <div className="text-center mb-8">
@@ -82,8 +79,6 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-      
-      <Footer />
-    </main>
+    </PageLayout>
   );
 }

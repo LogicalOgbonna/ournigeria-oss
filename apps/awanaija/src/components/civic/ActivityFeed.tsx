@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getActivity, type ActivityEntry } from "@/lib/api";
 import { CheckCircle2, PlusCircle, ArrowUpCircle, ArrowDownCircle, Activity, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { Show } from "@/components/ui/Show";
 
 interface ActivityFeedProps {
   limit?: number;
@@ -152,8 +153,8 @@ export function ActivityFeed({
               </div>
 
               {/* Content Card */}
-              {details.officialId ? (
-                <Link 
+              <Show when={!!details.officialId}>
+                <Link
                   href={`/officials/${details.officialId}`}
                   className={`block p-4 rounded-xl border ${details.border} bg-white dark:bg-slate-900/50 shadow-sm transition-shadow hover:shadow-md cursor-pointer`}
                 >
@@ -171,7 +172,7 @@ export function ActivityFeed({
                   <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
                     <span className="font-medium text-slate-900 dark:text-white">A citizen</span>{" "}
                     <span className="text-slate-600 dark:text-slate-400">{details.action}</span>{" "}
-                    {details.field && <span className="font-medium text-slate-900 dark:text-white">{details.field}</span>}{" "}
+                    <Show when={!!details.field}><span className="font-medium text-slate-900 dark:text-white">{details.field}</span></Show>{" "}
                     <span className="text-slate-600 dark:text-slate-400">for</span>{" "}
                     <span className="font-semibold text-emerald-600 hover:text-emerald-700 hover:underline">
                       {details.name}
@@ -185,7 +186,8 @@ export function ActivityFeed({
                     </span>
                   </div>
                 </Link>
-              ) : (
+              </Show>
+              <Show when={!details.officialId}>
                 <div className={`p-4 rounded-xl border ${details.border} bg-white dark:bg-slate-900/50 shadow-sm transition-shadow hover:shadow-md`}>
                   <div className="flex justify-between items-start gap-4 mb-2">
                     <div className="flex items-center gap-2">
@@ -201,12 +203,12 @@ export function ActivityFeed({
                   <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
                     <span className="font-medium text-slate-900 dark:text-white">A citizen</span>{" "}
                     <span className="text-slate-600 dark:text-slate-400">{details.action}</span>{" "}
-                    {details.field && <span className="font-medium text-slate-900 dark:text-white">{details.field}</span>}{" "}
+                    <Show when={!!details.field}><span className="font-medium text-slate-900 dark:text-white">{details.field}</span></Show>{" "}
                     <span className="text-slate-600 dark:text-slate-400">for</span>{" "}
                     <span className="font-semibold text-slate-900 dark:text-white">{details.name}</span>
                   </p>
                 </div>
-              )}
+              </Show>
             </div>
           );
         })}

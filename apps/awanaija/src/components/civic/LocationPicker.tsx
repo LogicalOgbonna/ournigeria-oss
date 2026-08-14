@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin, ChevronLeft, Loader2, Search, LocateFixed, XCircle } from "lucide-react";
 import { getStates, getLgas, getWards, reverseGeocode } from "@/lib/api";
+import { Show } from "@/components/ui/Show";
 
 interface LocationPickerProps {
   onLocationSelect: (location: {
@@ -244,38 +245,39 @@ export function LocationPicker({ onLocationSelect, initialLocation }: LocationPi
   return (
     <div>
       {/* Location denied/failed banner */}
-      {(detectStatus === "denied" || detectStatus === "failed") && step === "state" && (
+      <Show when={(detectStatus === "denied" || detectStatus === "failed") && step === "state"}>
         <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
-          {detectStatus === "denied" ? (
+          <Show when={detectStatus === "denied"}>
             <XCircle className="w-4 h-4 text-amber-500 shrink-0" />
-          ) : (
+          </Show>
+          <Show when={detectStatus !== "denied"}>
             <LocateFixed className="w-4 h-4 text-amber-500 shrink-0" />
-          )}
+          </Show>
           <p className="text-xs text-amber-700 dark:text-amber-400">
             {detectStatus === "denied"
               ? "Location access denied. Select your state below."
               : "Couldn\u2019t detect your location. Select your state below."}
           </p>
         </div>
-      )}
+      </Show>
 
       {/* Header with back button and breadcrumb */}
       <div className="flex items-center gap-2 mb-3">
-        {step !== "state" && (
+        <Show when={step !== "state"}>
           <button
             onClick={handleBack}
             className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
           >
             <ChevronLeft className="w-4 h-4 text-slate-500" />
           </button>
-        )}
+        </Show>
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
             {stepLabel}
           </p>
-          {breadcrumb && (
+          <Show when={!!breadcrumb}>
             <p className="text-xs text-slate-400 truncate">{breadcrumb}</p>
-          )}
+          </Show>
         </div>
       </div>
 
@@ -292,17 +294,19 @@ export function LocationPicker({ onLocationSelect, initialLocation }: LocationPi
       </div>
 
       {/* Card grid */}
-      {loadingItems ? (
+      <Show when={loadingItems}>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {Array.from({ length: 9 }).map((_, i) => (
             <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : currentItems.length === 0 ? (
+      </Show>
+      <Show when={!loadingItems && currentItems.length === 0}>
         <p className="text-sm text-slate-400 text-center py-6">
           {search ? "No results found" : "No items available"}
         </p>
-      ) : (
+      </Show>
+      <Show when={!loadingItems && currentItems.length > 0}>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[45vh] overflow-y-auto scrollbar-theme">
           {currentItems.map((item) => (
             <button
@@ -319,7 +323,7 @@ export function LocationPicker({ onLocationSelect, initialLocation }: LocationPi
             </button>
           ))}
         </div>
-      )}
+      </Show>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { User, ExternalLink, Calendar } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { Show } from "@/components/ui/Show";
 import type { Official, Position } from "@/lib/api";
 
 interface OfficialCardProps {
@@ -70,7 +71,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
       <div className="flex">
         {/* Photo: square on desktop, circle on mobile */}
         <div className="hidden md:block shrink-0">
-          {showImage ? (
+          <Show when={!!showImage}>
             <SmartImage
               src={official.imageUrl!}
               alt={official.name}
@@ -78,11 +79,12 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
               className="w-20 h-full object-cover"
               onError={() => setImgError(true)}
             />
-          ) : (
+          </Show>
+          <Show when={!showImage}>
             <div className="w-20 h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               <User className="w-9 h-9 text-slate-300 dark:text-slate-600" />
             </div>
-          )}
+          </Show>
         </div>
 
         {/* Content */}
@@ -90,7 +92,7 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
           {/* Mobile-only: small circle photo inline */}
           <div className="flex items-start gap-3">
             <div className="md:hidden shrink-0">
-              {showImage ? (
+              <Show when={!!showImage}>
                 <SmartImage
                   src={official.imageUrl!}
                   alt={official.name}
@@ -98,11 +100,12 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
                   className="w-11 h-11 rounded-full object-cover"
                   onError={() => setImgError(true)}
                 />
-              ) : (
+              </Show>
+              <Show when={!showImage}>
                 <div className="w-11 h-11 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                   <User className="w-5 h-5 text-slate-400" />
                 </div>
-              )}
+              </Show>
             </div>
 
             <div className="flex-1 min-w-0">
@@ -125,11 +128,11 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
               <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
                 {getRoleLabel(role)}
               </p>
-              {getLocationLabel(position) && (
+              <Show when={!!getLocationLabel(position)}>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {getLocationLabel(position)}
                 </p>
-              )}
+              </Show>
             </div>
           </div>
 
@@ -142,21 +145,21 @@ export function OfficialCard({ official, position, role, scope, showProposals = 
               </div>
             )}
             <CompletenessRing value={completeness} />
-{showProposals && official.proposalCount > 0 && (
+            <Show when={showProposals && official.proposalCount > 0}>
               <span className="text-emerald-600">
                 {"▲"} {official.proposalCount} proposal{official.proposalCount !== 1 ? "s" : ""}
               </span>
-            )}
+            </Show>
           </div>
 
           {/* Mobile: compact completeness row */}
           <div className="md:hidden mt-2 flex items-center gap-3 text-xs">
             <CompletenessRing value={completeness} />
-            {showProposals && official.proposalCount > 0 && (
+            <Show when={showProposals && official.proposalCount > 0}>
               <span className="text-emerald-600">
                 {"▲"} {official.proposalCount} proposal{official.proposalCount !== 1 ? "s" : ""}
               </span>
-            )}
+            </Show>
           </div>
         </div>
       </div>
@@ -214,9 +217,9 @@ function UnknownOfficialCard({ role, position, scope, onClick }: { role: string;
               <p className="font-semibold text-slate-900 dark:text-white text-[15px]">
                 {getRoleLabel(role)}
               </p>
-              {position && getLocationLabel(position) && (
+              <Show when={!!(position && getLocationLabel(position))}>
                 <p className="text-sm text-slate-500 dark:text-slate-400">{getLocationLabel(position)}</p>
-              )}
+              </Show>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                 Position unidentified
               </p>

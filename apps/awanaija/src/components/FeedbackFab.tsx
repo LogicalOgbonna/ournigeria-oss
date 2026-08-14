@@ -9,6 +9,8 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
+import { Show } from "@/components/ui/Show";
+import posthog from "posthog-js";
 
 type Category = "bug" | "feature" | "data_issue" | "general";
 
@@ -194,6 +196,10 @@ export function FeedbackFab() {
         );
       }
 
+      posthog.capture("feedback_submitted", {
+        category,
+        attachment_count: files.length,
+      });
       setSuccess(true);
       setTimeout(handleClose, 2000);
     } catch (err: unknown) {
@@ -213,6 +219,7 @@ export function FeedbackFab() {
     <>
       {/* Floating button — bottom left */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="fixed bottom-6 left-4 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95 sm:left-6 sm:px-5"
         aria-label="Send feedback"
@@ -222,7 +229,7 @@ export function FeedbackFab() {
       </button>
 
       {/* Modal overlay */}
-      {open && (
+      <Show when={open}>
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={(e) => {
@@ -230,7 +237,7 @@ export function FeedbackFab() {
           }}
         >
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-800 shadow-xl max-h-[90vh] overflow-y-auto">
-            {success ? (
+            <Show when={success}>
               <div className="flex flex-col items-center justify-center py-16 px-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 mb-4">
                   <Check className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
@@ -242,7 +249,8 @@ export function FeedbackFab() {
                   Your feedback has been submitted successfully.
                 </p>
               </div>
-            ) : (
+            </Show>
+            <Show when={!success}>
               <>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 pt-6 pb-4">
@@ -250,6 +258,7 @@ export function FeedbackFab() {
                     Send Feedback
                   </h2>
                   <button
+                    type="button"
                     onClick={handleClose}
                     disabled={submitting}
                     className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
@@ -268,6 +277,7 @@ export function FeedbackFab() {
                       {CATEGORIES.map((cat) => (
                         <button
                           key={cat.value}
+                          type="button"
                           onClick={() => setCategory(cat.value)}
                           className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                             category === cat.value
@@ -347,62 +357,65 @@ export function FeedbackFab() {
                     />
 
                     {/* File previews */}
-                    {files.length > 0 && (
+                    <Show when={files.length > 0}>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {files.map((item, i) => (
                           <div
                             key={i}
                             className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600"
                           >
-                            {item.file.type.startsWith("video/") ? (
+                            <Show when={item.file.type.startsWith("video/")}>
                               <div className="h-20 w-20 bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
                                 <span className="text-xs text-slate-500">
                                   Video
                                 </span>
                               </div>
-                            ) : (
+                            </Show>
+                            <Show when={!item.file.type.startsWith("video/")}>
                               <img
                                 src={item.preview}
                                 alt=""
                                 className="h-20 w-20 object-cover"
                               />
-                            )}
-                            {item.uploading && (
+                            </Show>
+                            <Show when={item.uploading}>
                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                                 <Loader2 className="h-5 w-5 text-white animate-spin" />
                               </div>
-                            )}
-                            {item.done && (
+                            </Show>
+                            <Show when={item.done}>
                               <div className="absolute inset-0 bg-emerald-600/40 flex items-center justify-center">
                                 <Check className="h-5 w-5 text-white" />
                               </div>
-                            )}
-                            {!item.uploading && !item.done && (
+                            </Show>
+                            <Show when={!item.uploading && !item.done}>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeFile(i);
                                 }}
+                                type="button"
                                 className="absolute top-1 right-1 rounded-full bg-black/50 p-0.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </button>
-                            )}
+                            </Show>
                           </div>
                         ))}
                       </div>
-                    )}
+                    </Show>
                   </div>
 
                   {/* Error */}
-                  {error && (
+                  <Show when={!!error}>
                     <p className="text-sm text-red-500 dark:text-red-400">
                       {error}
                     </p>
-                  )}
+                  </Show>
 
                   {/* Submit */}
                   <button
+                    type="button"
                     onClick={handleSubmit}
                     disabled={!canSubmit}
                     className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 py-3 text-sm font-semibold text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -418,10 +431,10 @@ export function FeedbackFab() {
                   </button>
                 </div>
               </>
-            )}
+            </Show>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

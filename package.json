@@ -42,6 +42,9 @@
     "test:e2e:dashboard": "nx run e2e:test:dashboard",
     "test:e2e:human": "nx run e2e:test:human",
     "start": "bash packages/scripts/start/start.sh",
+    "start:detach": "bash packages/scripts/start/start.sh -d",
+    "start:list": "bash packages/scripts/start/start.sh -l",
+    "start:stop": "bash packages/scripts/start/start.sh -k",
     "content:generate": "infisical run --env dev -- npx tsx packages/content/generate.ts",
     "content:query": "infisical run --env dev -- npx tsx packages/content/query.ts",
     "content:render": "npx tsx packages/content/render.ts",
@@ -50,13 +53,13 @@
     "content:coverage": "npx tsx packages/content/batch.ts --coverage"
   },
   "devDependencies": {
-    "@lhci/cli": "^0.15.1",
+    "@lhci/cli": "0.15.1",
     "@nx/js": "21.6.10",
     "marked": "17.0.4",
     "nx": "21.6.10",
-    "nx-ignore": "^19.8.0",
-    "portless": "^0.13.0",
-    "puppeteer": "^24.40.0"
+    "nx-ignore": "19.8.0",
+    "portless": "0.13.0",
+    "puppeteer": "24.40.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

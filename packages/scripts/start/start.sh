@@ -50,13 +50,18 @@ usage() {
   echo "If no apps specified, all apps are started."
   echo ""
   echo "Options:"
+  echo "  -d, --detach      Start apps in the background and free the terminal"
+  echo "  -l, --list        List services with running/stopped status (also: 'list')"
   echo "  -k, --kill-only   Kill ports without starting apps"
   echo "  -h, --help        Show this help message"
   echo ""
   echo "Examples:"
-  echo "  $0                     # Kill all ports, start all apps"
+  echo "  $0                     # Kill all ports, start all apps (foreground)"
   echo "  $0 api web             # Kill all ports, start api + web"
-  echo "  $0 -k                  # Kill all ports only"
+  echo "  $0 -d api web          # Start api + web detached, return to shell"
+  echo "  $0 -l                  # List status of all services"
+  echo "  $0 list web api        # List status of web + api only"
+  echo "  $0 -k                  # Kill all ports only (stops detached apps)"
   echo "  $0 -k api dashboard    # Kill api + dashboard ports only"
   exit 0
 }
@@ -74,13 +79,39 @@ kill_port() {
   fi
 }
 
+# ─── List service status ─────────────────────────────────────────────────────
+list_services() {
+  # Detect portless proxy on :443 so the printed URL matches how apps are served.
+  local owner portless=false
+  owner="$(lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}' || true)"
+  case "$owner" in node|*portless*|Portless*) portless=true ;; esac
+
+  echo -e "\n${CYAN}Service status:${NC}"
+  for app in $1; do
+    local port pids url
+    port=$(get_port "$app")
+    pids=$(lsof -ti :"$port" 2>/dev/null | tr '\n' ',' | sed 's/,$//' || true)
+    if $portless; then url="https://$app.localhost"; else url="http://$app.localhost:$port"; fi
+    if [ -n "$pids" ]; then
+      printf "  ${GREEN}%-10s${NC} ${GREEN}running${NC}  port %-5s pid %-12s ${CYAN}%s${NC}\n" "$app" "$port" "$pids" "$url"
+    else
+      printf "  ${GREEN}%-10s${NC} ${YELLOW}stopped${NC}  port %-5s\n" "$app" "$port"
+    fi
+  done
+  echo ""
+}
+
 # ─── Parse args ──────────────────────────────────────────────────────────────
 KILL_ONLY=false
+DETACH=false
+LIST=false
 SELECTED_APPS=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -k|--kill-only) KILL_ONLY=true; shift ;;
+    -d|--detach) DETACH=true; shift ;;
+    -l|--list|list) LIST=true; shift ;;
     -h|--help) usage ;;
     *)
       if is_valid_app "$1"; then
@@ -98,6 +129,12 @@ done
 # Default to all apps if none specified
 if [ -z "$SELECTED_APPS" ]; then
   SELECTED_APPS="$ALL_APPS"
+fi
+
+# ─── List only ───────────────────────────────────────────────────────────────
+if $LIST; then
+  list_services "$SELECTED_APPS"
+  exit 0
 fi
 
 # ─── Kill ports ──────────────────────────────────────────────────────────────
@@ -146,6 +183,10 @@ app_url() {
   if $USE_PORTLESS; then echo "https://$1.localhost"; else echo "http://$1.localhost:$2"; fi
 }
 
+# ─── Warm up Nx daemon before parallel launches ──────────────────────────────
+echo -e "\n${CYAN}Warming up Nx daemon...${NC}"
+(cd "$ROOT_DIR" && pnpm nx show projects >/dev/null 2>&1) || true
+
 # ─── Start apps ─────────────────────────────────────────────────────────────
 sleep 1
 
@@ -159,9 +200,12 @@ for app in $SELECTED_APPS; do
   log_file="/tmp/ournigeria-${app}.log"
 
   echo -e "  ${GREEN}Starting ${app}${NC} on port ${port} → ${cmd}"
-  (cd "$ROOT_DIR" && $cmd > "$log_file" 2>&1) &
-  PIDS="$PIDS $!"
+  # nohup + exec so the app survives this script exiting (needed for --detach).
+  nohup bash -c "cd \"$ROOT_DIR\" && exec $cmd" > "$log_file" 2>&1 &
+  pid=$!
+  PIDS="$PIDS $pid"
   STARTED_APPS="$STARTED_APPS $app"
+  $DETACH && disown "$pid" 2>/dev/null || true
 done
 
 echo -e "\n${CYAN}Apps started. Logs at /tmp/ournigeria-{app}.log${NC}"
@@ -175,6 +219,24 @@ for app in $STARTED_APPS; do
   echo -e "  ${app}: ${pids_arr[$i]}"
   i=$((i + 1))
 done
+
+# ─── Detached mode: register URLs, free the terminal, exit ──────────────────
+if $DETACH; then
+  for app in $STARTED_APPS; do
+    port=$(get_port "$app")
+    if $USE_PORTLESS; then "$PORTLESS_BIN" alias "$app" "$port" --force >/dev/null 2>&1 || true; fi
+  done
+  echo -e "\n${CYAN}App links (starting up in the background):${NC}"
+  for app in $STARTED_APPS; do
+    port=$(get_port "$app")
+    printf "  ${GREEN}%-10s${NC} ${CYAN}%s${NC}\n" "$app" "$(app_url "$app" "$port")"
+  done
+  echo -e "\n${GREEN}Apps detached — terminal is free.${NC}"
+  echo -e "${YELLOW}Status:${NC} $0 -l"
+  echo -e "${YELLOW}Logs:${NC}   tail -f /tmp/ournigeria-*.log"
+  echo -e "${YELLOW}Stop:${NC}   $0 -k$([ "$SELECTED_APPS" = "$ALL_APPS" ] || echo " $STARTED_APPS")\n"
+  exit 0
+fi
 
 # ─── Trap for cleanup ───────────────────────────────────────────────────────
 cleanup() {

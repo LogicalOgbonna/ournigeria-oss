@@ -436,6 +436,45 @@ docker compose -f "$COMPOSE_FILE" stop "ingest-${ACTIVE}"
 sed -i "s/^ACTIVE_STACK=.*/ACTIVE_STACK=${STANDBY}/" "$ENV_FILE"
 sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${NEW_IMAGE_TAG}/" "$ENV_FILE"
 
+# ─── Bump enrichment sibling stack (prod only, best-effort) ───────
+# Enrichment is a NON-blue/green sibling stack (agent + camofox, single containers)
+# that exists only on the prod box. CI builds a fresh agent image only when
+# deploy/enrichment/** (or apps/api/src/enrichment/**) changed, so:
+#   - if the agent image for THIS sha exists, we recreate the agent with it;
+#   - otherwise we retag the running agent image to the new tag so compose (which
+#     interpolates ${IMAGE_TAG}) finds it and just ensures the stack is up.
+# camofox is a pinned, build-once image (pull_policy: missing in the oci override).
+# This block MUST NEVER fail the deploy — the app blue/green already succeeded above,
+# so any error here is logged, alerted, and swallowed (|| true on the group).
+ENRICHMENT_DIR="$COMPOSE_DIR/deploy/enrichment"
+if [ -f "$ENRICHMENT_DIR/docker-compose.yml" ] && [ -f "$ENRICHMENT_DIR/docker-compose.oci.yml" ]; then
+  echo ""
+  echo "── Bumping enrichment sibling stack (best-effort) ──"
+  ENRICHMENT_COMPOSE=(-f "$ENRICHMENT_DIR/docker-compose.yml" -f "$ENRICHMENT_DIR/docker-compose.oci.yml")
+  {
+    agent_img="${REGISTRY}/ournigeria-enrichment-agent:${NEW_IMAGE_TAG}"
+    if docker pull "$agent_img" >/dev/null 2>&1; then
+      echo "New enrichment agent image for this commit — recreating agent"
+    else
+      echo "Enrichment agent not rebuilt this commit — reusing running image under the new tag"
+      current_agent=$(docker inspect --format='{{.Config.Image}}' enrichment_agent 2>/dev/null || true)
+      if [ -n "$current_agent" ]; then
+        docker tag "$current_agent" "$agent_img" || true
+      fi
+    fi
+    # Secrets inject from Infisical /enrichment for this env; IMAGE_TAG was exported
+    # above. `source "$ENV_FILE"` does NOT export INFISICAL_TOKEN (no `set -a`), so
+    # pass it explicitly with --token or `infisical run` (a child) can't authenticate.
+    infisical run --token "$INFISICAL_TOKEN" --env "$DEPLOY_ENV" --path /enrichment -- \
+      docker compose "${ENRICHMENT_COMPOSE[@]}" up -d camofox agent
+    echo "Enrichment stack ensured up (tag ${NEW_IMAGE_TAG})."
+    notify "🧪 *Enrichment stack up* — tag \`$NEW_IMAGE_TAG\`"
+  } || {
+    echo "WARNING: enrichment bump failed — app deploy UNAFFECTED (sibling stack)."
+    notify "⚠️ *Enrichment bump failed* — app deploy OK, agent may be stale"
+  }
+fi
+
 # ─── Log deploy ──────────────────────────────────────────────────
 DEPLOY_END=$(date +%s)
 DURATION=$(( DEPLOY_END - DEPLOY_START ))

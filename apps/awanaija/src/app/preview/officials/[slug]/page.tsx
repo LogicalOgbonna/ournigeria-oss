@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { MagazineProfile } from "@/components/official/MagazineProfile";
 import type { Official } from "@/lib/api";
 
@@ -44,16 +43,12 @@ export default async function OfficialPreviewPage({
   if (!official) notFound();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[oklch(0.10_0.005_160)]">
-      <Navbar />
+    <PageLayout className="bg-[oklch(0.10_0.005_160)]" mainClassName="pt-24">
       {/* internal preview banner so it's never mistaken for the live page */}
       <div className="fixed top-0 inset-x-0 z-[60] bg-amber-500/90 text-amber-950 text-center font-mono text-[11px] tracking-[0.1em] uppercase py-1 pointer-events-none">
         Internal preview · V9 candidate · live data · not indexed
       </div>
-      <main className="flex-grow pt-24">
-        <MagazineProfile official={official} />
-      </main>
-      <Footer />
-    </div>
+      <MagazineProfile official={official} />
+    </PageLayout>
   );
 }

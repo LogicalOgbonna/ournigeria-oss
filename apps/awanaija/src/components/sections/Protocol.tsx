@@ -1,6 +1,7 @@
 "use client";
 
 import { PROTOCOL_STEPS } from "@/lib/constants";
+import { Show } from "@/components/ui/Show";
 
 // ═══ SVG Animations for each card ═══
 function BudgetChart() {
@@ -147,7 +148,7 @@ export function Protocol() {
                     </p>
 
                     {/* Add extra context info based on index */}
-                    {i === 0 && (
+                    <Show when={i === 0}>
                       <div className="mt-8 grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 p-4 dark:border-emerald-800/50 dark:bg-emerald-950/20">
                           <p className="font-[family-name:var(--font-mono)] text-xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -166,9 +167,9 @@ export function Protocol() {
                           </p>
                         </div>
                       </div>
-                    )}
+                    </Show>
 
-                    {i === 1 && (
+                    <Show when={i === 1}>
                       <div className="mt-8 grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-red-200/50 bg-red-50/50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
                           <p className="font-[family-name:var(--font-mono)] text-xl font-bold text-red-600 dark:text-red-400">
@@ -187,9 +188,9 @@ export function Protocol() {
                           </p>
                         </div>
                       </div>
-                    )}
+                    </Show>
 
-                    {i === 2 && (
+                    <Show when={i === 2}>
                       <div className="mt-8 grid grid-cols-2 gap-4">
                         <div className="rounded-xl border border-blue-200/50 bg-blue-50/50 p-4 dark:border-blue-800/50 dark:bg-blue-950/20">
                           <p className="font-[family-name:var(--font-mono)] text-xl font-bold text-blue-600 dark:text-blue-400">
@@ -208,7 +209,7 @@ export function Protocol() {
                           </p>
                         </div>
                       </div>
-                    )}
+                    </Show>
                   </div>
 
                   {/* SVG Animation */}

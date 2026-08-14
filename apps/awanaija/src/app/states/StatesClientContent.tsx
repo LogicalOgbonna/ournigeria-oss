@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useDeferredValue } from "react";
 import Link from "next/link";
 import { MapPin, Filter } from "lucide-react";
+import { Show } from "@/components/ui/Show";
 
 interface StatesClientContentProps {
   statesData: { code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[];
@@ -73,8 +74,8 @@ export function StatesClientContent({ statesData, partiesData, regionsData, best
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {filteredStates.length > 0 ? (
-        filteredStates.map((state, i) => {
+      <Show when={filteredStates.length > 0}>
+        {filteredStates.map((state, i) => {
           const stateUrl = bestYear && bestMonth 
             ? `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}?year=${bestYear}&month=${bestMonth}`
             : `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}`;
@@ -87,11 +88,11 @@ export function StatesClientContent({ statesData, partiesData, regionsData, best
           >
             <div className="flex items-start justify-between">
               <MapPin className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-              {state.party !== "N/A" && (
+              <Show when={state.party !== "N/A"}>
                 <span className="font-sans text-[10px] font-semibold tracking-wider uppercase px-2 py-1 rounded bg-muted text-foreground">
                   {state.party}
                 </span>
-              )}
+              </Show>
             </div>
             <div className="space-y-1">
               <h3 className="font-heading text-lg font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
@@ -105,28 +106,29 @@ export function StatesClientContent({ statesData, partiesData, regionsData, best
                   <p className="font-sans text-xs text-muted-foreground">
                     FAAC: <span className="font-mono text-foreground">{state.faac}</span>
                   </p>
-                  {state.faacDate && (
+                  <Show when={!!state.faacDate}>
                     <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider font-semibold">
                       {state.faacDate}
                     </span>
-                  )}
+                  </Show>
                 </div>
               </div>
             </div>
           </Link>
           );
-        })
-      ) : (
+        })}
+      </Show>
+      <Show when={!(filteredStates.length > 0)}>
         <div className="col-span-full py-12 text-center border border-dashed border-border rounded-xl">
           <p className="text-muted-foreground font-sans">No states found matching your filters.</p>
-          <button 
+          <button
             onClick={() => { setSelectedRegion(""); setSelectedParty(""); }}
             className="mt-4 text-sm text-emerald-500 hover:text-emerald-400 font-medium"
           >
             Clear filters
           </button>
         </div>
-      )}
+      </Show>
       </section>
     </div>
   );

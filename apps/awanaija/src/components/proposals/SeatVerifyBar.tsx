@@ -11,6 +11,7 @@
 import { useState } from "react";
 import { Check, Link2, Loader2 } from "lucide-react";
 import { roleConfig, SourceField, ErrorBox, type IdentifyForm } from "@/components/proposals/identify-form";
+import { Show } from "@/components/ui/Show";
 import type { SeatCandidate } from "@/lib/api";
 
 export function SeatVerifyBar({
@@ -47,11 +48,12 @@ export function SeatVerifyBar({
           disabled={form.submitting}
           className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {form.submitting ? (
+          <Show when={form.submitting}>
             <><Loader2 className="w-4 h-4 animate-spin" /> Confirming...</>
-          ) : (
+          </Show>
+          <Show when={!form.submitting}>
             <><Check className="w-4 h-4" /> Yes, confirm this</>
-          )}
+          </Show>
         </button>
         <button
           type="button"
@@ -64,7 +66,7 @@ export function SeatVerifyBar({
       </div>
 
       <div className="mt-3">
-        {!showSource ? (
+        <Show when={!showSource}>
           <button
             type="button"
             onClick={() => setShowSource(true)}
@@ -72,12 +74,13 @@ export function SeatVerifyBar({
           >
             <Link2 className="w-3.5 h-3.5" /> Add a source
           </button>
-        ) : (
+        </Show>
+        <Show when={showSource}>
           <SourceField form={form} />
-        )}
+        </Show>
       </div>
 
-      {others.length > 0 && (
+      <Show when={others.length > 0}>
         <div className="mt-4 pt-4 border-t border-emerald-200/70 dark:border-emerald-800/50">
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-2">
             Other names proposed
@@ -101,7 +104,7 @@ export function SeatVerifyBar({
             ))}
           </ul>
         </div>
-      )}
+      </Show>
 
       <div className="mt-3">
         <ErrorBox message={form.error} />

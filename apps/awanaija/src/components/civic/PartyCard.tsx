@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Building2, User } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { PartyListItem, PartyOfficerView } from "@/lib/api";
+import { Show } from "@/components/ui/Show";
 
 const OFFICER_ROLE_LABELS: Record<string, string> = {
   national_chairman: "Chairman",
@@ -42,9 +43,9 @@ export function PartyCard({ party }: { readonly party: PartyListItem }) {
             <span className="font-heading font-semibold text-slate-900 dark:text-white">
               {party.acronym}
             </span>
-            {!party.isActive && (
+            <Show when={!party.isActive}>
               <span className="text-[10px] uppercase tracking-wide text-slate-400">inactive</span>
-            )}
+            </Show>
           </div>
           <p className="truncate text-sm text-slate-500 dark:text-slate-400">{party.name}</p>
         </div>
@@ -56,22 +57,22 @@ export function PartyCard({ party }: { readonly party: PartyListItem }) {
         </div>
       </div>
 
-      {(party.governorships > 0 || party.ideology) && (
+      <Show when={!!(party.governorships > 0 || party.ideology)}>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {party.governorships > 0 && (
+          <Show when={party.governorships > 0}>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">
               Governs {party.governorships}
             </span>
-          )}
-          {party.ideology && (
+          </Show>
+          <Show when={!!party.ideology}>
             <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               {party.ideology}
             </span>
-          )}
+          </Show>
         </div>
-      )}
+      </Show>
 
-      {officers.length > 0 && (
+      <Show when={officers.length > 0}>
         <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
           {officers.map((o) => (
             <div key={o.role} className="flex items-center gap-2.5">
@@ -95,11 +96,11 @@ export function PartyCard({ party }: { readonly party: PartyListItem }) {
             </div>
           ))}
         </div>
-      )}
+      </Show>
 
-      {officers.length === 0 && completeness != null && (
+      <Show when={officers.length === 0 && completeness != null}>
         <div className="mt-3 text-xs text-slate-400">{completeness}% profile</div>
-      )}
+      </Show>
     </Link>
   );
 }

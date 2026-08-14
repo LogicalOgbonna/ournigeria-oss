@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Search, ChevronDown, User } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { Show } from "@/components/ui/Show";
 import { cdnAvatar } from "@/lib/img";
 import type { Official } from "@/lib/api";
 
@@ -176,14 +177,15 @@ export function OfficialsClientContent({
 
       {/* Officials grid */}
       <div className={isPending ? "opacity-50 transition-opacity" : "transition-opacity"}>
-        {officials.length === 0 ? (
+        <Show when={officials.length === 0}>
           <div className="text-center py-16">
             <User className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
             <p className="text-slate-500 dark:text-slate-400">
               {search ? `No officials found for "${search}"` : "No officials found"}
             </p>
           </div>
-        ) : (
+        </Show>
+        <Show when={officials.length > 0}>
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {officials.map((official) => (
@@ -192,11 +194,12 @@ export function OfficialsClientContent({
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            <Show when={totalPages > 1}>
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
                   onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1 || isPending}
+                  type="button"
                   className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
                 >
                   Previous
@@ -207,14 +210,15 @@ export function OfficialsClientContent({
                 <button
                   onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages || isPending}
+                  type="button"
                   className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
                 >
                   Next
                 </button>
               </div>
-            )}
+            </Show>
           </>
-        )}
+        </Show>
       </div>
     </>
   );

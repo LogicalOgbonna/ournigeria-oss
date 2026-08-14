@@ -13,8 +13,22 @@ import {
 } from "lucide-react";
 import { LOGIN_URL } from "@/lib/constants";
 import posthog from "posthog-js";
+import { Show } from "@/components/ui/Show";
+import { ElectionHero } from "@/components/sections/ElectionHero";
+import { CandidateTracker } from "@/components/election/CandidateTracker";
+import type { BallotRace } from "@/lib/election-ballot";
 
-export function Hero() {
+export function Hero({
+  electionActive = false,
+  electionState,
+  initialBallot,
+  officeYears,
+}: {
+  electionActive?: boolean;
+  electionState?: string;
+  initialBallot?: BallotRace[];
+  officeYears?: { office: string; year: number }[];
+}) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -25,6 +39,20 @@ export function Hero() {
     window.addEventListener("scroll", close, { passive: true });
     return () => window.removeEventListener("scroll", close);
   }, [isDropdownOpen]);
+
+  if (electionActive && electionState && initialBallot && officeYears) {
+    return (
+      <CandidateTracker
+        state={electionState}
+        initialBallot={initialBallot}
+        officeYears={officeYears}
+      />
+    );
+  }
+
+  if (electionActive) {
+    return <ElectionHero />;
+  }
 
   return (
     <section
@@ -156,7 +184,7 @@ export function Hero() {
                   </span>
                 </button>
 
-                {isDropdownOpen && (
+                <Show when={isDropdownOpen}>
                   <div className="absolute top-full left-0 pt-2 w-full min-w-[240px] z-50">
                     <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
                     <a
@@ -190,7 +218,7 @@ export function Hero() {
                       </button>
                     </div>
                   </div>
-                )}
+                </Show>
               </div>
             </div>
 
@@ -372,7 +400,7 @@ export function Hero() {
       </div>
 
       {/* WhatsApp Modal */}
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
             <button
@@ -399,7 +427,7 @@ export function Hero() {
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </section>
   );
 }

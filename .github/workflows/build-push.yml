@@ -12,6 +12,10 @@ on:
         description: "Force-build all apps (ignore nx-affected)"
         type: boolean
         default: true
+      build_enrichment:
+        description: "Force-build the enrichment agent image (any branch → homeland arm64 → GHCR)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +39,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       any_changed: ${{ steps.set-matrix.outputs.any_changed }}
+      enrichment: ${{ steps.enrichment.outputs.build }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v5
         with:
@@ -84,6 +89,36 @@ jobs:
             echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
             echo "any_changed=true" >> "$GITHUB_OUTPUT"
             echo "Apps to build: $MATRIX"
+          fi
+
+      # The enrichment agent is a sibling stack (not an nx app) that runs ONLY on the
+      # OCI arm64 prod box. Build it when its inputs change on a prod push: the Docker
+      # context (deploy/enrichment/**) or the CLI source the bundles are generated from
+      # (apps/api/src/enrichment/**). PRs/staging never build it (nowhere to deploy it).
+      - name: Detect enrichment changes (prod push, or manual dispatch)
+        id: enrichment
+        run: |
+          # Manual override: workflow_dispatch with build_enrichment=true builds it on any branch.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.build_enrichment }}" = "true" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch — forcing enrichment agent build"
+            exit 0
+          fi
+          if [ "${{ github.event_name }}" != "push" ] || [ "${{ github.ref_name }}" != "prod" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "Not a prod push — enrichment build skipped"
+            exit 0
+          fi
+          BASE="${{ github.event.before }}"
+          if [ "$BASE" = "0000000000000000000000000000000000000000" ] || [ -z "$BASE" ]; then
+            BASE="HEAD~1"
+          fi
+          if git diff --name-only "$BASE" HEAD | grep -qE '^(deploy/enrichment/|apps/api/src/enrichment/)'; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "Enrichment inputs changed — will build ournigeria-enrichment-agent"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "No enrichment changes"
           fi
 
   build:
@@ -158,15 +193,69 @@ jobs:
           SIZE=$(docker image inspect ghcr.io/${{ github.repository_owner }}/ournigeria-${{ matrix.app }}:sha-$(echo ${{ github.sha }} | cut -c1-7) --format '{{.Size}}' 2>/dev/null || echo "0")
           echo "size_mb=$(echo "scale=1; $SIZE/1048576" | bc)" >> $GITHUB_OUTPUT
 
+  # ─── Enrichment agent image (sibling stack, prod arm64 only) ──────────────────
+  # Isolated from the app `build` matrix on purpose: different Dockerfile/context/image,
+  # a pre-build step (regenerate the bundled .cjs CLIs fresh from apps/api source), and
+  # a prod-only lifecycle. Runs natively on the homeland arm64 runner — same as prod app
+  # builds — so no QEMU. camofox is NOT built here (build-once, pinned in GHCR).
+  build-enrichment:
+    needs: [validate, detect-changes]
+    if: needs.detect-changes.outputs.enrichment == 'true'
+    runs-on: ["self-hosted", "ARM64", "Linux"]
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v5
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093  # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # #3: regenerate the .cjs bundles fresh from apps/api source (don't trust the
+      # committed copies) so the image always ships the current CLI code.
+      - name: Regenerate enrichment tool bundles
+        run: bash deploy/enrichment/tools/build-tools.sh
+
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd  # v4
+      - uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9  # v6
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/ournigeria-enrichment-agent
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+
+      - name: Build and push enrichment agent
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7
+        with:
+          context: .
+          file: deploy/enrichment/Dockerfile.agent
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/arm64
+          cache-from: type=gha,scope=enrichment-agent
+          cache-to: type=gha,mode=max,scope=enrichment-agent
+
   deploy:
-    needs: [detect-changes, build]
+    needs: [detect-changes, build, build-enrichment]
     # !cancelled() lets the deploy webhook fire even if SOME build legs failed
     # (e.g. socials OOMs under QEMU) — the box's blue/green keeps the old image
     # for any app that didn't produce a fresh one, while healthy apps roll forward.
+    # Fires when either an app OR the enrichment agent was rebuilt.
     if: >-
       !cancelled() &&
       github.event_name == 'push' &&
-      needs.detect-changes.outputs.any_changed == 'true'
+      (needs.detect-changes.outputs.any_changed == 'true' ||
+       needs.detect-changes.outputs.enrichment == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Trigger deploy webhook

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { Show } from "@/components/ui/Show";
 
 export type RelatedLink = {
   href: string;
@@ -41,11 +42,11 @@ export function RelatedLinks({
               <span className="block truncate font-sans font-medium group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                 {item.label}
               </span>
-              {item.sublabel && (
+              <Show when={!!item.sublabel}>
                 <span className="block truncate text-xs text-muted-foreground">
                   {item.sublabel}
                 </span>
-              )}
+              </Show>
             </span>
             <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
           </Link>

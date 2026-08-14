@@ -5,6 +5,7 @@ import { Check, X, Zap } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Show } from "@/components/ui/Show";
 
 const TIERS = [
   {
@@ -143,11 +144,11 @@ export function Pricing() {
                   : "hover:border-emerald-200 dark:hover:border-emerald-800 transition-colors",
               )}
             >
-              {tier.popular && (
+              <Show when={!!tier.popular}>
                 <div className="absolute -top-4 left-0 right-0 mx-auto w-fit rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
                   Most Popular
                 </div>
-              )}
+              </Show>
 
               <div className="mb-6">
                 <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold">
@@ -160,11 +161,11 @@ export function Pricing() {
 
               <div className="mb-6 flex items-baseline text-4xl font-bold">
                 {tier.price}
-                {tier.period && (
+                <Show when={!!tier.period}>
                   <span className="ml-1 text-base font-normal text-muted-foreground">
                     {tier.period}
                   </span>
-                )}
+                </Show>
               </div>
 
               <Button
@@ -175,7 +176,7 @@ export function Pricing() {
                     "bg-emerald-600 hover:bg-emerald-700 text-white",
                 )}
               >
-                {tier.popular && <Zap className="mr-2 h-4 w-4" />}
+                <Show when={!!tier.popular}><Zap className="mr-2 h-4 w-4" /></Show>
                 {tier.buttonText}
               </Button>
 
@@ -183,11 +184,12 @@ export function Pricing() {
                 <ul className="space-y-3 text-sm">
                   {tier.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      {feature.included ? (
+                      <Show when={feature.included}>
                         <Check className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
-                      ) : (
+                      </Show>
+                      <Show when={!feature.included}>
                         <X className="h-4 w-4 shrink-0 text-muted-foreground/40 mt-0.5" />
-                      )}
+                      </Show>
                       <span
                         className={cn(
                           feature.included

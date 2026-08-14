@@ -1,4 +1,6 @@
-const API_BASE = typeof window !== "undefined" 
+import type { BallotRace } from "./election-ballot";
+
+const API_BASE = typeof window !== "undefined"
   ? "/api" 
   : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3000/api");
 
@@ -167,6 +169,18 @@ export async function getConstituencies(stateCode: string, type?: string) {
   return apiFetch<{ code: string; name: string; type: string }[]>(
     `/geo/constituencies?${qs.toString()}`,
   );
+}
+
+// Election ballot (by-party candidate tracker)
+export async function getElectionBallot(
+  params: { state: string; lga?: string; ward?: string; offices: { office: string; year: number }[] },
+  init?: RequestInit,
+): Promise<{ races: BallotRace[] }> {
+  const qs = new URLSearchParams({ state: params.state });
+  if (params.lga) qs.set("lga", params.lga);
+  if (params.ward) qs.set("ward", params.ward);
+  qs.set("offices", params.offices.map((o) => `${o.office}:${o.year}`).join(","));
+  return apiFetch<{ races: BallotRace[] }>(`/election/ballot?${qs.toString()}`, init);
 }
 
 // Proposals

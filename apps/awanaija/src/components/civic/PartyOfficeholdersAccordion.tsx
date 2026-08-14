@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, User, Loader2 } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
+import { Show } from "@/components/ui/Show";
 import { getPartyOfficeholders, type PartyOfficialMini } from "@/lib/api";
 
 const POSITIONS = [
@@ -92,14 +93,15 @@ export function PartyOfficeholdersAccordion({
                   {count.toLocaleString()}
                 </span>
               </span>
-              {isOpen ? (
+              <Show when={isOpen}>
                 <ChevronDown className="h-4 w-4 text-emerald-500" />
-              ) : (
+              </Show>
+              <Show when={!isOpen}>
                 <ChevronRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-emerald-500" />
-              )}
+              </Show>
             </button>
 
-            {isOpen && (
+            <Show when={isOpen}>
               <div className="scrollbar-theme max-h-[360px] space-y-1 overflow-y-auto border-t border-border p-2">
                 {!gs || (gs.loading && gs.items.length === 0) ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
@@ -152,7 +154,7 @@ export function PartyOfficeholdersAccordion({
                   </>
                 )}
               </div>
-            )}
+            </Show>
           </div>
         );
       })}

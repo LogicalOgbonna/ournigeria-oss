@@ -1,5 +1,7 @@
 "use client";
 
+import { Show } from "@/components/ui/Show";
+
 type CivicTabSkeletonVariant = "reps" | "leaderboard" | "activity";
 
 interface CivicTabSkeletonProps {
@@ -14,9 +16,9 @@ export function CivicTabSkeleton({ variant }: CivicTabSkeletonProps) {
         <div className="h-4 w-52 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
       </div>
 
-      {variant === "reps" && <RepresentativesSkeleton />}
-      {variant === "leaderboard" && <LeaderboardSkeleton />}
-      {variant === "activity" && <ActivitySkeleton />}
+      <Show when={variant === "reps"}><RepresentativesSkeleton /></Show>
+      <Show when={variant === "leaderboard"}><LeaderboardSkeleton /></Show>
+      <Show when={variant === "activity"}><ActivitySkeleton /></Show>
     </div>
   );
 }
