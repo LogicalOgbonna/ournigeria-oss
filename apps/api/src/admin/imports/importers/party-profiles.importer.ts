@@ -78,7 +78,7 @@ function hostOf(u: string): string {
   }
 }
 
-function fallbackSource(acronym: string, field: Field, incomingValue: unknown): ProposalSourceInput {
+function fallbackSource(acronym: string, field: string, incomingValue: unknown): ProposalSourceInput {
   return {
     url: "https://ournigeria.ng/parties",
     publisher: "ournigeria.ng",
@@ -87,6 +87,29 @@ function fallbackSource(acronym: string, field: Field, incomingValue: unknown): 
     sourceTier: "web",
   };
 }
+
+/**
+ * snake_case JSON column → camelCase payload key accepted by the
+ * political_parties creatable entity (creatable.registry.ts). Used only on the
+ * CREATE path — fills target snake_case columns directly via APPLIABLE_FIELDS.
+ */
+const CREATE_FIELD_MAP: Record<string, string> = {
+  logo_url: "logoUrl",
+  founding_year: "foundingYear",
+  leader_name: "leaderName",
+  hq_address: "hqAddress",
+  website: "website",
+  email: "email",
+  phone_number: "phoneNumber",
+  twitter_handle: "twitterHandle",
+  facebook_url: "facebookUrl",
+  description: "description",
+  ideology: "ideology",
+  slogan: "slogan",
+  color: "color",
+  inec_status: "inecStatus",
+  is_active: "isActive",
+};
 
 export const partyProfilesImporter: DatasetImporter = {
   name: "party-profiles",
@@ -143,15 +166,58 @@ export const partyProfilesImporter: DatasetImporter = {
     // Index by acronym for O(1) lookup.
     const liveMap = new Map(liveRows.map((r) => [r.acronym, r]));
 
+    const creates: ProposalSpec[] = [];
     const updates: ProposalSpec[] = [];
     let unchangedCount = 0;
 
     for (const acr of acronyms) {
       const live = liveMap.get(acr);
-      if (!live) continue; // party not in DB — skip (FK guard)
-
       const entry = raw[acr];
       const sources = (entry["_sources"] ?? {}) as Record<string, string>;
+
+      // Party not in DB → emit a CREATE proposal (onboard a brand-new party),
+      // provided the JSON carries a non-empty `name` (the only required field
+      // besides acronym). Without a name there's nothing to create.
+      if (!live) {
+        if (!isNonEmpty(entry["name"])) continue;
+
+        const proposedValue: Record<string, unknown> = {
+          acronym: acr,
+          name: String(entry["name"]).trim(),
+        };
+        for (const [snake, camel] of Object.entries(CREATE_FIELD_MAP)) {
+          const v = entry[snake];
+          if (!isNonEmpty(v)) continue;
+          proposedValue[camel] = INT_FIELDS.has(snake as Field)
+            ? typeof v === "number"
+              ? v
+              : Number(v)
+            : v;
+        }
+
+        // Prefer a per-field source on `name`, else any per-field source, else
+        // the dataset-provenance fallback — a create always carries ≥1 source.
+        const firstSourceUrl = sources["name"] ?? Object.values(sources)[0];
+        const source: ProposalSourceInput = firstSourceUrl
+          ? {
+              url: firstSourceUrl,
+              publisher: hostOf(firstSourceUrl),
+              snippet: `Source for new party ${acr}`,
+              format: "html",
+              sourceTier: "web",
+            }
+          : fallbackSource(acr, "name", entry["name"]);
+
+        creates.push({
+          targetTable: "political_parties",
+          changeKind: "create",
+          proposedValue,
+          confidence: "high",
+          sources: [source],
+          label: `${acr} · (new party)`,
+        });
+        continue;
+      }
 
       for (const field of FIELDS) {
         const incoming = entry[field];
@@ -191,12 +257,18 @@ export const partyProfilesImporter: DatasetImporter = {
       }
     }
 
-    const sample = updates.slice(0, 20).map((u) => ({
+    const createSample = creates.map((c) => ({
+      kind: "create" as const,
+      label: c.label,
+      detail: String((c.proposedValue as Record<string, unknown>).name ?? "").slice(0, 120),
+    }));
+    const updateSample = updates.map((u) => ({
       kind: "update" as const,
       label: u.label,
       detail: String(u.proposedValue).slice(0, 120),
     }));
+    const sample = [...createSample, ...updateSample].slice(0, 20);
 
-    return { creates: [], updates, unchangedCount, sample };
+    return { creates, updates, unchangedCount, sample };
   },
 };

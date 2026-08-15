@@ -2,7 +2,11 @@
   "_meta": {
     "description": "National party officers (chairman / secretary / leader) per party, researched against 2025-2026 sources. Consumed by scripts/seed-party-officers.ts, which find-or-creates a nigerian_officials row per officer and links it via party_officers.official_id.",
     "asOf": "2026-06-19",
-    "roleOrder": { "national_chairman": 0, "national_secretary": 1, "party_leader": 2 },
+    "roleOrder": {
+      "national_chairman": 0,
+      "national_secretary": 1,
+      "party_leader": 2
+    },
     "fields": "name, imageUrl, bio, gender, dateOfBirth (YYYY-MM-DD full dates only), twitterHandle (no @), facebookUrl, confidence (high|medium|low), priorOffice (dedup hint), sourceUrl. A null officer = not reliably sourced; left unseeded."
   },
   "APC": {
@@ -473,6 +477,195 @@
       "confidence": "medium",
       "priorOffice": null,
       "sourceUrl": "https://dailypost.ng/2025/02/09/zlp-elects-new-national-leadership-to-steer-party-for-next-four-years/"
+    },
+    "party_leader": null
+  },
+  "APM": {
+    "national_chairman": {
+      "name": "Yusuf Mamman Dantalle",
+      "imageUrl": null,
+      "bio": "Grassroots politician and businessman from Bunkure LGA, Kano State (b. 25 Oct 1971); re-elected APM National Chairman unopposed at the party's 2022 national convention; National Secretary of the Inter-Party Advisory Council (IPAC).",
+      "gender": "male",
+      "dateOfBirth": "1971-10-25",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "National Secretary, Inter-Party Advisory Council (IPAC)",
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/allied-peoples-movement-apm/"
+    },
+    "national_secretary": {
+      "name": "Oyadeyi Ayodele Adebayo",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/allied-peoples-movement-apm/"
+    },
+    "party_leader": null
+  },
+  "BP": {
+    "national_chairman": {
+      "name": "Adenuga Sunday",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/boot-party-bp/"
+    },
+    "national_secretary": {
+      "name": "Egwuatu Maryann C.",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/boot-party-bp/"
+    },
+    "party_leader": null
+  },
+  "DLA": {
+    "national_chairman": {
+      "name": "Barr. Samuel M. Memeh",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/democratic-leadership-alliance-dla/"
+    },
+    "national_secretary": {
+      "name": "Barr. Munirat Adama",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/democratic-leadership-alliance-dla/"
+    },
+    "party_leader": null
+  },
+  "NDP": {
+    "national_chairman": {
+      "name": "Ada Elizabeth Fredrick Okwori",
+      "imageUrl": null,
+      "bio": "Politician from Otukpo, Benue State; founder and promoter of the NDP, which she successfully sued INEC to register; NDP presidential aspirant for 2027.",
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-democratic-party/"
+    },
+    "national_secretary": {
+      "name": "Silva Opusunju",
+      "imageUrl": null,
+      "bio": "National Secretary of the NDP; emerged as the party's Rivers State governorship aspirant ahead of 2027.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-democratic-party/"
+    },
+    "party_leader": null
+  },
+  "NRM": {
+    "national_chairman": {
+      "name": "Prince (Dr) Chinedu Obi",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-rescue-movement-nrm/"
+    },
+    "national_secretary": {
+      "name": "Alh. Hassan Aminu Ibrahim",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-rescue-movement-nrm/"
+    },
+    "party_leader": null
+  },
+  "YP": {
+    "national_chairman": {
+      "name": "Dr. Umar Muhammad",
+      "imageUrl": "https://youthpartyng.com/wp-content/uploads/2015/12/PHOTO-2023-04-13-11-59-30-200x300.jpg",
+      "bio": "Veterinary doctor from Gusau, Zamfara State (b. 25 Oct 1986); Senior Veterinary Officer with the Zamfara State Government; founding member of the Youth Party who served as National Auditor and BoT Secretary before becoming Acting National Chairman.",
+      "gender": "male",
+      "dateOfBirth": "1986-10-25",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "National Auditor, Youth Party; Secretary, Board of Trustees, Youth Party",
+      "sourceUrl": "https://youthpartyng.com/member/dr-umar-mohammed/"
+    },
+    "national_secretary": {
+      "name": "Mrs. Helen Adoh",
+      "imageUrl": "https://youthpartyng.com/wp-content/uploads/2024/12/1715484743264-WhatsApp-Image-2024-05-11-at-20.13.06.jpeg",
+      "bio": "From Kogi State; Business Education graduate (Ekiti State University); Admin Supervisor of the Youth Party since June 2017, liaising with INEC. (INEC lists her email as helen.attah@youthpartyng.com, so her surname may be Attah.)",
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Admin Supervisor, Youth Party",
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/youth-party-yp/"
+    },
+    "party_leader": null
+  },
+  "NDC": {
+    "national_chairman": {
+      "name": "Sen. Cleopas Moses Zuwoghe",
+      "imageUrl": null,
+      "bio": "Pro-tem National Chairman of the NDC (by court order) pending the party's inaugural national convention.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/nigeria-democratic-congress/"
+    },
+    "national_secretary": {
+      "name": "Barr. Ikenna Morgan Enekweizu",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/nigeria-democratic-congress/"
     },
     "party_leader": null
   }

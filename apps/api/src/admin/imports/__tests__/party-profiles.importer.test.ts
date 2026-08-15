@@ -82,7 +82,7 @@ describe("partyProfilesImporter", () => {
     expect(diff.creates).toHaveLength(0);
   });
 
-  it("skips parties not in the DB", async () => {
+  it("skips a party not in the DB that has no name (nothing to create)", async () => {
     const payload = {
       NONEXISTENT_PARTY_XYZ: {
         ideology: "Some ideology",
@@ -90,8 +90,53 @@ describe("partyProfilesImporter", () => {
       },
     };
     const diff = await partyProfilesImporter.diff(payload, prisma);
+    expect(diff.creates).toHaveLength(0);
     expect(diff.updates).toHaveLength(0);
     expect(diff.unchangedCount).toBe(0);
+  });
+
+  it("emits a CREATE proposal for a new party (acronym not in DB) with a name", async () => {
+    const ACR = "ZZP"; // throwaway, not in seed data
+    const payload = {
+      [ACR]: {
+        name: "Zzp Importtest Party",
+        ideology: "Centrist",
+        founding_year: 2025,
+        website: "https://zzp.example.org",
+      },
+    };
+    const diff = await partyProfilesImporter.diff(payload, prisma);
+
+    expect(diff.updates).toHaveLength(0);
+    expect(diff.creates).toHaveLength(1);
+    const spec = diff.creates[0];
+    expect(spec.targetTable).toBe("political_parties");
+    expect(spec.changeKind).toBe("create");
+    expect(spec.sources.length).toBeGreaterThanOrEqual(1);
+    const pv = spec.proposedValue as Record<string, unknown>;
+    expect(pv.acronym).toBe(ACR);
+    expect(pv.name).toBe("Zzp Importtest Party");
+    expect(pv.ideology).toBe("Centrist");
+    expect(pv.foundingYear).toBe(2025); // mapped snake→camel + numeric
+    expect(spec.label).toBe(`${ACR} · (new party)`);
+
+    // The create shows up in the sample.
+    expect(diff.sample.some((s) => s.kind === "create" && s.label === `${ACR} · (new party)`)).toBe(true);
+  });
+
+  it("still emits a FILL/correction (not a create) for an existing party with a changed field", async () => {
+    const live = await prisma.politicalParty.findUnique({
+      where: { acronym: "AAC" },
+      select: { ideology: true },
+    });
+    const payload = {
+      AAC: { ideology: (live?.ideology ?? "") + " ZZZ-CREATE-GUARD" },
+    };
+    const diff = await partyProfilesImporter.diff(payload, prisma);
+    expect(diff.creates).toHaveLength(0);
+    const fill = diff.updates.find((u) => u.targetField === "ideology" && u.targetPk === "AAC");
+    expect(fill).toBeTruthy();
+    expect(fill?.changeKind).toMatch(/^(fill|correction)$/);
   });
 
   it("returns correct sample slices", async () => {

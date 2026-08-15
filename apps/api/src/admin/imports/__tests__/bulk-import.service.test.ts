@@ -178,3 +178,131 @@ describe("BulkImportService (integration)", () => {
     expect(run?.skippedCount).toBe(1);
   });
 });
+
+/**
+ * Apply-path regression for the political_parties CREATE: drives a create through
+ * the REAL audited pipeline (BulkImportService.apply → EnrichmentApplyService
+ * .applyCreate → politicalPartyEntity.insert). political_parties is keyed by the
+ * varchar `acronym` (NOT a uuid), so the apply path must NOT roll back on:
+ *   - copySourcesToEvidence (skipped: entity.evidenceEntryType = null), and
+ *   - the activity_log.target_id uuid cast (nil uuid + acronym in metadata.targetPk).
+ * Also asserts idempotency: a re-run sees the party as existing → 0 creates.
+ */
+const PARTY_FIXTURE = "test-fixture-party-create";
+const NEW_ACR = "ZZQ"; // throwaway, must not exist in seed data
+const NEW_NAME = "Zzq Apply Path Party";
+
+const partyCreateFixture: DatasetImporter = {
+  name: PARTY_FIXTURE,
+  label: "test party create fixture",
+  description: "test party create fixture",
+  autoApprove: true,
+  validate(json: unknown) {
+    if (typeof json !== "object" || json === null) throw new Error("bad shape");
+  },
+  async diff(_json, prisma) {
+    const existing = await prisma.politicalParty.findUnique({ where: { acronym: NEW_ACR } });
+    if (existing) {
+      return { creates: [], updates: [], unchangedCount: 1, sample: [] };
+    }
+    return {
+      updates: [],
+      unchangedCount: 0,
+      creates: [
+        {
+          targetTable: "political_parties",
+          changeKind: "create",
+          proposedValue: { acronym: NEW_ACR, name: NEW_NAME, ideology: "Centrist" },
+          confidence: "high",
+          sources: [
+            { url: "https://example.org/new-party", publisher: "example.org", snippet: "new party", format: "html" },
+          ],
+          label: `${NEW_ACR} · (new party)`,
+        },
+      ],
+      sample: [{ kind: "create", label: `${NEW_ACR} · (new party)`, detail: NEW_NAME }],
+    };
+  },
+};
+
+describe("BulkImportService — political_parties CREATE apply path (integration)", () => {
+  let prisma: PrismaService;
+  let svc: BulkImportService;
+
+  beforeAll(async () => {
+    prisma = new PrismaService();
+    await prisma.onModuleInit();
+    const apply = new EnrichmentApplyService(prisma, imageStub, new CompletenessService(prisma));
+    svc = new BulkImportService(prisma, apply);
+    // Defensive pre-clean.
+    await prisma.politicalParty.delete({ where: { acronym: NEW_ACR } }).catch(() => {});
+    IMPORTERS[PARTY_FIXTURE] = partyCreateFixture;
+  });
+
+  afterAll(async () => {
+    await prisma.proposalSource
+      .deleteMany({ where: { proposal: { targetTable: "political_parties", proposedValue: { path: ["acronym"], equals: NEW_ACR } } } })
+      .catch(() => {});
+    await prisma.changeProposal
+      .deleteMany({ where: { targetTable: "political_parties", proposedValue: { path: ["acronym"], equals: NEW_ACR } } })
+      .catch(() => {});
+    await prisma.$executeRaw`
+      DELETE FROM activity_log
+      WHERE target_type = 'political_parties'
+        AND event_type  = 'fact_created'
+        AND metadata->>'targetPk' = ${NEW_ACR}
+    `.catch(() => {});
+    await prisma.importRun.deleteMany({ where: { dataset: PARTY_FIXTURE } }).catch(() => {});
+    await prisma.politicalParty.delete({ where: { acronym: NEW_ACR } }).catch(() => {});
+    delete IMPORTERS[PARTY_FIXTURE];
+    await prisma.onModuleDestroy();
+  });
+
+  it("creates a brand-new political_parties row through the audited pipeline (no evidence/activity_log rollback)", async () => {
+    const result = await svc.apply(PARTY_FIXTURE, {}, ADMIN);
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created).toBe(1);
+    expect(result.updated).toBe(0);
+
+    // The party row was actually created (proves the tx committed — no rollback).
+    const party = await prisma.politicalParty.findUnique({ where: { acronym: NEW_ACR } });
+    expect(party).toBeTruthy();
+    expect(party?.name).toBe(NEW_NAME);
+    expect(party?.isActive).toBe(true);
+    expect(party?.ideology).toBe("Centrist");
+
+    // The proposal was applied via the audited path.
+    const proposal = await prisma.changeProposal.findFirst({
+      where: { targetTable: "political_parties", proposedValue: { path: ["acronym"], equals: NEW_ACR } },
+    });
+    expect(proposal?.status).toBe("approved");
+
+    // No evidence rows were written (party CREATEs skip evidence — non-uuid PK).
+    const proposalSources = await prisma.proposalSource.findMany({ where: { proposalId: proposal!.id } });
+    expect(proposalSources.length).toBeGreaterThanOrEqual(1); // sources exist on the proposal…
+    // …but they were NOT copied to evidence (no uuid entry_id to point at).
+    // (evidence has no row keyed to a string acronym; nothing to assert beyond the commit succeeding.)
+
+    // activity_log: nil uuid target_id + acronym carried in metadata.targetPk.
+    const activityRow = await prisma.activityLog.findFirst({
+      where: {
+        eventType: "fact_created",
+        targetType: "political_parties",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: { path: ["proposalId"], equals: (proposal as any)?.id },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(activityRow).toBeTruthy();
+    expect(activityRow?.targetId).toBe("00000000-0000-0000-0000-000000000000");
+    expect((activityRow?.metadata as Record<string, unknown>)?.targetPk).toBe(NEW_ACR);
+  });
+
+  it("re-running is idempotent: the party already exists → 0 creates, skipped=1", async () => {
+    const result = await svc.apply(PARTY_FIXTURE, {}, ADMIN);
+    expect(result.created).toBe(0);
+    expect(result.skipped).toBe(1);
+    expect(result.errors).toHaveLength(0);
+  });
+});

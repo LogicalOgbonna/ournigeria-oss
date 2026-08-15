@@ -157,19 +157,33 @@ export class EnrichmentApplyService {
       });
       officialId = created.officialId;
 
-      await this.copySourcesToEvidence(tx, proposal.id, entity.evidenceEntryType, created.id);
+      // Skip evidence for non-uuid-keyed entities (entity.evidenceEntryType=null,
+      // e.g. political_parties keyed by varchar `acronym`) — evidence.entry_id is
+      // a uuid column and created.id would be the acronym, which can't cast.
+      if (entity.evidenceEntryType) {
+        await this.copySourcesToEvidence(tx, proposal.id, entity.evidenceEntryType, created.id);
+      }
 
       await tx.changeProposal.update({
         where: { id: proposal.id },
         data: { status: "approved", reviewedBy: adminId, reviewedAt: new Date(), appliedAt: new Date() },
       });
 
+      // activity_log.target_id is a uuid column. Most creatable entities return a
+      // uuid id, but non-uuid-keyed ones (political_parties → acronym) return a
+      // natural key — log the nil uuid and carry the real key in metadata so the
+      // uuid cast doesn't roll back the whole apply tx.
+      const uuidId = isUuid(created.id);
       await tx.activityLog.create({
         data: {
           eventType: "fact_created",
           targetType: proposal.targetTable,
-          targetId: created.id,
-          metadata: { proposalId: proposal.id, officialId: created.officialId ?? null },
+          targetId: uuidId ? created.id : NIL_UUID,
+          metadata: {
+            proposalId: proposal.id,
+            officialId: created.officialId ?? null,
+            ...(uuidId ? {} : { targetPk: created.id }),
+          },
         },
       });
     });

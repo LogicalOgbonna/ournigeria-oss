@@ -27,8 +27,13 @@ export interface CreateResult {
 
 export interface CreatableEntity {
   targetTable: string;
-  /** evidence.entry_type used when copying proposal_sources → evidence. */
-  evidenceEntryType: string;
+  /**
+   * evidence.entry_type used when copying proposal_sources → evidence.
+   * `null` skips the evidence copy entirely — used for non-uuid-keyed entities
+   * (e.g. political_parties, keyed by varchar `acronym`) whose `id` cannot be
+   * cast into the uuid `evidence.entry_id` column.
+   */
+  evidenceEntryType: string | null;
   /** Throws BadRequestException on a malformed payload. */
   validate(payload: unknown): Record<string, unknown>;
   /** FK existence / duplicate checks inside the tx (clean 400s, not raw FK 500s). */
@@ -495,6 +500,86 @@ function electionEntity(): CreatableEntity {
   };
 }
 
+/**
+ * political_parties create. PK is the varchar `acronym` (NOT a uuid), so this
+ * entity returns `id = acronym` and registers `evidenceEntryType: null` — the
+ * apply service skips copySourcesToEvidence (evidence.entry_id is uuid) and logs
+ * the nil uuid in activity_log (target_id is uuid), carrying the acronym in
+ * metadata. Mirrors the existing party-FILL behavior (which also skips evidence).
+ */
+const PARTY_OPTIONAL_COLUMNS: ColumnSpec[] = [
+  { key: "isActive", column: "is_active", type: "boolean" },
+  { key: "color", column: "color", type: "string" },
+  { key: "description", column: "description", type: "string" },
+  { key: "email", column: "email", type: "string" },
+  { key: "facebookUrl", column: "facebook_url", type: "string" },
+  { key: "foundingYear", column: "founding_year", type: "int" },
+  { key: "hqAddress", column: "hq_address", type: "string" },
+  { key: "ideology", column: "ideology", type: "string" },
+  { key: "inecStatus", column: "inec_status", type: "string" },
+  { key: "leaderName", column: "leader_name", type: "string" },
+  { key: "logoUrl", column: "logo_url", type: "string" },
+  { key: "phoneNumber", column: "phone_number", type: "string" },
+  { key: "slogan", column: "slogan", type: "string" },
+  { key: "twitterHandle", column: "twitter_handle", type: "string" },
+  { key: "website", column: "website", type: "string" },
+];
+
+function politicalPartyEntity(): CreatableEntity {
+  return {
+    targetTable: "political_parties",
+    evidenceEntryType: null, // non-uuid PK → no evidence copy (see apply service guard)
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      const out: Record<string, unknown> = {
+        acronym: coerce({ key: "acronym", column: "acronym", type: "string", required: true }, p.acronym),
+        name: coerce({ key: "name", column: "name", type: "string", required: true }, p.name),
+      };
+      for (const spec of PARTY_OPTIONAL_COLUMNS) out[spec.key] = coerce(spec, p[spec.key]);
+      return out;
+    },
+    async preflight(tx, payload) {
+      const dup = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        payload.acronym,
+      );
+      if (dup.length > 0) {
+        throw new BadRequestException(`party ${payload.acronym} already exists`);
+      }
+    },
+    async insert(tx, payload) {
+      // is_active is NOT NULL — coalesce the (optional) provided value to true.
+      const isActive = payload.isActive === null || payload.isActive === undefined ? true : payload.isActive;
+
+      const cols = ["acronym", "name", "is_active"];
+      const values: unknown[] = [payload.acronym, payload.name, isActive];
+      const casts: string[] = ["", "", ""];
+      for (const spec of PARTY_OPTIONAL_COLUMNS) {
+        if (spec.key === "isActive") continue; // handled above (NOT NULL, always set)
+        const v = payload[spec.key];
+        if (v === null || v === undefined) continue; // let column defaults / NULL apply
+        cols.push(spec.column);
+        values.push(v);
+        casts.push("");
+      }
+      const placeholders = values.map((_, i) => `$${i + 1}${casts[i] ?? ""}`);
+      placeholders.push("now()", "now()"); // created_at, updated_at
+      cols.push("created_at", "updated_at");
+
+      await tx.$executeRawUnsafe(
+        `INSERT INTO political_parties (${cols.map((c) => `"${c}"`).join(", ")})
+         VALUES (${placeholders.join(", ")})`,
+        ...values,
+      );
+      // No uuid id — the natural key (acronym) is the row id for downstream logging.
+      return { id: payload.acronym as string };
+    },
+  };
+}
+
 /** Tiny stable string hash for slug disambiguation (not security-sensitive). */
 function hashStr(s: string): number {
   let h = 0;
@@ -827,6 +912,9 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   corruption_cases: corruptionInvolvementEntity(),
   // Party officers (chairman/secretary/party leader) — party-scoped, no official.
   party_officers: partyOfficerEntity(),
+  // Brand-new political parties (curated import). PK is varchar `acronym`, not a
+  // uuid — evidenceEntryType:null so the apply service skips evidence/uuid casts.
+  political_parties: politicalPartyEntity(),
   // Assembly member (State House of Assembly, role 'mha'): find-or-create official,
   // upsert active mha position for the seat, atomic downgrade of other holders.
   assembly_member: assemblyMemberEntity,
