@@ -5,8 +5,10 @@ import { regionToStateSlug } from "./geo";
  * slug from platform geo headers. Swap hosts = edit the pairs below.
  */
 const HOST_HEADER_PAIRS: Array<{ country: string; region: string }> = [
-  { country: "x-vercel-ip-country", region: "x-vercel-ip-country-region" }, // Vercel
+  // Cloudflare first: ournigeria.ng is orange-clouded in front of Vercel, so
+  // x-vercel-ip-* now reflects the Cloudflare edge colo, not the visitor.
   { country: "cf-ipcountry", region: "cf-region-code" },                    // Cloudflare
+  { country: "x-vercel-ip-country", region: "x-vercel-ip-country-region" }, // Vercel
   { country: "x-geo-country", region: "x-geo-region" },                     // generic / self-host
 ];
 

@@ -11,10 +11,43 @@
     },
     "build": {
       "command": "next build",
-      "outputs": ["{projectRoot}/.next"],
+      "outputs": [
+        "{projectRoot}/.next"
+      ],
       "options": {
         "cwd": "apps/awanaija"
-      }
+      },
+      "inputs": [
+        "default",
+        "^default",
+        {
+          "env": "VERCEL_ENV"
+        },
+        {
+          "env": "NEXT_PUBLIC_API_URL"
+        },
+        {
+          "env": "NEXT_PUBLIC_APP_URL"
+        },
+        {
+          "env": "NEXT_PUBLIC_LOGIN_URL"
+        },
+        {
+          "env": "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME"
+        },
+        {
+          "env": "NEXT_PUBLIC_POSTHOG_HOST"
+        },
+        {
+          "env": "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN"
+        },
+        {
+          "env": "NEXT_PUBLIC_GA_MEASUREMENT_ID"
+        },
+        {
+          "env": "NEXT_PUBLIC_CLARITY_PROJECT_ID"
+        }
+      ]
     },
     "start": {
       "command": "next start",

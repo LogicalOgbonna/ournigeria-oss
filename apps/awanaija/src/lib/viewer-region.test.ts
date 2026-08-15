@@ -12,6 +12,16 @@ test("reads Cloudflare headers", () => {
   assert.equal(getViewerStateSlug(H({ "cf-ipcountry": "NG", "cf-region-code": "LA" })), "lagos");
 });
 
+test("Cloudflare headers win over Vercel headers (ournigeria.ng is proxied through Cloudflare, so x-vercel-ip-* is the CF colo)", () => {
+  assert.equal(
+    getViewerStateSlug(H({
+      "cf-ipcountry": "NG", "cf-region-code": "LA",
+      "x-vercel-ip-country": "DE", "x-vercel-ip-country-region": "HE",
+    })),
+    "lagos",
+  );
+});
+
 test("generic x-geo-* fallback", () => {
   assert.equal(getViewerStateSlug(H({ "x-geo-country": "NG", "x-geo-region": "EK" })), "ekiti");
 });
