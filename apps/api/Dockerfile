@@ -16,6 +16,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/cache/package.json packages/cache/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/official-records/package.json packages/official-records/package.json
 COPY packages/tools/package.json packages/tools/package.json
 
 # Hoisted layout + install only api workspace
@@ -29,11 +30,13 @@ COPY apps/api/ apps/api/
 COPY packages/database/ packages/database/
 COPY packages/cache/ packages/cache/
 COPY packages/shared-types/ packages/shared-types/
+COPY packages/official-records/ packages/official-records/
 COPY packages/tools/ packages/tools/
 COPY packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
+ && pnpm --filter @ournigeria/official-records run build \
  && pnpm --filter @ournigeria/tools run build \
  && pnpm --filter @ournigeria/api exec nest build
 
@@ -123,6 +126,8 @@ COPY --from=api-build /app/packages/database/package.json packages/database/pack
 COPY --from=api-build /app/packages/cache/dist/ packages/cache/dist/
 COPY --from=api-build /app/packages/cache/package.json packages/cache/package.json
 COPY --from=api-build /app/packages/shared-types/ packages/shared-types/
+COPY --from=api-build /app/packages/official-records/dist/ packages/official-records/dist/
+COPY --from=api-build /app/packages/official-records/package.json packages/official-records/package.json
 COPY --from=api-build /app/packages/tools/dist/ packages/tools/dist/
 COPY --from=api-build /app/packages/tools/package.json packages/tools/package.json
 COPY --from=api-build /app/packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
@@ -132,6 +137,7 @@ RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database && \
     ln -s /app/packages/cache node_modules/@ournigeria/cache && \
     ln -s /app/packages/shared-types node_modules/@ournigeria/shared-types && \
+    ln -s /app/packages/official-records node_modules/@ournigeria/official-records && \
     ln -s /app/packages/tools node_modules/@ournigeria/tools
 
 # Copy Infisical config

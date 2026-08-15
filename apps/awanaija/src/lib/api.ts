@@ -206,6 +206,32 @@ export async function createProposal(data: {
   });
 }
 
+/** Citizen structured contribution — batch ADD (Plan 55). */
+export async function createRecordProposals(data: {
+  officialId: string;
+  records: { recordType: string; data: Record<string, unknown>; sourceUrl?: string }[];
+}) {
+  return apiFetch<{ batchId: string; count: number; trust: "verified" | "anonymous" }>(
+    "/proposals/records",
+    { method: "POST", credentials: "include", body: JSON.stringify(data) },
+  );
+}
+
+/** Citizen structured contribution — correct one field on an existing record (Plan 55). */
+export async function createRecordEditProposal(data: {
+  officialId: string;
+  recordType: string;
+  targetPk: string;
+  field: string;
+  value: unknown;
+  sourceUrl?: string;
+}) {
+  return apiFetch<{ id: string; status: string; trust: "verified" | "anonymous" }>(
+    "/proposals/record/edit",
+    { method: "POST", credentials: "include", body: JSON.stringify(data) },
+  );
+}
+
 export async function identifyOfficial(data: {
   name: string;
   role: string;

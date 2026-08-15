@@ -153,6 +153,90 @@ const STATUS_COLORS: Record<string, string> = {
   needs_evidence: "bg-orange-100 text-orange-700",
 };
 
+/* ── Structured citizen contributions (Plan 55): add:/edit: proposals ── */
+
+const RECORD_TYPE_LABELS: Record<string, string> = {
+  education: "Education",
+  career: "Career",
+  party_affiliation: "Party affiliation",
+  committee: "Committee",
+  sponsored_bill: "Sponsored bill",
+  election: "Election",
+  asset_declaration: "Asset declaration",
+  award: "Award",
+  publication: "Publication",
+  family_member: "Family member",
+  legal_case: "Legal case",
+};
+const SENSITIVE_RECORD_TYPES = new Set(["legal_case", "asset_declaration"]);
+
+function isRecordProposal(p: ProposalItem): boolean {
+  return (
+    typeof p.targetField === "string" &&
+    (p.targetField.startsWith("add:") || p.targetField.startsWith("edit:"))
+  );
+}
+
+/** "startYear" → "Start Year" */
+function humanizeKey(k: string): string {
+  return k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
+}
+
+/** Labeled, human-readable review card for a structured citizen contribution. */
+function RecordProposalCard({ proposal }: { proposal: ProposalItem }) {
+  const pv: any = proposal.proposedValue;
+  if (!pv || pv.type !== "record") {
+    return (
+      <span className="font-mono text-sm break-words min-w-0 line-clamp-4">
+        {displayValue(proposal.proposedValue)}
+      </span>
+    );
+  }
+  const label = RECORD_TYPE_LABELS[pv.recordType] ?? pv.recordType;
+  const sensitive = SENSITIVE_RECORD_TYPES.has(pv.recordType);
+  return (
+    <div className="space-y-1.5 text-sm min-w-0">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-semibold">
+          {pv.op === "add" ? `Add ${label}` : `Correct ${label}`}
+        </span>
+        {sensitive && (
+          <span className="rounded bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300">
+            sensitive · source required
+          </span>
+        )}
+      </div>
+      {pv.op === "add" ? (
+        <div className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5">
+          {Object.entries(pv.data ?? {}).map(([k, v]) => (
+            <div key={k} className="contents">
+              <span className="text-muted-foreground">{humanizeKey(k)}</span>
+              <span className="break-words min-w-0">{String(v)}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="break-words">
+          <span className="text-muted-foreground">{humanizeKey(String(pv.field ?? ""))}: </span>
+          <span className="line-through opacity-60">{String(pv.currentValue ?? "—")}</span>
+          <span className="mx-1">→</span>
+          <span className="font-medium text-emerald-700 dark:text-emerald-400">{String(pv.value)}</span>
+        </div>
+      )}
+      {proposal.sourceUrl && (
+        <a
+          href={proposal.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-xs text-blue-600 dark:text-blue-400 underline break-all"
+        >
+          {proposal.sourceUrl}
+        </a>
+      )}
+    </div>
+  );
+}
+
 async function proposalFetch(path: string, opts?: RequestInit) {
   const res = await fetch(`/api/proposals${path}`, {
     ...opts,
@@ -420,8 +504,13 @@ export default function ProposalsPage() {
                 proposal.currentValue !== undefined &&
                 proposal.currentValue !== "";
               const isImageField = proposal.targetField === "imageUrl";
-              const fieldLabel =
-                FIELD_LABELS[proposal.targetField] || proposal.targetField;
+              const isRecord = isRecordProposal(proposal);
+              const recordOp = isRecord ? (proposal.proposedValue as any)?.op : null;
+              const fieldLabel = isRecord
+                ? recordOp === "edit"
+                  ? "Correct record"
+                  : "Add record"
+                : FIELD_LABELS[proposal.targetField] || proposal.targetField;
               const reviewable =
                 proposal.status === "submitted" ||
                 proposal.status === "under_review";
@@ -498,12 +587,18 @@ export default function ProposalsPage() {
                       <Badge
                         variant="outline"
                         className={`text-xs ${
-                          hasCurrent
+                          hasCurrent || recordOp === "edit"
                             ? "border-amber-300 text-amber-700 dark:text-amber-400"
                             : "border-emerald-300 text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
-                        {hasCurrent ? "overwrite" : "fill"}
+                        {isRecord
+                          ? recordOp === "edit"
+                            ? "correction"
+                            : "new record"
+                          : hasCurrent
+                            ? "overwrite"
+                            : "fill"}
                       </Badge>
                       <Badge
                         className={`text-xs ${STATUS_COLORS[proposal.status] || ""}`}
@@ -513,7 +608,9 @@ export default function ProposalsPage() {
                     </div>
 
                     {/* Value diff: current -> proposed */}
-                    {isImageField ? (
+                    {isRecord ? (
+                      <RecordProposalCard proposal={proposal} />
+                    ) : isImageField ? (
                       <div className="flex items-center gap-3 flex-wrap">
                         {hasCurrent && isImageValue(proposal.currentValue) && (
                           <>

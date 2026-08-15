@@ -45,6 +45,72 @@ export class ProposalsController {
     }
   }
 
+  /** Citizen structured contribution — batch ADD (Plan 55). */
+  @Public()
+  @Post("records")
+  async createRecords(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const { userId, phone } = await this.resolveProposer(req);
+      const { officialId, records } = body;
+      if (!officialId || !Array.isArray(records)) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: "officialId and records[] are required" });
+      }
+      const result = await this.service.createRecordBatch({
+        officialId,
+        records,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
+      });
+      return res.status(HttpStatus.CREATED).json(result);
+    } catch (err: any) {
+      if (err.status === 403) {
+        return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: err.message });
+      }
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("record batch create error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  /** Citizen structured contribution — correct a field on an existing record (Plan 55). */
+  @Public()
+  @Post("record/edit")
+  async createRecordEdit(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const { userId, phone } = await this.resolveProposer(req);
+      const { officialId, recordType, targetPk, field, value, sourceUrl } = body;
+      if (!officialId || !recordType || !targetPk || !field || value === undefined) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: "officialId, recordType, targetPk, field, value are required" });
+      }
+      const result = await this.service.createRecordEdit({
+        officialId,
+        recordType,
+        targetPk,
+        field,
+        value,
+        sourceUrl,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
+      });
+      return res.status(HttpStatus.CREATED).json(result);
+    } catch (err: any) {
+      if (err.status === 403) {
+        return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: err.message });
+      }
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("record edit create error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
   @Public()
   @Post("identify")
   async identify(@Body() body: any, @Req() req: Request, @Res() res: Response) {

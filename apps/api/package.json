@@ -33,6 +33,7 @@
     "@opentelemetry/sdk-node": "0.212.0",
     "@ournigeria/cache": "workspace:*",
     "@ournigeria/database": "workspace:*",
+    "@ournigeria/official-records": "workspace:*",
     "@ournigeria/shared-types": "workspace:*",
     "@ournigeria/tools": "workspace:*",
     "@tavily/core": "0.7.1",

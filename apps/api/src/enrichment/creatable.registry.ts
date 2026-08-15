@@ -36,7 +36,8 @@ export interface CreatableEntity {
   insert(
     tx: RawTx,
     payload: Record<string, unknown>,
-    ctx: { adminId: string; confidence: string },
+    /** sourceType defaults to 'agent'; the citizen apply path (Plan 55) passes 'citizen'. */
+    ctx: { adminId: string; confidence: string; sourceType?: string },
   ): Promise<CreateResult>;
 }
 
@@ -137,7 +138,7 @@ function officialFactEntity(
         casts.push(spec.type === "date" ? "::date" : spec.type === "uuid" ? "::uuid" : "");
       }
       cols.push("confidence", "source_type", "review_status", "reviewed_by", "last_verified_at");
-      values.push(ctx.confidence, "agent", "reviewed", ctx.adminId);
+      values.push(ctx.confidence, ctx.sourceType ?? "agent", "reviewed", ctx.adminId);
       casts.push("", "", "", "");
       const placeholders = values.map((_, i) => `$${i + 1}${casts[i] ?? ""}`);
       placeholders.push("now()");
@@ -450,7 +451,7 @@ function electionEntity(): CreatableEntity {
         casts.push(spec.type === "date" ? "::date" : spec.type === "uuid" ? "::uuid" : "");
       }
       cols.push("confidence", "source_type", "review_status", "reviewed_by", "last_verified_at");
-      values.push(ctx.confidence, "agent", "reviewed", ctx.adminId);
+      values.push(ctx.confidence, ctx.sourceType ?? "agent", "reviewed", ctx.adminId);
       casts.push("", "", "", "");
       const placeholders = values.map((_, i) => `$${i + 1}${casts[i] ?? ""}`);
       placeholders.push("now()");

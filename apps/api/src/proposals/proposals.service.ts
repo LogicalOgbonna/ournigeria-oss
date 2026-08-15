@@ -1,9 +1,17 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
 import { PrismaService, slugifyName, Prisma } from "@ournigeria/database";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
+import {
+  getRecordSchema,
+  isStructuredTargetField,
+  parseStructuredTargetField,
+  validateRecordData,
+} from "@ournigeria/official-records";
 import { ImageStorageService } from "../images/image-storage.service";
 import { OfficialsService } from "../officials/officials.service";
 import { ProposalNotifierService } from "./proposal-notifier.service";
+import { OfficialRecordService } from "./official-record.service";
+import { getCreatableEntity } from "../enrichment/creatable.registry";
 import { validateSourceUrl, validateImageUrl, validateFacebookUrl } from "../lib/url-validation";
 import { buildIdentifyDisplayValue, composeGeo } from "./proposal-display";
 
@@ -43,6 +51,18 @@ function parseEffectiveDate(raw: unknown): Date | null {
 const MAX_PROPOSALS_PER_DAY = 50;
 const MAX_ANON_PROPOSALS_PER_HOUR = 30;
 const MAX_VOTES_PER_DAY = 20;
+const MAX_RECORDS_PER_BATCH = 15;
+
+/**
+ * Structured (add:/edit:) rows are limited per-BATCH via checkStructuredRateLimit,
+ * not per-row — exclude them from the scalar row counters or a single batch
+ * would consume the whole scalar budget.
+ */
+const NOT_STRUCTURED = {
+  NOT: [{ targetField: { startsWith: "add:" } }, { targetField: { startsWith: "edit:" } }],
+};
+
+const UUID_RE_STR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Mask a proposer phone for admin display: +2348012345678 -> +234•••5678 */
 function maskPhone(phone: string | null): string | null {
@@ -58,6 +78,7 @@ export class ProposalsService {
     private imageStorage: ImageStorageService,
     private officialsService: OfficialsService,
     private notifier: ProposalNotifierService,
+    private officialRecords: OfficialRecordService = new OfficialRecordService(),
   ) {}
 
   async create(data: {
@@ -1257,6 +1278,12 @@ export class ProposalsService {
       throw new BadRequestException("Proposal already resolved");
     }
 
+    // Structured citizen contributions (add:/edit:, Plan 55) apply through the
+    // creatable-registry path — never the scalar column update below.
+    if (isStructuredTargetField(proposal.targetField)) {
+      return this.approveStructured(proposal as any, adminId);
+    }
+
     let value = (proposal.proposedValue as any)?.value;
 
     // If approving a photo (data URL or remote URL), normalize it into our own
@@ -1391,6 +1418,95 @@ export class ProposalsService {
     return { status: "approved" };
   }
 
+  /**
+   * Approve a structured citizen contribution (Plan 55). One transaction; the
+   * data_proposals status write runs FIRST under the default role because
+   * enrichment_apply has no grants on data_proposals — only then does the tx
+   * drop to the least-privileged role for the live fact write.
+   */
+  private async approveStructured(
+    proposal: {
+      id: string;
+      officialId: string;
+      targetField: string;
+      sourceUrl: string | null;
+      createdAt: Date;
+      proposedValue: any;
+      official: { name: string };
+    },
+    adminId: string,
+  ) {
+    const parsed = parseStructuredTargetField(proposal.targetField);
+    const pv = proposal.proposedValue;
+    if (!parsed || pv?.type !== "record") {
+      throw new BadRequestException("malformed structured proposal");
+    }
+    const schema = getRecordSchema(parsed.recordType)!;
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1) default role: proposal bookkeeping
+      await tx.dataProposal.update({
+        where: { id: proposal.id },
+        data: { status: "approved", reviewedAt: new Date(), reviewedBy: adminId },
+      });
+      // 2) least-privileged role for the live write (resets at COMMIT)
+      await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
+
+      let factId: string;
+      let evidenceField: string | null = null;
+      if (parsed.op === "add") {
+        const created = await this.officialRecords.applyAdd(tx as any, {
+          recordType: parsed.recordType,
+          officialId: proposal.officialId,
+          data: pv.data,
+          adminId,
+        });
+        factId = created.factId;
+      } else {
+        await this.officialRecords.applyEdit(tx as any, {
+          recordType: parsed.recordType,
+          officialId: proposal.officialId,
+          targetPk: pv.targetPk,
+          field: pv.field,
+          value: pv.value,
+          adminId,
+        });
+        factId = pv.targetPk;
+        evidenceField = pv.field;
+      }
+
+      if (proposal.sourceUrl) {
+        const entity = getCreatableEntity(schema.table)!;
+        await this.officialRecords.insertCitizenEvidence(tx as any, {
+          entryType: entity.evidenceEntryType,
+          entryId: factId,
+          field: evidenceField,
+          url: proposal.sourceUrl,
+          retrievedAt: proposal.createdAt,
+        });
+      }
+
+      await tx.activityLog.create({
+        data: {
+          eventType: "proposal_approved",
+          targetType: "official",
+          targetId: proposal.officialId,
+          metadata: {
+            proposalId: proposal.id,
+            targetField: proposal.targetField,
+            recordType: parsed.recordType,
+            factId,
+            officialName: proposal.official.name,
+          },
+        },
+      });
+    });
+
+    // Post-commit, default role — same pattern as the enrichment service.
+    await this.officialsService.recomputeCompleteness(proposal.officialId).catch(() => {});
+    return { status: "approved" };
+  }
+
   async reject(proposalId: string, adminId: string) {
     const proposal = await this.prisma.dataProposal.findUnique({
       where: { id: proposalId },
@@ -1444,6 +1560,165 @@ export class ProposalsService {
     return { status: "rejected" };
   }
 
+  /**
+   * Citizen structured contribution — batch ADD (Plan 55). One batch = one
+   * rate-limit unit; the whole batch inserts atomically or not at all.
+   */
+  async createRecordBatch(args: {
+    officialId: string;
+    records: { recordType: string; data: unknown; sourceUrl?: string }[];
+    proposerPhone: string | null;
+    proposerIp: string | null;
+    trust: "verified" | "anonymous";
+  }) {
+    if (!Array.isArray(args.records) || args.records.length === 0) {
+      throw new BadRequestException("records must be a non-empty array");
+    }
+    if (args.records.length > MAX_RECORDS_PER_BATCH) {
+      throw new BadRequestException("at most 15 records per submission");
+    }
+    const prepared = args.records.map((r) => {
+      const schema = getRecordSchema(r.recordType);
+      if (!schema) throw new BadRequestException(`unknown recordType: ${r.recordType}`);
+      const v = validateRecordData(schema, r.data);
+      if (!v.ok) throw new BadRequestException(`invalid ${r.recordType}: ${JSON.stringify(v.errors)}`);
+      let sourceUrl: string | undefined;
+      if (r.sourceUrl) {
+        const res = validateSourceUrl(r.sourceUrl);
+        if (!res.valid) throw new BadRequestException(`sourceUrl: ${res.reason}`);
+        sourceUrl = res.url;
+      }
+      if (schema.sensitive && !sourceUrl) {
+        throw new BadRequestException(`${schema.label} requires a source URL`);
+      }
+      return { schema, data: v.data, sourceUrl };
+    });
+
+    const official = await this.prisma.nigerianOfficial.findUnique({
+      where: { id: args.officialId },
+    });
+    if (!official) throw new NotFoundException("Official not found");
+
+    await this.checkStructuredRateLimit(args.trust, args.proposerPhone, args.proposerIp);
+
+    const batchId = randomUUID();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.dataProposal.createMany({
+        data: prepared.map((p) => ({
+          officialId: args.officialId,
+          proposerPhone: args.proposerPhone,
+          proposerIp: args.proposerIp,
+          trust: args.trust,
+          targetField: `add:${p.schema.recordType}`,
+          proposedValue: {
+            type: "record",
+            op: "add",
+            recordType: p.schema.recordType,
+            batchId,
+            data: p.data as any,
+          },
+          sourceUrl: p.sourceUrl ?? null,
+          status: "submitted",
+        })),
+      });
+    });
+
+    this.notifier
+      .notifyNewProposal({
+        proposalId: batchId,
+        officialName: official.name,
+        targetField: `structured batch (${prepared.length} record${prepared.length > 1 ? "s" : ""})`,
+        proposedValue: prepared.map((p) => p.schema.label).join(", "),
+        voteScore: 0,
+      })
+      .catch(() => {});
+
+    return { batchId, count: prepared.length, trust: args.trust };
+  }
+
+  /** Citizen structured contribution — correct one field on an existing record (Plan 55). */
+  async createRecordEdit(args: {
+    officialId: string;
+    recordType: string;
+    targetPk: string;
+    field: string;
+    value: unknown;
+    sourceUrl?: string;
+    proposerPhone: string | null;
+    proposerIp: string | null;
+    trust: "verified" | "anonymous";
+  }) {
+    const schema = getRecordSchema(args.recordType);
+    if (!schema) throw new BadRequestException(`unknown recordType: ${args.recordType}`);
+    const fieldDef = schema.fields.find((f) => f.key === args.field);
+    if (!fieldDef?.editable) {
+      throw new BadRequestException(`${args.recordType}.${args.field} is not correctable`);
+    }
+    const v = validateRecordData(schema, { [args.field]: args.value });
+    if (v.errors[args.field]) throw new BadRequestException(v.errors[args.field]);
+    let sourceUrl: string | undefined;
+    if (args.sourceUrl) {
+      const res = validateSourceUrl(args.sourceUrl);
+      if (!res.valid) throw new BadRequestException(`sourceUrl: ${res.reason}`);
+      sourceUrl = res.url;
+    }
+    if (schema.sensitive && !sourceUrl) {
+      throw new BadRequestException(`${schema.label} requires a source URL`);
+    }
+    if (!UUID_RE_STR.test(args.targetPk)) throw new BadRequestException("invalid record id");
+
+    const official = await this.prisma.nigerianOfficial.findUnique({
+      where: { id: args.officialId },
+    });
+    if (!official) throw new NotFoundException("Official not found");
+
+    // Ownership check + currentValue snapshot in one read. Table/column come
+    // from the static registry (never user input), so interpolation is safe.
+    const rows = await this.prisma.$queryRawUnsafe<{ current: unknown }[]>(
+      `SELECT "${fieldDef.column}" AS current FROM "${schema.table}" WHERE id = $1::uuid AND official_id = $2::uuid`,
+      args.targetPk,
+      args.officialId,
+    );
+    if (rows.length === 0) throw new BadRequestException("record not found on this official");
+
+    await this.checkStructuredRateLimit(args.trust, args.proposerPhone, args.proposerIp);
+
+    const batchId = randomUUID();
+    const proposal = await this.prisma.dataProposal.create({
+      data: {
+        officialId: args.officialId,
+        proposerPhone: args.proposerPhone,
+        proposerIp: args.proposerIp,
+        trust: args.trust,
+        targetField: `edit:${args.recordType}`,
+        proposedValue: {
+          type: "record",
+          op: "edit",
+          recordType: args.recordType,
+          batchId,
+          targetPk: args.targetPk,
+          field: args.field,
+          value: (v.data[args.field] ?? null) as any,
+          currentValue: (rows[0].current ?? null) as any,
+        },
+        sourceUrl: sourceUrl ?? null,
+        status: "submitted",
+      },
+    });
+
+    this.notifier
+      .notifyNewProposal({
+        proposalId: proposal.id,
+        officialName: official.name,
+        targetField: `edit:${args.recordType}`,
+        proposedValue: `${fieldDef.label}: ${String(rows[0].current ?? "—")} → ${String(v.data[args.field])}`,
+        voteScore: 0,
+      })
+      .catch(() => {});
+
+    return { id: proposal.id, status: proposal.status, trust: args.trust };
+  }
+
   async claim(proposalId: string, userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -1479,10 +1754,12 @@ export class ProposalsService {
         where: { id: { in: proposalIds } },
         select: { id: true, targetField: true },
       });
-      const relational = proposals.filter((p) => RELATIONAL_FIELDS.has(p.targetField));
-      if (relational.length > 0) {
+      const blocked = proposals.filter(
+        (p) => RELATIONAL_FIELDS.has(p.targetField) || isStructuredTargetField(p.targetField),
+      );
+      if (blocked.length > 0) {
         throw new BadRequestException(
-          `Cannot bulk-approve relational field proposals: ${relational.map((p) => p.id).join(", ")}`,
+          `Relational and structured proposals must be reviewed individually: ${blocked.map((p) => p.id).join(", ")}`,
         );
       }
     }
@@ -1503,7 +1780,7 @@ export class ProposalsService {
   private async checkProposalRateLimit(phone: string) {
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const count = await this.prisma.dataProposal.count({
-      where: { proposerPhone: phone, createdAt: { gte: dayAgo } },
+      where: { proposerPhone: phone, createdAt: { gte: dayAgo }, ...NOT_STRUCTURED },
     });
     if (count >= MAX_PROPOSALS_PER_DAY) {
       throw new ForbiddenException("Daily proposal limit reached (50 per day). Try again tomorrow.");
@@ -1517,10 +1794,48 @@ export class ProposalsService {
     }
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const count = await this.prisma.dataProposal.count({
-      where: { proposerIp: ip, createdAt: { gte: hourAgo } },
+      where: { proposerIp: ip, createdAt: { gte: hourAgo }, ...NOT_STRUCTURED },
     });
     if (count >= MAX_ANON_PROPOSALS_PER_HOUR) {
       throw new ForbiddenException("Too many submissions from this network. Try again in an hour.");
+    }
+  }
+
+  /**
+   * Structured contributions: one BATCH (shared batchId) = one limiter unit,
+   * so a multi-row education history doesn't burn the whole anon budget.
+   * Same windows/ceilings as the scalar limits (anon 5/hour, verified 30/day).
+   */
+  private async checkStructuredRateLimit(
+    trust: "verified" | "anonymous",
+    phone: string | null,
+    ip: string | null,
+  ) {
+    if (trust === "anonymous" && !ip) {
+      throw new ForbiddenException("Could not verify request origin. Try again later.");
+    }
+    const windowStart =
+      trust === "anonymous"
+        ? new Date(Date.now() - 60 * 60 * 1000)
+        : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const max = trust === "anonymous" ? MAX_ANON_PROPOSALS_PER_HOUR : MAX_PROPOSALS_PER_DAY;
+    const rows = await this.prisma.dataProposal.findMany({
+      where: {
+        ...(trust === "anonymous" ? { proposerIp: ip } : { proposerPhone: phone }),
+        createdAt: { gte: windowStart },
+        OR: [{ targetField: { startsWith: "add:" } }, { targetField: { startsWith: "edit:" } }],
+      },
+      select: { proposedValue: true },
+    });
+    const batches = new Set(
+      rows.map((r) => (r.proposedValue as any)?.batchId).filter(Boolean),
+    );
+    if (batches.size >= max) {
+      throw new ForbiddenException(
+        trust === "anonymous"
+          ? "Too many submissions from this network. Try again in an hour."
+          : "Daily proposal limit reached (30 per day). Try again tomorrow.",
+      );
     }
   }
 
