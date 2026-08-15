@@ -13,7 +13,7 @@ import type { Official } from "@/lib/api";
  * /officials/[slug] route. Visit directly: /preview/officials/<slug>.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
 
 async function getOfficial(idOrSlug: string): Promise<Official | null> {
   try {

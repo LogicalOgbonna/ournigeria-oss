@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
+      process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
     return [
       {
         source: "/api/:path*",
