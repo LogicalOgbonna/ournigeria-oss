@@ -26,7 +26,7 @@ For aggregate queries (totals, comparisons, top N), ALWAYS try summary chunks fi
 MULTI-STEP SEARCH STRATEGY:
 You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
 - For questions about a SINGLE MDA or beneficiary, search with the appropriate filter first, then refine with year or additional queries.
-- For COMPARATIVE questions (e.g. "top contractors", "compare spending across MDAs"), make SEPARATE search calls for each entity.
+- For COMPARATIVE questions (e.g. "top contractors", "compare spending across MDAs"), pass ALL MDAs in the \`organizations\` array in ONE call — the tool runs a targeted search per MDA internally. For multi-year comparisons, pass \`yearRange\` (e.g. {from: 2020, to: 2024}) instead of one call per year.
 - For BROAD questions (e.g. "who received the most money"), do an initial broad search, then follow up with targeted searches for top results.
 - Adjust the topK parameter: use 10-15 for targeted queries, 25-40 for broad comparisons.
 - Use year filters when comparing spending across different time periods.

@@ -1,13 +1,6 @@
-import { embed } from "ai";
 import { z } from "zod";
-import {
-  embeddingModelInstance,
-  RAG_CONFIG,
-  truncateEmbedding,
-} from "./rag/config";
-import { getCached, setCached } from "./rag/cache";
-import { hybridSearch } from "./rag/hybrid-search";
-import { rerankResults } from "./rag/rerank";
+import { RAG_CONFIG } from "./rag/config";
+import { buildCombos, runComboSearches } from "./rag/multi-search";
 
 const CORRUPTION_INDEX = RAG_CONFIG.corruptionIndexName;
 
@@ -33,6 +26,13 @@ export const corruptionSearchInputSchema = z.object({
     .describe(
       "Filter by official name, e.g. 'James Ibori', 'Yahaya Bello', 'Diezani Alison-Madueke'",
     ),
+  officials: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      "Filter by MULTIPLE officials in ONE call, e.g. ['James Ibori', 'Yahaya Bello']. Prefer this over one call per official for comparisons — each official gets their own targeted search internally. Overrides 'official' when set.",
+    ),
   section: z
     .string()
     .nullable()
@@ -53,6 +53,13 @@ export const corruptionSearchInputSchema = z.object({
     .optional()
     .describe(
       "Filter by official's state, e.g. 'Delta', 'Lagos', 'Kogi', 'FCT'",
+    ),
+  states: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      "Filter by MULTIPLE states in ONE call, e.g. ['Delta', 'Lagos']. Prefer this over one call per state for cross-state comparisons. Overrides 'state' when set.",
     ),
   party: z
     .string()
@@ -97,48 +104,48 @@ export const corruptionSearchOutputSchema = z.object({
 });
 
 export async function executeCorruptionSearch(input: z.infer<typeof corruptionSearchInputSchema>) {
-  const { query: rawQuery, official, section, status, state, party, agency, topK } = input;
+  const { query: rawQuery, official, officials, section, status, state, states, party, agency, topK } = input;
 
   try {
-    const conditions: Array<Record<string, { $eq: string }>> = [];
-    if (official) conditions.push({ official: { $eq: official } });
-    if (section) conditions.push({ section: { $eq: section } });
-    if (status) conditions.push({ status: { $eq: status } });
-    if (state) conditions.push({ state: { $eq: state } });
-    if (party) conditions.push({ party: { $eq: party } });
-    if (agency) conditions.push({ agency: { $eq: agency } });
+    // Resolve official x state dimensions ('officials'/'states' win over
+    // the single-value params; issue #22)
+    const officialList: Array<string | undefined> = officials?.length
+      ? [...new Set(officials)]
+      : [official ?? undefined];
+    const stateList: Array<string | undefined> = states?.length
+      ? [...new Set(states)]
+      : [state ?? undefined];
+    const combos = buildCombos(officialList, stateList);
+
+    const baseConditions: Array<Record<string, { $eq: string }>> = [];
+    if (section) baseConditions.push({ section: { $eq: section } });
+    if (status) baseConditions.push({ status: { $eq: status } });
+    if (party) baseConditions.push({ party: { $eq: party } });
+    if (agency) baseConditions.push({ agency: { $eq: agency } });
 
     // Fallback to filter-based query if the LLM passes an empty string
-    const query = rawQuery?.trim() || [official, state, status, party, agency, "corruption cases"].filter(Boolean).join(" ") || "corruption cases";
+    const query =
+      rawQuery?.trim() ||
+      [...officialList.filter(Boolean), ...stateList.filter(Boolean), status, party, agency, "corruption cases"]
+        .filter(Boolean)
+        .join(" ") ||
+      "corruption cases";
 
-    const filter = conditions.length > 0 ? { $and: conditions } : undefined;
     const requestedTopK = topK ?? RAG_CONFIG.topK;
-    const cacheParams = { indexName: CORRUPTION_INDEX, query, filter, topK: requestedTopK };
 
     type CorruptionResult = { text: string; official: string; section: string; filename: string; s3_key: string; status?: string; position?: string; state?: string; party?: string; agency?: string; amount_alleged_ngn?: number; chunk_index?: number; score: number };
-    const cached = await getCached<CorruptionResult[]>(cacheParams);
 
-    let results: CorruptionResult[];
-    if (cached) {
-      results = cached;
-    } else {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
-      const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
-
-      const queryResults = await hybridSearch({
-        indexName: CORRUPTION_INDEX,
-        query,
-        queryVector: truncateEmbedding(embedding),
-        topK: fetchTopK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
-
-      const mapped = queryResults.map((r) => ({
+    const results = await runComboSearches<CorruptionResult>({
+      indexName: CORRUPTION_INDEX,
+      query,
+      // buildCombos dimensions here are official x state
+      comboConditions: combos.map(({ state: comboOfficial, year: comboState }) => [
+        ...(comboOfficial ? [{ official: { $eq: comboOfficial } }] : []),
+        ...(comboState ? [{ state: { $eq: comboState } }] : []),
+        ...baseConditions,
+      ]),
+      requestedTopK,
+      mapResult: (r) => ({
         text: (r.metadata?.text as string) ?? "",
         official: (r.metadata?.official as string) ?? "Unknown",
         section: (r.metadata?.section as string) ?? "",
@@ -152,11 +159,8 @@ export async function executeCorruptionSearch(input: z.infer<typeof corruptionSe
         amount_alleged_ngn: (r.metadata?.amount_alleged_ngn as number) || undefined,
         chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
         score: r.score,
-      }));
-
-      results = await rerankResults(query, mapped, requestedTopK);
-      await setCached(cacheParams, results);
-    }
+      }),
+    });
 
     return {
       results,

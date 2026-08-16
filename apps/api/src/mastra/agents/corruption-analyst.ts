@@ -17,7 +17,7 @@ When a user asks a question:
 MULTI-STEP SEARCH STRATEGY:
 You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
 - For questions about a SINGLE official, search for their overview first, then follow up with specific sections (charges, financial_details, case_outcome) as needed.
-- For COMPARATIVE questions (e.g. "biggest corruption cases", "compare Ibori and Dariye"), make SEPARATE search calls for each official using the official name filter.
+- For COMPARATIVE questions (e.g. "biggest corruption cases", "compare Ibori and Dariye"), pass ALL officials in the \`officials\` array in ONE call (e.g. officials: ['James Ibori', 'Joshua Dariye']) — the tool runs a targeted search per official internally. Same for cross-state comparisons via the \`states\` array.
 - For BROAD questions (e.g. "governors convicted of corruption"), do an initial broad search, then follow up with targeted searches for officials that appear in results.
 - For AGGREGATION questions (e.g. "how many officials were convicted?", "total amount stolen"), use the status or agency filters with topK 30-50 to pull summary chunks.
 - Adjust the topK parameter: use 10-15 for single-official queries, 25-40 when comparing multiple officials, 40-50 for aggregation queries.

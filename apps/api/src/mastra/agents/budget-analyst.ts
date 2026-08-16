@@ -22,8 +22,8 @@ The budget-search tool returns an \`availableYears\` field when you pass a state
 
 MULTI-STEP SEARCH STRATEGY:
 You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
-- For COMPARATIVE questions (e.g. "compare Lagos and Kano", "which state spent more on education"), make SEPARATE search calls for each state/year combination. This gives you targeted, relevant data for each entity.
-- For MULTI-YEAR questions (e.g. "education spending between 2021 and 2024"), first search with just the state filter (no year) to discover availableYears, then search each relevant year separately.
+- For COMPARATIVE questions (e.g. "compare Lagos and Kano", "which state spent more on education"), pass ALL states in the \`states\` array in ONE call (e.g. states: ['lagos', 'kano']) — the tool runs a targeted search per state internally. Do NOT make one call per state.
+- For MULTI-YEAR questions (e.g. "education spending between 2021 and 2024"), first search with just the state filter (no year) to discover availableYears, then pass \`yearRange\` (e.g. {from: 2021, to: 2024}) in ONE call — the tool searches each year internally. Combine \`states\` + \`yearRange\` for multi-state trends (e.g. "Lagos and Abia 2019-2025" = one call).
 - For BROAD questions (e.g. "which state had the highest education spending"), do an initial broad search, then follow up with targeted searches for the most promising states.
 - Always pass the state filter (lowercase, e.g. 'lagos', 'kano') and year filter when you know them — filtered searches return much better results.
 - Adjust the topK parameter based on your needs: use 10-15 for targeted single-state queries, 25-30 when you need broader coverage.

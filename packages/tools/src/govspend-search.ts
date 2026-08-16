@@ -1,13 +1,10 @@
-import { embed } from "ai";
 import { z } from "zod";
+import { RAG_CONFIG } from "./rag/config";
 import {
-  embeddingModelInstance,
-  RAG_CONFIG,
-  truncateEmbedding,
-} from "./rag/config";
-import { getCached, setCached } from "./rag/cache";
-import { hybridSearch } from "./rag/hybrid-search";
-import { rerankResults } from "./rag/rerank";
+  buildCombos,
+  expandYearRange,
+  runComboSearches,
+} from "./rag/multi-search";
 
 const GOVSPEND_INDEX = RAG_CONFIG.govspendIndexName;
 
@@ -33,6 +30,13 @@ export const govspendSearchInputSchema = z.object({
     .describe(
       "Filter by organization/MDA name, e.g. 'Nigeria Correctional Service', 'Federal Ministry of Education'",
     ),
+  organizations: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      "Filter by MULTIPLE organizations/MDAs in ONE call, e.g. ['Federal Ministry of Education', 'Federal Ministry of Health']. Prefer this over one call per MDA for comparisons — each MDA gets its own targeted search internally. Overrides 'organization' when set.",
+    ),
   beneficiary: z
     .string()
     .nullable()
@@ -41,6 +45,13 @@ export const govspendSearchInputSchema = z.object({
       "Filter by beneficiary name, e.g. 'National Housing Fund', 'Julius Berger'",
     ),
   year: z.string().nullable().optional().describe("Filter by year, e.g. '2023', '2024'"),
+  yearRange: z
+    .object({ from: z.number(), to: z.number() })
+    .nullable()
+    .optional()
+    .describe(
+      "Inclusive year range expanded internally, e.g. {from: 2020, to: 2024}. Prefer this over one call per year for trends. Overrides 'year' when set.",
+    ),
   month: z
     .string()
     .nullable()
@@ -86,34 +97,42 @@ export async function executeGovspendSearch(input: z.infer<typeof govspendSearch
   const {
     query: rawQuery,
     organization,
+    organizations,
     beneficiary,
     year,
+    yearRange,
     month,
     chunk_type,
     topK,
   } = input;
 
   try {
-    const conditions: Array<Record<string, { $eq: string }>> = [];
-    if (organization)
-      conditions.push({ organization_name: { $eq: organization } });
+    // Resolve organization x year dimensions ('organizations'/'yearRange'
+    // win over the single-value params; issue #22). Years are stored as
+    // strings in govspend chunk metadata.
+    const orgList: Array<string | undefined> = organizations?.length
+      ? [...new Set(organizations)]
+      : [organization ?? undefined];
+    const yearList: Array<string | undefined> = yearRange
+      ? expandYearRange(yearRange).map(String)
+      : [year ?? undefined];
+    const combos = buildCombos(orgList, yearList);
+
+    const baseConditions: Array<Record<string, { $eq: string }>> = [];
     if (beneficiary)
-      conditions.push({ beneficiary_name: { $eq: beneficiary } });
-    if (year) conditions.push({ year: { $eq: year } });
-    if (month) conditions.push({ month: { $eq: month } });
-    if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
+      baseConditions.push({ beneficiary_name: { $eq: beneficiary } });
+    if (month) baseConditions.push({ month: { $eq: month } });
+    if (chunk_type) baseConditions.push({ chunk_type: { $eq: chunk_type } });
 
     // Fallback to filter-based query if the LLM passes an empty string
     const query =
       rawQuery?.trim() ||
-      [organization, beneficiary, year && `${year} payments`, month]
+      [...orgList.filter(Boolean), beneficiary, yearList[0] && "payments", month]
         .filter(Boolean)
         .join(" ") ||
       "government payments";
 
-    const filter = conditions.length > 0 ? { $and: conditions } : undefined;
     const requestedTopK = topK ?? RAG_CONFIG.topK;
-    const cacheParams = { indexName: GOVSPEND_INDEX, query, filter, topK: requestedTopK };
 
     type GovspendResult = {
       text: string;
@@ -129,31 +148,18 @@ export async function executeGovspendSearch(input: z.infer<typeof govspendSearch
       chunk_index?: number;
       score: number;
     };
-    const cached = await getCached<GovspendResult[]>(cacheParams);
 
-    let results: GovspendResult[];
-    if (cached) {
-      results = cached;
-    } else {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
-      const fetchTopK = RAG_CONFIG.rerank.enabled
-        ? requestedTopK * 2
-        : requestedTopK;
-
-      const queryResults = await hybridSearch({
-        indexName: GOVSPEND_INDEX,
-        query,
-        queryVector: truncateEmbedding(embedding),
-        topK: fetchTopK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
-
-      const mapped = queryResults.map((r) => ({
+    const results = await runComboSearches<GovspendResult>({
+      indexName: GOVSPEND_INDEX,
+      query,
+      // buildCombos dimensions here are organization x year
+      comboConditions: combos.map(({ state: comboOrg, year: comboYear }) => [
+        ...(comboOrg ? [{ organization_name: { $eq: comboOrg } }] : []),
+        ...(comboYear ? [{ year: { $eq: comboYear } }] : []),
+        ...baseConditions,
+      ]),
+      requestedTopK,
+      mapResult: (r) => ({
         text: (r.metadata?.text as string) ?? "",
         organization: (r.metadata?.organization_name as string) ?? "Unknown",
         beneficiary: (r.metadata?.beneficiary_name as string) ?? "Unknown",
@@ -166,11 +172,8 @@ export async function executeGovspendSearch(input: z.infer<typeof govspendSearch
         s3_key: (r.metadata?.s3_key as string) ?? "",
         chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
         score: r.score,
-      }));
-
-      results = await rerankResults(query, mapped, requestedTopK);
-      await setCached(cacheParams, results);
-    }
+      }),
+    });
 
     return {
       results,

@@ -1,15 +1,12 @@
-import { embed } from "ai";
 import { z } from "zod";
 import { cache as cacheManager } from "@ournigeria/cache";
-import {
-  embeddingModelInstance,
-  RAG_CONFIG,
-  truncateEmbedding,
-} from "./rag/config";
-import { getCached, setCached } from "./rag/cache";
+import { RAG_CONFIG } from "./rag/config";
 import { getSharedPool } from "./rag/db-pool";
-import { hybridSearch } from "./rag/hybrid-search";
-import { rerankResults } from "./rag/rerank";
+import {
+  buildCombos,
+  expandYearRange,
+  runComboSearches,
+} from "./rag/multi-search";
 import { titleCaseState } from "./state-utils";
 import { getOfficialsForResults } from "./metadata";
 
@@ -51,11 +48,25 @@ export const budgetSearchInputSchema = z.object({
     .describe(
       "Filter by state name (lowercase), e.g. 'lagos', 'benue', 'kano'",
     ),
+  states: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      "Filter by MULTIPLE states in ONE call, e.g. ['lagos', 'abia']. Prefer this over one call per state for comparisons — each state gets its own targeted search internally. Overrides 'state' when set.",
+    ),
   year: z
     .number()
     .nullable()
     .optional()
     .describe("Filter by budget year, e.g. 2024, 2025"),
+  yearRange: z
+    .object({ from: z.number(), to: z.number() })
+    .nullable()
+    .optional()
+    .describe(
+      "Inclusive year range expanded internally, e.g. {from: 2019, to: 2025}. Prefer this over one call per year for trends — each year gets its own targeted search. Overrides 'year' when set.",
+    ),
   sector: z
     .string()
     .nullable()
@@ -130,7 +141,9 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
   const {
     query: rawQuery,
     state,
+    states,
     year,
+    yearRange,
     sector,
     budget_category,
     is_summary,
@@ -138,40 +151,43 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
   } = input;
 
   try {
-    // Title-case the state for DB queries
-    let titleCased: string | undefined;
-    const conditions: Array<
+    // Resolve the state x year dimensions ('states'/'yearRange' win over
+    // the single-value params; issue #22)
+    const stateList: Array<string | undefined> = states?.length
+      ? [...new Set(states.map(titleCaseState))]
+      : [state ? titleCaseState(state) : undefined];
+    const yearList: Array<number | undefined> = yearRange
+      ? expandYearRange(yearRange)
+      : [year ?? undefined];
+    const combos = buildCombos(stateList, yearList);
+
+    const baseConditions: Array<
       Record<string, { $eq: string | number | boolean }>
     > = [];
-    if (state) {
-      titleCased = titleCaseState(state);
-      conditions.push({ state: { $eq: titleCased } });
-    }
-    if (year) {
-      conditions.push({ year: { $eq: year } });
-    }
     if (sector) {
-      conditions.push({ sector: { $eq: sector } });
+      baseConditions.push({ sector: { $eq: sector } });
     }
     if (budget_category) {
-      conditions.push({ budget_category: { $eq: budget_category } });
+      baseConditions.push({ budget_category: { $eq: budget_category } });
     }
     if (is_summary != null) {
-      conditions.push({ is_summary: { $eq: is_summary } });
+      baseConditions.push({ is_summary: { $eq: is_summary } });
     }
-
-    const filter = conditions.length > 0 ? { $and: conditions } : undefined;
 
     // Fallback to filter-based query if the LLM passes an empty string
     const query =
       rawQuery?.trim() ||
-      [state, year && `${year} budget`, sector, budget_category]
+      [
+        ...stateList.filter(Boolean),
+        yearList[0] && "budget",
+        sector,
+        budget_category,
+      ]
         .filter(Boolean)
         .join(" ") ||
       "budget allocation";
 
     const requestedTopK = topK ?? RAG_CONFIG.topK;
-    const cacheParams = { indexName: RAG_CONFIG.indexName, query, filter, topK: requestedTopK };
 
     type BudgetResult = {
       text: string;
@@ -184,31 +200,17 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
       chunk_index?: number;
       score: number;
     };
-    const cached = await getCached<BudgetResult[]>(cacheParams);
 
-    let results: BudgetResult[];
-    if (cached) {
-      results = cached;
-    } else {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
-      const fetchTopK = RAG_CONFIG.rerank.enabled
-        ? requestedTopK * 2
-        : requestedTopK;
-
-      const queryResults = await hybridSearch({
-        indexName: RAG_CONFIG.indexName,
-        query,
-        queryVector: truncateEmbedding(embedding),
-        topK: fetchTopK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
-
-      const mapped = queryResults.map((r) => ({
+    const results = await runComboSearches<BudgetResult>({
+      indexName: RAG_CONFIG.indexName,
+      query,
+      comboConditions: combos.map(({ state: s, year: y }) => [
+        ...(s ? [{ state: { $eq: s } }] : []),
+        ...(y ? [{ year: { $eq: y } }] : []),
+        ...baseConditions,
+      ]),
+      requestedTopK,
+      mapResult: (r) => ({
         text: (r.metadata?.text as string) ?? "",
         state: (r.metadata?.state as string) ?? "Unknown",
         year: (r.metadata?.year as number) ?? 0,
@@ -218,15 +220,14 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
         budget_category: (r.metadata?.budget_category as string) ?? "general",
         chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
         score: r.score,
-      }));
+      }),
+    });
 
-      results = await rerankResults(query, mapped, requestedTopK);
-      await setCached(cacheParams, results);
-    }
-
-    const availableYears = titleCased
-      ? await getAvailableYears(titleCased)
-      : [];
+    const distinctStates = [...new Set(stateList.filter(Boolean))] as string[];
+    const availableYears =
+      distinctStates.length === 1
+        ? await getAvailableYears(distinctStates[0])
+        : [];
 
     const officialsData = await getOfficialsForResults(results);
     const officials = officialsData.map((o) => ({

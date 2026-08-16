@@ -1,13 +1,10 @@
-import { embed } from "ai";
 import { z } from "zod";
+import { RAG_CONFIG } from "./rag/config";
 import {
-  embeddingModelInstance,
-  RAG_CONFIG,
-  truncateEmbedding,
-} from "./rag/config";
-import { getCached, setCached } from "./rag/cache";
-import { hybridSearch } from "./rag/hybrid-search";
-import { rerankResults } from "./rag/rerank";
+  buildCombos,
+  expandYearRange,
+  runComboSearches,
+} from "./rag/multi-search";
 import { titleCaseState } from "./state-utils";
 
 const FAAC_INDEX = RAG_CONFIG.faacIndexName;
@@ -34,11 +31,25 @@ export const faacSearchInputSchema = z.object({
     .describe(
       "Filter by state name (lowercase), e.g. 'lagos', 'abia', 'akwa ibom'",
     ),
+  states: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe(
+      "Filter by MULTIPLE states in ONE call, e.g. ['lagos', 'rivers']. Prefer this over one call per state for comparisons — each state gets its own targeted search internally. Overrides 'state' when set.",
+    ),
   year: z
     .number()
     .nullable()
     .optional()
     .describe("Filter by disbursement year, e.g. 2024, 2025"),
+  yearRange: z
+    .object({ from: z.number(), to: z.number() })
+    .nullable()
+    .optional()
+    .describe(
+      "Inclusive year range expanded internally, e.g. {from: 2019, to: 2025}. Prefer this over one call per year for trends. Overrides 'year' when set.",
+    ),
   month: z
     .string()
     .nullable()
@@ -98,7 +109,9 @@ export async function executeFaacSearch(input: z.infer<typeof faacSearchInputSch
   const {
     query: rawQuery,
     state,
+    states,
     year,
+    yearRange,
     month,
     lga,
     geopolitical_zone,
@@ -107,51 +120,49 @@ export async function executeFaacSearch(input: z.infer<typeof faacSearchInputSch
   } = input;
 
   try {
-    const conditions: Array<
+    // Resolve state x year dimensions ('states'/'yearRange' win over the
+    // single-value params; issue #22)
+    const stateList: Array<string | undefined> = states?.length
+      ? [...new Set(states.map(titleCaseState))]
+      : [state ? titleCaseState(state) : undefined];
+    const yearList: Array<number | undefined> = yearRange
+      ? expandYearRange(yearRange)
+      : [year ?? undefined];
+    const combos = buildCombos(stateList, yearList);
+
+    const baseConditions: Array<
       Record<string, { $eq: string | number | boolean }>
     > = [];
-
-    if (state) conditions.push({ state: { $eq: titleCaseState(state) } });
-    if (year) conditions.push({ year: { $eq: year } });
     if (month) {
       const m = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
-      conditions.push({ month: { $eq: m } });
+      baseConditions.push({ month: { $eq: m } });
     }
-    if (lga) conditions.push({ lga: { $eq: titleCaseState(lga) } });
-    if (geopolitical_zone) conditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
-    if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
+    if (lga) baseConditions.push({ lga: { $eq: titleCaseState(lga) } });
+    if (geopolitical_zone) baseConditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
+    if (chunk_type) baseConditions.push({ chunk_type: { $eq: chunk_type } });
 
     // Fallback to filter-based query if the LLM passes an empty string
-    const query = rawQuery?.trim() || [state, lga, year && `${year} allocation`, month, geopolitical_zone].filter(Boolean).join(" ") || "FAAC allocation";
+    const query =
+      rawQuery?.trim() ||
+      [...stateList.filter(Boolean), lga, yearList[0] && "allocation", month, geopolitical_zone]
+        .filter(Boolean)
+        .join(" ") ||
+      "FAAC allocation";
 
-    const filter = conditions.length > 0 ? { $and: conditions } : undefined;
     const requestedTopK = topK ?? RAG_CONFIG.topK;
-    const cacheParams = { indexName: FAAC_INDEX, query, filter, topK: requestedTopK };
 
     type FaacResult = { text: string; state: string; year: number; month: string; lga: string; geopolitical_zone: string; total_allocation: number; chunk_type: string; chunk_index?: number; score: number };
-    const cached = await getCached<FaacResult[]>(cacheParams);
 
-    let results: FaacResult[];
-    if (cached) {
-      results = cached;
-    } else {
-      const { embedding } = await embed({
-        model: embeddingModelInstance,
-        value: query,
-      });
-
-      const fetchTopK = RAG_CONFIG.rerank.enabled ? requestedTopK * 2 : requestedTopK;
-
-      const queryResults = await hybridSearch({
-        indexName: FAAC_INDEX,
-        query,
-        queryVector: truncateEmbedding(embedding),
-        topK: fetchTopK,
-        filter,
-        ef: RAG_CONFIG.searchEf,
-      });
-
-      const mapped = queryResults.map((r) => ({
+    const results = await runComboSearches<FaacResult>({
+      indexName: FAAC_INDEX,
+      query,
+      comboConditions: combos.map(({ state: s, year: y }) => [
+        ...(s ? [{ state: { $eq: s } }] : []),
+        ...(y ? [{ year: { $eq: y } }] : []),
+        ...baseConditions,
+      ]),
+      requestedTopK,
+      mapResult: (r) => ({
         text: (r.metadata?.text as string) ?? "",
         state: (r.metadata?.state as string) ?? "",
         year: (r.metadata?.year as number) ?? 0,
@@ -162,11 +173,8 @@ export async function executeFaacSearch(input: z.infer<typeof faacSearchInputSch
         chunk_type: (r.metadata?.chunk_type as string) ?? "",
         chunk_index: (r.metadata?.chunk_index as number) ?? undefined,
         score: r.score,
-      }));
-
-      results = await rerankResults(query, mapped, requestedTopK);
-      await setCached(cacheParams, results);
-    }
+      }),
+    });
 
     return {
       results,
