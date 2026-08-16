@@ -13,23 +13,9 @@
 
 ---
 
-**700+ budget documents** across **37 Nigerian states** ingested and indexed with **708,000+ vector embeddings** - enabling citizens to ask questions about public spending in plain English or Pidgin.
-
 [Live App](https://app.ournigeria.ng) &nbsp;&middot;&nbsp; [API Docs](https://api.ournigeria.ng/api/docs) &nbsp;&middot;&nbsp; [Landing Page](https://ournigeria.ng)
 
 </div>
-
----
-
-## What is OurNigeria?
-
-OurNigeria is an open-source platform that makes Nigerian government budgets and corruption data accessible through conversational AI. Instead of parsing dense PDF documents, citizens can simply ask:
-
-> *"How much did Ebonyi State allocate to education in 2025?"*
->
-> *"Wetin be the total capital expenditure for Lagos this year?"*
-
-The platform processes the question through specialized AI agents, searches across 700+ vectorized budget documents, and returns an answer with interactive charts - all in seconds.
 
 ---
 
@@ -103,6 +89,70 @@ ournigeria/
 ```
 
 ---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 10+ (`corepack enable` will pin the version from `package.json`)
+- [Docker](https://docs.docker.com/desktop/) and [docker compose](https://docs.docker.com/compose/install/) (for the local PostgreSQL 16 + pgvector database)
+- [Infisical CLI](https://infisical.com/docs/cli/overview) — all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria Infisical project; ask a maintainer to be added.
+
+### Development
+
+```bash
+# 1. Install dependencies
+pnpm setup
+
+# 2. Start the development database (PostgreSQL 16 + pgvector)
+docker compose -f docker-compose.dev.yml up -d
+
+# 3. Apply migrations
+pnpm prisma:migrate
+
+# 5. Start the services you need
+pnpm start api web              # foreground — logs stream to this terminal
+pnpm start:detach api web       # detached — frees the terminal, logs at /tmp/ournigeria-<app>.log
+pnpm start                      # no app names = start everything
+pnpm start:list                 # check what's running
+pnpm start:stop api web         # stop services (omit app names to stop everything)
+
+# Valid app names: api, web, ingest, awanaija, dashboard, socials
+pnpm videos:dev                 # Remotion Studio (optional) — not managed by start.sh
+```
+
+> Most contributors only need `pnpm start api awanaija web`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
+
+### App URLs
+
+When running locally each app serves on the port above (`http://localhost:<port>`). The hosted environments are:
+
+| App | Local | Dev (tunnel → your local server) | Production |
+|-----|-------|----------------------------------|------------|
+| API | `:3000` | `https://api.localhost/api` | `https://api.ournigeria.ng/api` |
+| Web | `:3001` | `https://web.localhost` | `https://app.ournigeria.ng` |
+| Ingest | `:3002` | ` https://ingest.localhost/api/ingest` | `https://ingest.ournigeria.ng/api/ingest` |
+| Landing (Awanaija) | `:3003` | `https://awanaija.localhost` | `https://ournigeria.ng` |
+| Dashboard | `:3004` | ` https://dashboard.localhost` | `https://dashboard.ournigeria.ng` |
+| Socials | `:3005` | — (internal; review drafts in the dashboard) | runs on the OCI box, no public domain |
+
+> The `*.localhost` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running locally — not a separate deployed environment. Production (`*.ournigeria.ng`) only advances when `main` is merged into `prod`.
+
+### Contributing
+
+1. **Branch from `main`.** Feature branches → PR into `main` (staging). Production advances separately via a `main → prod` release. Never PR directly to `prod`.
+2. **Authenticate as the dev test user** for any manual/automated testing (the OTP flow is bypassed in dev):
+   ```bash
+   curl -X POST https://api.localhost/api/auth/dev-login -c cookies.txt
+   curl https://api.localhost/api/auth/profile -b cookies.txt
+   ```
+   This endpoint only exists in dev builds. See `CLAUDE.md` → Dev Testing for browser/Playwright cookie setup.
+3. **Plans** for non-trivial work go in `.agent/plans/` as `{sequence}.{plan-name}.md`.
+4. **Update `PROGRESS.md`** with what you did, files touched, and the exact next steps — every contributor reads it to pick up context.
+5. **Read `DESIGN.md`** before any UI/visual change — it is the source of truth for fonts, colors, and spacing.
+6. **Bug fixes:** reproduce with a failing test first, then fix (`CLAUDE.md` → Bug Fixing Workflow).
+7. **Lint** the web app with `pnpm web:lint`; run E2E with `pnpm test:e2e` where relevant.
 
 ## Key Features
 
@@ -199,78 +249,6 @@ Supported formats: **PDF** (with OCR) · **XLSX/XLS** · **DOCX** · **JSON** ·
 | **Deployment** | Docker Compose (OCI), Vercel (landing + dashboard) |
 
 ---
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 10+ (`corepack enable` will pin the version from `package.json`)
-- [Docker](https://docs.docker.com/desktop/) and [docker compose](https://docs.docker.com/compose/install/) (for the local PostgreSQL 16 + pgvector database)
-- [Infisical CLI](https://infisical.com/docs/cli/overview) — all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria Infisical project; ask a maintainer to be added.
-
-### Development
-
-```bash
-# 1. Install dependencies
-pnpm setup
-
-# 2. Start the development database (PostgreSQL 16 + pgvector)
-docker compose -f docker-compose.dev.yml up -d
-
-# 3. Apply migrations
-pnpm prisma:migrate
-
-# 5. Start the services you need
-pnpm start api web              # foreground — logs stream to this terminal
-pnpm start:detach api web       # detached — frees the terminal, logs at /tmp/ournigeria-<app>.log
-pnpm start                      # no app names = start everything
-pnpm start:list                 # check what's running
-pnpm start:stop api web         # stop services (omit app names to stop everything)
-
-# Valid app names: api, web, ingest, awanaija, dashboard, socials
-pnpm videos:dev                 # Remotion Studio (optional) — not managed by start.sh
-```
-
-> Most contributors only need `pnpm start api awanaija web`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
-
-### App URLs
-
-When running locally each app serves on the port above (`http://localhost:<port>`). The hosted environments are:
-
-| App | Local | Dev (tunnel → your local server) | Production |
-|-----|-------|----------------------------------|------------|
-| API | `:3000` | `https://api.localhost/api` | `https://api.ournigeria.ng/api` |
-| Web | `:3001` | `https://web.localhost` | `https://app.ournigeria.ng` |
-| Ingest | `:3002` | ` https://ingest.localhost/api/ingest` | `https://ingest.ournigeria.ng/api/ingest` |
-| Landing (Awanaija) | `:3003` | `https://awanaija.localhost` | `https://ournigeria.ng` |
-| Dashboard | `:3004` | ` https://dashboard.localhost` | `https://dashboard.ournigeria.ng` |
-| Socials | `:3005` | — (internal; review drafts in the dashboard) | runs on the OCI box, no public domain |
-
-> The `*.localhost` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running locally — not a separate deployed environment. Production (`*.ournigeria.ng`) only advances when `main` is merged into `prod`.
-
-### Contributing
-
-1. **Branch from `main`.** Feature branches → PR into `main` (staging). Production advances separately via a `main → prod` release. Never PR directly to `prod`.
-2. **Authenticate as the dev test user** for any manual/automated testing (the OTP flow is bypassed in dev):
-   ```bash
-   curl -X POST https://api.localhost/api/auth/dev-login -c cookies.txt
-   curl https://api.localhost/api/auth/profile -b cookies.txt
-   ```
-   This endpoint only exists in dev builds. See `CLAUDE.md` → Dev Testing for browser/Playwright cookie setup.
-3. **Plans** for non-trivial work go in `.agent/plans/` as `{sequence}.{plan-name}.md`.
-4. **Update `PROGRESS.md`** with what you did, files touched, and the exact next steps — every contributor reads it to pick up context.
-5. **Read `DESIGN.md`** before any UI/visual change — it is the source of truth for fonts, colors, and spacing.
-6. **Bug fixes:** reproduce with a failing test first, then fix (`CLAUDE.md` → Bug Fixing Workflow).
-7. **Lint** the web app with `pnpm web:lint`; run E2E with `pnpm test:e2e` where relevant.
-
-### Production
-
-```bash
-docker compose up -d
-```
-
-This starts PostgreSQL, the API (with auto-migration), and the web frontend.
 
 ### API Documentation
 
