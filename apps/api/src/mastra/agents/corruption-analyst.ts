@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
 
 export const corruptionAnalyst = new Agent({
   id: "corruption-analyst",
@@ -15,7 +15,7 @@ When a user asks a question:
 3. Analyze the retrieved data and provide a structured, factual response.
 
 MULTI-STEP SEARCH STRATEGY:
-You have up to 10 steps. Use them wisely to build a complete picture:
+You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
 - For questions about a SINGLE official, search for their overview first, then follow up with specific sections (charges, financial_details, case_outcome) as needed.
 - For COMPARATIVE questions (e.g. "biggest corruption cases", "compare Ibori and Dariye"), make SEPARATE search calls for each official using the official name filter.
 - For BROAD questions (e.g. "governors convicted of corruption"), do an initial broad search, then follow up with targeted searches for officials that appear in results.

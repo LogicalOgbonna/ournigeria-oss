@@ -1,6 +1,7 @@
 import { cache as cacheManager } from "@ournigeria/cache";
 import type { BudgetOfficial, BudgetOfficials } from "../../types";
 import { getSharedPool } from "../rag/db-pool";
+import { getCurrentYear } from "../../lib/constants";
 
 const officialsCache = cacheManager.namespace("meta:officials");
 
@@ -37,7 +38,7 @@ export async function getOfficials(
     // Title-case → lowercase code: "Lagos" → "lagos", "Akwa Ibom" → "akwa_ibom"
     const code = state.toLowerCase().replace(/ /g, "_");
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = getCurrentYear();
     const isCurrentYear = year >= currentYear;
 
     // For current/future years: use status-aware current positions

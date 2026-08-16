@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+import { getCurrentYear } from "../lib/constants";
 
 const MONTHS = [
   "January",
@@ -18,7 +19,7 @@ const MONTHS = [
 
 const START_YEAR = 2019;
 const YEARS = Array.from(
-  { length: new Date().getFullYear() - START_YEAR + 1 },
+  { length: getCurrentYear() - START_YEAR + 1 },
   (_, i) => String(START_YEAR + i),
 );
 

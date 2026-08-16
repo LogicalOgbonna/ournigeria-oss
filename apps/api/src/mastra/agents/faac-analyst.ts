@@ -1,9 +1,10 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { getCurrentYear } from "../../lib/constants";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentYear();
 
 export const faacAnalyst = new Agent({
   id: "faac-analyst",
@@ -33,7 +34,7 @@ Choose the right chunk_type for the question:
 - "National FAAC for January 2025" → use chunk_type="national_monthly"
 
 MULTI-STEP SEARCH STRATEGY:
-You have up to 10 steps. Use them wisely:
+You have up to ${AGENT_MAX_STEPS} steps. Use them wisely:
 - For LGA COMPARISONS: Make SEPARATE search calls for each LGA using the lga and state filters.
 - For STATE COMPARISONS: Make SEPARATE search calls for each state using the state filter.
 - For ZONE COMPARISONS: Search with geopolitical_zone filter for each zone.

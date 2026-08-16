@@ -10,6 +10,7 @@ import { getCached, setCached } from "./rag/cache";
 import { getSharedPool } from "./rag/db-pool";
 import { hybridSearch } from "./rag/hybrid-search";
 import { rerankResults } from "./rag/rerank";
+import { titleCaseState } from "./state-utils";
 import { getOfficialsForResults } from "./metadata";
 
 const yearsCache = cacheManager.namespace("rag:years");
@@ -143,15 +144,7 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
       Record<string, { $eq: string | number | boolean }>
     > = [];
     if (state) {
-      // DB stores states as Title Case (e.g. "Lagos", "Akwa Ibom") except "FCT"
-      const s = state.toLowerCase();
-      titleCased =
-        s === "fct"
-          ? "FCT"
-          : s
-              .split(" ")
-              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-              .join(" ");
+      titleCased = titleCaseState(state);
       conditions.push({ state: { $eq: titleCased } });
     }
     if (year) {

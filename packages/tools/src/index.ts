@@ -1,6 +1,7 @@
 export * from "./tool-definitions";
 export * from "./tool-executor";
 export * from "./settings-store";
+export * from "./state-utils";
 export * from "./types";
 
 // Individual tool exports

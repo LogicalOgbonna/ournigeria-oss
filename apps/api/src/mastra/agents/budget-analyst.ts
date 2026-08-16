@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
 
 export const budgetAnalyst = new Agent({
   id: "budget-analyst",
@@ -21,7 +21,7 @@ The budget-search tool returns an \`availableYears\` field when you pass a state
 - If the user asks about a specific year that is NOT in availableYears, tell them we don't have data for that year.
 
 MULTI-STEP SEARCH STRATEGY:
-You have up to 10 steps. Use them wisely to build a complete picture:
+You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
 - For COMPARATIVE questions (e.g. "compare Lagos and Kano", "which state spent more on education"), make SEPARATE search calls for each state/year combination. This gives you targeted, relevant data for each entity.
 - For MULTI-YEAR questions (e.g. "education spending between 2021 and 2024"), first search with just the state filter (no year) to discover availableYears, then search each relevant year separately.
 - For BROAD questions (e.g. "which state had the highest education spending"), do an initial broad search, then follow up with targeted searches for the most promising states.

@@ -8,6 +8,7 @@ import {
 import { getCached, setCached } from "./rag/cache";
 import { hybridSearch } from "./rag/hybrid-search";
 import { rerankResults } from "./rag/rerank";
+import { titleCaseState } from "./state-utils";
 
 const FAAC_INDEX = RAG_CONFIG.faacIndexName;
 
@@ -18,26 +19,6 @@ function isTableMissing(err: any): boolean {
   if (err.id === "MASTRA_VECTOR_PG_QUERY_FAILED") return true;
   if (err.cause && isTableMissing(err.cause)) return true;
   return false;
-}
-
-/** Normalize and title-case a state/LGA name, handling common PDF aliases. */
-const STATE_ALIASES: Record<string, string> = {
-  "fct": "FCT",
-  "fct-abuja": "FCT",
-  "fct abuja": "FCT",
-  "nassarawa": "Nasarawa",
-  "nasarawa": "Nasarawa",
-  "akwa-ibom": "Akwa Ibom",
-  "cross-river": "Cross River",
-};
-
-function titleCase(s: string): string {
-  const lower = s.toLowerCase().trim();
-  if (STATE_ALIASES[lower]) return STATE_ALIASES[lower];
-  return lower
-    .split(" ")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
 }
 
 export const faacSearchInputSchema = z.object({
@@ -130,13 +111,13 @@ export async function executeFaacSearch(input: z.infer<typeof faacSearchInputSch
       Record<string, { $eq: string | number | boolean }>
     > = [];
 
-    if (state) conditions.push({ state: { $eq: titleCase(state) } });
+    if (state) conditions.push({ state: { $eq: titleCaseState(state) } });
     if (year) conditions.push({ year: { $eq: year } });
     if (month) {
       const m = month.charAt(0).toUpperCase() + month.slice(1).toLowerCase();
       conditions.push({ month: { $eq: m } });
     }
-    if (lga) conditions.push({ lga: { $eq: titleCase(lga) } });
+    if (lga) conditions.push({ lga: { $eq: titleCaseState(lga) } });
     if (geopolitical_zone) conditions.push({ geopolitical_zone: { $eq: geopolitical_zone } });
     if (chunk_type) conditions.push({ chunk_type: { $eq: chunk_type } });
 

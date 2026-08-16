@@ -1,6 +1,7 @@
 import type { Language } from "../types";
+import { getCurrentYear } from "./constants";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentYear();
 
 /**
  * Centralized UI strings map.

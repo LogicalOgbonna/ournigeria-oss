@@ -1,7 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
+import { getCurrentYear } from "../../lib/constants";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentYear();
 
 export const routerAgent = new Agent({
   id: "router-agent",

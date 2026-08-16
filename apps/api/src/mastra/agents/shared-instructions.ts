@@ -2,6 +2,13 @@
  * Shared instruction constants appended to all agent system prompts.
  */
 
+/**
+ * Max agentic steps per specialist run. Router passes this as maxSteps;
+ * agent prompts interpolate it so the stated budget never drifts from the
+ * enforced one (issue #23).
+ */
+export const AGENT_MAX_STEPS = 25;
+
 export const CITATION_INSTRUCTIONS = `
 
 ## Inline Citations

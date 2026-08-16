@@ -1,5 +1,3 @@
-import { generateText } from "ai";
-import { chatModelSmall } from "./config";
 
 // ─── Nigerian States ────────────────────────────────────────────
 
@@ -142,13 +140,6 @@ export interface QueryAnalysis {
   sectors: string[];
 }
 
-export interface SubQuery {
-  query: string;
-  state?: string;
-  year?: number;
-  sector?: string;
-}
-
 // ─── Sector normalization ────────────────────────────────────────
 
 const SECTOR_ALIAS_MAP: Record<string, string> = {
@@ -277,87 +268,3 @@ export function analyzeQueryComplexity(query: string): QueryAnalysis {
   };
 }
 
-// ─── Query decomposition ────────────────────────────────────────
-
-/**
- * Decompose a comparative or complex query into targeted sub-queries.
- * Uses rule-based decomposition when possible, LLM for complex cases.
- */
-export async function decomposeQuery(
-  query: string,
-  analysis: QueryAnalysis,
-  sessionId?: string,
-  userId?: string,
-): Promise<SubQuery[]> {
-  // Resolve sector for metadata filtering (only when a single sector is detected)
-  const resolvedSector =
-    analysis.sectors.length === 1
-      ? normalizeSector(analysis.sectors[0])
-      : undefined;
-
-  // Simple queries: no decomposition
-  if (!analysis.isComparative) {
-    return [{ query, ...(resolvedSector && { sector: resolvedSector }) }];
-  }
-
-  // Rule-based: if we have explicit states AND years, decompose programmatically
-  if (analysis.states.length > 0 && analysis.years.length > 0) {
-    const sectorClause =
-      analysis.sectors.length > 0 ? ` ${analysis.sectors.join(" ")}` : "";
-    const subQueries: SubQuery[] = [];
-    for (const state of analysis.states) {
-      for (const year of analysis.years) {
-        subQueries.push({
-          query: `${state} ${year}${sectorClause} budget spending allocation`,
-          state,
-          year,
-          ...(resolvedSector && { sector: resolvedSector }),
-        });
-      }
-    }
-    // Cap at 8 sub-queries to avoid excessive API calls
-    return subQueries.slice(0, 8);
-  }
-
-  // LLM-based decomposition for complex/ambiguous queries
-  try {
-    const { text } = await generateText({
-      model: chatModelSmall,
-      system: `You decompose complex Nigerian budget questions into 2-6 targeted sub-queries for vector similarity search against a budget document database.
-
-Available states: ${NIGERIAN_STATES.join(", ")}
-Available budget years: 2019 to ${new Date().getFullYear()}
-
-Rules:
-- Each sub-query should be a concise phrase (under 15 words) optimised for cosine similarity search against budget document chunks.
-- When the question mentions specific states, create per-state sub-queries with the state filter set.
-- When the question mentions specific years, create per-year sub-queries with the year filter set.
-- When the question asks about "all states" or "which state", create 2 broad sub-queries per year mentioned (no state filter) so the search covers multiple states.
-- Include relevant sector keywords (education, health, infrastructure, etc.) in each sub-query.
-- Generate between 2 and 6 sub-queries. Prefer fewer, broader queries over many narrow ones.
-
-Respond with ONLY a JSON array. No explanation, no markdown fencing. Example:
-[{"query": "education spending allocation", "year": 2021}, {"query": "education spending allocation", "year": 2024}]`,
-      prompt: query,
-      maxOutputTokens: 500,
-    });
-
-    // Strip markdown fences if the LLM wraps its output
-    const cleaned = text
-      .trim()
-      .replace(/^```(?:json)?\n?|```$/g, "")
-      .trim();
-    const parsed = JSON.parse(cleaned) as Array<{
-      query: string;
-      state?: string;
-      year?: number;
-    }>;
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.slice(0, 6);
-    }
-    return [{ query }];
-  } catch {
-    // Fallback: return original query
-    return [{ query }];
-  }
-}

@@ -22,8 +22,10 @@ import { tracingMetadata, getPrompt } from "../lib/langfuse";
 import { cache as cacheManager } from "@ournigeria/cache";
 import { extractStateName, analyzeQueryComplexity } from "./rag/query-analysis";
 import { getOfficials } from "./tools/metadata";
+import { AGENT_MAX_STEPS } from "./agents/shared-instructions";
+import { getCurrentYear } from "../lib/constants";
 
-const MAX_STEPS = 25;
+const MAX_STEPS = AGENT_MAX_STEPS;
 
 const intentCache = cacheManager.namespace("intent");
 
@@ -1355,7 +1357,7 @@ export async function routeToAgent({
     }
 
     if (isGovernorQuery && resolvedStates.length > 0) {
-      const currentYear = new Date().getFullYear();
+      const currentYear = getCurrentYear();
       const officialsResults = await Promise.all(
         resolvedStates.map((s: string) => getOfficials(s, currentYear)),
       );
