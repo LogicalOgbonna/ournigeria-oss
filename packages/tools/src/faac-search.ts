@@ -144,7 +144,13 @@ export async function executeFaacSearch(input: z.infer<typeof faacSearchInputSch
     // Fallback to filter-based query if the LLM passes an empty string
     const query =
       rawQuery?.trim() ||
-      [...stateList.filter(Boolean), lga, yearList[0] && "allocation", month, geopolitical_zone]
+      [
+        ...stateList.filter(Boolean),
+        lga,
+        yearList.length === 1 && yearList[0] ? `${yearList[0]} allocation` : yearList[0] && "allocation",
+        month,
+        geopolitical_zone,
+      ]
         .filter(Boolean)
         .join(" ") ||
       "FAAC allocation";

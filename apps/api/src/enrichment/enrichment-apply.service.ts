@@ -62,6 +62,46 @@ export class EnrichmentApplyService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      // Seat-stranding guard (issue #109): a status downgrade must never leave an
+      // occupied seat with zero active holders — the 2026-06-26 reconciliation
+      // import orphaned 314 mha seats this way. Runs INSIDE the tx, before the
+      // role drop, with FOR UPDATE locks so two concurrent downgrades of a
+      // seat's co-holders serialize instead of both passing the count check.
+      // The members importer is unaffected: bulk imports apply creates
+      // (replacement install) before updates (downgrade), so the replacement's
+      // active position already exists at this check.
+      if (
+        proposal.targetTable === "official_positions" &&
+        proposal.targetField === "status" &&
+        value !== "active"
+      ) {
+        const [row] = await tx.$queryRawUnsafe<
+          { role: string; constituency_code: string | null; status: string }[]
+        >(
+          `SELECT role, constituency_code, status FROM official_positions WHERE id = $1::uuid FOR UPDATE`,
+          targetPk,
+        );
+        if (row?.status === "active" && row.constituency_code) {
+          const [{ count }] = await tx.$queryRawUnsafe<{ count: bigint }[]>(
+            `SELECT COUNT(*)::bigint AS count FROM (
+               SELECT id FROM official_positions
+               WHERE role = $1 AND constituency_code = $2 AND status = 'active'
+                 AND (end_date IS NULL OR end_date > now())
+                 AND id <> $3::uuid
+               FOR UPDATE
+             ) locked`,
+            row.role,
+            row.constituency_code,
+            targetPk,
+          );
+          if (Number(count) === 0) {
+            throw new BadRequestException(
+              `refusing status '${String(value)}': it would leave seat ${row.role}/${row.constituency_code} with no active holder — install the replacement first (e.g. the state-assembly-members import, which pairs install + downgrade)`,
+            );
+          }
+        }
+      }
+
       // Drop to the least-privileged role for the live write; resets at tx end.
       await tx.$executeRawUnsafe("SET LOCAL ROLE enrichment_apply");
 

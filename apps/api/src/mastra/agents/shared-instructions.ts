@@ -7,13 +7,15 @@ import { getCurrentYear } from "../../lib/constants";
 /**
  * Temporal grounding appended to every agent prompt so relative phrases
  * ("last year", "recent") resolve against the real calendar instead of the
- * model's training cutoff (issues #26/#28). Evaluated at module load;
- * belt-and-suspenders with the rule-based resolver in query-analysis.
+ * model's training cutoff (issues #26/#28). Interpolated at module load, so
+ * it deliberately carries only year-precision claims — the exact date comes
+ * from the fresh per-message stamp the router injects, and the rule-based
+ * resolver in query-analysis is the deterministic backstop.
  */
 export const TEMPORAL_CONTEXT = `
 
 ## Temporal Context
-Today's date is ${new Date().toLocaleDateString("en-NG", { year: "numeric", month: "long", day: "numeric" })}. The current year is ${getCurrentYear()}.
+The current year is ${getCurrentYear()}. The exact current date is stamped on each user message.
 When users say "last year" they mean ${getCurrentYear() - 1}, "this year" means ${getCurrentYear()}, and "recent" means the last 1-2 years.
 Our data covers 2019 to ${getCurrentYear()}. NEVER infer the current year from your training data.
 `;

@@ -127,7 +127,12 @@ export async function executeGovspendSearch(input: z.infer<typeof govspendSearch
     // Fallback to filter-based query if the LLM passes an empty string
     const query =
       rawQuery?.trim() ||
-      [...orgList.filter(Boolean), beneficiary, yearList[0] && "payments", month]
+      [
+        ...orgList.filter(Boolean),
+        beneficiary,
+        yearList.length === 1 && yearList[0] ? `${yearList[0]} payments` : yearList[0] && "payments",
+        month,
+      ]
         .filter(Boolean)
         .join(" ") ||
       "government payments";

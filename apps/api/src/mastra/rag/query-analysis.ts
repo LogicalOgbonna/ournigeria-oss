@@ -229,7 +229,10 @@ function parseCount(raw: string): number {
 }
 
 function addRange(years: Set<number>, from: number, to: number): void {
-  if (to < from || to - from > MAX_RANGE_SPAN) return;
+  if (to < from) return;
+  // Clamp oversized spans to the newest MAX_RANGE_SPAN+1 years ("since 2005"
+  // must still anchor the query, not silently resolve to nothing)
+  if (to - from > MAX_RANGE_SPAN) from = to - MAX_RANGE_SPAN;
   for (let y = from; y <= to; y++) years.add(y);
 }
 
@@ -248,15 +251,15 @@ export function resolveTemporalPhrases(
   const years = new Set<number>();
 
   // Ranges first: "since 2020", "2020 to 2023", "2020-2023", "between 2021 and 2023"
-  const since = lower.match(/\bsince\s+(20[12]\d)\b/);
+  const since = lower.match(/\bsince\s+(20[0-2]\d)\b/);
   if (since) addRange(years, Number(since[1]), currentYear);
   for (const m of lower.matchAll(
-    /\b(20[12]\d)\s*(?:-|–|to|through)\s*(20[12]\d)\b/g,
+    /\b(20[0-2]\d)\s*(?:-|–|—|to|through)\s*(20[0-2]\d)\b/g,
   )) {
     addRange(years, Number(m[1]), Number(m[2]));
   }
   // "X and Y" is two discrete years, not a range — expand only with "between"
-  const between = lower.match(/\bbetween\s+(20[12]\d)\s+and\s+(20[12]\d)\b/);
+  const between = lower.match(/\bbetween\s+(20[0-2]\d)\s+and\s+(20[0-2]\d)\b/);
   if (between) addRange(years, Number(between[1]), Number(between[2]));
 
   // "past/last N years" — inclusive of the current year

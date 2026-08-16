@@ -49,6 +49,28 @@ describe("resolveTemporalPhrases", () => {
     expect(resolveTemporalPhrases("recent corruption cases", CY)).toEqual([CY - 1, CY]);
   });
 
+  it("clamps oversized 'since' spans instead of dropping them entirely", () => {
+    // Span clamp keeps the newest 16 years; the MIN_DATA_YEAR-5 floor then
+    // trims anything older than 2014. The query stays anchored, ending at CY.
+    const years = resolveTemporalPhrases("spending since 2005", CY);
+    expect(years[0]).toBe(2014);
+    expect(years[years.length - 1]).toBe(CY);
+  });
+
+  it("clamps 'past N years' when N exceeds the span cap", () => {
+    const years = resolveTemporalPhrases("trend over the past 20 years", CY);
+    expect(years.length).toBeGreaterThan(0);
+    expect(years[years.length - 1]).toBe(CY);
+  });
+
+  it("handles em-dash ranges", () => {
+    expect(resolveTemporalPhrases("budget 2020—2023", CY)).toEqual([2020, 2021, 2022, 2023]);
+  });
+
+  it("ignores a future 'since' year", () => {
+    expect(resolveTemporalPhrases("since 2027", CY)).toEqual([]);
+  });
+
   it("resolves pidgin phrases", () => {
     expect(resolveTemporalPhrases("wetin dem spend for di last year", CY)).toEqual([CY - 1]);
     expect(resolveTemporalPhrases("how much dem budget dis year", CY)).toEqual([CY]);

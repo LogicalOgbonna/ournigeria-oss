@@ -133,7 +133,7 @@ export const budgetSearchOutputSchema = z.object({
   availableYears: z
     .array(z.number())
     .describe(
-      "When a state filter is provided, lists ALL budget years available in our database for that state. Use this to ensure you search every available year — do not skip any.",
+      "When state filters are provided, lists ALL budget years available in our database for the filtered state(s) — the union across states when several are passed, so a year listed here may be available for only some of them. Use this to ensure you search every available year — do not skip any.",
     ),
 });
 
@@ -179,7 +179,7 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
       rawQuery?.trim() ||
       [
         ...stateList.filter(Boolean),
-        yearList[0] && "budget",
+        yearList.length === 1 && yearList[0] ? `${yearList[0]} budget` : yearList[0] && "budget",
         sector,
         budget_category,
       ]
@@ -223,11 +223,11 @@ export async function executeBudgetSearch(input: z.infer<typeof budgetSearchInpu
       }),
     });
 
+    // Single state: that state's years. Multi-state: union across the
+    // filtered states so year discovery survives comparison calls.
     const distinctStates = [...new Set(stateList.filter(Boolean))] as string[];
-    const availableYears =
-      distinctStates.length === 1
-        ? await getAvailableYears(distinctStates[0])
-        : [];
+    const yearSets = await Promise.all(distinctStates.map(getAvailableYears));
+    const availableYears = [...new Set(yearSets.flat())].sort((a, b) => a - b);
 
     const officialsData = await getOfficialsForResults(results);
     const officials = officialsData.map((o) => ({

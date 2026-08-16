@@ -133,6 +133,8 @@ describe("state-assembly-reconciliation importer apply path (integration)", () =
   let svc: BulkImportService;
   let officialId: string;
   let positionId: string;
+  let winnerId: string;
+  let winnerPositionId: string;
 
   // Ground truth that flips our seeded position: the seat belongs to WINNER.
   const groundTruth = {
@@ -166,6 +168,27 @@ describe("state-assembly-reconciliation importer apply path (integration)", () =
       CC,
     );
     positionId = position[0].id;
+
+    // Seed the TRUE member as a second active holder — the seat-stranding guard
+    // (issue #109) refuses a downgrade that would leave the seat with zero
+    // active holders, matching the paired install+downgrade the members
+    // importer performs.
+    const winner = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO nigerian_officials (name, slug, official_type)
+       VALUES ($1, 'real-winner-apply-recon-test', 'elected') RETURNING id`,
+      WINNER,
+    );
+    winnerId = winner[0].id;
+    const winnerPosition = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `INSERT INTO official_positions
+         (official_id, role, constituency_code, status, appointment_type,
+          party_acronym, confidence, source_type, review_status, start_date)
+       VALUES ($1,'mha',$2,'active','elected','PDP','high','manual','reviewed','2023-06-01')
+       RETURNING id`,
+      winnerId,
+      CC,
+    );
+    winnerPositionId = winnerPosition[0].id;
   });
 
   afterAll(async () => {
@@ -183,7 +206,9 @@ describe("state-assembly-reconciliation importer apply path (integration)", () =
     ).catch(() => {});
     await prisma.$executeRawUnsafe(`DELETE FROM evidence WHERE entry_type='position' AND entry_id=$1::uuid`, positionId).catch(() => {});
     await prisma.$executeRawUnsafe(`DELETE FROM official_positions WHERE id=$1`, positionId).catch(() => {});
+    await prisma.$executeRawUnsafe(`DELETE FROM official_positions WHERE id=$1`, winnerPositionId).catch(() => {});
     await prisma.$executeRawUnsafe(`DELETE FROM nigerian_officials WHERE id=$1`, officialId).catch(() => {});
+    await prisma.$executeRawUnsafe(`DELETE FROM nigerian_officials WHERE id=$1`, winnerId).catch(() => {});
     await prisma.onModuleDestroy();
   });
 
