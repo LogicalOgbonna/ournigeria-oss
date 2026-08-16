@@ -79,11 +79,27 @@ kill_port() {
   fi
 }
 
+# ─── Detect what (if anything) owns :443 ────────────────────────────────────
+# The portless proxy binds :443 by re-execing itself under sudo (privileged
+# port), so it ends up root-owned. A plain `lsof` run as the invoking user
+# can't see a root-owned listening socket's process name on macOS, so try
+# `sudo -n` first (non-interactive — fails instantly instead of prompting if
+# there's no cached credential) and fall back to a plain lsof otherwise.
+# Note: trailing `|| true` on both lookups is required. With `set -eo pipefail`,
+# a failed `sudo -n` (no cached credential) or an empty lsof (nothing on :443)
+# makes the pipeline exit non-zero, which would abort the whole script.
+port443_owner() {
+  local out
+  out="$(sudo -n lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}' || true)"
+  if [ -n "$out" ]; then echo "$out"; return; fi
+  lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}' || true
+}
+
 # ─── List service status ─────────────────────────────────────────────────────
 list_services() {
   # Detect portless proxy on :443 so the printed URL matches how apps are served.
   local owner portless=false
-  owner="$(lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}' || true)"
+  owner="$(port443_owner)"
   case "$owner" in node|*portless*|Portless*) portless=true ;; esac
 
   echo -e "\n${CYAN}Service status:${NC}"
@@ -148,6 +164,33 @@ if $KILL_ONLY; then
   exit 0
 fi
 
+# ─── Ensure deps/internal packages are installed before starting apps ───────
+# A fresh clone (or a package.json/lockfile change) leaves node_modules
+# missing or the @ournigeria/* internal packages unbuilt; every `nx run
+# <app>:dev` fails fast with "nx: command not found" or MODULE_NOT_FOUND in
+# that state. Detect it and run the setup script once instead of letting
+# every app crash-loop.
+SETUP_SCRIPT="$ROOT_DIR/packages/scripts/setup/setup.sh"
+BUILT_PACKAGES="database cache tools official-records"
+
+deps_ready() {
+  [ -x "$ROOT_DIR/node_modules/.bin/nx" ] || return 1
+  for pkg in $BUILT_PACKAGES; do
+    [ -f "$ROOT_DIR/packages/$pkg/dist/index.js" ] || return 1
+  done
+  return 0
+}
+
+if ! deps_ready; then
+  echo -e "\n${YELLOW}Dependencies not installed/built yet — running setup...${NC}"
+  bash "$SETUP_SCRIPT"
+  if ! deps_ready; then
+    echo -e "\n${RED}Setup ran but dependencies still look incomplete. Check the output above.${NC}"
+    exit 1
+  fi
+  echo -e "\n${GREEN}Setup complete.${NC}"
+fi
+
 # ─── Portless: clean https://<app>.localhost URLs ────────────────────────────
 # *.localhost auto-resolves to 127.0.0.1. With the portless proxy bound to :443
 # each app is reachable port-free at https://<app>.localhost. If :443 is held by
@@ -157,18 +200,13 @@ PORTLESS_BIN="$ROOT_DIR/node_modules/.bin/portless"
 [ -x "$PORTLESS_BIN" ] || PORTLESS_BIN="$(command -v portless 2>/dev/null || true)"
 USE_PORTLESS=false
 
-# Note: trailing `|| true` is required. With `set -eo pipefail`, an empty lsof
-# (nothing listening on :443) exits non-zero, and the `owner="$(port443_cmd)"`
-# assignments below would abort the whole script silently right after killing ports.
-port443_cmd() { lsof -nP -iTCP:443 -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}' || true; }
-
 if [ -n "$PORTLESS_BIN" ] && [ -x "$PORTLESS_BIN" ]; then
-  owner="$(port443_cmd)"
+  owner="$(port443_owner)"
   if [ -z "$owner" ]; then
     echo -e "\n${CYAN}Starting portless proxy on :443${NC} (sudo once; first run installs a local CA)..."
     "$PORTLESS_BIN" proxy stop >/dev/null 2>&1 || true   # clear any stale proxy (e.g. on :1355)
     "$PORTLESS_BIN" proxy start -p 443 --https || true
-    for _ in 1 2 3 4 5; do sleep 1; owner="$(port443_cmd)"; [ -n "$owner" ] && break; done
+    for _ in 1 2 3 4 5; do sleep 1; owner="$(port443_owner)"; [ -n "$owner" ] && break; done
   fi
   case "$owner" in
     node|*portless*|Portless*) USE_PORTLESS=true ;;
@@ -220,36 +258,12 @@ for app in $STARTED_APPS; do
   i=$((i + 1))
 done
 
-# ─── Detached mode: register URLs, free the terminal, exit ──────────────────
-if $DETACH; then
-  for app in $STARTED_APPS; do
-    port=$(get_port "$app")
-    if $USE_PORTLESS; then "$PORTLESS_BIN" alias "$app" "$port" --force >/dev/null 2>&1 || true; fi
-  done
-  echo -e "\n${CYAN}App links (starting up in the background):${NC}"
-  for app in $STARTED_APPS; do
-    port=$(get_port "$app")
-    printf "  ${GREEN}%-10s${NC} ${CYAN}%s${NC}\n" "$app" "$(app_url "$app" "$port")"
-  done
-  echo -e "\n${GREEN}Apps detached — terminal is free.${NC}"
-  echo -e "${YELLOW}Status:${NC} $0 -l"
-  echo -e "${YELLOW}Logs:${NC}   tail -f /tmp/ournigeria-*.log"
-  echo -e "${YELLOW}Stop:${NC}   $0 -k$([ "$SELECTED_APPS" = "$ALL_APPS" ] || echo " $STARTED_APPS")\n"
-  exit 0
-fi
-
-# ─── Trap for cleanup ───────────────────────────────────────────────────────
-cleanup() {
-  echo -e "\n${RED}Shutting down...${NC}"
-  for pid in $PIDS; do
-    kill "$pid" 2>/dev/null || true
-  done
-  exit 0
-}
-trap cleanup SIGINT SIGTERM
-
-# ─── Wait for each app to be ready ──────────────────────────────────────────
-READY_TIMEOUT=120   # seconds to wait per app before giving up
+# ─── Wait for each app to be ready (both foreground and detached modes) ─────
+# A crashed app (missing node_modules, command not found, port already in
+# use) fails within milliseconds, so a short timeout catches that fast
+# without making a real cold build wait unreasonably long. This runs before
+# the detach exit below so `-d` can't report false success on a dead app.
+READY_TIMEOUT=20   # seconds to wait per app before giving up
 
 is_ready() { lsof -ti :"$1" >/dev/null 2>&1; }
 
@@ -280,7 +294,7 @@ for app in $FAILED_APPS; do
   tail -n 20 "/tmp/ournigeria-${app}.log" 2>/dev/null || true
 done
 
-# ─── App links (shown once every app has started) ───────────────────────────
+# ─── App links ────────────────────────────────────────────────────────────
 echo -e "\n${CYAN}App links:${NC}"
 for app in $STARTED_APPS; do
   port=$(get_port "$app")
@@ -291,6 +305,28 @@ for app in $STARTED_APPS; do
   esac
   printf "  ${GREEN}%-10s${NC} ${CYAN}%s${NC} %b\n" "$app" "$url" "$status"
 done
+
+# ─── Detached mode: free the terminal, exit ──────────────────────────────────
+if $DETACH; then
+  if [ -n "$FAILED_APPS" ]; then
+    echo -e "\n${RED}Some apps failed to start — see logs above.${NC}"
+  fi
+  echo -e "\n${GREEN}Apps detached — terminal is free.${NC}"
+  echo -e "${YELLOW}Status:${NC} $0 -l"
+  echo -e "${YELLOW}Logs:${NC}   tail -f /tmp/ournigeria-*.log"
+  echo -e "${YELLOW}Stop:${NC}   $0 -k$([ "$SELECTED_APPS" = "$ALL_APPS" ] || echo " $STARTED_APPS")\n"
+  if [ -n "$FAILED_APPS" ]; then exit 1; else exit 0; fi
+fi
+
+# ─── Trap for cleanup ───────────────────────────────────────────────────────
+cleanup() {
+  echo -e "\n${RED}Shutting down...${NC}"
+  for pid in $PIDS; do
+    kill "$pid" 2>/dev/null || true
+  done
+  exit 0
+}
+trap cleanup SIGINT SIGTERM
 
 echo -e "\n${GREEN}All apps running. Press Ctrl+C to stop all.${NC}"
 echo -e "${YELLOW}Follow logs:${NC} tail -f /tmp/ournigeria-*.log\n"

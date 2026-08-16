@@ -206,33 +206,33 @@ Supported formats: **PDF** (with OCR) · **XLSX/XLS** · **DOCX** · **JSON** ·
 
 - Node.js 20+
 - pnpm 10+ (`corepack enable` will pin the version from `package.json`)
-- Docker (for the local PostgreSQL 16 + pgvector database)
+- [Docker](https://docs.docker.com/desktop/) and [docker compose](https://docs.docker.com/compose/install/) (for the local PostgreSQL 16 + pgvector database)
 - [Infisical CLI](https://infisical.com/docs/cli/overview) — all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria Infisical project; ask a maintainer to be added.
 
 ### Development
 
 ```bash
 # 1. Install dependencies
-pnpm install
+pnpm setup
 
 # 2. Start the development database (PostgreSQL 16 + pgvector)
 docker compose -f docker-compose.dev.yml up -d
 
-# 3. Generate the Prisma client and apply migrations
-pnpm prisma:generate
+# 3. Apply migrations
 pnpm prisma:migrate
 
-# 4. Start the services you need (each in its own terminal)
-pnpm api:dev        # API on :3000
-pnpm web:dev        # Web on :3001
-pnpm ingest:dev     # Ingestion on :3002
-pnpm awanaija:dev   # Landing page on :3003
-pnpm dashboard:dev  # Admin dashboard on :3004
-pnpm socials:dev    # X/Twitter automation on :3005 (optional)
-pnpm videos:dev     # Remotion Studio (optional)
+# 5. Start the services you need
+pnpm start api web              # foreground — logs stream to this terminal
+pnpm start:detach api web       # detached — frees the terminal, logs at /tmp/ournigeria-<app>.log
+pnpm start                      # no app names = start everything
+pnpm start:list                 # check what's running
+pnpm start:stop api web         # stop services (omit app names to stop everything)
+
+# Valid app names: api, web, ingest, awanaija, dashboard, socials
+pnpm videos:dev                 # Remotion Studio (optional) — not managed by start.sh
 ```
 
-> Most contributors only need `api:dev` + `web:dev`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
+> Most contributors only need `pnpm start api awanaija web`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
 
 ### App URLs
 
@@ -240,22 +240,22 @@ When running locally each app serves on the port above (`http://localhost:<port>
 
 | App | Local | Dev (tunnel → your local server) | Production |
 |-----|-------|----------------------------------|------------|
-| API | `:3000` | `https://spending-api.arinze.online/api` | `https://api.ournigeria.ng/api` |
-| Web | `:3001` | `https://spending.arinze.online` | `https://app.ournigeria.ng` |
-| Ingest | `:3002` | `https://ingest.arinze.online/api/ingest` | `https://ingest.ournigeria.ng/api/ingest` |
-| Landing (Awanaija) | `:3003` | `https://ounigeria.arinze.online` | `https://ournigeria.ng` |
-| Dashboard | `:3004` | `https://dashboard.arinze.online` | `https://dashboard.ournigeria.ng` |
+| API | `:3000` | `https://api.localhost/api` | `https://api.ournigeria.ng/api` |
+| Web | `:3001` | `https://web.localhost` | `https://app.ournigeria.ng` |
+| Ingest | `:3002` | ` https://ingest.localhost/api/ingest` | `https://ingest.ournigeria.ng/api/ingest` |
+| Landing (Awanaija) | `:3003` | `https://awanaija.localhost` | `https://ournigeria.ng` |
+| Dashboard | `:3004` | ` https://dashboard.localhost` | `https://dashboard.ournigeria.ng` |
 | Socials | `:3005` | — (internal; review drafts in the dashboard) | runs on the OCI box, no public domain |
 
-> The `*.arinze.online` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running locally — not a separate deployed environment. Production (`*.ournigeria.ng`) only advances when `main` is merged into `prod`.
+> The `*.localhost` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running locally — not a separate deployed environment. Production (`*.ournigeria.ng`) only advances when `main` is merged into `prod`.
 
 ### Contributing
 
 1. **Branch from `main`.** Feature branches → PR into `main` (staging). Production advances separately via a `main → prod` release. Never PR directly to `prod`.
 2. **Authenticate as the dev test user** for any manual/automated testing (the OTP flow is bypassed in dev):
    ```bash
-   curl -X POST https://spending-api.arinze.online/api/auth/dev-login -c cookies.txt
-   curl https://spending-api.arinze.online/api/auth/profile -b cookies.txt
+   curl -X POST https://api.localhost/api/auth/dev-login -c cookies.txt
+   curl https://api.localhost/api/auth/profile -b cookies.txt
    ```
    This endpoint only exists in dev builds. See `CLAUDE.md` → Dev Testing for browser/Playwright cookie setup.
 3. **Plans** for non-trivial work go in `.agent/plans/` as `{sequence}.{plan-name}.md`.
@@ -279,24 +279,8 @@ Swagger UI is available at `/api/docs` when the API is running.
 ---
 
 ## Roadmap
-
-- [x] Multi-agent AI pipeline (Router, Budget, Corruption, Impact analysts)
-- [x] 700+ budget documents ingested across 37 states (708K vector chunks)
-- [x] Interactive chart generation (22 chart types)
-- [x] Phone-number OTP authentication
-- [x] Telegram bot integration
-- [x] User-selectable tool routing
-- [x] Shareable public conversations with SEO optimization
-- [x] Pidgin English language support
-- [x] Conversation history and management
-- [x] "Money Could Buy" real-world impact cards
 - [ ] Presigned URLs for secure document access
 - [ ] WhatsApp channel integration
-- [x] Bulk upload script for `packages/source/` → S3 migration
-- [x] Create a journey using React Journey to give a user thought on what they can actually do on the landing page when they visit the site
-- [x] End-to-end feedback system for users to drop feedback (text, images, videos) on the web app, visible to admins on the backend dashboard
-- [x] Add sector/category metadata during ingestion — classify each chunk by budget sector (education, health, defense, etc.) using an LLM classification step or rule-based extraction (RC-7)
-- [x] Create summary chunks — generate aggregate-level chunks per state/year/sector that contain total figures, reducing the need for the agent to sum across fragments (RC-7)
 - [ ] Implement incremental S3 ingestion strategy (Option E: Hybrid):
   - Start with ETag checking as an immediate improvement to eliminate downloading unchanged files
   - Move to SQS events for ongoing real-time ingestion
