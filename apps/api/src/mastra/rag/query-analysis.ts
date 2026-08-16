@@ -1,3 +1,5 @@
+import { getCurrentYear } from "../../lib/constants";
+
 // ─── Nigerian States ────────────────────────────────────────────
 
 export const NIGERIAN_STATES = [
@@ -209,6 +211,86 @@ export function normalizeSector(keyword: string): string | undefined {
   return SECTOR_ALIAS_MAP[keyword.toLowerCase()];
 }
 
+// ─── Temporal phrase resolution ─────────────────────────────────
+
+const WORD_NUMBERS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+};
+
+const MIN_DATA_YEAR = 2019;
+const MAX_RANGE_SPAN = 15;
+
+function parseCount(raw: string): number {
+  return WORD_NUMBERS[raw] ?? Number(raw);
+}
+
+function addRange(years: Set<number>, from: number, to: number): void {
+  if (to < from || to - from > MAX_RANGE_SPAN) return;
+  for (let y = from; y <= to; y++) years.add(y);
+}
+
+/**
+ * Resolve relative temporal phrases ("last year", "past 3 years",
+ * "since 2020", pidgin "dis year") into explicit calendar years so
+ * downstream search filters never fall back to the LLM's training-data
+ * guess (issue #26). Rule-based and deterministic; explicit standalone
+ * years are extracted separately by analyzeQueryComplexity.
+ */
+export function resolveTemporalPhrases(
+  query: string,
+  currentYear: number = getCurrentYear(),
+): number[] {
+  const lower = query.toLowerCase();
+  const years = new Set<number>();
+
+  // Ranges first: "since 2020", "2020 to 2023", "2020-2023", "between 2021 and 2023"
+  const since = lower.match(/\bsince\s+(20[12]\d)\b/);
+  if (since) addRange(years, Number(since[1]), currentYear);
+  for (const m of lower.matchAll(
+    /\b(20[12]\d)\s*(?:-|–|to|through)\s*(20[12]\d)\b/g,
+  )) {
+    addRange(years, Number(m[1]), Number(m[2]));
+  }
+  // "X and Y" is two discrete years, not a range — expand only with "between"
+  const between = lower.match(/\bbetween\s+(20[12]\d)\s+and\s+(20[12]\d)\b/);
+  if (between) addRange(years, Number(between[1]), Number(between[2]));
+
+  // "past/last N years" — inclusive of the current year
+  const lastN = lower.match(
+    /\b(?:past|last)\s+(one|two|three|four|five|\d{1,2})\s+years?\b/,
+  );
+  if (lastN) {
+    const n = parseCount(lastN[1]);
+    if (n > 0) addRange(years, currentYear - n + 1, currentYear);
+  }
+
+  // "N years ago"
+  const ago = lower.match(/\b(one|two|three|four|five|\d{1,2})\s+years?\s+ago\b/);
+  if (ago) {
+    const n = parseCount(ago[1]);
+    if (n > 0) years.add(currentYear - n);
+  }
+
+  // Single-year phrases. "the year before last" must win over "last year".
+  if (/\byear\s+before\s+last\b/.test(lower)) {
+    years.add(currentYear - 2);
+  } else if (/\b(?:last|previous)\s+year\b/.test(lower)) {
+    years.add(currentYear - 1);
+  }
+  if (/\b(?:this|dis|current)\s+year\b/.test(lower)) years.add(currentYear);
+  if (/\bnext\s+year\b/.test(lower)) years.add(currentYear + 1);
+  if (/\brecent(?:ly)?\b/.test(lower)) {
+    years.add(currentYear - 1);
+    years.add(currentYear);
+  }
+
+  return [...years].filter((y) => y >= MIN_DATA_YEAR - 5).sort((a, b) => a - b);
+}
+
 // ─── Rule-based complexity analysis ─────────────────────────────
 
 export function analyzeQueryComplexity(query: string): QueryAnalysis {
@@ -219,9 +301,13 @@ export function analyzeQueryComplexity(query: string): QueryAnalysis {
     new RegExp(`\\b${s.replace(/\s+/g, "\\s+")}\\b`).test(lower),
   );
 
-  // Extract years (2019–2029 range)
+  // Extract years: explicit 4-digit mentions + resolved relative phrases
+  // ("last year", "past 3 years", "since 2020" — issue #26)
   const yearMatches = lower.match(/\b(20[12]\d)\b/g);
-  const years = yearMatches ? [...new Set(yearMatches.map(Number))] : [];
+  const explicitYears = yearMatches ? yearMatches.map(Number) : [];
+  const years = [
+    ...new Set([...explicitYears, ...resolveTemporalPhrases(lower)]),
+  ].sort((a, b) => a - b);
 
   // Extract sectors (word-boundary match)
   const sectors = BUDGET_SECTORS.filter((s) =>

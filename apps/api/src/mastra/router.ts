@@ -1313,6 +1313,9 @@ export async function routeToAgent({
     augmentedMessage += entityHints + "\n";
   }
 
+  // Date stamp so relative phrases ("last year") resolve against the real
+  // calendar even when the agent prompt's temporal block is stale (issue #26)
+  augmentedMessage += `Current date: ${new Date().toISOString().slice(0, 10)} (year ${getCurrentYear()})\n`;
   augmentedMessage += `Current user message: ${message}`;
 
   // General intent — respond directly, no RAG

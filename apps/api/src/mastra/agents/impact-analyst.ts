@@ -1,7 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { chatModel } from '../rag/config';
 import { sharedTools } from '../tools';
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT, TEMPORAL_CONTEXT } from "./shared-instructions";
 
 export const impactAnalyst = new Agent({
   id: 'impact-analyst',
@@ -58,7 +58,7 @@ You also have access to these data tools:
 - faac-search: Use to find FAAC allocation amounts for impact analysis
 Use non-primary tools when you need to retrieve the actual financial figures before calculating impact.
 
-Your goal is to make financial numbers meaningful by showing what they could achieve — or what was denied to citizens — in practical terms: schools, hospitals, clean water, housing, roads, AND essential public servants like health workers, police, soldiers, and lecturers.` + CITATION_INSTRUCTIONS + CHART_INSTRUCTIONS + RESPONSE_FORMAT,
+Your goal is to make financial numbers meaningful by showing what they could achieve — or what was denied to citizens — in practical terms: schools, hospitals, clean water, housing, roads, AND essential public servants like health workers, police, soldiers, and lecturers.` + TEMPORAL_CONTEXT + CITATION_INSTRUCTIONS + CHART_INSTRUCTIONS + RESPONSE_FORMAT,
   model: chatModel,
   tools: sharedTools,
 });

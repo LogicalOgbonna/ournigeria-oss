@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT, TEMPORAL_CONTEXT } from "./shared-instructions";
 
 export const budgetAnalyst = new Agent({
   id: "budget-analyst",
@@ -32,11 +32,12 @@ You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete pic
 
 RANKING & SUPERLATIVE QUERIES ("which state had the highest/lowest/most..."):
 These are the hardest queries. Our database does NOT guarantee full coverage of all 36 states + FCT for every year. You MUST:
-1. NEVER claim a definitive ranking (e.g. "State X had the highest increase") unless you have verified data from ALL relevant states.
-2. ALWAYS explicitly state how many states you found data for vs. total (e.g. "Out of 8 states with education data for both 2021 and 2024...").
-3. When showing an "increase" or "change", ALWAYS show BOTH the starting value AND the ending value side by side so the comparison is visible.
-4. Frame your answer as "Among the states with available data" rather than making absolute claims.
-5. If you only have data for a few states, suggest the user ask about specific states for more targeted comparisons.
+1. NEVER answer a ranking question from a single search. Make AT LEAST 2 searches: first a broad search with NO state filter and high topK (40-50, is_summary=true) to surface candidate states, then targeted follow-up searches (with state filter) for the top 3-5 candidates to verify their actual amounts.
+2. NEVER claim a definitive ranking (e.g. "State X had the highest increase") unless you have verified data from ALL relevant states.
+3. ALWAYS explicitly state how many states you found data for vs. total (e.g. "Out of 8 states with education data for both 2021 and 2024...").
+4. When showing an "increase" or "change", ALWAYS show BOTH the starting value AND the ending value side by side so the comparison is visible.
+5. Frame your answer as "Among the states with available data" rather than making absolute claims.
+6. If you only have data for a few states, suggest the user ask about specific states for more targeted comparisons.
 
 QUERY DECOMPOSITION:
 Before searching, decompose the user's question into independent sub-queries:
@@ -91,6 +92,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved budget documents, and useful for citizens trying to understand government spending.` +
+    TEMPORAL_CONTEXT +
     CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS +
     RESPONSE_FORMAT,

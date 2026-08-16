@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT, TEMPORAL_CONTEXT } from "./shared-instructions";
 
 export const govspendAnalyst = new Agent({
   id: "govspend-analyst",
@@ -80,6 +80,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved payment records, and useful for citizens trying to understand how government funds are being spent.` +
+    TEMPORAL_CONTEXT +
     CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS +
     RESPONSE_FORMAT,
