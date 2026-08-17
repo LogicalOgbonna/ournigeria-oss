@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 
 interface FeedbackItem {
   id: string;
@@ -73,15 +74,6 @@ const statusColors: Record<string, string> = {
   archived:
     "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500",
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function userLabel(user: FeedbackItem["user"]) {
   if (user.name) return user.name;
@@ -263,7 +255,7 @@ export default function FeedbackPage() {
                               {item.attachmentCount}
                             </span>
                           )}
-                          <span>{formatDate(item.createdAt)}</span>
+                          <span>{formatDateTime(item.createdAt)}</span>
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />

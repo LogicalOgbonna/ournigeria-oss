@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Archive } from "lucide-react";
-import { TIER_STYLES, formatDate } from "@/app/dashboard/enrichment/lib";
+import { TIER_STYLES } from "@/app/dashboard/enrichment/lib";
+import { formatDateTime } from "@/lib/format";
 import type { ProposalSource } from "@/app/dashboard/enrichment/types";
 
 export function SourceEvidence({ source }: { source: ProposalSource }) {
@@ -13,7 +14,7 @@ export function SourceEvidence({ source }: { source: ProposalSource }) {
         {source.locator && (
           <span className="font-mono text-xs text-muted-foreground">{source.locator}</span>
         )}
-        <span className="ml-auto text-xs text-muted-foreground">{formatDate(source.retrievedAt)}</span>
+        <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(source.retrievedAt)}</span>
       </div>
       <p className="mb-2 italic text-muted-foreground">&ldquo;{source.snippet}&rdquo;</p>
       <div className="flex gap-3 text-xs">

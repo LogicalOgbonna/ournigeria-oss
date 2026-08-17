@@ -1,79 +1,61 @@
-import { ADMIN_COOKIE } from "./constants";
-
-function getAdminToken(): string {
-  if (typeof document === "undefined") return "";
-  // Cookie is httpOnly, so we can't read it from JS.
-  // The browser sends it automatically via the Next.js rewrite proxy.
-  // We also read from a meta tag set during SSR if needed.
-  return "";
-}
-
-export async function adminFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`/api/admin${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...opts?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Admin API error: ${res.status} ${res.statusText}`);
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
   }
-  return res.json();
 }
 
-export async function adminUpload(path: string, formData: FormData) {
-  const res = await fetch(`/api/admin${path}`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-  if (!res.ok) {
-    throw new Error(`Admin API error: ${res.status} ${res.statusText}`);
-  }
-  return res.json();
-}
-
-export async function socialsFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`/api/socials${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...opts?.headers,
-    },
-  });
-  if (!res.ok) {
-    // Prefer the server's JSON `message` (e.g. NestJS HttpException) over the
-    // bare statusText so the UI shows what actually went wrong and how to fix it.
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      if (body?.message) {
-        detail = Array.isArray(body.message)
-          ? body.message.join("; ")
-          : String(body.message);
-      }
-    } catch {
-      /* non-JSON error body — keep statusText */
+async function extractError(res: Response, service: string): Promise<ApiError> {
+  // Prefer the server's JSON `message` (NestJS HttpException) over bare statusText.
+  let detail = res.statusText;
+  try {
+    const body = await res.clone().json();
+    // NestJS HttpException uses `message`; several admin/proposals endpoints use `error`.
+    const raw = body?.message ?? body?.error;
+    if (raw) {
+      detail = Array.isArray(raw) ? raw.join("; ") : String(raw);
     }
-    throw new Error(`Socials API error: ${res.status} ${detail}`);
+  } catch {
+    /* non-JSON error body — keep statusText */
   }
-  return res.json();
+  return new ApiError(res.status, `${service} API error: ${res.status} ${detail}`);
 }
 
-export async function ingestFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`/api/ingest${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...opts?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`Ingest API error: ${res.status} ${res.statusText}`);
+type Service = { prefix: string; label: string };
+
+function makeClient({ prefix, label }: Service) {
+  async function json(path: string, opts?: RequestInit) {
+    const res = await fetch(`${prefix}${path}`, {
+      ...opts,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...opts?.headers },
+    });
+    if (!res.ok) throw await extractError(res, label);
+    return res.json();
   }
-  return res.json();
+  async function upload(path: string, formData: FormData) {
+    const res = await fetch(`${prefix}${path}`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+    if (!res.ok) throw await extractError(res, label);
+    return res.json();
+  }
+  return { json, upload };
 }
+
+const admin = makeClient({ prefix: "/api/admin", label: "Admin" });
+const socials = makeClient({ prefix: "/api/socials", label: "Socials" });
+const ingest = makeClient({ prefix: "/api/ingest", label: "Ingest" });
+const proposals = makeClient({ prefix: "/api/proposals", label: "Proposals" });
+
+// Backwards-compatible named exports (do not change ~38 existing call sites).
+export const adminFetch = admin.json;
+export const adminUpload = admin.upload;
+export const socialsFetch = socials.json;
+export const ingestFetch = ingest.json;
+export const proposalsFetch = proposals.json;

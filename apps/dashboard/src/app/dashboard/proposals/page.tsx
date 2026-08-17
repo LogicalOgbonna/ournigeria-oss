@@ -23,6 +23,8 @@ import {
   User,
   Crown,
 } from "lucide-react";
+import { relativeTime } from "@/lib/format";
+import { proposalsFetch as proposalFetch } from "@/lib/api";
 
 const PUBLIC_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
@@ -113,19 +115,6 @@ function isImageValue(v: unknown): v is string {
     typeof raw === "string" &&
     (raw.startsWith("data:image") || /^https?:\/\//.test(raw))
   );
-}
-
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diff = Date.now() - then;
-  const mins = Math.round(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -235,22 +224,6 @@ function RecordProposalCard({ proposal }: { proposal: ProposalItem }) {
       )}
     </div>
   );
-}
-
-async function proposalFetch(path: string, opts?: RequestInit) {
-  const res = await fetch(`/api/proposals${path}`, {
-    ...opts,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...opts?.headers,
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `API error: ${res.status}`);
-  }
-  return res.json();
 }
 
 export default function ProposalsPage() {

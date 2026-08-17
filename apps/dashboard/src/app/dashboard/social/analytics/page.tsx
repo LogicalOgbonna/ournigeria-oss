@@ -29,6 +29,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { socialsFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 
 interface AnalyticsStats {
   totalPosts: number;
@@ -53,15 +54,6 @@ interface ChartPoint {
   date: string;
   posts: number;
   replies: number;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 const postStatusColors: Record<string, string> = {
@@ -287,7 +279,7 @@ export default function SocialAnalyticsPage() {
                       {post.impressions?.toLocaleString() ?? 0}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {post.publishedAt ? formatDate(post.publishedAt) : "-"}
+                      {post.publishedAt ? formatDateTime(post.publishedAt) : "-"}
                     </TableCell>
                   </TableRow>
                 ))}

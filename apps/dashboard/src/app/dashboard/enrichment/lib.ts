@@ -26,12 +26,6 @@ export const TIER_STYLES: Record<string, string> = {
   web: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
 };
 
-export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  });
-}
-
 /** Render a JSON value for display: strings as-is, everything else stringified. */
 export function formatValue(v: unknown): string {
   if (v === null || v === undefined) return "—";

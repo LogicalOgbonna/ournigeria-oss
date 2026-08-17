@@ -17,11 +17,11 @@ import { ConfirmDialog } from "@/components/enrichment/confirm-dialog";
 import {
   importsFetch,
   importsUpload,
-  formatDate,
   type Dataset,
   type ImportDiff,
   type ImportResult,
 } from "./lib";
+import { formatDateTime } from "@/lib/format";
 
 const STATUS_STYLES: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
@@ -228,7 +228,7 @@ export function ImportsClient() {
                     {run.createdCount} created · {run.updatedCount} updated ·{" "}
                     {run.skippedCount} unchanged · {run.errorCount} errors
                   </span>
-                  <span>{formatDate(run.finishedAt ?? run.startedAt)}</span>
+                  <span>{formatDateTime(run.finishedAt ?? run.startedAt)}</span>
                 </div>
               )}
 

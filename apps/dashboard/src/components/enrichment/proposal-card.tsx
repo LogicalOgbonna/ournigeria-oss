@@ -7,7 +7,8 @@ import { Check, X, HelpCircle, User, ExternalLink, ChevronRight } from "lucide-r
 import { SourceEvidence } from "./source-evidence";
 import { ReviewNoteDialog } from "./review-note-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
-import { STATUS_STYLES, formatValue, formatDate } from "@/app/dashboard/enrichment/lib";
+import { STATUS_STYLES, formatValue } from "@/app/dashboard/enrichment/lib";
+import { formatDateTime } from "@/lib/format";
 import type { ChangeProposal, CouncilorProposedEntity } from "@/app/dashboard/enrichment/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://ournigeria.ng";
@@ -150,7 +151,7 @@ export function ProposalCard({
               <span className="text-xs text-muted-foreground">confidence: {proposal.confidence}</span>
             </div>
           </div>
-          <span className="shrink-0 text-xs text-muted-foreground">{formatDate(proposal.createdAt)}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(proposal.createdAt)}</span>
         </div>
 
         {/* CHANGE — before → after */}

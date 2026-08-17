@@ -36,6 +36,7 @@ import {
   Flag,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { formatDateTimeFull } from "@/lib/format";
 
 interface BannerItem {
   id: string;
@@ -62,16 +63,6 @@ const typeBg: Record<string, string> = {
   announcement: "bg-emerald-500/10 text-emerald-600",
   warning: "bg-amber-500/10 text-amber-600",
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function BannersPage() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
@@ -348,10 +339,10 @@ export default function BannersPage() {
                         {banner.message}
                       </p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>Created {formatDate(banner.createdAt)}</span>
+                        <span>Created {formatDateTimeFull(banner.createdAt)}</span>
                         {banner.expiresAt && (
                           <span>
-                            Expires {formatDate(banner.expiresAt)}
+                            Expires {formatDateTimeFull(banner.expiresAt)}
                           </span>
                         )}
                         <span>{banner.dismissCount} dismissed</span>

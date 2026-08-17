@@ -64,16 +64,10 @@ export default function BackupsPage() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/backups", {
+      await adminFetch("/backups", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -85,14 +79,7 @@ export default function BackupsPage() {
   async function download(id: string) {
     setError(null);
     try {
-      const res = await fetch(`/api/admin/backups/${id}/download`, {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
-      const { url } = await res.json();
+      const { url } = await adminFetch(`/backups/${id}/download`);
       window.location.href = url; // presigned S3 URL, direct download
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -103,14 +90,7 @@ export default function BackupsPage() {
     if (!confirm("Delete this backup? The S3 file will be removed.")) return;
     setError(null);
     try {
-      const res = await fetch(`/api/admin/backups/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
+      await adminFetch(`/backups/${id}`, { method: "DELETE" });
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { adminFetch, adminUpload } from "@/lib/api";
+import { formatBytes, formatDateTimeFull } from "@/lib/format";
 
 interface S3Folder {
   name: string;
@@ -44,24 +45,6 @@ const PIPELINE_DESCRIPTIONS: Record<string, string> = {
   corruption: "Corruption case reports and analyses (Markdown)",
   govspend: "Government spending data and reports (Markdown)",
 };
-
-function formatBytes(bytes: number) {
-  if (bytes === 0) return "0 B";
-  const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function S3FilesPage() {
   const [data, setData] = useState<BrowseResult | null>(null);
@@ -323,7 +306,7 @@ export default function S3FilesPage() {
                       {formatBytes(file.size)}
                     </span>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {formatDate(file.lastModified)}
+                      {formatDateTimeFull(file.lastModified)}
                     </span>
                   </div>
                 ))}
