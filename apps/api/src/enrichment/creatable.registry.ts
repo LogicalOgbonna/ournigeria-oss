@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { slugifyName } from "@ournigeria/database";
+import { resolveStateSlug } from "./state-codes";
 
 /**
  * Creatable-entity registry (Plan 45c, Fix #1) — the create-side parallel of
@@ -169,6 +170,36 @@ async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): 
 }
 
 /**
+ * Normalize/soften geo foreign keys before insert so an agent-supplied value the
+ * agent got wrong can never trip an FK (all four target `nigerian_*` tables with
+ * `ON DELETE SET NULL`, so NULL is a valid, human-reviewable fallback).
+ *
+ * - `stateCode`: resolved to a canonical `nigerian_states.code` slug (the agent
+ *   emits ISO-style two-letter codes; the column is a slug) — softened to NULL
+ *   when unresolvable. See [[state-codes]].
+ * - `lgaCode` / `wardCode` / `constituencyCode`: softened to NULL if absent from
+ *   their reference table (mirrors softenUnknownParty).
+ */
+async function normalizeGeoRefs(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
+  if ("stateCode" in payload) {
+    payload.stateCode = resolveStateSlug(payload.stateCode);
+  }
+  const refs: Array<[key: string, table: string]> = [
+    ["lgaCode", "nigerian_lgas"],
+    ["wardCode", "nigerian_wards"],
+    ["constituencyCode", "nigerian_constituencies"],
+  ];
+  for (const [key, table] of refs) {
+    if (!payload[key]) continue;
+    const rows = await tx.$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM ${table} WHERE code = $1`,
+      payload[key],
+    );
+    if (rows.length === 0) payload[key] = null;
+  }
+}
+
+/**
  * Corruption involvement (compound): one corruption_cases row + one
  * corruption_case_parties row linking the official as an 'official' subject.
  * Payload: officialId, subjectName, title, caseType, status, role (+ optional
@@ -211,6 +242,7 @@ function corruptionInvolvementEntity(): CreatableEntity {
       return out;
     },
     async preflight(tx, payload) {
+      await normalizeGeoRefs(tx, payload);
       const exists = await tx.$queryRawUnsafe<unknown[]>(
         `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
         payload.officialId,
@@ -421,6 +453,7 @@ function electionEntity(): CreatableEntity {
     },
     async preflight(tx, payload) {
       await softenUnknownParty(tx, payload);
+      await normalizeGeoRefs(tx, payload);
       if (payload.officialId) {
         const exists = await tx.$queryRawUnsafe<unknown[]>(
           `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
