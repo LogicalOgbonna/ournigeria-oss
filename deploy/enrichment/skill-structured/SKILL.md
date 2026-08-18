@@ -91,5 +91,10 @@ Input shape:
 
 (`*` = required. `officialId` is always required.)
 
+**`legal_cases` vs `corruption` — pick the right one:**
+- Use **`corruption`** ONLY for actual corruption matters: an EFCC/ICPC investigation or prosecution, or a court case alleging fraud, embezzlement, bribery, money laundering, abuse of office, procurement fraud, or diversion of public funds against the official personally.
+- Use **`legal_cases`** for everything else — including **civil accountability / transparency / public-interest suits** (e.g. a SERAP suit to compel publication of FAAC-allocation spending). These are NOT corruption cases even when the subject is FAAC/budget accountability: the official is a defendant in civil litigation, not accused of a corruption offence. File them as `legal_cases` with `caseType: civil`.
+- When unsure, prefer `legal_cases` (civil) — the corruption domain is reserved for named corruption offences.
+
 On success the tool prints `{"id": "..."}`. If the bar isn't met, file nothing and report
 "nothing found" — the sweeper records that and moves on.
