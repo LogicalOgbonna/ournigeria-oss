@@ -159,14 +159,27 @@ function officialFactEntity(
   };
 }
 
-/** Soft party check — mirrors the councilor behavior: unknown party → null, never reject. */
-async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
+/**
+ * Resolve the agent-supplied party to a canonical `political_parties.acronym`,
+ * softening to null when unknown (mirrors the councilor behavior: never reject).
+ *
+ * `party_acronym` is an FK, and `political_parties.acronym` is mixed-case
+ * (`Accord`, not `ACCORD`), so a raw exact match drops a mis-cased acronym or a
+ * full party name to null (lost data) — or, if kept, would trip the FK. Match in
+ * priority order — exact acronym → case-insensitive acronym → full name — and
+ * rewrite `partyAcronym` to the canonical acronym so the insert's FK resolves.
+ */
+export async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
   if (!payload.partyAcronym) return;
-  const p = await tx.$queryRawUnsafe<unknown[]>(
-    `SELECT 1 FROM political_parties WHERE acronym = $1`,
-    payload.partyAcronym,
+  const raw = String(payload.partyAcronym).trim();
+  const rows = await tx.$queryRawUnsafe<{ acronym: string }[]>(
+    `SELECT acronym FROM political_parties
+     WHERE acronym = $1 OR upper(acronym) = upper($1) OR lower(name) = lower($1)
+     ORDER BY (acronym = $1) DESC, (upper(acronym) = upper($1)) DESC
+     LIMIT 1`,
+    raw,
   );
-  if (p.length === 0) payload.partyAcronym = null;
+  payload.partyAcronym = rows[0]?.acronym ?? null;
 }
 
 /**
