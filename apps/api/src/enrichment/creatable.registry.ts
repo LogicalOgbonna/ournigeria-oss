@@ -1,5 +1,13 @@
 import { BadRequestException } from "@nestjs/common";
 import { slugifyName } from "@ournigeria/database";
+import { resolveStateSlug } from "./state-codes";
+import {
+  coerceEnum,
+  CORRUPTION_CASE_TYPE,
+  CORRUPTION_STATUS,
+  LEGAL_CASE_TYPE,
+  LEGAL_STATUS,
+} from "./enum-coerce";
 
 /**
  * Creatable-entity registry (Plan 45c, Fix #1) — the create-side parallel of
@@ -158,14 +166,57 @@ function officialFactEntity(
   };
 }
 
-/** Soft party check — mirrors the councilor behavior: unknown party → null, never reject. */
-async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
+/**
+ * Resolve the agent-supplied party to a canonical `political_parties.acronym`,
+ * softening to null when unknown (mirrors the councilor behavior: never reject).
+ *
+ * `party_acronym` is an FK, and `political_parties.acronym` is mixed-case
+ * (`Accord`, not `ACCORD`), so a raw exact match drops a mis-cased acronym or a
+ * full party name to null (lost data) — or, if kept, would trip the FK. Match in
+ * priority order — exact acronym → case-insensitive acronym → full name — and
+ * rewrite `partyAcronym` to the canonical acronym so the insert's FK resolves.
+ */
+export async function softenUnknownParty(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
   if (!payload.partyAcronym) return;
-  const p = await tx.$queryRawUnsafe<unknown[]>(
-    `SELECT 1 FROM political_parties WHERE acronym = $1`,
-    payload.partyAcronym,
+  const raw = String(payload.partyAcronym).trim();
+  const rows = await tx.$queryRawUnsafe<{ acronym: string }[]>(
+    `SELECT acronym FROM political_parties
+     WHERE acronym = $1 OR upper(acronym) = upper($1) OR lower(name) = lower($1)
+     ORDER BY (acronym = $1) DESC, (upper(acronym) = upper($1)) DESC
+     LIMIT 1`,
+    raw,
   );
-  if (p.length === 0) payload.partyAcronym = null;
+  payload.partyAcronym = rows[0]?.acronym ?? null;
+}
+
+/**
+ * Normalize/soften geo foreign keys before insert so an agent-supplied value the
+ * agent got wrong can never trip an FK (all four target `nigerian_*` tables with
+ * `ON DELETE SET NULL`, so NULL is a valid, human-reviewable fallback).
+ *
+ * - `stateCode`: resolved to a canonical `nigerian_states.code` slug (the agent
+ *   emits ISO-style two-letter codes; the column is a slug) — softened to NULL
+ *   when unresolvable. See [[state-codes]].
+ * - `lgaCode` / `wardCode` / `constituencyCode`: softened to NULL if absent from
+ *   their reference table (mirrors softenUnknownParty).
+ */
+async function normalizeGeoRefs(tx: RawTx, payload: Record<string, unknown>): Promise<void> {
+  if ("stateCode" in payload) {
+    payload.stateCode = resolveStateSlug(payload.stateCode);
+  }
+  const refs: Array<[key: string, table: string]> = [
+    ["lgaCode", "nigerian_lgas"],
+    ["wardCode", "nigerian_wards"],
+    ["constituencyCode", "nigerian_constituencies"],
+  ];
+  for (const [key, table] of refs) {
+    if (!payload[key]) continue;
+    const rows = await tx.$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM ${table} WHERE code = $1`,
+      payload[key],
+    );
+    if (rows.length === 0) payload[key] = null;
+  }
 }
 
 /**
@@ -211,6 +262,9 @@ function corruptionInvolvementEntity(): CreatableEntity {
       return out;
     },
     async preflight(tx, payload) {
+      await normalizeGeoRefs(tx, payload);
+      payload.caseType = coerceEnum(payload.caseType, CORRUPTION_CASE_TYPE);
+      payload.status = coerceEnum(payload.status, CORRUPTION_STATUS);
       const exists = await tx.$queryRawUnsafe<unknown[]>(
         `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
         payload.officialId,
@@ -421,6 +475,7 @@ function electionEntity(): CreatableEntity {
     },
     async preflight(tx, payload) {
       await softenUnknownParty(tx, payload);
+      await normalizeGeoRefs(tx, payload);
       if (payload.officialId) {
         const exists = await tx.$queryRawUnsafe<unknown[]>(
           `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
@@ -905,7 +960,11 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" },
-  ]),
+  ], async (_tx, payload) => {
+    // Soften raw agent enums onto chk_legal_case_type / chk_legal_status.
+    payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
+    payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+  }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.
