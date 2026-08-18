@@ -1,6 +1,13 @@
 import { BadRequestException } from "@nestjs/common";
 import { slugifyName } from "@ournigeria/database";
 import { resolveStateSlug } from "./state-codes";
+import {
+  coerceEnum,
+  CORRUPTION_CASE_TYPE,
+  CORRUPTION_STATUS,
+  LEGAL_CASE_TYPE,
+  LEGAL_STATUS,
+} from "./enum-coerce";
 
 /**
  * Creatable-entity registry (Plan 45c, Fix #1) — the create-side parallel of
@@ -256,6 +263,8 @@ function corruptionInvolvementEntity(): CreatableEntity {
     },
     async preflight(tx, payload) {
       await normalizeGeoRefs(tx, payload);
+      payload.caseType = coerceEnum(payload.caseType, CORRUPTION_CASE_TYPE);
+      payload.status = coerceEnum(payload.status, CORRUPTION_STATUS);
       const exists = await tx.$queryRawUnsafe<unknown[]>(
         `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
         payload.officialId,
@@ -951,7 +960,11 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" },
-  ]),
+  ], async (_tx, payload) => {
+    // Soften raw agent enums onto chk_legal_case_type / chk_legal_status.
+    payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
+    payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+  }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.
