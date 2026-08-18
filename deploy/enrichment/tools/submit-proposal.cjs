@@ -134,11 +134,59 @@ var CORRUPTION_CASES = {
   targetTable: "corruption_cases",
   targetFields: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
   sensitiveFields: ["status", "outcome", "amount_involved", "amount_recovered", "sentence"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng"],
+  // corruptioncases.ng (TransparencIT) is a structured, curated DB citing EFCC/court
+  // records — registered as canonical so a single case-page backlink satisfies the
+  // create bar (still human-reviewed before any live write).
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng"],
   sourceTemplates: [
     { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
-    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" }
+    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },
+    { publisher: "corruptioncases.ng", urlIncludes: "/cases/", format: "html" }
   ]
+};
+var PARTIES = {
+  domain: "parties",
+  targetTable: "political_parties",
+  // Must stay a subset of APPLIABLE_FIELDS["political_parties"] in enrichment.constants.ts.
+  targetFields: [
+    "logo_url",
+    "founding_year",
+    "leader_name",
+    "hq_address",
+    "website",
+    "email",
+    "phone_number",
+    "twitter_handle",
+    "facebook_url",
+    "description",
+    "ideology",
+    "slogan",
+    "color",
+    "inec_status"
+  ],
+  sensitiveFields: [],
+  // party data is public; no PII
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  // INEC's registered-parties list is canonical for name/acronym/inec_status.
+  sourceTemplates: [{ publisher: "inecnigeria.org", urlIncludes: "political-parties", format: "html" }]
+};
+var PARTY_CHAPTERS = {
+  domain: "party_chapters",
+  targetTable: "party_state_chapters",
+  targetFields: [
+    "chairman_name",
+    "secretary_name",
+    "hq_address",
+    "phone_number",
+    "email",
+    "website",
+    "twitter_handle"
+  ],
+  sensitiveFields: [],
+  // Party official sites + state news + general gov / INEC. Chapters support changeKind "create".
+  trustedDomains: ["*.gov.ng", "inecnigeria.org", "placng.org"],
+  sourceTemplates: []
+  // no canonical doc; chapters are sparse
 };
 var PROFILES = {
   officials: OFFICIALS,
@@ -154,7 +202,9 @@ var PROFILES = {
   publications: PUBLICATIONS,
   family: FAMILY,
   legal_cases: LEGAL_CASES,
-  corruption: CORRUPTION_CASES
+  corruption: CORRUPTION_CASES,
+  parties: PARTIES,
+  party_chapters: PARTY_CHAPTERS
 };
 function getProfile(domain) {
   const p = PROFILES[domain];
@@ -218,6 +268,54 @@ function validateCorroboration(input, profile) {
   };
 }
 
+// apps/api/src/enrichment/entity-role.ts
+var ENTITY_ROLE_BUCKETS = [
+  "governor",
+  "senator",
+  "representative",
+  "mha",
+  "lga_chairman",
+  "councilor",
+  "unknown"
+];
+var BUCKET_SET = new Set(ENTITY_ROLE_BUCKETS);
+var ROLE_ALIASES = {
+  rep: "representative"
+};
+function normalizeEntityRole(raw) {
+  if (!raw) return "unknown";
+  const key = raw.trim().toLowerCase();
+  if (!key) return "unknown";
+  if (key in ROLE_ALIASES) return ROLE_ALIASES[key];
+  return BUCKET_SET.has(key) ? key : "unknown";
+}
+
+// apps/api/src/enrichment/agent/resolve-entity-role-sql.ts
+async function resolveEntityRoleSql(client, p) {
+  let rawRole = null;
+  try {
+    if (p.changeKind === "create") {
+      const v = p.proposedValue;
+      rawRole = v?.position?.role ?? null;
+    } else if (p.targetPk && p.targetTable === "official_positions") {
+      const r = await client.query(`SELECT role FROM official_positions WHERE id = $1 LIMIT 1`, [p.targetPk]);
+      rawRole = r.rows[0]?.role ?? null;
+    } else if (p.targetPk && p.targetTable === "nigerian_officials") {
+      const r = await client.query(
+        `SELECT role FROM official_positions
+          WHERE official_id = $1 AND status = 'active'
+            AND start_date <= CURRENT_DATE AND (end_date IS NULL OR end_date > CURRENT_DATE)
+          ORDER BY start_date DESC LIMIT 1`,
+        [p.targetPk]
+      );
+      rawRole = r.rows[0]?.role ?? null;
+    }
+  } catch {
+    rawRole = null;
+  }
+  return normalizeEntityRole(rawRole);
+}
+
 // apps/api/src/enrichment/agent/submit-proposal.ts
 async function submitProposal(client, input, profile = getProfile(input.domain)) {
   if (!profile.targetFields.includes(input.targetField)) {
@@ -232,13 +330,19 @@ async function submitProposal(client, input, profile = getProfile(input.domain))
   );
   if (!verdict.ok) throw new Error(`corroboration failed: ${verdict.reason}`);
   const status = input.needsHuman ? "needs_human" : "pending";
+  const entityRole = await resolveEntityRoleSql(client, {
+    changeKind: input.changeKind,
+    targetTable: profile.targetTable,
+    targetPk: input.targetPk,
+    proposedValue: input.proposedValue
+  });
   try {
     await client.query("BEGIN");
     const ins = await client.query(
       `INSERT INTO change_proposals
          (target_table, target_pk, target_field, current_value, proposed_value,
-          change_kind, status, confidence, reasoning, agent_run_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+          change_kind, status, confidence, reasoning, agent_run_id, entity_role)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
       [
         profile.targetTable,
         input.targetPk,
@@ -249,7 +353,8 @@ async function submitProposal(client, input, profile = getProfile(input.domain))
         status,
         input.confidence ?? "medium",
         input.reasoning ?? null,
-        input.agentRunId ?? null
+        input.agentRunId ?? null,
+        entityRole
       ]
     );
     const id = ins.rows[0].id;

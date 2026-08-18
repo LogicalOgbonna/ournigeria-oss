@@ -2,8 +2,9 @@ import { existsSync } from "fs";
 import { Client } from "pg";
 import { findStructuredGaps, type StructuredGap } from "../agent/find-structured-gaps";
 import { CATEGORY_BY_KEY } from "../agent/categories";
+import { lookupCorruptionCases, fetchJsonDefault } from "../agent/corruption-lookup";
 import { runHermes } from "./run-hermes";
-import { runSweepLoop, type SweeperConfig, type SweeperDeps, type AttemptOutcome } from "./sweeper";
+import { runSweepLoop, type SweeperConfig, type SweeperDeps, type AttemptOutcome, type HermesRun } from "./sweeper";
 
 const num = (v: string | undefined, d: number) => (v && !Number.isNaN(Number(v)) ? Number(v) : d);
 
@@ -31,9 +32,25 @@ async function main() {
   const client = new Client({ connectionString: url });
   await client.connect();
 
+  // Corruption gaps bypass the LLM browser agent: fill them deterministically
+  // from corruptioncases.ng (no DeepSeek cost, no browser flakiness). Every other
+  // category still delegates to Hermes. The lookup files proposals carrying
+  // proposed_value.officialId, so processGap classifies filled/nothing_found as usual.
+  const runHermesOrLookup = async (gap: StructuredGap): Promise<HermesRun> => {
+    if (gap.category === "corruption") {
+      await lookupCorruptionCases(
+        client,
+        { id: gap.officialId, name: gap.name },
+        { fetchJson: fetchJsonDefault, now: () => new Date() },
+      );
+      return { ok: true, costUsd: 0 };
+    }
+    return runHermes(gap);
+  };
+
   const deps: SweeperDeps = {
     findGaps: (limit) => findStructuredGaps(client, limit),
-    runHermes,
+    runHermes: runHermesOrLookup,
     async countNewProposals(gap, sinceIso) {
       const res = await client.query(
         `SELECT count(*)::int AS n FROM change_proposals

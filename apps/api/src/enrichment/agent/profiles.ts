@@ -138,10 +138,14 @@ const CORRUPTION_CASES: EnrichmentProfile = {
   targetTable: "corruption_cases",
   targetFields: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
   sensitiveFields: ["status", "outcome", "amount_involved", "amount_recovered", "sentence"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng"],
+  // corruptioncases.ng (TransparencIT) is a structured, curated DB citing EFCC/court
+  // records — registered as canonical so a single case-page backlink satisfies the
+  // create bar (still human-reviewed before any live write).
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng"],
   sourceTemplates: [
     { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
     { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },
+    { publisher: "corruptioncases.ng", urlIncludes: "/cases/", format: "html" },
   ],
 };
 

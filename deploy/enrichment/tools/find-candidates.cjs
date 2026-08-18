@@ -134,11 +134,59 @@ var CORRUPTION_CASES = {
   targetTable: "corruption_cases",
   targetFields: ["title", "summary", "case_type", "status", "forum", "amount_involved", "amount_recovered", "sector", "opened_date", "charge_date", "verdict_date", "outcome", "sentence"],
   sensitiveFields: ["status", "outcome", "amount_involved", "amount_recovered", "sentence"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng"],
+  // corruptioncases.ng (TransparencIT) is a structured, curated DB citing EFCC/court
+  // records — registered as canonical so a single case-page backlink satisfies the
+  // create bar (still human-reviewed before any live write).
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng"],
   sourceTemplates: [
     { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
-    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" }
+    { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },
+    { publisher: "corruptioncases.ng", urlIncludes: "/cases/", format: "html" }
   ]
+};
+var PARTIES = {
+  domain: "parties",
+  targetTable: "political_parties",
+  // Must stay a subset of APPLIABLE_FIELDS["political_parties"] in enrichment.constants.ts.
+  targetFields: [
+    "logo_url",
+    "founding_year",
+    "leader_name",
+    "hq_address",
+    "website",
+    "email",
+    "phone_number",
+    "twitter_handle",
+    "facebook_url",
+    "description",
+    "ideology",
+    "slogan",
+    "color",
+    "inec_status"
+  ],
+  sensitiveFields: [],
+  // party data is public; no PII
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  // INEC's registered-parties list is canonical for name/acronym/inec_status.
+  sourceTemplates: [{ publisher: "inecnigeria.org", urlIncludes: "political-parties", format: "html" }]
+};
+var PARTY_CHAPTERS = {
+  domain: "party_chapters",
+  targetTable: "party_state_chapters",
+  targetFields: [
+    "chairman_name",
+    "secretary_name",
+    "hq_address",
+    "phone_number",
+    "email",
+    "website",
+    "twitter_handle"
+  ],
+  sensitiveFields: [],
+  // Party official sites + state news + general gov / INEC. Chapters support changeKind "create".
+  trustedDomains: ["*.gov.ng", "inecnigeria.org", "placng.org"],
+  sourceTemplates: []
+  // no canonical doc; chapters are sparse
 };
 var PROFILES = {
   officials: OFFICIALS,
@@ -154,7 +202,9 @@ var PROFILES = {
   publications: PUBLICATIONS,
   family: FAMILY,
   legal_cases: LEGAL_CASES,
-  corruption: CORRUPTION_CASES
+  corruption: CORRUPTION_CASES,
+  parties: PARTIES,
+  party_chapters: PARTY_CHAPTERS
 };
 function getProfile(domain) {
   const p = PROFILES[domain];
