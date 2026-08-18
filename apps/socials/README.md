@@ -190,3 +190,44 @@ Swagger at `http://localhost:3005/docs`.
   (shared with dashboard) plus `X-Roamer-Key` header for the extension.
 
 See `.agent/plans/40.cold-dms-port-to-socials.md` for the full design.
+
+## Telegram manual-posting relay (free posting, human-in-the-loop)
+
+When X API posting is unavailable (e.g. paid-tier cap exhausted, HTTP 402),
+approved drafts are relayed to a Telegram group so a human posts them by hand
+from a logged-in browser. The relay cards each approved draft into the group,
+an operator taps **📝 Open in X** to post, and the posted tweet is reconciled
+back to `social_posts` (best-effort tweet-ID recovery) so it shows as verified.
+
+Enabling the relay (`SOCIALS_TELEGRAM_RELAY_ENABLED=true`) gates OFF the
+read-only draft digest — you get the actionable Telegram cards instead.
+
+### Ops onboarding checklist
+
+1. **Create a dedicated bot** with [@BotFather](https://t.me/BotFather) and copy
+   its token. This is a NEW bot, separate from the API login bot — the two
+   cannot share a single token.
+2. **Turn OFF the bot's group privacy mode**: @BotFather → `/setprivacy` →
+   select the bot → **Disable**. Without this the bot cannot see the paste-URL
+   reply messages operators send in the group.
+3. **Add the bot to the "OurNigeria Socials" Telegram group** and get the
+   group's chat id (a negative number).
+4. **Seed an admin row** and set its UUID as `SOCIALS_SYSTEM_ADMIN_ID`. This is
+   the DB actor recorded for Telegram-driven approvals; the human's Telegram
+   handle is stored separately in `social_posts.telegram_actor`.
+5. **Set these in the `/socials` Infisical path**: `SOCIALS_BOT_TOKEN`,
+   `SOCIALS_POST_CHAT_ID`, `SOCIALS_TELEGRAM_RELAY_ENABLED=true`,
+   `SOCIALS_SYSTEM_ADMIN_ID`, and confirm `SOCIALS_X_SELF_HANDLE` +
+   `SOCIALS_X_SELF_REST_ID` are set (posting-account reconciliation reads from
+   them). Enabling the relay gates OFF the read-only draft digest.
+6. **Each operator must open their own X profile once** in the capture-extension
+   browser so their `UserTweets` op-hash gets captured — reconciliation needs it.
+7. **Usage notes**: the **📝 Open in X** button pre-fills the composer — reliable
+   for original posts. For **reply/quote**, the intent can drop context on
+   mobile, so the card also links the original tweet and the **expected
+   confirmation for replies is to reply to the card with the posted tweet's URL**
+   (paste-URL). Tweet-ID reconciliation is **best-effort** id recovery (reads
+   your own timeline and text-matches), not a hard guarantee.
+8. **Post as the correct bot handle** — the intent posts from whatever X account
+   the browser is currently logged into. A wrong-account post won't reconcile
+   and shows as `unverified`.

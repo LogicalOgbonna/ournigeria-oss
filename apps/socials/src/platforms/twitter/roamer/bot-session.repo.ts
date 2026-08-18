@@ -107,7 +107,15 @@ export class BotSessionRepo {
     });
   }
 
-  async upsertByUserNamePath(input: {
+  /**
+   * Persist a captured session. Distinguishes two intents so a routine
+   * freshness capture never yanks the roamer's rate-limit state:
+   *   - new row / auth_failed row  -> REVIVE (reset status, cooldown, errors)
+   *   - idle / working row         -> MATERIAL REFRESH (credentials + op-hashes
+   *                                    only; leave status/cooldown/errors intact)
+   * Op-hashes stay preserve-on-partial: only the hash actually carried is written.
+   */
+  async saveCapture(input: {
     userName: string;
     path: string;
     cookie: string;
@@ -115,42 +123,77 @@ export class BotSessionRepo {
     authorization: string;
     xClientTransactionId: string;
     xClientUuid: string;
-    // Each capture carries only the op-hash it saw. Set just that column so
-    // capturing SearchTimeline doesn't wipe a previously-captured TweetDetail
-    // hash (and vice versa).
     searchTimelineOpHash?: string | null;
     tweetDetailOpHash?: string | null;
-  }) {
+    createTweetOpHash?: string | null;
+    userTweetsOpHash?: string | null;
+  }): Promise<SocialsBotSession> {
     const now = new Date();
-    const data = {
+    const material: Prisma.SocialsBotSessionUpdateInput = {
       cookie: input.cookie,
       csrfToken: input.csrfToken,
       authorization: input.authorization,
       xClientTransactionId: input.xClientTransactionId,
       xClientUuid: input.xClientUuid,
       lastUsedAt: now,
-      // A fresh capture means this session is good to use again: make it
-      // immediately claimable and clear any prior working/error/cooldown state.
-      // Otherwise a session stuck in "working" from a crashed run stays
-      // unclaimable and test-query / roamer report "no claimable bot sessions".
-      status: "idle",
-      consecutiveErrors: 0,
-      cooldownUntil: null,
-      lastError: null,
-      // Only touch a hash column when this capture actually carried it, so
-      // capturing one op never nulls the other op's stored hash.
       ...(input.searchTimelineOpHash
         ? { searchTimelineOpHash: input.searchTimelineOpHash }
         : {}),
       ...(input.tweetDetailOpHash
         ? { tweetDetailOpHash: input.tweetDetailOpHash }
         : {}),
+      ...(input.createTweetOpHash
+        ? { createTweetOpHash: input.createTweetOpHash }
+        : {}),
+      ...(input.userTweetsOpHash
+        ? { userTweetsOpHash: input.userTweetsOpHash }
+        : {}),
     };
 
-    return this.prisma.socialsBotSession.upsert({
+    const existing = await this.prisma.socialsBotSession.findUnique({
       where: { userName_path: { userName: input.userName, path: input.path } },
-      create: { ...data, userName: input.userName, path: input.path },
-      update: data,
+    });
+
+    if (!existing) {
+      return this.prisma.socialsBotSession.create({
+        data: {
+          userName: input.userName,
+          path: input.path,
+          cookie: input.cookie,
+          csrfToken: input.csrfToken,
+          authorization: input.authorization,
+          xClientTransactionId: input.xClientTransactionId,
+          xClientUuid: input.xClientUuid,
+          lastUsedAt: now,
+          searchTimelineOpHash: input.searchTimelineOpHash ?? null,
+          tweetDetailOpHash: input.tweetDetailOpHash ?? null,
+          createTweetOpHash: input.createTweetOpHash ?? null,
+          userTweetsOpHash: input.userTweetsOpHash ?? null,
+          status: "idle",
+          consecutiveErrors: 0,
+          cooldownUntil: null,
+          lastError: null,
+        },
+      });
+    }
+
+    if (existing.status === "auth_failed") {
+      return this.prisma.socialsBotSession.update({
+        where: { id: existing.id },
+        data: {
+          ...material,
+          status: "idle",
+          consecutiveErrors: 0,
+          cooldownUntil: null,
+          lastError: null,
+        },
+      });
+    }
+
+    // idle | working -> material refresh only; preserve pacing.
+    return this.prisma.socialsBotSession.update({
+      where: { id: existing.id },
+      data: material,
     });
   }
 
@@ -196,6 +239,19 @@ export class BotSessionRepo {
           { tweetDetailCooldownUntil: null },
           { tweetDetailCooldownUntil: { lt: now } },
         ],
+      },
+      orderBy: { lastUsedAt: "asc" },
+    });
+  }
+
+  /** An idle/working session for a SPECIFIC handle carrying a UserTweets hash,
+   * taken WITHOUT locking or touching pacing state — for reconciliation reads. */
+  async pickForReadByHandle(userName: string): Promise<SocialsBotSession | null> {
+    return this.prisma.socialsBotSession.findFirst({
+      where: {
+        userName: { equals: userName, mode: "insensitive" },
+        status: { in: ["idle", "working"] },
+        userTweetsOpHash: { not: null },
       },
       orderBy: { lastUsedAt: "asc" },
     });
@@ -284,6 +340,34 @@ export class BotSessionRepo {
     return this.prisma.socialsBotSession.findMany({
       orderBy: { lastUsedAt: "desc" },
     });
+  }
+
+  /**
+   * Slim, secrets-stripped per-session health for the capture extension.
+   * `needsRelogin` keys ONLY on auth_failed (never consecutiveErrors, which
+   * counts 429s too); `needsSearchHash` flags a missing/rotated search hash.
+   */
+  async healthFor(handles?: string[]) {
+    const rows = await this.prisma.socialsBotSession.findMany({
+      orderBy: { lastUsedAt: "desc" },
+    });
+    const wanted = handles?.length
+      ? new Set(handles.map((h) => h.toLowerCase()))
+      : null;
+    return rows
+      .filter((r) => !wanted || wanted.has(r.userName.toLowerCase()))
+      .map((r) => ({
+        userName: r.userName,
+        path: r.path,
+        status: r.status,
+        consecutiveErrors: r.consecutiveErrors,
+        cooldownUntil: r.cooldownUntil,
+        needsRelogin: r.status === "auth_failed",
+        needsSearchHash: !r.searchTimelineOpHash,
+        hasTweetDetailHash: !!r.tweetDetailOpHash,
+        hasCreateTweetHash: !!r.createTweetOpHash,
+        hasUserTweetsHash: !!r.userTweetsOpHash,
+      }));
   }
 
   async delete(id: string) {

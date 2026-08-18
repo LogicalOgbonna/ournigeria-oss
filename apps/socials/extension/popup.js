@@ -1,233 +1,160 @@
-const ARM_TIMEOUT_MS = 60_000;
-
-const els = {
-  idle: document.getElementById("state-idle"),
-  armed: document.getElementById("state-armed"),
-  result: document.getElementById("state-result"),
-  countdown: document.getElementById("countdown"),
-  arm: document.getElementById("arm"),
-  cancel: document.getElementById("cancel"),
-  send: document.getElementById("send"),
-  copy: document.getElementById("copy"),
-  recapture: document.getElementById("recapture"),
-  json: document.getElementById("json"),
-  toast: document.getElementById("toast"),
-  error: document.getElementById("error"),
-  userNameBlock: document.getElementById("user-name-block"),
-  userNameInput: document.getElementById("user-name-input"),
-  endpointInput: document.getElementById("endpoint-input"),
-  roamerKeyInput: document.getElementById("roamer-key-input"),
-};
-
 const ENDPOINT_KEY = "endpointUrl";
 const ROAMER_KEY = "roamerIngestKey";
 
-(async () => {
-  const cfg = await chrome.storage.local.get([ENDPOINT_KEY, ROAMER_KEY]);
-  if (cfg[ENDPOINT_KEY]) els.endpointInput.value = cfg[ENDPOINT_KEY];
-  if (cfg[ROAMER_KEY]) els.roamerKeyInput.value = cfg[ROAMER_KEY];
-})();
-
-let countdownTimer = null;
-let armTimeout = null;
-let currentPayload = null;
+const els = {
+  cards: document.getElementById("cards"),
+  empty: document.getElementById("empty"),
+  endpoint: document.getElementById("endpoint-input"),
+  roamerKey: document.getElementById("roamer-key-input"),
+  sendAll: document.getElementById("send-all"),
+  openOptions: document.getElementById("open-options"),
+  toast: document.getElementById("toast"),
+};
 
 init();
 
 async function init() {
-  const { lastCapture, lastError, armed, armedAt } =
-    await chrome.storage.local.get(["lastCapture", "lastError", "armed", "armedAt"]);
+  const cfg = await chrome.storage.local.get([ENDPOINT_KEY, ROAMER_KEY]);
+  if (cfg[ENDPOINT_KEY]) els.endpoint.value = cfg[ENDPOINT_KEY];
+  if (cfg[ROAMER_KEY]) els.roamerKey.value = cfg[ROAMER_KEY];
+  await render();
+}
 
-  if (armed) {
-    const elapsed = Date.now() - (armedAt ?? Date.now());
-    const remaining = Math.max(0, ARM_TIMEOUT_MS - elapsed);
-    if (remaining > 0) {
-      showArmed(remaining);
-      return;
+// The popup is small — hand off to the full-page tracker for managing accounts.
+els.openOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+els.endpoint.addEventListener("change", persistConfig);
+els.roamerKey.addEventListener("change", persistConfig);
+async function persistConfig() {
+  await chrome.storage.local.set({
+    [ENDPOINT_KEY]: els.endpoint.value.trim(),
+    [ROAMER_KEY]: els.roamerKey.value.trim(),
+  });
+}
+
+function ago(ts) {
+  if (!ts) return "—";
+  const m = Math.round((Date.now() - ts) / 60000);
+  return m <= 0 ? "just now" : `${m}m ago`;
+}
+
+function healthLabel(b) {
+  if (b.needsRelogin) return { text: "needs re-login", cls: "dead" };
+  if (b.needsSearchHash) return { text: "needs search", cls: "warn" };
+  return { text: "ready", cls: "ok" };
+}
+
+function chip(has, label) {
+  return `<span class="chip ${has ? "on" : ""}">${label} ${has ? "✓" : "—"}</span>`;
+}
+
+async function render() {
+  const { captures = {} } = await chrome.storage.local.get("captures");
+  const twids = Object.keys(captures);
+  els.cards.innerHTML = "";
+  els.empty.classList.toggle("hidden", twids.length > 0);
+
+  for (const twid of twids) {
+    const b = captures[twid];
+    const card = document.createElement("div");
+    card.className = "card";
+    const h = healthLabel(b);
+    card.innerHTML = `
+      <div class="acct-head">
+        <span class="handle">${b.userName ? "@" + b.userName : "unknown handle"}</span>
+        <span class="pill ${h.cls}">${h.text}</span>
+      </div>
+      <div class="chips">
+        ${chip(b.searchTimelineOpHash, "search")}
+        ${chip(b.tweetDetailOpHash, "thread")}
+        ${chip(b.createTweetOpHash, "write")}
+        ${chip(b.userTweetsOpHash, "tweets")}
+      </div>
+      <div class="muted" style="font-size:11px">last seen ${ago(b.lastSeenAt)}</div>
+    `;
+    if (!b.userName) {
+      const input = document.createElement("input");
+      input.placeholder = "enter @handle";
+      input.style.marginTop = "8px";
+      input.addEventListener("change", async () => {
+        const store = await chrome.storage.local.get("captures");
+        if (store.captures?.[twid]) {
+          store.captures[twid].userName = input.value.trim().replace(/^@/, "");
+          await chrome.storage.local.set({ captures: store.captures });
+          render();
+        }
+      });
+      card.appendChild(input);
     }
-    await chrome.storage.local.set({ armed: false });
+    const row = document.createElement("div");
+    row.className = "row";
+    const send = document.createElement("button");
+    send.className = "secondary";
+    send.textContent = "Send";
+    send.addEventListener("click", () => sendOne(twid));
+    const remove = document.createElement("button");
+    remove.className = "danger-ghost";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => removeOne(twid));
+    row.append(send, remove);
+    card.appendChild(row);
+    els.cards.appendChild(card);
   }
-
-  if (lastError) {
-    showError(lastError);
-    return;
-  }
-
-  if (lastCapture) {
-    showResult(lastCapture);
-    return;
-  }
-
-  showIdle();
 }
 
-function showIdle() {
-  els.idle.classList.remove("hidden");
-  els.armed.classList.add("hidden");
-  els.result.classList.add("hidden");
+function toPayload(b) {
+  return {
+    userName: b.userName,
+    cookie: b.cookie,
+    csrfToken: b.csrfToken,
+    authorization: b.authorization,
+    xClientTransactionId: b.xClientTransactionId,
+    xClientUuid: b.xClientUuid,
+    searchTimelineOpHash: b.searchTimelineOpHash ?? undefined,
+    tweetDetailOpHash: b.tweetDetailOpHash ?? undefined,
+    createTweetOpHash: b.createTweetOpHash ?? undefined,
+    userTweetsOpHash: b.userTweetsOpHash ?? undefined,
+    path: "SearchTimeline",
+  };
 }
 
-function showArmed(remainingMs) {
-  els.idle.classList.add("hidden");
-  els.armed.classList.remove("hidden");
-  els.result.classList.add("hidden");
-
-  let secondsLeft = Math.ceil(remainingMs / 1000);
-  els.countdown.textContent = String(secondsLeft);
-
-  countdownTimer = setInterval(() => {
-    secondsLeft--;
-    els.countdown.textContent = String(secondsLeft);
-    if (secondsLeft <= 0) clearInterval(countdownTimer);
-  }, 1000);
-
-  armTimeout = setTimeout(async () => {
-    clearInterval(countdownTimer);
-    await chrome.storage.local.set({ armed: false });
-    showError("Timed out — no SearchTimeline/TweetDetail request seen. For the search hash arm on your home timeline; for the thread hash open any tweet, then arm. Make sure you're on x.com and try again.");
-  }, remainingMs);
-}
-
-function showResult(capture) {
-  clearTimers();
-  currentPayload = { ...capture.payload };
-  els.idle.classList.add("hidden");
-  els.armed.classList.add("hidden");
-  els.result.classList.remove("hidden");
-  els.error.classList.add("hidden");
-
-  if (!capture.userNameResolved) {
-    els.userNameBlock.classList.remove("hidden");
-    els.userNameInput.value = "";
-  } else {
-    els.userNameBlock.classList.add("hidden");
-  }
-
-  renderJson();
-}
-
-function renderJson() {
-  els.json.value = JSON.stringify(currentPayload, null, 2);
-}
-
-function showError(msg) {
-  clearTimers();
-  els.idle.classList.remove("hidden");
-  els.armed.classList.add("hidden");
-  els.result.classList.add("hidden");
-  els.error.textContent = msg;
-  els.error.classList.remove("hidden");
-}
-
-function clearTimers() {
-  if (countdownTimer) clearInterval(countdownTimer);
-  if (armTimeout) clearTimeout(armTimeout);
-  countdownTimer = armTimeout = null;
-}
-
-els.arm.addEventListener("click", async () => {
-  await chrome.storage.local.set({
-    armed: true,
-    armedAt: Date.now(),
-    lastCapture: null,
-    lastError: null,
-  });
-  els.error.classList.add("hidden");
-  showArmed(ARM_TIMEOUT_MS);
-});
-
-els.cancel.addEventListener("click", async () => {
-  clearTimers();
-  await chrome.storage.local.set({ armed: false });
-  showIdle();
-});
-
-els.recapture.addEventListener("click", async () => {
-  await chrome.storage.local.set({
-    armed: true,
-    armedAt: Date.now(),
-    lastCapture: null,
-    lastError: null,
-  });
-  showArmed(ARM_TIMEOUT_MS);
-});
-
-els.userNameInput.addEventListener("input", () => {
-  if (!currentPayload) return;
-  currentPayload.userName = els.userNameInput.value.trim();
-  renderJson();
-});
-
-els.copy.addEventListener("click", async () => {
-  if (!currentPayload) return;
-  if (!currentPayload.userName) {
-    showInlineToast("userName is empty", true);
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(JSON.stringify(currentPayload, null, 2));
-    showInlineToast("Copied", false);
-  } catch (err) {
-    showInlineToast("Copy failed: " + (err?.message ?? err), true);
-  }
-});
-
-els.send.addEventListener("click", async () => {
-  if (!currentPayload) return;
-  if (!currentPayload.userName) {
-    showInlineToast("userName is empty", true);
-    return;
-  }
-  const url = els.endpointInput.value.trim();
-  if (!url) {
-    showInlineToast("endpoint is empty", true);
-    return;
-  }
-  const roamerKey = els.roamerKeyInput.value.trim();
-  if (!roamerKey) {
-    showInlineToast("X-Roamer-Key is empty", true);
-    return;
-  }
-  await chrome.storage.local.set({
-    [ENDPOINT_KEY]: url,
-    [ROAMER_KEY]: roamerKey,
-  });
-  els.send.disabled = true;
+async function sendOne(twid) {
+  const { captures = {} } = await chrome.storage.local.get("captures");
+  const b = captures[twid];
+  if (!b?.userName) return showToast("resolve the handle first", true);
+  const url = els.endpoint.value.trim();
+  const key = els.roamerKey.value.trim();
+  if (!url || !key) return showToast("set endpoint + key", true);
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Roamer-Key": roamerKey,
-      },
-      body: JSON.stringify(currentPayload),
+      headers: { "Content-Type": "application/json", "X-Roamer-Key": key },
+      body: JSON.stringify(toPayload(b)),
     });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      showInlineToast(`HTTP ${res.status}: ${body.slice(0, 80)}`, true);
-      return;
-    }
-    showInlineToast("Sent", false);
-  } catch (err) {
-    showInlineToast("Send failed: " + (err?.message ?? err), true);
-  } finally {
-    els.send.disabled = false;
+    showToast(res.ok ? "sent" : `HTTP ${res.status}`, !res.ok);
+  } catch (e) {
+    showToast("send failed", true);
   }
-});
+}
 
-function showInlineToast(text, isError) {
+async function sendAll() {
+  const { captures = {} } = await chrome.storage.local.get("captures");
+  for (const twid of Object.keys(captures)) {
+    if (captures[twid].userName) await sendOne(twid);
+  }
+}
+els.sendAll.addEventListener("click", sendAll);
+
+async function removeOne(twid) {
+  const { captures = {} } = await chrome.storage.local.get("captures");
+  delete captures[twid];
+  await chrome.storage.local.set({ captures });
+  render();
+}
+
+function showToast(text, isError) {
   els.toast.textContent = text;
-  els.toast.style.background = isError ? "#f4212e" : "#00ba7c";
+  els.toast.style.background = isError ? "var(--danger)" : "var(--emerald)";
   els.toast.classList.remove("hidden");
   setTimeout(() => els.toast.classList.add("hidden"), 1800);
 }
-
-chrome.runtime.onMessage.addListener(async (msg) => {
-  if (msg?.type !== "captureFinished") return;
-  const { lastCapture, lastError } = await chrome.storage.local.get([
-    "lastCapture",
-    "lastError",
-  ]);
-  if (lastError) showError(lastError);
-  else if (lastCapture) showResult(lastCapture);
-});

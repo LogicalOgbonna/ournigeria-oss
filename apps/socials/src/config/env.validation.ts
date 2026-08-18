@@ -26,6 +26,12 @@ export interface SocialsEnvConfig {
   // Telegram ops alerts
   TELEGRAM_BOT_TOKEN?: string;
   SOCIALS_OPS_CHAT_ID?: string;
+  // Telegram manual-posting relay (delivery half). When enabled, the read-only
+  // digest cron is gated OFF so they don't fight over stamps.
+  SOCIALS_BOT_TOKEN?: string;
+  SOCIALS_POST_CHAT_ID?: string;
+  SOCIALS_TELEGRAM_RELAY_ENABLED?: boolean;
+  SOCIALS_SYSTEM_ADMIN_ID?: string;
   // Roamer pacing
   ROAM_WINDOW_MS?: number;
   ROAM_COOLDOWN_MS?: number;
@@ -66,6 +72,9 @@ export interface SocialsEnvConfig {
   // out of the inbox and to build the mentions query.
   SOCIALS_X_SELF_REST_ID?: string;
   SOCIALS_X_SELF_HANDLE?: string;
+  // Tweet-ID reconciler: backoff-tail UserTweets read to recover the posted id
+  SOCIALS_RECONCILE_MAX_TRIES?: number;
+  SOCIALS_RECONCILE_BASE_MS?: number;
   // Legacy (FAAC infographic cron + analytics polling)
   SOCIAL_POLL_INTERVAL_MS: number;
   SOCIAL_MAX_POSTS_DAY: number;
@@ -135,6 +144,11 @@ export function validateEnv(
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
     TELEGRAM_BOT_TOKEN: (config.TELEGRAM_BOT_TOKEN as string) || undefined,
     SOCIALS_OPS_CHAT_ID: (config.SOCIALS_OPS_CHAT_ID as string) || undefined,
+    SOCIALS_BOT_TOKEN: (config.SOCIALS_BOT_TOKEN as string) || undefined,
+    SOCIALS_POST_CHAT_ID: (config.SOCIALS_POST_CHAT_ID as string) || undefined,
+    SOCIALS_TELEGRAM_RELAY_ENABLED:
+      (config.SOCIALS_TELEGRAM_RELAY_ENABLED as string) === "true",
+    SOCIALS_SYSTEM_ADMIN_ID: (config.SOCIALS_SYSTEM_ADMIN_ID as string) || undefined,
     ROAM_WINDOW_MS: num("ROAM_WINDOW_MS", 300_000),
     ROAM_COOLDOWN_MS: num("ROAM_COOLDOWN_MS", 600_000),
     ROAM_RATE_LIMIT_COOLDOWN_MS: num("ROAM_RATE_LIMIT_COOLDOWN_MS", 1_800_000),
@@ -173,6 +187,8 @@ export function validateEnv(
     SOCIALS_INBOX_MAX_CONVO_DEPTH: num("SOCIALS_INBOX_MAX_CONVO_DEPTH", 3),
     SOCIALS_X_SELF_REST_ID: (config.SOCIALS_X_SELF_REST_ID as string) || undefined,
     SOCIALS_X_SELF_HANDLE: (config.SOCIALS_X_SELF_HANDLE as string) || undefined,
+    SOCIALS_RECONCILE_MAX_TRIES: num("SOCIALS_RECONCILE_MAX_TRIES", 5),
+    SOCIALS_RECONCILE_BASE_MS: num("SOCIALS_RECONCILE_BASE_MS", 15_000),
     SOCIAL_POLL_INTERVAL_MS: num("SOCIAL_POLL_INTERVAL_MS", 1_200_000)!,
     SOCIAL_MAX_POSTS_DAY: num("SOCIAL_MAX_POSTS_DAY", 5)!,
     SOCIAL_MAX_REPLIES_DAY: num("SOCIAL_MAX_REPLIES_DAY", 10)!,

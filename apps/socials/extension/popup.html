@@ -2,88 +2,70 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Capture x.com session</title>
+    <title>OurNigeria — Session Capture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="theme.css" />
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        margin: 0;
-        padding: 14px;
-        width: 380px;
-        background: #f7f9fa;
-        color: #0f1419;
+      body { width: 380px; padding: 14px; }
+      header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+      h1 { font-size: 14px; font-weight: 700; }
+      .lede { font-size: 12px; line-height: 1.5; color: var(--muted); margin: 0 0 12px; }
+      .cards { display: flex; flex-direction: column; gap: 8px; }
+      .acct-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+      .handle { font-family: var(--font-mono); font-weight: 500; font-size: 13px; }
+      .card .chips { margin: 8px 0; }
+      .row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+      .config { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+      .config label { margin-top: 10px; }
+      .footer { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+      .footer .spacer { flex: 1; }
+      .empty {
+        text-align: center; padding: 20px 12px; color: var(--muted);
+        font-size: 12px; line-height: 1.6;
       }
-      h1 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
-      p { margin: 0 0 10px; font-size: 12px; line-height: 1.4; color: #536471; }
-      button {
-        background: #1d9bf0; color: white; border: none; border-radius: 999px;
-        padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
-      }
-      button:hover { background: #1a8cd8; }
-      button.secondary { background: #eff3f4; color: #0f1419; }
-      button:disabled { background: #8ecdf3; cursor: not-allowed; }
-      textarea {
-        width: 100%; height: 180px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
-        font-size: 11px; padding: 8px; border: 1px solid #cfd9de; border-radius: 6px;
-        resize: vertical; box-sizing: border-box;
-      }
-      input[type="text"], input[type="password"] {
-        width: 100%; padding: 6px 8px; font-size: 12px; border: 1px solid #cfd9de;
-        border-radius: 6px; box-sizing: border-box;
-      }
-      .hidden { display: none; }
-      .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
-      .toast { background: #00ba7c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; }
-      .err { background: #f4212e; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; margin-top: 8px; }
-      .warn { background: #ffd400; color: #0f1419; padding: 6px 8px; border-radius: 4px; font-size: 12px; margin-top: 8px; }
-      label { display: block; font-size: 11px; color: #536471; margin: 8px 0 2px; }
+      .empty .em { color: var(--emerald-strong); font-weight: 600; }
     </style>
   </head>
   <body>
-    <h1>Capture x.com session</h1>
-
-    <section id="state-idle">
-      <p>
-        Click <b>Arm</b>, then trigger the op you want to capture. Two hashes,
-        one session — capture each once:
-      </p>
-      <ul>
-        <li><b>Search hash</b> — arm, then run any search on x.com.</li>
-        <li><b>Thread hash</b> — open any tweet, then arm (or reload it).</li>
-      </ul>
-      <button id="arm">Arm capture</button>
-    </section>
-
-    <section id="state-armed" class="hidden">
-      <p>Waiting for a SearchTimeline/TweetDetail request… <span id="countdown">60</span>s</p>
-      <p>Run a search, or open/reload a tweet, on x.com now.</p>
-      <button id="cancel" class="secondary">Cancel</button>
-    </section>
-
-    <section id="state-result" class="hidden">
-      <p>Captured.</p>
-      <div id="user-name-block" class="hidden">
-        <div class="warn">
-          Couldn't auto-resolve <code>userName</code>. Enter your x.com handle:
-        </div>
-        <label for="user-name-input">userName</label>
-        <input id="user-name-input" type="text" placeholder="screen_name" />
+    <header>
+      <div class="brand">
+        <img class="brand-logo" src="icon48.png" alt="OurNigeria" />
+        <h1>Session Capture</h1>
       </div>
-      <label>JSON payload</label>
-      <textarea id="json" readonly></textarea>
+      <button id="open-options" class="secondary">Open full tracker →</button>
+    </header>
+
+    <p class="lede">
+      Passive. Stay logged into your bot accounts and use x.com normally — run one
+      search, open one tweet. Sessions appear here on their own.
+    </p>
+
+    <div id="empty" class="empty hidden">
+      No accounts captured yet.<br />
+      Log into x.com and <span class="em">run a search</span> — this browser will
+      pick up the session automatically.
+    </div>
+
+    <div id="cards" class="cards"></div>
+
+    <div class="config">
       <label for="endpoint-input">Backend endpoint (POST /v1/sessions)</label>
-      <input id="endpoint-input" type="text" placeholder="https://socials.example.com/v1/sessions" />
-      <label for="roamer-key-input">X-Roamer-Key (ROAMER_INGEST_KEY)</label>
-      <input id="roamer-key-input" type="password" placeholder="paste shared secret" />
-      <div class="row">
-        <button id="send">Send to backend</button>
-        <button id="copy" class="secondary">Copy JSON</button>
-        <button id="recapture" class="secondary">Re-capture</button>
-        <span id="toast" class="toast hidden">Copied</span>
-      </div>
-    </section>
+      <input id="endpoint-input" type="text" placeholder="http://localhost:3005/v1/sessions" />
+      <label for="roamer-key-input">X-Roamer-Key</label>
+      <input id="roamer-key-input" type="password" placeholder="ROAMER_INGEST_KEY" />
+    </div>
 
-    <div id="error" class="err hidden"></div>
+    <div class="footer">
+      <button id="send-all" class="primary">Send all ready</button>
+      <span class="spacer"></span>
+      <span id="toast" class="toast hidden"></span>
+    </div>
 
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

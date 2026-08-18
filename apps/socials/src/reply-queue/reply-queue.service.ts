@@ -310,7 +310,10 @@ export class ReplyQueueService {
     return updated;
   }
 
-  async reject(id: string, adminId: string) {
+  async reject(id: string, adminId: string, telegramActor?: string) {
+    const post = await this.prisma.socialPost.findUnique({ where: { id } });
+    if (!post) throw new NotFoundException("Post not found");
+    if (post.status === "published" || post.status === "rejected") return post;
     return this.prisma.socialPost.update({
       where: { id },
       data: {
@@ -318,6 +321,7 @@ export class ReplyQueueService {
         reviewStatus: "rejected",
         reviewedBy: adminId,
         reviewedAt: new Date(),
+        ...(telegramActor ? { telegramActor } : {}),
       },
     });
   }
@@ -329,9 +333,19 @@ export class ReplyQueueService {
    * publish call. Optionally records the resulting tweet id for engagement
    * tracking if the operator supplies it.
    */
-  async markPosted(id: string, adminId: string, externalId?: string) {
+  async markPosted(
+    id: string,
+    adminId: string,
+    externalId?: string,
+    telegramActor?: string,
+  ) {
     const post = await this.prisma.socialPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException("Post not found");
+    // Idempotent + cross-surface safe: a draft already finished — published
+    // (dashboard approve / double-tap) OR rejected — must never be re-stamped.
+    // Guards the paste-URL path too, which calls markPosted outside routeCallback's
+    // own status re-check, so a URL reply can't resurrect a rejected draft.
+    if (post.status === "published" || post.status === "rejected") return post;
     return this.prisma.socialPost.update({
       where: { id },
       data: {
@@ -341,6 +355,7 @@ export class ReplyQueueService {
         publishedAt: new Date(),
         reviewedBy: adminId,
         reviewedAt: new Date(),
+        ...(telegramActor ? { telegramActor } : {}),
       },
     });
   }

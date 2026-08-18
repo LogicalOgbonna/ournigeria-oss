@@ -37,13 +37,19 @@ export class DraftDigestNotifierService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramService,
-    config: ConfigService<SocialsEnvConfig>,
+    private readonly config: ConfigService<SocialsEnvConfig>,
   ) {
     this.dashboardUrl = config.get("SOCIALS_DASHBOARD_URL")!;
   }
 
   @Cron("0 */30 * * * *")
   async notifyDraftDigest(): Promise<{ notified: number }> {
+    // When the manual-posting relay is on, it owns the drafts (stamps
+    // telegram_carded_at + dispatches actionable cards); this read-only digest
+    // must stand down so the two don't fight over stamps.
+    if (this.config.get("SOCIALS_TELEGRAM_RELAY_ENABLED")) {
+      return { notified: 0 };
+    }
     if (this.running) return { notified: 0 };
     this.running = true;
     try {

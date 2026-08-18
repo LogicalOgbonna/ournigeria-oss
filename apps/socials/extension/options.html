@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>OurNigeria — Session Capture Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="theme.css" />
+    <style>
+      body { padding: 32px 24px; max-width: 980px; margin: 0 auto; }
+      .page-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+      h1 { font-size: 20px; font-weight: 700; }
+      .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+      .config {
+        display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: var(--r-lg); padding: 16px; margin-bottom: 16px;
+      }
+      .config .field { flex: 1 1 260px; }
+
+      .summary { margin-bottom: 16px; }
+      .summary .chip {
+        font-family: var(--font-heading); font-weight: 600; font-size: 12px;
+        padding: 6px 14px; border-radius: var(--r-full);
+        background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+      }
+      .summary .chip b { font-family: var(--font-mono); }
+
+      .banner { font-size: 13px; padding: 10px 14px; border-radius: var(--r-md); margin-bottom: 14px; }
+      .banner.err { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger); }
+
+      table {
+        width: 100%; border-collapse: collapse; background: var(--surface);
+        border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
+      }
+      th, td { text-align: left; padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+      th {
+        background: var(--surface-2); font-family: var(--font-mono); font-size: 11px;
+        text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 500;
+      }
+      tr:last-child td { border-bottom: none; }
+      .handle { font-family: var(--font-mono); font-weight: 500; }
+
+      .ops span { font-family: var(--font-mono); font-size: 11px; margin-right: 8px; }
+      .ops .yes { color: var(--emerald-strong); }
+      .ops .no { color: var(--neutral); }
+      .meta { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+      .await { font-size: 11px; color: var(--warning); margin-top: 4px; }
+
+      .empty { padding: 40px 24px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.7; }
+      .empty .em { color: var(--emerald-strong); font-weight: 600; }
+      .row-actions { white-space: nowrap; text-align: right; }
+
+      .toast {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        display: none; box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+      }
+      .foot { margin-top: 12px; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; }
+    </style>
+  </head>
+  <body>
+    <div class="page-head">
+      <img class="brand-logo" src="icon48.png" alt="OurNigeria" />
+      <h1>Session Capture Tracker</h1>
+    </div>
+    <p class="sub">
+      Live view of the x.com sessions this browser has captured, merged with backend
+      health. Auto-refreshes every 15s.
+    </p>
+
+    <div class="config">
+      <div class="field">
+        <label for="endpoint">Backend endpoint (POST /v1/sessions)</label>
+        <input id="endpoint" type="text" placeholder="http://localhost:3005/v1/sessions" />
+      </div>
+      <div class="field">
+        <label for="roamerKey">X-Roamer-Key</label>
+        <input id="roamerKey" type="password" placeholder="ROAMER_INGEST_KEY" />
+      </div>
+      <button id="refresh" class="secondary">Refresh now</button>
+      <button id="sendAll" class="primary">Send all ready</button>
+    </div>
+
+    <div id="banner" class="banner err" style="display:none"></div>
+
+    <div class="summary stat-row" id="summary"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Account</th>
+          <th>Status</th>
+          <th>Hashes (search / thread / write / tweets)</th>
+          <th>Backend</th>
+          <th>Last seen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">
+      No accounts captured in this browser yet.<br />
+      Log into x.com and <span class="em">run a search</span> — sessions show up here
+      automatically.
+    </div>
+
+    <div class="foot">
+      <span id="updated">—</span>
+      <span>Right-click the toolbar icon → Options to reopen this page.</span>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

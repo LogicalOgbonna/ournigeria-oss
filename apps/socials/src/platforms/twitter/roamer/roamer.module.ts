@@ -32,6 +32,7 @@ import { XTransactionService } from "./x-transaction.service.js";
     TopicRepo,
     DiscoveredTweetRepo,
     RoamStateRepo,
+    TwitterGraphqlClient,
     TwitterSearchService,
     TwitterConversationService,
     ClassifierService,

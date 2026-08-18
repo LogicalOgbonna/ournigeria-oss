@@ -1546,6 +1546,16 @@ model SocialPost {
   reviewedAt         DateTime? @map("reviewed_at") @db.Timestamptz()
   telegramNotifiedAt DateTime? @map("telegram_notified_at") @db.Timestamptz()
 
+  // Telegram manual-posting relay
+  telegramCardedAt      DateTime? @map("telegram_carded_at") @db.Timestamptz()
+  telegramPostChatId    String?   @map("telegram_post_chat_id") @db.VarChar(64)
+  telegramPostMessageId String?   @map("telegram_post_message_id") @db.VarChar(64)
+  telegramClaimedBy     String?   @map("telegram_claimed_by") @db.VarChar(120)
+  telegramClaimedAt     DateTime? @map("telegram_claimed_at") @db.Timestamptz()
+  telegramActor         String?   @map("telegram_actor") @db.VarChar(120)
+  dispatchedAt          DateTime? @map("dispatched_at") @db.Timestamptz()
+  reconcileStatus       String?   @map("reconcile_status") @db.VarChar(20)
+
   // Quote/draft pipeline fields (roamer + drafter)
   quotedTweetId         String? @map("quoted_tweet_id") @db.VarChar(100) // Twitter ID of quoted tweet
   originalTweetSnapshot Json?   @map("original_tweet_snapshot") @db.JsonB // Frozen author+tweet payload for preview
@@ -1566,6 +1576,7 @@ model SocialPost {
   @@index([platform, createdAt(sort: Desc)], map: "idx_social_posts_platform_date")
   @@index([reviewStatus], map: "idx_social_posts_review_status")
   @@index([telegramNotifiedAt, createdAt(sort: Desc)], map: "idx_social_posts_telegram_notified")
+  @@index([platform, status, telegramCardedAt], map: "idx_social_posts_telegram_carded")
   @@map("social_posts")
 }
 
@@ -1639,6 +1650,8 @@ model SocialsBotSession {
   path                   String    @db.VarChar(200)
   searchTimelineOpHash   String?   @map("search_timeline_op_hash") @db.VarChar(100)
   tweetDetailOpHash      String?   @map("tweet_detail_op_hash") @db.VarChar(100)
+  createTweetOpHash      String?   @map("create_tweet_op_hash") @db.VarChar(100)
+  userTweetsOpHash       String?   @map("user_tweets_op_hash") @db.VarChar(100)
   status                 String    @default("idle") @db.VarChar(20) // idle | working | auth_failed
   cooldownUntil          DateTime? @map("cooldown_until") @db.Timestamptz()
   // Separate from cooldownUntil (the roamer's SearchTimeline pacing): a
@@ -1803,6 +1816,19 @@ model SocialsXOauthTokens {
   rotatedAt    DateTime @default(now()) @map("rotated_at") @db.Timestamptz()
 
   @@map("socials_x_oauth_tokens")
+}
+
+/// Singleton row (id=1): Telegram getUpdates leader lease + update offset so
+/// only one blue/green node polls and the offset survives restarts.
+model SocialsTelegramPollState {
+  id           Int       @id @default(1)
+  updateOffset BigInt    @default(0) @map("update_offset")
+  leaderHost   String?   @map("leader_host") @db.VarChar(120)
+  leaderPid    Int?      @map("leader_pid")
+  leaseUntil   DateTime? @map("lease_until") @db.Timestamptz()
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("socials_telegram_poll_state")
 }
 
 // ============================================================

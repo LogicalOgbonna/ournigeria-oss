@@ -14,6 +14,7 @@ import { ReplyQueueModule } from "./reply-queue/reply-queue.module.js";
 import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { HealthModule } from "./health/health.module.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
+import { TelegramRelayModule } from "./telegram-relay/telegram-relay.module.js";
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { NotificationsModule } from "./notifications/notifications.module.js";
     ReplyQueueModule,
     AnalyticsModule,
     HealthModule,
+    TelegramRelayModule,
   ],
 })
 export class AppModule {}

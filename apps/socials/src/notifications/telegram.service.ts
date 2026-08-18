@@ -2,6 +2,24 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
 
+/**
+ * Pick where socials Telegram alerts go. When the dedicated socials bot AND
+ * socials group are BOTH configured, route ALL socials traffic (ops alerts +
+ * digest) through them so nothing socials-related lands in the shared ops/dev
+ * group. Kept PAIRED — never send via the new bot to the legacy chat (the new
+ * bot isn't a member there), so an env with only the legacy vars keeps working.
+ */
+export function resolveSocialsTelegramTarget(
+  get: (key: string) => string | undefined,
+): { token?: string; chatId?: string } {
+  const socialsBot = get("SOCIALS_BOT_TOKEN");
+  const socialsChat = get("SOCIALS_POST_CHAT_ID");
+  if (socialsBot && socialsChat) {
+    return { token: socialsBot, chatId: socialsChat };
+  }
+  return { token: get("TELEGRAM_BOT_TOKEN"), chatId: get("SOCIALS_OPS_CHAT_ID") };
+}
+
 @Injectable()
 export class TelegramService {
   private readonly logger = new Logger(TelegramService.name);
@@ -9,8 +27,11 @@ export class TelegramService {
   private readonly chatId?: string;
 
   constructor(config: ConfigService<SocialsEnvConfig>) {
-    this.token = config.get("TELEGRAM_BOT_TOKEN");
-    this.chatId = config.get("SOCIALS_OPS_CHAT_ID");
+    const target = resolveSocialsTelegramTarget((k) =>
+      config.get(k as keyof SocialsEnvConfig),
+    );
+    this.token = target.token;
+    this.chatId = target.chatId;
   }
 
   async notify(message: string, chatIdOverride?: string): Promise<boolean> {
