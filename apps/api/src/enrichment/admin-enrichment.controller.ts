@@ -45,6 +45,12 @@ export class AdminEnrichmentController {
     });
   }
 
+  /** Overview stats for the admin home — full status breakdown. Declared before `:id`. */
+  @Get("stats")
+  stats() {
+    return this.query.stats();
+  }
+
   @Get(":id")
   get(@Param("id") id: string) {
     return this.query.getWithSources(id);

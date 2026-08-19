@@ -1104,6 +1104,15 @@ export class ProposalsService {
   }
 
   // Admin methods
+  /** Overview stats for the admin home: total proposals + the submitted review queue. */
+  async stats() {
+    const [total, pending] = await Promise.all([
+      this.prisma.dataProposal.count(),
+      this.prisma.dataProposal.count({ where: { status: "submitted" } }),
+    ]);
+    return { total, pending };
+  }
+
   async listPending(params: { status?: string; page?: number; limit?: number }) {
     const { status = "submitted", page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
