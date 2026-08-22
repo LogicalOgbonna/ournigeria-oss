@@ -5,6 +5,11 @@ import * as path from "node:path";
 import { formatNaira } from "../lib/format";
 import { computeBudgetFigures } from "./budget-breakdown";
 import { buildTopFunctionSectorRows } from "./sector-expenditure";
+import {
+  shapeWardConstituencies,
+  type ConstituencyRow,
+  type WardConstituencies,
+} from "./ward-constituencies";
 
 /** Lower = preferred headline row when multiple `IgrRecord`s share the same fiscal year (FY over partials). */
 const IGR_PERIOD_RANK: Record<string, number> = {
@@ -954,9 +959,46 @@ export class GeoService implements OnModuleInit {
       lgaName: lga.name,
       stateName: state.name,
       councilor,
+      constituencies: await this.getWardConstituencies(ward.code, lga.code),
       projects: [],
       civicUpdates: [],
     };
+  }
+
+  /**
+   * The senatorial district / federal constituency / state constituency a ward
+   * sits inside, each with its sitting representative(s). Senatorial districts
+   * are mapped at LGA level; federal + state constituencies at ward level. Any
+   * tier can come back null while its INEC mapping is still unreconciled.
+   */
+  private async getWardConstituencies(
+    wardCode: string,
+    lgaCode: string,
+  ): Promise<WardConstituencies> {
+    const positions = {
+      where: { status: "active" },
+      include: { official: true },
+    } as const;
+
+    const [wardMappings, senatorialMappings] = await Promise.all([
+      this.prisma.constituencyWard.findMany({
+        where: { wardCode },
+        include: { constituency: { include: { officialPositions: positions } } },
+      }),
+      this.prisma.senatorialDistrictLga.findMany({
+        where: { lgaCode },
+        include: {
+          senatorialDistrict: { include: { officialPositions: positions } },
+        },
+      }),
+    ]);
+
+    const rows: ConstituencyRow[] = [
+      ...wardMappings.map((row) => row.constituency),
+      ...senatorialMappings.map((row) => row.senatorialDistrict),
+    ];
+
+    return shapeWardConstituencies(rows);
   }
 
   async getLgasByState(stateCode: string) {
