@@ -85,6 +85,27 @@ export async function getLgaDetails(stateSlug: string, lgaSlug: string, year?: s
   return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}${queryString}`, init);
 }
 
+/** One legislative tier a ward sits inside; null while its INEC mapping is unreconciled. */
+export interface WardConstituency {
+  code: string;
+  name: string;
+  type: string;
+  representatives: {
+    id: string;
+    slug: string | null;
+    name: string;
+    role: string;
+    party: string;
+    image: string | null;
+  }[];
+}
+
+export interface WardConstituencies {
+  senatorial: WardConstituency | null;
+  federal: WardConstituency | null;
+  state: WardConstituency | null;
+}
+
 export async function getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string, init?: RequestInit) {
   return apiFetch<any>(`/geo/states/${stateSlug}/lgas/${lgaSlug}/wards/${wardSlug}`, init);
 }
