@@ -30,24 +30,44 @@ sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.dirname(_
 from ward_utils import WORKBOOK_TO_STATE, normalize_name  # noqa: E402
 
 
-def _sheet(wb, workbook: str, kind: str):
-    """Resolve a worksheet by kind ('SD'/'FC'/'SC').
+# INEC names the three worksheets inconsistently across states. Observed forms:
+#   ABIA      -> "ABIA SC"        (state-prefixed)
+#   BAYELSA   -> "SC"             (bare)
+#   ONDO      -> "SC ONDO"        (state-SUFFIXED — the reason ONDO failed)
+#   BENUE     -> "STATE CONSTITUENCY"   (full words, and pluralised in places:
+#   KWARA        BENUE writes "FEDERAL CONSTITUENCIES", KWARA the singular)
+_SHEET_WORDS = {
+    "SD": ("senatorial",),
+    "FC": ("federal constituenc",),
+    "SC": ("state constituenc",),
+}
 
-    INEC workbooks are inconsistent: some name sheets ``<STATE> SC`` (e.g. ABIA),
-    others use the bare ``SC`` (e.g. EBONYI, BAYELSA). Try the prefixed name
-    first, then the bare kind, then any sheet whose name ends with the kind
-    (case-insensitive) before giving up.
+
+def _sheet(wb, workbook: str, kind: str):
+    """Resolve a worksheet by kind ('SD'/'FC'/'SC') across INEC's naming variants.
+
+    Tried in order, most specific first: exact prefixed/bare/suffixed names, then
+    the abbreviation as a leading or trailing token, then the full-word form.
+    Token-boundary checks matter — a bare `endswith("SC")` also matches a sheet
+    ending in "...WSC", and matching "SC" anywhere inside a name would let
+    "FC" hit "FCT".
     """
-    candidates = [f"{workbook} {kind}", kind]
-    for name in candidates:
-        if name in wb.sheetnames:
+    names = list(wb.sheetnames)
+    for candidate in (f"{workbook} {kind}", kind, f"{kind} {workbook}"):
+        if candidate in names:
+            return wb[candidate]
+
+    for name in names:
+        tokens = name.strip().upper().split()
+        if tokens and (tokens[0] == kind or tokens[-1] == kind):
             return wb[name]
-    for name in wb.sheetnames:
-        if name.strip().upper().endswith(kind):
+
+    for name in names:
+        lowered = name.strip().lower()
+        if any(lowered.startswith(word) for word in _SHEET_WORDS[kind]):
             return wb[name]
-    raise KeyError(
-        f"{workbook}: no '{kind}' worksheet (sheets: {wb.sheetnames})"
-    )
+
+    raise KeyError(f"{workbook}: no '{kind}' worksheet (sheets: {names})")
 
 
 def _confidence(score: float) -> str:
@@ -70,6 +90,14 @@ def reconcile_state(workbook: str) -> tuple:
 
     path = fetch_state(workbook)
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    # The FCT has no State House of Assembly, so its workbook ships SD and FC
+    # only. That is correct data, not a parse failure — say so instead of
+    # raising, or it reads as a bug every time the batch runs.
+    if workbook == "FCT":
+        raise SystemExit(
+            "FCT has no State House of Assembly — its workbook carries no state "
+            "constituency sheet. Nothing to reconcile."
+        )
     sc_rows = [list(r) for r in _sheet(wb, workbook, "SC").iter_rows(values_only=True)]
     sd_rows = [list(r) for r in _sheet(wb, workbook, "SD").iter_rows(values_only=True)]
     parsed_sc = parse_sc_rows(sc_rows)
