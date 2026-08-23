@@ -115102,5 +115102,461 @@
     "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
     "source_date": "2026-08",
     "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_limanti",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_borno_maiduguri_m_c",
+    "ward_code": "borno_maiduguri_mafoni",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_arki",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_dunari",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_fateka_akurya",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_garin_gabas",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_maira_kumi_bara_musa",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_maka_ddari",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_malammadori",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_shayya",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_tagin_aro",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_tashena",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_jigawa_malam_maduri",
+    "ward_code": "jigawa_malam_madori_tonikutara",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_ajilete",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_idogo",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_ilaro_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_ilaro_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_ilaro_iii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_ilobi_erinja",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_iwoye",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_oke_odan",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_owode_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_ogun_yewa_south",
+    "ward_code": "ogun_egbado_south_owode_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_ajebandele",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_ayegunle",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_eti_oni",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_faforiji",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_forest_reserve_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_forest_reserve_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_igangan",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_iperindo",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_ipole",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_east_iwara",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_ibodi",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_ifelodun",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_ifewara_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_ifewara_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_isa_obi",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_ita_gunmodi",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_muroko",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_oke_bode",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_osu_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_osu_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_osun_atakumosa_east_west",
+    "ward_code": "osun_atakumosa_west_osu_iii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_abua_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_abua_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_abua_iii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_abua_iv",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_agada",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_akani",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_anyu",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_emago_kugbo",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_emelego",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_emughan_i",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_emughan_ii",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_okpeden",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
+  },
+  {
+    "constituency_code": "state_rivers_abua_odual",
+    "ward_code": "rivers_abua_odual_otapha",
+    "source": "inec_lga_name_backfill",
+    "source_url": "https://www.inecnigeria.org/wp-content/uploads/2019/02/Name-of-Senatorial-DistrictsFederal-and-State-Constituencies-Nationwide-1.xls",
+    "source_date": "2026-08",
+    "confidence": "medium"
   }
 ]
