@@ -97,7 +97,7 @@ def test_refuses_lga_split_into_numbered_seats():
         [],
     )
     assert plan.additions == []
-    assert plan.refused[0]["reason"] == "lga_split_into_numbered_seats"
+    assert plan.refused[0]["reason"] == "lga_split_across_seats"
 
 
 def test_refuses_arabic_numbered_seats_too():
@@ -108,7 +108,7 @@ def test_refuses_arabic_numbered_seats_too():
         [],
     )
     assert plan.additions == []
-    assert plan.refused[0]["reason"] == "lga_split_into_numbered_seats"
+    assert plan.refused[0]["reason"] == "lga_split_across_seats"
 
 
 def test_refuses_lga_claimed_by_two_seats():
@@ -178,21 +178,107 @@ def test_a_federal_mapping_does_not_block_the_state_backfill():
     assert plan.additions == [("state_x_alpha", "x_alpha_w1", "medium")]
 
 
-def test_name_matching_stays_strict_on_spelling_drift():
-    """LGA `Atakunmosa East` vs seat `Atakumosa East/West` — one letter apart.
+# --- compass splits ------------------------------------------------------
 
-    Must refuse. Fuzzy resolution is a separate, human-gated pass.
+
+def test_refuses_lga_split_by_compass_direction():
+    """`Balanga North`/`Balanga South` is the same shape as `Ikom I`/`Ikom II`."""
+    plan = bf.plan_backfill(
+        [sc("a", "Balanga North", "gombe"), sc("b", "Balanga South", "gombe")],
+        [lga("gombe_balanga", "Balanga", "gombe")],
+        [ward("gombe_balanga_w1", "gombe_balanga")],
+        [],
+    )
+    assert plan.additions == []
+    assert plan.refused[0]["reason"] == "lga_split_across_seats"
+
+
+def test_refuses_compound_compass_directions():
+    plan = bf.plan_backfill(
+        [sc("a", "Afikpo South West", "ebonyi"), sc("b", "Afikpo South East", "ebonyi")],
+        [lga("ebonyi_afikpo_south", "Afikpo South", "ebonyi")],
+        [ward("ebonyi_as_w1", "ebonyi_afikpo_south")],
+        [],
+    )
+    assert plan.additions == []
+    assert plan.refused[0]["reason"] == "lga_split_across_seats"
+
+
+def test_a_direction_in_the_lga_name_itself_is_not_a_split():
+    """Osun has LGAs literally named `Ede North` and `Ede South`.
+
+    The seat `Ede North` matches its LGA exactly and must map, not be read as a
+    split of some parent `Ede` LGA — which does not exist.
     """
+    plan = bf.plan_backfill(
+        [sc("state_osun_ede_north", "Ede North", "osun")],
+        [lga("osun_ede_north", "Ede North", "osun"), lga("osun_ede_south", "Ede South", "osun")],
+        [ward("osun_edn_w1", "osun_ede_north")],
+        [],
+    )
+    assert plan.additions == [("state_osun_ede_north", "osun_edn_w1", "medium")]
+
+
+def test_central_suffix_only_splits_when_the_stem_is_a_real_lga():
+    """Abia has `Umuahia Central` but no `Umuahia` LGA — nothing to split."""
+    plan = bf.plan_backfill(
+        [sc("state_abia_umuahia_central", "Umuahia Central", "abia")],
+        [lga("abia_umuahia_north", "Umuahia North", "abia")],
+        [ward("abia_un_w1", "abia_umuahia_north")],
+        [],
+    )
+    assert plan.additions == []
+    assert plan.refused == []  # claims nothing at all, rather than refusing a claim
+
+
+# --- alias table ---------------------------------------------------------
+
+
+def test_curated_alias_resolves_a_known_spelling_drift():
+    """LGA `Atakunmosa East` vs seat `Atakumosa East/West` — one letter apart."""
     plan = bf.plan_backfill(
         [sc("state_osun_atak", "Atakumosa East/West", "osun")],
         [
             lga("osun_atakunmosa_east", "Atakunmosa East", "osun"),
             lga("osun_atakunmosa_west", "Atakunmosa West", "osun"),
         ],
-        [ward("osun_ae_w1", "osun_atakunmosa_east")],
+        [ward("osun_ae_w1", "osun_atakunmosa_east"), ward("osun_aw_w1", "osun_atakunmosa_west")],
+        [],
+    )
+    assert {a[1] for a in plan.additions} == {"osun_ae_w1", "osun_aw_w1"}
+
+
+def test_two_genuinely_different_lgas_never_resolve_to_each_other():
+    """Yobe has BOTH a `Yusufari` and a `Yunusari` LGA.
+
+    Any similarity threshold rates them a near-pair. This is the whole argument
+    for a curated table: mapping one LGA's wards to the other's seat would tell
+    those citizens the wrong person represents them, with no error raised.
+    """
+    plan = bf.plan_backfill(
+        [sc("state_yobe_yunusari", "Yunusari", "yobe")],
+        [lga("yobe_yusufari", "Yusufari", "yobe"), lga("yobe_yunusari", "Yunusari", "yobe")],
+        [ward("yobe_yusufari_w1", "yobe_yusufari"), ward("yobe_yunusari_w1", "yobe_yunusari")],
+        [],
+    )
+    assert plan.additions == [("state_yobe_yunusari", "yobe_yunusari_w1", "medium")]
+
+
+def test_unlisted_spelling_drift_is_still_refused():
+    plan = bf.plan_backfill(
+        [sc("state_x_alpha", "Alpah", "x")],
+        [lga("x_alpha", "Alpha", "x")],
+        [ward("x_alpha_w1", "x_alpha")],
         [],
     )
     assert plan.additions == []
+
+
+def test_every_alias_key_is_already_normalised():
+    """A key that is not in `norm()` form can never be hit — a silent dead entry."""
+    for (state, name), target in bf.SEAT_NAME_ALIASES.items():
+        assert name == bf.norm(name), f"alias key {state}/{name!r} is not normalised"
+        assert target == bf.norm(target), f"alias target {target!r} is not normalised"
 
 
 def test_hyphen_and_case_differences_are_tolerated():

@@ -24,8 +24,62 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# Trailing roman numeral or digit => the LGA is split across numbered seats.
-_SPLIT_SUFFIX = re.compile(r"^(?P<stem>.+?)\s+(?:(?:i{1,3}|iv|v|vi{0,3}|ix|x)|\d+)$")
+# A trailing ordinal OR compass direction means the LGA is split across seats.
+# `Balanga North`/`Balanga South` is exactly as unresolvable as `Ikom I`/`Ikom II`
+# — 669 wards sat in the "no name match" bucket purely because the first version
+# of this only knew about numerals.
+_SPLIT_SUFFIXES = (
+    # Longest first only matters for readability; every candidate is tried.
+    "north east", "north west", "south east", "south west",
+    "north", "south", "east", "west", "central",
+    "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x",
+)
+_TRAILING_DIGITS = re.compile(r"^(?P<stem>.+?)\s+\d+$")
+
+
+def split_stems(key: str) -> list[str]:
+    """Every parent name a seat name could be a split of.
+
+    `Afikpo South West` yields BOTH `Afikpo South` and `Afikpo` — the first is
+    the real LGA. Returning only the shortest stem (which a single non-greedy
+    regex does) silently misses compass-compound splits, so all candidates are
+    offered and the caller decides which resolves.
+    """
+    stems = [key[: -(len(suf) + 1)] for suf in _SPLIT_SUFFIXES if key.endswith(f" {suf}")]
+    m = _TRAILING_DIGITS.match(key)
+    if m:
+        stems.append(m.group("stem"))
+    return stems
+
+# LGA name -> the spelling the seat register uses, keyed by (state, normalised LGA).
+# Every entry is a deliberate, sourced decision. There is NO similarity threshold
+# here on purpose: Yobe has both a `Yusufari` LGA and a `Yunusari` LGA, and any
+# fuzzy matcher rates them a near-pair — mapping one LGA's wards to the other's
+# seat and telling those citizens the wrong person represents them, silently.
+# A curated table can only be wrong where a human wrote it down.
+SEAT_NAME_ALIASES: dict[tuple[str, str], str] = {
+    # Seat register drops the first "n": LGA Atakunmosa, seat Atakumosa.
+    ("osun", "atakunmosa east"): "atakumosa east",
+    ("osun", "atakunmosa west"): "atakumosa west",
+    # Seat register spells it Maduri; the LGA table uses Madori.
+    ("jigawa", "malam madori"): "malam maduri",
+    # "Egbado" is the pre-1995 name; the seat register uses the current "Yewa".
+    ("ogun", "yewa egbado south"): "yewa south",
+    ("ogun", "yewa egbado north"): "yewa north",
+    # MC = Metropolitan Council, the LGA's formal suffix.
+    ("borno", "maiduguri"): "maiduguri mc",
+    # Seat register writes the LGA's double-barrelled name with a slash.
+    ("rivers", "abua odual"): "abua/odual",
+    # Seat register drops the "l": LGA Yalmaltu Deba, seat Yamaltu.
+    ("gombe", "yalmaltu deba"): "yamaltu",
+    # Seat register doubles the "g": LGA Nasarawa Egon, seat Nasarawa Eggon.
+    ("nasarawa", "nasarawa egon"): "nasarawa eggon",
+}
+
+
+def aliased(state_code: str, lga_name: str) -> str:
+    """The seat-register spelling of an LGA name, or the name unchanged."""
+    return SEAT_NAME_ALIASES.get((state_code, norm(lga_name)), norm(lga_name))
 
 
 def norm(value: str) -> str:
@@ -89,7 +143,8 @@ def collect_claims(constituencies: list[dict], lgas: list[dict]) -> list[Claim]:
     """Every (state constituency -> whole LGA) claim readable from names."""
     lga_by_state: dict[str, dict[str, str]] = {}
     for lga in lgas:
-        lga_by_state.setdefault(lga["state_code"], {})[norm(lga["name"])] = lga["code"]
+        key = aliased(lga["state_code"], lga["name"])
+        lga_by_state.setdefault(lga["state_code"], {})[key] = lga["code"]
 
     claims: list[Claim] = []
     for c in constituencies:
@@ -117,10 +172,11 @@ def collect_claims(constituencies: list[dict], lgas: list[dict]) -> list[Claim]:
                     claims.append(Claim(c["code"], lga_code, rule))  # type: ignore[arg-type]
             continue
 
-        # `Ikom I` / `Ikom 2` — claims the LGA, but only ambiguously.
-        m = _SPLIT_SUFFIX.match(key)
-        if m and m.group("stem") in in_state:
-            claims.append(Claim(c["code"], in_state[m.group("stem")], "split", split=True))
+        # `Ikom I` / `Balanga North` — claims the LGA, but only ambiguously.
+        for stem in split_stems(key):
+            if stem in in_state:
+                claims.append(Claim(c["code"], in_state[stem], "split", split=True))
+                break
 
     return claims
 
@@ -164,7 +220,7 @@ def plan_backfill(
 
         if any(c.split for c in claims):
             refuse(
-                "lga_split_into_numbered_seats",
+                "lga_split_across_seats",
                 seats=sorted({c.constituency_code for c in claims if c.split}),
             )
             continue
