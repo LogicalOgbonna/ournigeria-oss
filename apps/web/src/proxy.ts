@@ -8,16 +8,28 @@ const EXTERNAL_LOGIN_URL =
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://spending-api.arinze.online";
 
-const PUBLIC_PATHS = ["/login", "/banned", "/api/auth/", "/chat/"];
+const PUBLIC_PATHS = ["/login", "/banned", "/api/auth/", "/chat/", "/auth/handoff"];
 
 const AUTH_TOKEN_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes
 
+/** Constant-time string comparison to avoid signature timing leaks. */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
 /**
  * Verify a signed nb_auth token.
- * Format: userId.base36timestamp.hmac16chars
- * The API signs this with TELEGRAM_BOT_TOKEN. We verify the HMAC when
- * crypto.subtle is available (Edge Runtime / production), and fall back
- * to format + expiry checks only when it's not (dev mode).
+ * Format: userId.base36timestamp.hmacHex
+ * The API signs this with AUTH_SIGNING_SECRET (see apps/api auth.controller.ts
+ * signAuthToken — full-length SHA-256 hex digest of `${userId}:${ts}`).
+ * We verify with the SAME secret and full digest, and FAIL CLOSED: if the
+ * secret or Web Crypto is unavailable we return null so the caller falls back
+ * to the authoritative API check (never accept an unverified token).
  */
 async function verifyAuthToken(token: string): Promise<string | null> {
   const parts = token.split(".");
@@ -31,32 +43,32 @@ async function verifyAuthToken(token: string): Promise<string | null> {
   if (isNaN(timestamp) || Date.now() - timestamp > AUTH_TOKEN_MAX_AGE_MS)
     return null;
 
-  // Verify HMAC if crypto.subtle is available
-  try {
-    const secret = process.env.TELEGRAM_BOT_TOKEN || "";
-    if (secret && typeof crypto !== "undefined" && crypto.subtle) {
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(secret),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"],
-      );
-      const signature = await crypto.subtle.sign(
-        "HMAC",
-        key,
-        encoder.encode(`${userId}:${ts}`),
-      );
-      const expected = Array.from(new Uint8Array(signature))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("")
-        .slice(0, 16);
+  const secret = process.env.AUTH_SIGNING_SECRET || "";
+  // Fail closed: without the signing secret or Web Crypto we cannot verify.
+  if (!secret || typeof crypto === "undefined" || !crypto.subtle) return null;
 
-      if (sig !== expected) return null;
-    }
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(`${userId}:${ts}`),
+    );
+    const expected = Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    if (!timingSafeEqual(sig, expected)) return null;
   } catch {
-    // crypto.subtle not available (e.g. dev mode) — skip HMAC check
+    // Any crypto failure => cannot verify => reject (fail closed).
+    return null;
   }
 
   return userId;
@@ -75,6 +87,23 @@ async function verifyAuthTokenViaApi(token: string): Promise<string | null> {
 
     const data = (await res.json()) as { userId?: string };
     return data.userId || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Exchange a one-time handoff code (nbh_…) for an opaque session token. */
+async function exchangeHandoffViaApi(code: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_URL}/api/auth/exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { sessionToken?: string };
+    return data.sessionToken || null;
   } catch {
     return null;
   }
@@ -103,21 +132,33 @@ function buildExternalLoginRedirect(request: NextRequest): URL {
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Handle Telegram auth callback — verify signed token, set cookie, strip param
+  // Legacy fallback: older inbound links may still carry `?nb_auth=`. The
+  // primary login handoff is now a POST to /auth/handoff (token in body, never
+  // the URL). Kept working during the migration window; verify-token accepts
+  // both legacy signed tokens and one-time codes.
   const nbAuth = searchParams.get("nb_auth");
   if (nbAuth) {
     const url = getPublicRequestUrl(request);
     url.searchParams.delete("nb_auth");
 
-    const userId =
-      (await verifyAuthToken(nbAuth)) || (await verifyAuthTokenViaApi(nbAuth));
-    if (!userId) {
+    // A one-time handoff code (nbh_…) is exchanged for an opaque session token
+    // so this fallback also yields a real server-stored session, not a raw PK.
+    // Older legacy signed tokens still resolve to a userId cookie.
+    let cookieValue: string | null = null;
+    if (nbAuth.startsWith("nbh_")) {
+      cookieValue = await exchangeHandoffViaApi(nbAuth);
+    } else {
+      cookieValue =
+        (await verifyAuthToken(nbAuth)) || (await verifyAuthTokenViaApi(nbAuth));
+    }
+
+    if (!cookieValue) {
       // Invalid or expired token — redirect to login
       return NextResponse.redirect(buildExternalLoginRedirect(request));
     }
 
     const response = NextResponse.redirect(url);
-    response.cookies.set(USER_COOKIE, userId, {
+    response.cookies.set(USER_COOKIE, cookieValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
