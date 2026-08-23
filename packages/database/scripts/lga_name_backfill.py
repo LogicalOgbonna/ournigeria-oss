@@ -63,9 +63,14 @@ SEAT_NAME_ALIASES: dict[tuple[str, str], str] = {
     ("osun", "atakunmosa west"): "atakumosa west",
     # Seat register spells it Maduri; the LGA table uses Madori.
     ("jigawa", "malam madori"): "malam maduri",
-    # "Egbado" is the pre-1995 name; the seat register uses the current "Yewa".
-    ("ogun", "yewa egbado south"): "yewa south",
-    ("ogun", "yewa egbado north"): "yewa north",
+    # WITHDRAWN — Ogun carries BOTH `Yewa South` and `Egbado South (Ilaro/Owode)`,
+    # the post-1995 and pre-1995 names for what is probably one seat. This alias
+    # mapped Yewa South LGA's 10 wards to `Yewa South`; the INEC worksheet puts
+    # them in `Egbado South (Ilaro/Owode)`. Picking between two live seats is
+    # exactly the guess this table exists to avoid, so the wards stay unmapped
+    # until the Ogun worksheet pass resolves the duplicate.
+    #   ("ogun", "yewa egbado south"): "yewa south",
+    #   ("ogun", "yewa egbado north"): "yewa north",
     # MC = Metropolitan Council, the LGA's formal suffix.
     ("borno", "maiduguri"): "maiduguri mc",
     # Seat register writes the LGA's double-barrelled name with a slash.
