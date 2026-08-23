@@ -61,6 +61,16 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`API running on http://localhost:${port}`);
+  if (process.env.LEGACY_UID_SESSIONS !== "false") {
+    console.warn(
+      "[security] LEGACY_UID_SESSIONS is enabled — raw-UUID nb_uid cookies are still accepted. Set LEGACY_UID_SESSIONS=false to close the migration window.",
+    );
+  }
+  if (process.env.LEGACY_ADMIN_SESSIONS !== "false") {
+    console.warn(
+      "[security] LEGACY_ADMIN_SESSIONS is enabled — stateless HMAC admin tokens are still accepted. Set LEGACY_ADMIN_SESSIONS=false to close the migration window.",
+    );
+  }
   if (process.env.NODE_ENV !== "production") {
     console.log(`Swagger docs at http://localhost:${port}/docs`);
   }

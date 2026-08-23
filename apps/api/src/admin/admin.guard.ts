@@ -5,9 +5,14 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
-import * as crypto from "crypto";
+import { AdminAuthService } from "./admin-auth.service";
 
 const ADMIN_COOKIE = "on_admin_session";
+
+/** Legacy stateless HMAC admin tokens (and x-admin-key) honoured only during the window. */
+function legacyAdminSessionsEnabled(): boolean {
+  return process.env.LEGACY_ADMIN_SESSIONS !== "false";
+}
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -20,36 +25,38 @@ export class AdminGuard implements CanActivate {
     const token =
       request.cookies?.[ADMIN_COOKIE] || request.headers["x-admin-key"];
 
-    if (!token) {
+    if (!token || typeof token !== "string") {
       throw new UnauthorizedException("Admin authentication required");
     }
 
-    // Verify HMAC-signed session token: adminId:nonce:signature
-    const parts = token.split(":");
-    if (parts.length !== 3) {
+    let adminId: string | null = null;
+
+    if (AdminAuthService.isSessionToken(token)) {
+      // New opaque session token — look up server-side with expiry + revocation.
+      const session = await this.prisma.adminSession.findUnique({
+        where: { tokenHash: AdminAuthService.hashToken(token) },
+        select: { id: true, adminId: true, expiresAt: true, revokedAt: true },
+      });
+      if (
+        session &&
+        !session.revokedAt &&
+        session.expiresAt.getTime() > Date.now()
+      ) {
+        adminId = session.adminId;
+        this.prisma.adminSession
+          .update({ where: { id: session.id }, data: { lastUsedAt: new Date() } })
+          .catch(() => {});
+      }
+    } else if (legacyAdminSessionsEnabled()) {
+      // Legacy stateless HMAC token — accepted only during the migration window.
+      adminId = AdminAuthService.verifyLegacyToken(token);
+    }
+
+    if (!adminId) {
       throw new UnauthorizedException("Invalid admin token");
     }
 
-    const [adminId, nonce, sig] = parts;
-    const secret = process.env.ADMIN_SESSION_SECRET;
-    if (!secret) {
-      throw new UnauthorizedException("Server misconfiguration");
-    }
-    const expected = crypto
-      .createHmac("sha256", secret)
-      .update(`${adminId}:${nonce}`)
-      .digest("hex");
-
-    const sigBuf = Buffer.from(sig, "hex");
-    const expectedBuf = Buffer.from(expected, "hex");
-    if (
-      sigBuf.length !== expectedBuf.length ||
-      !crypto.timingSafeEqual(sigBuf, expectedBuf)
-    ) {
-      throw new UnauthorizedException("Invalid admin token");
-    }
-
-    // Verify admin still exists in database
+    // Confirm the admin still exists (fail closed on any drift).
     const admin = await this.prisma.adminUser.findUnique({
       where: { id: adminId },
       select: { id: true },

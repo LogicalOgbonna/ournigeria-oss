@@ -175,6 +175,11 @@ export class AdminUsersService {
       },
       select: { id: true, banned: true, bannedAt: true, banReason: true },
     });
+    // Kill every active session immediately (the ban cache alone lags up to 60s).
+    await this.prisma.userSession.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
     await invalidateUserAuthCache(id);
     return result;
   }

@@ -72,6 +72,10 @@ export class AdminAuthController {
       const result = await this.authService.login(
         parsed.data.email,
         parsed.data.password,
+        {
+          userAgent: req.headers["user-agent"] ?? null,
+          ip: req.ip || req.socket?.remoteAddress || null,
+        },
       );
 
       if (!result.success) {
@@ -102,7 +106,12 @@ export class AdminAuthController {
 
   @Post("logout")
   @ApiOperation({ summary: "Admin logout" })
-  async logout(@Res() res: Response) {
+  async logout(@Req() req: Request, @Res() res: Response) {
+    // Revoke the presented session server-side so the token cannot be replayed.
+    const token = req.cookies?.[ADMIN_COOKIE] || req.headers["x-admin-key"];
+    if (typeof token === "string") {
+      await this.authService.revokeSession(token).catch(() => {});
+    }
     res.clearCookie(ADMIN_COOKIE, { path: "/" });
     return res.json({ success: true });
   }

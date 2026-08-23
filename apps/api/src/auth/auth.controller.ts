@@ -6,14 +6,16 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res
 } from "@nestjs/common";
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { Response } from "express";
+import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { TelegramApiService } from "../telegram/telegram-api.service";
 import { AuthService } from "./auth.service";
+import { SessionService } from "./session.service";
 import { CurrentUser } from "./decorators/current-user";
 import { Public } from "./decorators/public";
 
@@ -32,6 +34,14 @@ function buildUserCookieOptions() {
     path: "/",
     maxAge: COOKIE_MAX_AGE * 1000,
     domain: getCookieDomain(),
+  };
+}
+
+/** Session metadata captured for audit/revocation UX. */
+function sessionMeta(req: Request) {
+  return {
+    userAgent: req.headers["user-agent"] ?? null,
+    ip: req.ip || req.socket?.remoteAddress || null,
   };
 }
 
@@ -73,24 +83,60 @@ function resolveTelegramRedirectTarget(returnTo?: string): string {
   return fallback;
 }
 
-function appendQueryParam(urlString: string, key: string, value: string): string {
-  const url = new URL(urlString);
-  url.searchParams.set(key, value);
-  return url.toString();
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      default:
+        return "&#39;";
+    }
+  });
 }
 
-/** Sign a user ID for the nb_auth callback so the web proxy can verify it wasn't forged. */
-function signAuthToken(userId: string): string {
-  const ts = Date.now().toString(36);
-  const secret = process.env.AUTH_SIGNING_SECRET || "";
-  const sig = crypto
-    .createHmac("sha256", secret)
-    .update(`${userId}:${ts}`)
-    .digest("hex");
-  return `${userId}.${ts}.${sig}`;
+/**
+ * Render a self-submitting HTML form that POSTs the one-time handoff code to the
+ * web app's /auth/handoff endpoint. This keeps the code out of the redirect URL
+ * (no browser history / Referer / proxy-log exposure) — it travels in the POST
+ * body instead of a query param.
+ */
+function renderHandoffForm(webTarget: string, code: string): string {
+  const url = new URL(webTarget);
+  // The /auth/handoff route lives on the web app (APP_URL). Pin the POST target
+  // there regardless of which allow-listed origin `returnTo` resolved to, so the
+  // form never posts to an origin that lacks the handoff route.
+  const webOrigin = (() => {
+    try {
+      return new URL(process.env.APP_URL!).origin;
+    } catch {
+      return url.origin;
+    }
+  })();
+  const action = `${webOrigin}/auth/handoff`;
+  const returnTo = `${url.origin}${url.pathname}${url.search}${url.hash}`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Signing you in…</title></head>
+<body>
+<form id="handoff" method="POST" action="${escapeHtml(action)}">
+  <input type="hidden" name="code" value="${escapeHtml(code)}">
+  <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}">
+  <noscript><button type="submit">Continue</button></noscript>
+</form>
+<script>document.getElementById('handoff').submit();</script>
+</body></html>`;
 }
 
-function verifyAuthToken(token: string): string | null {
+/**
+ * Legacy signed handoff token verifier (format: userId.base36ts.hmacHex).
+ * Retained ONLY so old web builds that still send `?nb_auth=` during the
+ * migration window keep working. New logins issue opaque handoff codes instead.
+ */
+function verifyLegacyAuthToken(token: string): string | null {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
 
@@ -156,11 +202,16 @@ const verifyAuthTokenSchema = z.object({
   token: z.string().min(1, "Token is required"),
 });
 
+const exchangeSchema = z.object({
+  code: z.string().min(1, "Code is required"),
+});
+
 @ApiTags("Auth")
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly sessionService: SessionService,
     private readonly telegramApi: TelegramApiService,
   ) {}
 
@@ -226,7 +277,7 @@ export class AuthController {
       },
     },
   })
-  async verifyOtp(@Body() body: unknown, @Res() res: Response) {
+  async verifyOtp(@Body() body: unknown, @Req() req: Request, @Res() res: Response) {
     try {
       const parsed = verifyOtpSchema.safeParse(body);
 
@@ -255,13 +306,12 @@ export class AuthController {
         });
       }
 
-      res.cookie(USER_COOKIE, user.id, {
-        ...buildUserCookieOptions(),
-      });
+      const sessionToken = await this.sessionService.issue(user.id, sessionMeta(req));
+      res.cookie(USER_COOKIE, sessionToken, buildUserCookieOptions());
 
       return res.json({
         success: true,
-        authToken: signAuthToken(user.id),
+        authToken: await this.sessionService.createHandoff(user.id),
         user: { id: user.id, phoneNumber: user.phoneNumber },
       });
     } catch (err) {
@@ -273,9 +323,46 @@ export class AuthController {
   }
 
   @Get("session-token")
-  @ApiOperation({ summary: "Get a signed auth handoff token for the current session" })
+  @ApiOperation({ summary: "Get a one-time login handoff code for the current session" })
   async getSessionToken(@CurrentUser() userId: string, @Res() res: Response) {
-    return res.json({ authToken: signAuthToken(userId) });
+    return res.json({ authToken: await this.sessionService.createHandoff(userId) });
+  }
+
+  @Public()
+  @Post("exchange")
+  @ApiOperation({ summary: "Exchange a one-time handoff code for a session token" })
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["code"],
+      properties: { code: { type: "string" } },
+    },
+  })
+  async exchange(@Body() body: unknown, @Req() req: Request, @Res() res: Response) {
+    const parsed = exchangeSchema.safeParse(body);
+    if (!parsed.success) {
+      return res
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ error: parsed.error.errors[0].message });
+    }
+
+    const userId = await this.sessionService.consumeHandoff(parsed.data.code);
+    if (!userId) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ error: "Invalid or expired code" });
+    }
+
+    const banStatus = await this.authService.checkBanStatus(userId);
+    if (banStatus.banned) {
+      return res.status(HttpStatus.FORBIDDEN).json({
+        error: "banned",
+        reason: banStatus.reason || "Your account has been suspended.",
+      });
+    }
+
+    const sessionToken = await this.sessionService.issue(userId, sessionMeta(req));
+    return res.json({ success: true, sessionToken, userId });
   }
 
   @Get("profile")
@@ -339,7 +426,12 @@ export class AuthController {
   @Public()
   @Post("logout")
   @ApiOperation({ summary: "Logout and clear session cookie" })
-  async logout(@Res() res: Response) {
+  async logout(@Req() req: Request, @Res() res: Response) {
+    // Revoke the presented session server-side so the token cannot be replayed.
+    const cookieValue = req.cookies?.[USER_COOKIE];
+    if (cookieValue) {
+      await this.sessionService.revoke(cookieValue).catch(() => {});
+    }
     res.clearCookie(USER_COOKIE, {
       path: "/",
       secure: true,
@@ -351,7 +443,7 @@ export class AuthController {
 
   @Public()
   @Post("verify-token")
-  @ApiOperation({ summary: "Verify a signed auth handoff token" })
+  @ApiOperation({ summary: "Verify a login handoff token (legacy signed token or one-time code)" })
   async verifyToken(@Body() body: unknown, @Res() res: Response) {
     const parsed = verifyAuthTokenSchema.safeParse(body);
     if (!parsed.success) {
@@ -360,7 +452,11 @@ export class AuthController {
         .json({ error: parsed.error.errors[0].message });
     }
 
-    const userId = verifyAuthToken(parsed.data.token);
+    // Accept a legacy signed token (no side effect) or consume a one-time
+    // handoff code — both resolve to a userId during the migration window.
+    const userId =
+      verifyLegacyAuthToken(parsed.data.token) ||
+      (await this.sessionService.consumeHandoff(parsed.data.token));
     if (!userId) {
       return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
     }
@@ -383,6 +479,7 @@ export class AuthController {
 
   private async completeTelegramLogin(
     telegramAuthPayload: Record<string, string>,
+    req: Request,
     res: Response,
   ) {
     const result = this.authService.verifyTelegramAuth(telegramAuthPayload);
@@ -403,7 +500,8 @@ export class AuthController {
       };
     }
 
-    res.cookie(USER_COOKIE, user.id, buildUserCookieOptions());
+    const sessionToken = await this.sessionService.issue(user.id, sessionMeta(req));
+    res.cookie(USER_COOKIE, sessionToken, buildUserCookieOptions());
 
     if (isNewUser) {
       const chatId = Number(telegramUser.id);
@@ -426,13 +524,14 @@ export class AuthController {
   @ApiOperation({ summary: "Telegram login callback" })
   async telegramAuth(
     @Query() query: Record<string, string>,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     const { returnTo, ...telegramPayload } = query;
     const baseUrl = resolveTelegramRedirectTarget(returnTo);
 
     try {
-      const loginResult = await this.completeTelegramLogin(telegramPayload, res);
+      const loginResult = await this.completeTelegramLogin(telegramPayload, req, res);
       if (!loginResult.ok) {
         if ("banned" in loginResult && loginResult.banned) {
           return res.redirect(`${new URL(baseUrl).origin}/banned`);
@@ -441,10 +540,13 @@ export class AuthController {
         return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
       }
 
-      // Pass signed auth token via query param so the web app can verify + set cookie
-      return res.redirect(
-        appendQueryParam(baseUrl, "nb_auth", signAuthToken(loginResult.userId)),
-      );
+      // Hand the one-time code to the web app via an auto-submitting POST form
+      // (keeps it out of the redirect URL / browser history / Referer).
+      const code = await this.sessionService.createHandoff(loginResult.userId);
+      return res
+        .status(HttpStatus.OK)
+        .type("html")
+        .send(renderHandoffForm(baseUrl, code));
     } catch (err) {
       console.error("Telegram auth error:", err);
       return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
@@ -456,10 +558,11 @@ export class AuthController {
   @ApiOperation({ summary: "Login with Telegram widget payload" })
   async telegramLogin(
     @Body() body: Record<string, string>,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
-      const loginResult = await this.completeTelegramLogin(body, res);
+      const loginResult = await this.completeTelegramLogin(body, req, res);
       if (!loginResult.ok) {
         if ("banned" in loginResult && loginResult.banned) {
           return res.status(HttpStatus.FORBIDDEN).json({
@@ -475,7 +578,7 @@ export class AuthController {
       return res.json({
         success: true,
         userId: loginResult.userId,
-        authToken: signAuthToken(loginResult.userId),
+        authToken: await this.sessionService.createHandoff(loginResult.userId),
       });
     } catch (err) {
       console.error("Telegram login error:", err);

@@ -5,13 +5,88 @@ import { PrismaService } from "@ournigeria/database";
 
 const SALT_ROUNDS = 10;
 
+/** Opaque admin session token prefix — distinguishes new tokens from legacy HMAC. */
+export const ADMIN_SESSION_PREFIX = "ons_";
+const DEFAULT_ADMIN_SESSION_TTL_DAYS = 7;
+
+export interface AdminSessionMeta {
+  userAgent?: string | null;
+  ip?: string | null;
+}
+
 @Injectable()
 export class AdminAuthService {
   constructor(private prisma: PrismaService) {}
 
+  /** True when a value is a new opaque admin session token (vs a legacy HMAC). */
+  static isSessionToken(value: unknown): value is string {
+    return typeof value === "string" && value.startsWith(ADMIN_SESSION_PREFIX);
+  }
+
+  /** SHA-256 hex of a raw token — what is stored/looked up in admin_sessions. */
+  static hashToken(value: string): string {
+    return crypto.createHash("sha256").update(value).digest("hex");
+  }
+
+  /**
+   * Legacy stateless HMAC token verifier (format: adminId:nonce:sig). Static so
+   * the guard can call it without DI. Gated by LEGACY_ADMIN_SESSIONS in the guard.
+   */
+  static verifyLegacyToken(token: string): string | null {
+    const parts = token.split(":");
+    if (parts.length !== 3) return null;
+
+    const [adminId, nonce, sig] = parts;
+    const secret = process.env.ADMIN_SESSION_SECRET;
+    if (!secret) return null;
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(`${adminId}:${nonce}`)
+      .digest("hex");
+
+    const sigBuf = Buffer.from(sig, "hex");
+    const expectedBuf = Buffer.from(expected, "hex");
+    if (
+      sigBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expectedBuf)
+    ) {
+      return null;
+    }
+    return adminId;
+  }
+
+  private sessionTtlMs(): number {
+    const days =
+      Number(process.env.ADMIN_SESSION_TTL_DAYS) || DEFAULT_ADMIN_SESSION_TTL_DAYS;
+    return days * 24 * 60 * 60 * 1000;
+  }
+
+  private hash(value: string): string {
+    return AdminAuthService.hashToken(value);
+  }
+
+  /** Create an opaque, server-stored admin session and return the raw token. */
+  private async issueSession(
+    adminId: string,
+    meta: AdminSessionMeta = {},
+  ): Promise<string> {
+    const token = ADMIN_SESSION_PREFIX + crypto.randomBytes(32).toString("base64url");
+    await this.prisma.adminSession.create({
+      data: {
+        adminId,
+        tokenHash: this.hash(token),
+        expiresAt: new Date(Date.now() + this.sessionTtlMs()),
+        userAgent: meta.userAgent?.slice(0, 400) ?? null,
+        ip: meta.ip?.slice(0, 64) ?? null,
+      },
+    });
+    return token;
+  }
+
   async login(
     email: string,
     password: string,
+    meta: AdminSessionMeta = {},
   ): Promise<
     | {
         success: true;
@@ -38,16 +113,7 @@ export class AdminAuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    // Generate a session token: adminId:randomHex, signed with HMAC
-    const nonce = crypto.randomBytes(16).toString("hex");
-    const payload = `${admin.id}:${nonce}`;
-    const secret = process.env.ADMIN_SESSION_SECRET;
-    if (!secret) throw new Error("ADMIN_SESSION_SECRET is required");
-    const sig = crypto
-      .createHmac("sha256", secret)
-      .update(payload)
-      .digest("hex");
-    const token = `${payload}:${sig}`;
+    const token = await this.issueSession(admin.id, meta);
 
     return {
       success: true,
@@ -56,27 +122,13 @@ export class AdminAuthService {
     };
   }
 
-  verifyToken(token: string): string | null {
-    const parts = token.split(":");
-    if (parts.length !== 3) return null;
-
-    const [adminId, nonce, sig] = parts;
-    const secret = process.env.ADMIN_SESSION_SECRET;
-    if (!secret) return null;
-    const expected = crypto
-      .createHmac("sha256", secret)
-      .update(`${adminId}:${nonce}`)
-      .digest("hex");
-
-    const sigBuf = Buffer.from(sig, "hex");
-    const expectedBuf = Buffer.from(expected, "hex");
-    if (
-      sigBuf.length !== expectedBuf.length ||
-      !crypto.timingSafeEqual(sigBuf, expectedBuf)
-    ) {
-      return null;
-    }
-    return adminId;
+  /** Revoke a single admin session by its raw token (used on logout). */
+  async revokeSession(token: string): Promise<void> {
+    if (!AdminAuthService.isSessionToken(token)) return;
+    await this.prisma.adminSession.updateMany({
+      where: { tokenHash: this.hash(token), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   async getAdmin(id: string) {
