@@ -350,7 +350,9 @@ export class ProposalsService {
 
         const slug = await this.generateUniqueOfficialSlug(tx, data.name.trim(), positionScope.stateCode || data.stateCode);
         const official = await tx.nigerianOfficial.create({
-          data: { name: data.name.trim(), slug, imageUrl: imageInfo.officialImageUrl, ...officialProfile, completenessScore: 0 },
+          // completenessScore stays NULL ("not yet computed") — a stored 0 is an
+        // impossible value the profile endpoint would display verbatim.
+        data: { name: data.name.trim(), slug, imageUrl: imageInfo.officialImageUrl, ...officialProfile },
         });
         const position = await tx.officialPosition.create({
           data: {
@@ -394,6 +396,13 @@ export class ProposalsService {
       });
       return { officialId: canonical.officialId, positionId: canonical.id, proposalId: competing.id, outcome: "competing" as const };
     });
+
+    // A submission-time create mints an official with a NULL score; compute the
+    // real value now (post-commit) so the profile never shows an impossible 0
+    // while the proposal awaits review. Non-fatal, same as the approve path.
+    if (result.outcome === "created") {
+      await this.officialsService.recomputeCompleteness(result.officialId).catch(() => {});
+    }
 
     const eventType =
       result.outcome === "created" ? "official_identified"
@@ -638,7 +647,7 @@ export class ProposalsService {
       });
       const slug = await this.generateUniqueOfficialSlug(tx, newName, incumbent.stateCode ?? undefined);
       const newOfficial = await tx.nigerianOfficial.create({
-        data: { name: newName, slug, officialType: oldOfficial?.officialType ?? null, completenessScore: 0 },
+        data: { name: newName, slug, officialType: oldOfficial?.officialType ?? null },
       });
       const newPosition = await tx.officialPosition.create({
         data: {
@@ -1327,6 +1336,10 @@ export class ProposalsService {
     const effectiveDate =
       parseEffectiveDate(overrides?.effectiveDate) ?? parseEffectiveDate(pvRaw?.effectiveDate);
 
+    // A succession mints a brand-new official whose completeness must also be
+    // computed — recomputing only proposal.officialId covers the predecessor.
+    let successorOfficialId: string | null = null;
+
     // Apply the change based on target field
     if (proposal.targetField === "partyAcronym" && proposal.positionId && partyChangeKind === "defection") {
       // Real party change: record it as a dated affiliation event (keep history),
@@ -1341,7 +1354,7 @@ export class ProposalsService {
     } else if (isNameChange && nameChangeKind === "succession") {
       // Tenure ended: end the incumbent's seat and mint a NEW official + position.
       // The existing official (and its slug + history) is left untouched.
-      await this.applySuccession(proposal, String(value), adminId, effectiveDate);
+      successorOfficialId = await this.applySuccession(proposal, String(value), adminId, effectiveDate);
     } else if (isNameChange) {
       // Wrong name: rename in place, regenerate the slug from the new name, and
       // preserve the old slug as a redirectable alias — all in one transaction.
@@ -1407,8 +1420,14 @@ export class ProposalsService {
       });
     }
 
-    // Recompute completeness
+    // Recompute completeness — the predecessor always, and on succession the
+    // newly minted official too (created with a NULL score; without this it
+    // would sit un-scored and /api/officials would fall back to the legacy
+    // formula for it).
     await this.officialsService.recomputeCompleteness(proposal.officialId);
+    if (successorOfficialId) {
+      await this.officialsService.recomputeCompleteness(successorOfficialId);
+    }
 
     // Log activity
     await this.prisma.activityLog.create({
