@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { DeferredWidgets } from "@/components/DeferredWidgets";
 import { Analytics } from "@/components/Analytics";
+import { SITE_URL } from "@/lib/constants";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -37,7 +38,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
   export const metadata: Metadata = {
-    metadataBase: new URL("https://ournigeria.ng"),
+    metadataBase: new URL(SITE_URL),
     title: "OurNigeria — Know Who Governs You & Where Your Money Dey Go",
     description:
       "Find out who governs you. Look up your elected officials, representatives, parties & constituencies — and track their budgets, spending & corruption cases. In English or Pidgin.",
@@ -65,7 +66,7 @@ const ibmPlexMono = IBM_Plex_Mono({
       title: "OurNigeria — Know Who Governs You & Where Your Money Dey Go",
       description:
         "Find out who governs you. Look up your elected officials, representatives, parties & constituencies — and track their budgets, spending & corruption cases.",
-      url: "https://ournigeria.ng",
+      url: SITE_URL,
       siteName: "OurNigeria",
       type: "website",
       locale: "en_NG",

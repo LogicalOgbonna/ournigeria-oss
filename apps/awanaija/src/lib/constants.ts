@@ -6,6 +6,26 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/**
+ * Canonical origin for this deployment, used for metadataBase, canonical URLs,
+ * robots and the sitemap.
+ *
+ * Next resolves file-convention opengraph-image URLs against metadataBase, so a
+ * hardcoded production origin makes og:image on a Vercel preview point at prod —
+ * which means an Open Graph change can never be QA'd on its own preview URL. Vercel
+ * sets VERCEL_ENV and VERCEL_URL on every deployment; NEXT_PUBLIC_SITE_URL is an
+ * escape hatch for anywhere else.
+ */
+export const SITE_URL: string =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_ENV === "production"
+    ? "https://ournigeria.ng"
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NODE_ENV === "production"
+        ? "https://ournigeria.ng"
+        : "http://localhost:3003");
+
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://spending.arinze.online";
 export const LOGIN_URL =
   process.env.NEXT_PUBLIC_LOGIN_URL || "https://ournigeria.arinze.online/login";

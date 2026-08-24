@@ -16,7 +16,7 @@ export const metadata = {
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
-    url: "https://ournigeria.ng/roadmap",
+    url: "/roadmap",
     siteName: "OurNigeria",
     type: "article" as const,
     locale: "en_NG",
