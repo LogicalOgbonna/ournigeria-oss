@@ -64,3 +64,67 @@ export function computeOfficialCompleteness(input: CompletenessInput): number {
   const filled = items.filter(Boolean).length;
   return Number((filled / items.length).toFixed(2));
 }
+
+/**
+ * Physical column for each flat field. Declared as a total Record so adding a
+ * field to COMPLETENESS_FLAT_FIELDS is a compile error until it is mapped here.
+ */
+export const COMPLETENESS_FLAT_COLUMNS: Record<CompletenessFlatField, string> = {
+  name: "name",
+  imageUrl: "image_url",
+  email: "email",
+  phoneNumber: "phone_number",
+  officeAddress: "office_address",
+  twitterHandle: "twitter_handle",
+  facebookUrl: "facebook_url",
+  gender: "gender",
+};
+
+/**
+ * SQL twin of computeOfficialCompleteness(), generated from the same constants.
+ *
+ * Aggregate queries (the state/LGA leaderboards) MUST use this rather than
+ * averaging the stored completeness_score column: recompute() only runs on the
+ * proposal-approval and enrichment-apply paths, so every bulk-imported official
+ * still has completeness_score = NULL. Averaging that column made
+ * COALESCE(AVG(NULL), 0) report fully-populated states as a hard 0.
+ *
+ * `alias` is the table alias for nigerian_officials in the caller's query.
+ * Returns a numeric expression in [0, 1] rounded to 2dp, or NULL when the row
+ * is absent (outer join miss) so AVG skips it instead of counting it as zero.
+ */
+export function completenessSql(alias = "o"): string {
+  const filled = (col: string) =>
+    `(${alias}.${col} IS NOT NULL AND ${alias}.${col} <> '')`;
+  const exists = (table: string) =>
+    `EXISTS (SELECT 1 FROM ${table} x WHERE x.official_id = ${alias}.id)`;
+
+  const flat = COMPLETENESS_FLAT_FIELDS.map((f) =>
+    filled(COMPLETENESS_FLAT_COLUMNS[f]),
+  );
+  const base = [
+    filled("biography"),
+    `(${filled("education")} OR ${exists("official_education")})`,
+    exists("official_careers"),
+  ];
+  const elected = [
+    exists("official_positions"),
+    exists("official_party_affiliations"),
+    exists("official_elections"),
+  ];
+
+  const count = (parts: string[]) =>
+    parts.map((p) => `(${p})::int`).join(" + ");
+
+  // electedApplies(): NULL official_type is pre-Plan-45 data, i.e. politicians.
+  const isElected = `(${alias}.official_type IS NULL OR ${alias}.official_type = 'elected')`;
+
+  const filledCount = `(${count([...flat, ...base])} + CASE WHEN ${isElected} THEN ${count(elected)} ELSE 0 END)`;
+  const applicable = `(${flat.length + base.length} + CASE WHEN ${isElected} THEN ${elected.length} ELSE 0 END)`;
+
+  return `CASE WHEN ${alias}.id IS NULL THEN NULL
+    ELSE ROUND(${filledCount}::numeric / ${applicable}::numeric, 2) END`;
+}
+
+/** completenessSql() for the conventional `o` alias. */
+export const COMPLETENESS_SQL = completenessSql("o");
