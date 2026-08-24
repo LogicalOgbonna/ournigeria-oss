@@ -29,19 +29,31 @@ const KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill
  * so we reserve headroom and skip the pre-step when the window is spent.
  * clSpend(0) = "is there budget left?"; clSpend(n) records n spent.
  */
+// Free-tier CourtListener limits are 5/min, 50/hr, 125/day (free.law/membership)
+// — the DAILY cap is the binding one for a rolling sweep, so both windows are
+// enforced. Defaults leave headroom under each (44 < 50, 110 < 125); a paid
+// membership tier just raises these two env vars.
 const CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
+const CL_DAILY_BUDGET = Number(process.env.SWEEPER_CL_DAILY_BUDGET || 110);
 // Max requests one lookup can plausibly spend: 3 pages + 1 variant fallback +
 // PARTIES_FETCH_CAP(5) authoritative-role fetches.
 const CL_RESERVE = 9;
-// SLIDING window (CourtListener's limit is rolling, not calendar-hour): a fixed
-// window would let ~2× the cap through at the boundary. Track per-spend timestamps.
+// SLIDING windows (CourtListener's limits are rolling, not calendar-aligned): a
+// fixed window would let ~2× the cap through at the boundary. Per-spend timestamps.
 const clSpends: { at: number; n: number }[] = [];
 function clSpend(n: number): boolean {
-  const cutoff = Date.now() - 60 * 60 * 1000;
-  while (clSpends.length && clSpends[0].at < cutoff) clSpends.shift();
-  if (n > 0) clSpends.push({ at: Date.now(), n });
-  const used = clSpends.reduce((s, e) => s + e.n, 0);
-  return used + CL_RESERVE <= CL_HOURLY_BUDGET;
+  const now = Date.now();
+  const dayCutoff = now - 24 * 60 * 60 * 1000;
+  while (clSpends.length && clSpends[0].at < dayCutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: now, n });
+  const hourCutoff = now - 60 * 60 * 1000;
+  let usedHour = 0;
+  let usedDay = 0;
+  for (const e of clSpends) {
+    usedDay += e.n;
+    if (e.at >= hourCutoff) usedHour += e.n;
+  }
+  return usedHour + CL_RESERVE <= CL_HOURLY_BUDGET && usedDay + CL_RESERVE <= CL_DAILY_BUDGET;
 }
 
 function tableFor(gap: StructuredGap): string {

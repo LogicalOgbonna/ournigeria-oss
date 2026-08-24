@@ -2183,14 +2183,22 @@ var config = {
 };
 var KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
 var CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
+var CL_DAILY_BUDGET = Number(process.env.SWEEPER_CL_DAILY_BUDGET || 110);
 var CL_RESERVE = 9;
 var clSpends = [];
 function clSpend(n) {
-  const cutoff = Date.now() - 60 * 60 * 1e3;
-  while (clSpends.length && clSpends[0].at < cutoff) clSpends.shift();
-  if (n > 0) clSpends.push({ at: Date.now(), n });
-  const used = clSpends.reduce((s, e) => s + e.n, 0);
-  return used + CL_RESERVE <= CL_HOURLY_BUDGET;
+  const now = Date.now();
+  const dayCutoff = now - 24 * 60 * 60 * 1e3;
+  while (clSpends.length && clSpends[0].at < dayCutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: now, n });
+  const hourCutoff = now - 60 * 60 * 1e3;
+  let usedHour = 0;
+  let usedDay = 0;
+  for (const e of clSpends) {
+    usedDay += e.n;
+    if (e.at >= hourCutoff) usedHour += e.n;
+  }
+  return usedHour + CL_RESERVE <= CL_HOURLY_BUDGET && usedDay + CL_RESERVE <= CL_DAILY_BUDGET;
 }
 function tableFor(gap) {
   return CATEGORY_BY_KEY[gap.category]?.table ?? gap.category;
