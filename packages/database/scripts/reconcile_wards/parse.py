@@ -19,16 +19,33 @@ class ParsedDistrict:
     collation: str | None = None
 
 
-_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z]{2})")
+# State suffix allows a digit because INEC typos O as 0: Sokoto's worksheet
+# writes "SC/895/S0". With the strict [A-Z]{2} the code never stripped from the
+# seat name, so "Dange Shuni SC/895/S0" failed to match its register seat and
+# every one of its wards surfaced as a phantom conflict.
+_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z][A-Z0-9])")
 
 # Header-label matchers (normalized: lowercased, whitespace-collapsed). INEC
 # workbooks vary the exact spelling/spacing per state, so match fuzzily.
 _NAME_RE = re.compile(r"name of (state )?constituenc", re.I)
 _SEN_NAME_RE = re.compile(r"name of (senatorial|federal)", re.I)
 _CODE_COL_RE = re.compile(r"^code$", re.I)
-_RA_COMP_RE = re.compile(r"ra composition", re.I)
+# Most states label it "RA COMPOSITION"; BAUCHI, GOMBE and KOGI write a bare
+# "COMPOSITION". That one missing word made `_find_header` fail, so those three
+# fell back to fixed column indices — and their sheets carry an extra empty
+# column that shifts composition from index 2 to 3, so the fallback read blanks
+# and reported 0 wards parsed. Three states, 172 unmapped wards, one word.
+# Anchored to the end, and excludes "LGA COMPOSITION" so that if an SC sheet
+# ever carries both columns the RA one still wins.
+_RA_COMP_RE = re.compile(r"^(?:(?!lga).)*?(?:ra\s+)?composition\s*$", re.I)
 _RA_COUNT_RE = re.compile(r"no\.?\s*of\s*ras", re.I)
 _LGA_COMP_RE = re.compile(r"lga composition", re.I)
+# Last-resort composition matcher for SC sheets only. BAUCHI heads its ward
+# column "LGA COMPOSITION" even though the contents are registration areas
+# ("Alkaleri, Gar, Gwaram, Pali" for the Pali constituency, which is one LGA's
+# wards, not four LGAs). On an SC sheet the composition column IS the ward list
+# whatever the header claims, so fall back to it rather than parsing nothing.
+_ANY_COMP_RE = re.compile(r"composition\s*$", re.I)
 _COLLATION_RE = re.compile(r"collation", re.I)
 
 
@@ -129,9 +146,14 @@ def parse_sc_rows(rows: list[list]) -> list[ParsedConstituency]:
     Header / spacer / total rows (non-numeric S/N) are skipped. Falls back to
     the historical fixed indices if no header row is detected.
     """
-    header_idx = _find_header(rows, comp_re=_RA_COMP_RE)
+    comp_re = _RA_COMP_RE
+    header_idx = _find_header(rows, comp_re=comp_re)
+    if header_idx is None:
+        # See _ANY_COMP_RE: BAUCHI mislabels its SC ward column "LGA COMPOSITION".
+        comp_re = _ANY_COMP_RE
+        header_idx = _find_header(rows, comp_re=comp_re)
     if header_idx is not None:
-        cols = _resolve_columns(rows[header_idx], comp_re=_RA_COMP_RE)
+        cols = _resolve_columns(rows[header_idx], comp_re=comp_re)
         # Fixed-layout defaults for any role the header didn't surface.
         name_i = cols["name"] if cols["name"] is not None else 1
         code_i = cols["code"]  # may be None (embedded-code layout)

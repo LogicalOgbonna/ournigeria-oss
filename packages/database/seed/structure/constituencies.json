@@ -6910,7 +6910,7 @@
   },
   {
     "code": "state_kano_shanono_bagwai",
-    "name": "Bagwai",
+    "name": "Shanono/Bagwai",
     "type": "state",
     "state_code": "kano",
     "pcode": null
@@ -9017,7 +9017,7 @@
   },
   {
     "code": "state_oyo_kajola",
-    "name": "Kajola/Iwajowa",
+    "name": "Kajola",
     "type": "state",
     "state_code": "oyo",
     "pcode": null
@@ -10210,6 +10210,34 @@
     "name": "Zurmi West",
     "type": "state",
     "state_code": "zamfara",
+    "pcode": null
+  },
+  {
+    "code": "state_kano_ungogo",
+    "name": "Ungogo",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null
+  },
+  {
+    "code": "state_kano_warawa",
+    "name": "Warawa",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null
+  },
+  {
+    "code": "state_kano_wudil",
+    "name": "Wudil",
+    "type": "state",
+    "state_code": "kano",
+    "pcode": null
+  },
+  {
+    "code": "state_kaduna_kewaye",
+    "name": "Kewaye",
+    "type": "state",
+    "state_code": "kaduna",
     "pcode": null
   }
 ]
