@@ -1813,7 +1813,7 @@ export class ProposalsService {
   /**
    * Structured contributions: one BATCH (shared batchId) = one limiter unit,
    * so a multi-row education history doesn't burn the whole anon budget.
-   * Same windows/ceilings as the scalar limits (anon 5/hour, verified 30/day).
+   * Same windows/ceilings as the scalar limits (anon 30/hour, verified 50/day).
    */
   private async checkStructuredRateLimit(
     trust: "verified" | "anonymous",

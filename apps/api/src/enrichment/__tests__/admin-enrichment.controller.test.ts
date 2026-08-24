@@ -4,7 +4,7 @@ import { AdminEnrichmentController } from "../admin-enrichment.controller";
 describe("AdminEnrichmentController", () => {
   const apply = { apply: vi.fn().mockResolvedValue(undefined) } as any;
   const query = {
-    listByStatus: vi.fn().mockResolvedValue([{ id: "p1" }]),
+    listPaginated: vi.fn().mockResolvedValue({ items: [{ id: "p1" }], nextCursor: null }),
     getWithSources: vi.fn().mockResolvedValue({ id: "p1", sources: [] }),
   } as any;
   const prisma = { changeProposal: { update: vi.fn().mockResolvedValue({ id: "p1" }) } } as any;
@@ -12,9 +12,11 @@ describe("AdminEnrichmentController", () => {
   // The AdminGuard sets request.adminId (a plain string) — not request.admin.id
   const req = { adminId: "admin-1" } as any;
 
-  it("lists by status (defaults to pending)", async () => {
-    expect(await ctrl.list(undefined)).toEqual([{ id: "p1" }]);
-    expect(query.listByStatus).toHaveBeenCalledWith("pending");
+  it("lists by status (defaults to pending, paginated)", async () => {
+    expect(await ctrl.list(undefined)).toEqual({ items: [{ id: "p1" }], nextCursor: null });
+    expect(query.listPaginated).toHaveBeenCalledWith({
+      status: "pending", actions: [], entities: [], cursor: undefined, limit: 20,
+    });
   });
 
   it("approve calls the apply service with the admin id", async () => {
