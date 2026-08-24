@@ -24,6 +24,12 @@ describe("party_officers create (find-or-create official)", () => {
     if (!OWNER_URL) throw new Error("DATABASE_URL not set");
     owner = new Client({ connectionString: OWNER_URL });
     await owner.connect();
+    // Self-sufficient fixture: NDC (registered 2026) postdates older dev-DB
+    // seeds — upsert it so the FK insert below never depends on seed vintage.
+    await owner.query(
+      `INSERT INTO political_parties (acronym, name) VALUES ('NDC', 'New Democratic Coalition')
+       ON CONFLICT (acronym) DO NOTHING`,
+    );
   });
   afterAll(async () => {
     if (cleanupOfficerIds.length)
