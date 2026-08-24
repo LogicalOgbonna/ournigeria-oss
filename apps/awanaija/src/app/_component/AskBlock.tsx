@@ -77,8 +77,12 @@ export function AskBlock() {
         </p>
       </div>
 
-      {/* Removed on mobile so it isn't mistaken for a real, typable chat. */}
-      <div className="hidden w-full lg:block">
+      {/* Captioned on mobile so the card isn't mistaken for a real, typable
+          chat — on desktop the surrounding layout already makes that read. */}
+      <div className="w-full">
+        <p className="mb-3 font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground lg:hidden">
+          Example conversation
+        </p>
         <ChatDemo />
       </div>
     </section>
