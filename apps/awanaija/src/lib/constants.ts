@@ -208,8 +208,8 @@ export const LOTTIE_URLS = {
 // ═══ Coverage ═══
 // Structural counts fixed by Nigeria's own delimitation — these do NOT drift with
 // data entry, which is why they're safe to bake into statically-generated pages and
-// Open Graph cards. Live counts (officials tracked, photos on file) belong in a
-// server fetch, not here: see COVERAGE_SNAPSHOT_DATE for figures that DO go stale.
+// Open Graph cards. Live counts (officials tracked, photos on file) drift and are
+// NOT here — see OFFICIALS_SNAPSHOT in src/app/roadmap/page.tsx for those.
 export const COVERAGE = {
   wards: "8,807",
   lgas: "774",
