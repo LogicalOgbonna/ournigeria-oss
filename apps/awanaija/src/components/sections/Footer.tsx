@@ -131,6 +131,14 @@ export function Footer() {
             <ul className="mt-5 space-y-3">
               <li>
                 <Link
+                  href="/roadmap"
+                  className="text-sm text-white/50 transition-colors hover:text-white hover-lift inline-block"
+                >
+                  Roadmap
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/donate"
                   className="text-sm text-emerald-400/70 transition-colors hover:text-emerald-400 hover-lift inline-block"
                 >

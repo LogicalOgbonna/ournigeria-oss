@@ -1,0 +1,385 @@
+<!--
+  OurNigeria roadmap brief — audience: partners & funders.
+  SNAPSHOT, not a live document. Figures were accurate on 2026-08-24.
+  Standalone pitch collateral: it does NOT track apps/awanaija/src/app/roadmap/page.tsx,
+  so the two WILL drift. Update deliberately or retire this file.
+  Published copy: https://claude.ai/code/artifact/6758c50b-4ac0-43ea-a1f6-ae19bde17884
+  (Republishing from this path creates a NEW artifact — pass the URL above to update in place.)
+-->
+<title>Eight Layers of Accountability</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0a0e0c; --panel:#111815; --panel-2:#0d1210;
+    --ink:#e9f1eb; --body:#cddcd3; --muted:#8fa298; --soft:#5f6f66;
+    --rule:rgba(233,241,235,0.09); --rule-solid:rgba(233,241,235,0.16);
+    --accent:#34d399; --accent-deep:#059669; --accent-tint:rgba(52,211,153,0.10);
+    --gold:#fbbf24; --gold-tint:rgba(251,191,36,0.10);
+    --danger:#f87171; --danger-tint:rgba(248,113,113,0.10);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Geist',system-ui,-apple-system,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1200px 600px at 78% -10%, rgba(5,150,105,0.10), transparent 60%);}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:600px){.wrap{padding:0 20px}}
+
+  h1,h2,h3{font-weight:400;margin:0;text-wrap:balance}
+  h1{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(2.5rem,5.4vw,4.2rem);line-height:1.03;letter-spacing:-0.012em}
+  h2{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(1.8rem,3.2vw,2.6rem);line-height:1.09;letter-spacing:-0.01em}
+  h3{font-family:'Geist',sans-serif;font-weight:600;font-size:1rem;letter-spacing:-0.005em}
+  p{margin:0 0 1rem;max-width:68ch}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(52,211,153,0.32)}
+  a:hover{border-bottom-color:var(--accent)}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+  em.acc{color:var(--accent);font-style:italic;font-family:'Instrument Serif',Georgia,serif}
+  .lead{font-size:1.14rem;color:var(--body);max-width:64ch}
+  .muted{color:var(--muted)} .soft{color:var(--soft)}
+  .eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.22em;
+    text-transform:uppercase;color:var(--accent);margin:0}
+
+  header.hero{padding:80px 0 44px;border-bottom:1px solid var(--rule)}
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:34px;flex-wrap:wrap}
+  .brandline .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-tint)}
+  .brandline .name{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink)}
+  .brandline .rght{margin-left:auto;font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;color:var(--soft)}
+  header.hero h1{margin:16px 0 22px;max-width:20ch}
+  .hero-sub{display:flex;flex-wrap:wrap;gap:30px;margin-top:30px}
+  @media(max-width:600px){
+    .hero-sub{display:grid;grid-template-columns:1fr 1fr;gap:24px 16px;text-align:center}
+  }
+  .hero-sub .k{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.13em;text-transform:uppercase;color:var(--soft);margin-bottom:5px}
+  .hero-sub .v{font-family:'Instrument Serif',Georgia,serif;font-size:1.55rem;color:var(--ink);font-variant-numeric:tabular-nums}
+  .hero-sub .v small{font-size:.78rem;color:var(--muted);font-family:'Geist Mono',ui-monospace,monospace}
+
+  section{padding:60px 0;border-bottom:1px solid var(--rule)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+  .sec-head .num{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:var(--accent);letter-spacing:0.14em}
+  .sec-head h2{max-width:24ch}
+  .grid2{display:grid;grid-template-columns:1.05fr 0.95fr;gap:40px;align-items:start}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr;gap:28px}}
+
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule-solid);
+    border:1px solid var(--rule-solid);border-radius:8px;overflow:hidden}
+  @media(max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);padding:22px 20px}
+  .stat .big{font-family:'Instrument Serif',Georgia,serif;font-size:2.4rem;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .stat .big.warn{color:var(--danger)} .stat .big.good{color:var(--accent)} .stat .big.gold{color:var(--gold)}
+  .stat .lbl{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+  .stat .sub{font-size:12px;color:var(--soft);margin-top:4px}
+
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--rule-solid);border-radius:8px}
+  table{width:100%;border-collapse:collapse;min-width:760px;font-size:.92rem}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--rule);vertical-align:top}
+  thead th{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;
+    text-transform:uppercase;color:var(--muted);background:var(--panel-2);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody td{color:var(--body)}
+  tbody td b{color:var(--ink);font-weight:600}
+  td.num{font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+  td.layer{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--accent);white-space:nowrap}
+
+  .pill{display:inline-block;font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.07em;
+    padding:3px 9px;border-radius:3px;border:1px solid;white-space:nowrap;text-transform:uppercase}
+  .pill.live{color:var(--accent);border-color:rgba(52,211,153,0.4);background:var(--accent-tint)}
+  .pill.build{color:var(--gold);border-color:rgba(251,191,36,0.4);background:var(--gold-tint)}
+  .pill.gap{color:var(--danger);border-color:rgba(248,113,113,0.4);background:var(--danger-tint)}
+  .pill.plan{color:var(--muted);border-color:var(--rule-solid)}
+
+  figure.fig{margin:12px 0 0;background:var(--panel);border:1px solid var(--rule-solid);border-radius:10px;padding:26px 24px;overflow-x:auto}
+  figure.fig svg{display:block;width:100%;height:auto;min-width:700px}
+  figcaption{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--soft);letter-spacing:0.04em;
+    margin-top:16px;border-top:1px solid var(--rule);padding-top:12px;line-height:1.65}
+  figcaption b{color:var(--muted);font-weight:500}
+
+  .callout{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:1.33rem;line-height:1.42;color:#d9e6de;
+    border-left:2px solid var(--accent);padding:6px 0 6px 22px;margin:20px 0 6px;max-width:58ch}
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:900px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--rule-solid);border-radius:8px;padding:22px}
+  .card .ch{display:flex;align-items:center;gap:9px;margin:0 0 12px}
+  .card .cdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .cdot.acc{background:var(--accent)} .cdot.gold{background:var(--gold)} .cdot.dng{background:var(--danger)}
+  .card ul{margin:0;padding-left:18px}
+  .card li{margin:8px 0;color:var(--body);font-size:.94rem}
+  .card li b{color:var(--ink);font-weight:600}
+  .card p{font-size:.94rem;color:var(--body)}
+
+  footer{padding:44px 0 76px}
+  .colophon{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--soft);letter-spacing:0.05em;
+    border-top:1px solid var(--rule);padding-top:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  @media(max-width:600px){
+    section{padding:40px 0}
+    header.hero{padding:60px 0 34px}
+    .wrap{padding:0 20px}
+  }
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="brandline">
+    <span class="dot"></span>
+    <span class="name">OurNigeria</span>
+    <span class="rght">Roadmap &middot; partners &amp; funders &middot; 2026</span>
+  </div>
+  <p class="eyebrow">Where this goes next</p>
+  <h1>The map of who governs Nigeria is built. <em class="acc">Filling it</em> is the work.</h1>
+  <p class="lead">We have mapped 2,317 elective seats from governor down to ward councillor, across 8,807 wards and 774 local governments, and put it behind a plain-language interface in English and Pidgin. That structural work is done and it does not need doing twice. What follows are eight layers of accountability built on top of it &mdash; each one reusing the same spine, each one measurable.</p>
+  <div class="hero-sub">
+    <div><div class="k">Wards mapped</div><div class="v">8,807</div></div>
+    <div><div class="k">Local governments</div><div class="v">774</div></div>
+    <div><div class="k">Seats mapped</div><div class="v">2,317</div></div>
+    <div><div class="k">Officials tracked</div><div class="v">2,847</div></div>
+    <div><div class="k">Team</div><div class="v">4 <small>people</small></div></div>
+  </div>
+</header>
+
+<!-- ============ 01 THE GAP ============ -->
+<section id="gap">
+  <div class="sec-head"><span class="num">01</span><h2>The structure is finished. The record is thin.</h2></div>
+  <div class="grid2">
+    <div>
+      <p>It is worth being precise about where this actually stands, because the gap is not where most people assume. The engineering is not the constraint. The geography is resolved to ward level, the constituency mappings are in place, the personalised lookup works, and the retrieval stack over budget and spending data has been in production for months.</p>
+      <p>The constraint is that the records hanging off that structure are close to empty. Of 2,847 officials in the database, 13% have a photograph and <b>66% consist of a name and nothing else</b> &mdash; no contact route, no biography, no party history a reader could check. The average profile has 2.0 of 10 tracked fields filled; exactly one official is complete. The election work is the sharpest illustration of the pattern: the ballot API, the sixteen-party directory and the location-to-races personaliser are all built and working, yet seven candidates are on record for the 2027 presidential race &mdash; one with a photograph &mdash; and none at all for governor in any state sampled. Beyond that there is no security layer, no facility layer and no legislative layer.</p>
+      <div class="callout">Every layer below is a data problem sitting on solved infrastructure &mdash; which is why they compound instead of competing.</div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(2,1fr)">
+      <div class="stat"><div class="big good">2,317</div><div class="lbl">Seats mapped</div><div class="sub">Structural work &mdash; complete</div></div>
+      <div class="stat"><div class="big warn">66%</div><div class="lbl">Are a name and nothing else</div><div class="sub">1,874 of 2,847 officials</div></div>
+      <div class="stat"><div class="big gold">1,995</div><div class="lbl">Primary winners collected</div><div class="sub">Awaiting import</div></div>
+      <div class="stat"><div class="big warn">0</div><div class="lbl">Security &middot; facility &middot; bill records</div><div class="sub">Layers not yet started</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 THE EIGHT LAYERS ============ -->
+<section id="layers">
+  <div class="sec-head"><span class="num">02</span><h2>Eight layers, one spine</h2></div>
+  <p class="lead" style="margin-bottom:24px">Ordered by sequence, not by importance. Elections lead because they are time-bound; everything after them is permanent civic infrastructure that outlives any single cycle.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th><th>What it delivers</th><th>Depth</th><th>Measured by</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="layer">01 &nbsp;Elections</td>
+          <td>Public pages per election year and per contesting party, with candidate slates and records attached. Party directory and personalised ballot are already live</td>
+          <td class="num">National &rarr; ward</td>
+          <td>Races covered; candidates with sourced records</td>
+          <td><span class="pill build">Engine live, unfilled</span></td>
+        </tr>
+        <tr>
+          <td class="layer">02 &nbsp;Security</td>
+          <td>The police chain: Commissioner, PPRO, Area Commanders, DPOs, and station locations</td>
+          <td class="num">State &rarr; ward</td>
+          <td>States with a full command chain; stations located</td>
+          <td><span class="pill plan">Next</span></td>
+        </tr>
+        <tr>
+          <td class="layer">03 &nbsp;Communities</td>
+          <td>A settlement layer beneath the ward &mdash; every community mapped to its ward</td>
+          <td class="num">Below ward</td>
+          <td>Communities mapped; wards with any coverage</td>
+          <td><span class="pill gap">Not started</span></td>
+        </tr>
+        <tr>
+          <td class="layer">04 &nbsp;Health</td>
+          <td>Public hospitals, health centres and clinics, per community, aggregated per LGA</td>
+          <td class="num">Community &rarr; LGA</td>
+          <td>Facilities geolocated; LGAs with complete counts</td>
+          <td><span class="pill gap">Not started</span></td>
+        </tr>
+        <tr>
+          <td class="layer">05 &nbsp;Education</td>
+          <td>Public primary, secondary and tertiary institutions, same shape as health</td>
+          <td class="num">Community &rarr; LGA</td>
+          <td>Schools geolocated; LGAs with complete counts</td>
+          <td><span class="pill gap">Not started</span></td>
+        </tr>
+        <tr>
+          <td class="layer">06 &nbsp;Legislation</td>
+          <td>Live bill tracking with sponsors and backers, hearing transcripts, and per-LGA impact routing</td>
+          <td class="num">National &rarr; LGA</td>
+          <td>Bills tracked; hearings transcribed; citizens following</td>
+          <td><span class="pill gap">Not started</span></td>
+        </tr>
+        <tr>
+          <td class="layer">07 &nbsp;Ministries</td>
+          <td>Essential ministries &mdash; mandate, leadership, contact routes, active projects</td>
+          <td class="num">Federal &amp; state</td>
+          <td>Ministries profiled; projects linked to locations</td>
+          <td><span class="pill gap">Not started</span></td>
+        </tr>
+        <tr>
+          <td class="layer">08 &nbsp;Budget</td>
+          <td>Allocation traced federal &rarr; state &rarr; LGA, against what was delivered</td>
+          <td class="num">Federal &rarr; LGA</td>
+          <td>LGAs with traceable allocation and delivery</td>
+          <td><span class="pill live">Live, deepening</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 03 WHY IT COMPOUNDS ============ -->
+<section id="compound">
+  <div class="sec-head"><span class="num">03</span><h2>Why eight layers cost less than eight products</h2></div>
+  <figure class="fig">
+    <svg viewBox="0 0 900 300" role="img" aria-label="Diagram showing one shared geographic spine feeding eight accountability layers, which surface through four existing distribution channels">
+      <defs>
+        <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#5f6f66"/>
+        </marker>
+      </defs>
+
+      <g font-family="Geist Mono, monospace" font-size="9.5" letter-spacing="1.5" fill="#5f6f66">
+        <text x="14" y="20">SPINE &mdash; BUILT</text>
+        <text x="330" y="20">LAYERS &mdash; THE ROADMAP</text>
+        <text x="700" y="20">SURFACES &mdash; BUILT</text>
+      </g>
+
+      <rect x="14" y="34" width="230" height="232" rx="7" fill="rgba(52,211,153,0.10)" stroke="rgba(52,211,153,0.34)"/>
+      <text x="34" y="70" font-family="Instrument Serif, serif" font-size="19" fill="#34d399">Geographic spine</text>
+      <g font-family="Geist, sans-serif" font-size="12.5" fill="#cddcd3">
+        <text x="34" y="102">37 states</text>
+        <text x="34" y="126">774 local governments</text>
+        <text x="34" y="150">8,807 wards</text>
+        <text x="34" y="174">1,468 constituencies</text>
+        <text x="34" y="198">2,317 elective seats</text>
+      </g>
+      <text x="34" y="234" font-family="Geist Mono, monospace" font-size="10" fill="#34d399" letter-spacing="1.2">RESOLVED &middot; REUSED BY ALL</text>
+
+      <line x1="252" y1="150" x2="316" y2="150" stroke="#5f6f66" marker-end="url(#a2)"/>
+
+      <g font-family="Geist, sans-serif" font-size="12">
+        <rect x="330" y="34" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(251,191,36,0.42)"/>
+        <text x="346" y="56" fill="#fbbf24">01 &nbsp;Elections</text>
+        <rect x="330" y="76" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="346" y="98" fill="#cddcd3">02 &nbsp;Security</text>
+        <rect x="330" y="118" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="346" y="140" fill="#cddcd3">03 &nbsp;Communities</text>
+        <rect x="330" y="160" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="346" y="182" fill="#cddcd3">04 &nbsp;Health</text>
+        <rect x="490" y="34" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="506" y="56" fill="#cddcd3">05 &nbsp;Education</text>
+        <rect x="490" y="76" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="506" y="98" fill="#cddcd3">06 &nbsp;Legislation</text>
+        <rect x="490" y="118" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+        <text x="506" y="140" fill="#cddcd3">07 &nbsp;Ministries</text>
+        <rect x="490" y="160" width="150" height="34" rx="4" fill="#0d1210" stroke="rgba(52,211,153,0.34)"/>
+        <text x="506" y="182" fill="#34d399">08 &nbsp;Budget</text>
+      </g>
+      <text x="330" y="228" font-family="Geist Mono, monospace" font-size="10" fill="#5f6f66" letter-spacing="1.2">EACH ATTACHES TO THE SAME GEOGRAPHY</text>
+      <text x="330" y="248" font-family="Geist Mono, monospace" font-size="10" fill="#5f6f66" letter-spacing="1.2">NO LAYER REBUILDS THE SPINE</text>
+
+      <line x1="652" y1="150" x2="716" y2="150" stroke="#5f6f66" marker-end="url(#a2)"/>
+
+      <rect x="730" y="34" width="156" height="232" rx="7" fill="#0d1210" stroke="rgba(233,241,235,0.16)"/>
+      <text x="750" y="70" font-family="Instrument Serif, serif" font-size="19" fill="#e9f1eb">Surfaces</text>
+      <g font-family="Geist, sans-serif" font-size="12.5" fill="#cddcd3">
+        <text x="750" y="102">Web, ward-level</text>
+        <text x="750" y="126">Plain-language chat</text>
+        <text x="750" y="150">Telegram bot</text>
+        <text x="750" y="174">Social + video pipeline</text>
+        <text x="750" y="198">Newsroom embeds</text>
+      </g>
+      <text x="750" y="234" font-family="Geist Mono, monospace" font-size="10" fill="#5f6f66" letter-spacing="1.2">ALREADY SHIPPING</text>
+    </svg>
+    <figcaption><b>The spine and the surfaces already exist.</b> A new layer is a data pipeline plus a view &mdash; it inherits the geography, the personalisation, the language handling and every distribution channel for free. <b>One correction propagates everywhere at once.</b></figcaption>
+  </figure>
+</section>
+
+<!-- ============ 04 SEQUENCE ============ -->
+<section id="sequence">
+  <div class="sec-head"><span class="num">04</span><h2>Sequence and reasoning</h2></div>
+  <div class="cards">
+    <div class="card">
+      <div class="ch"><span class="cdot gold"></span><h3>First &mdash; Elections</h3></div>
+      <p>The only time-bound layer on the list. A general election is a fixed date and a national attention spike; coverage published afterwards is worth a fraction of the same coverage published before.</p>
+      <p class="muted" style="margin-bottom:0">It is also the cheapest layer to fill, because the candidate data is already collected and the seat structure it attaches to is already resolved.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot acc"></span><h3>Second &mdash; Security</h3></div>
+      <p>The highest-frequency civic need on the list. People look up their representative occasionally; they look for a police division at the worst moment of their year.</p>
+      <p class="muted" style="margin-bottom:0">It reuses the exact hierarchy pattern already built for elected officials &mdash; a jurisdiction, a role, a person, a term &mdash; so the engineering is largely a repeat.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot acc"></span><h3>Then &mdash; the ward interior</h3></div>
+      <p>Communities, health facilities and schools are one problem wearing three hats. All three need a settlement layer beneath the ward, so communities must land first and the other two follow cheaply.</p>
+      <p class="muted" style="margin-bottom:0">Legislation, ministries and budget depth then run continuously rather than as a phase.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 WHAT IT UNLOCKS ============ -->
+<section id="unlocks">
+  <div class="sec-head"><span class="num">05</span><h2>What each layer makes newly provable</h2></div>
+  <p class="lead" style="margin-bottom:24px">The case for funding this is not that the pages are useful, though they are. It is that each layer turns a question that currently ends in speculation into one that ends in a number.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Layer</th><th>Question that is currently unanswerable</th><th>Who uses the answer</th></tr></thead>
+      <tbody>
+        <tr><td class="layer">Elections</td><td>Which candidates on this ballot have a documented spending or prosecution record?</td><td>Voters, newsrooms, election observers</td></tr>
+        <tr><td class="layer">Security</td><td>Which local governments have no police division at all, and how does that track with reported incidents?</td><td>Civil society, security researchers, press</td></tr>
+        <tr><td class="layer">Communities</td><td>How many settlements does a single ward councillor actually represent?</td><td>Researchers, electoral reform advocates</td></tr>
+        <tr><td class="layer">Health</td><td>Which communities are more than a set distance from any public health facility?</td><td>Health NGOs, donors, ministries</td></tr>
+        <tr><td class="layer">Education</td><td>Which LGAs receive education allocation and have the fewest public schools per child?</td><td>Education funders, journalists</td></tr>
+        <tr><td class="layer">Legislation</td><td>Which bills currently in the National Assembly directly affect this specific LGA?</td><td>Affected communities, advocacy groups</td></tr>
+        <tr><td class="layer">Ministries</td><td>Which ministry owns this stalled project, and who signs for it?</td><td>Contractors, press, citizens</td></tr>
+        <tr><td class="layer">Budget</td><td>What reached this LGA, and what physically exists there as a result?</td><td>Everyone above</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 06 HONEST LIMITS ============ -->
+<section id="limits">
+  <div class="sec-head"><span class="num">06</span><h2>The honest limits</h2></div>
+  <div class="grid2">
+    <div>
+      <p>A roadmap that lists only upside is not a roadmap. Four people cannot hand-verify 8,807 wards, and pretending otherwise is how civic data projects quietly die. The strategy assumes automation first, crowd verification second, and hand-curation reserved for the headline records only.</p>
+      <p>There are also constraints that money does not remove. Nigeria publishes no authoritative register of communities, and no public dataset of police divisions or their commanders. Health and education have partial public sources; security has effectively none, which is precisely why it is valuable and precisely why it will be slow.</p>
+      <div class="callout">The claim is not that every layer reaches completeness. It is that each one reaches a threshold where the pattern becomes visible and the gaps become arguments.</div>
+    </div>
+    <div class="cards" style="grid-template-columns:1fr;gap:16px">
+      <div class="card">
+        <div class="ch"><span class="cdot acc"></span><h3>Committed</h3></div>
+        <ul>
+          <li>Election and party pages, with records attached for headline races</li>
+          <li>Full state-level command chain for security, division level where sourceable</li>
+          <li>Community mapping seeded by citizens, not hand-collected</li>
+          <li>Public health and education facilities where an open source exists</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="cdot dng"></span><h3>Explicitly not promised</h3></div>
+        <ul>
+          <li>Hand-verification of all 8,807 wards</li>
+          <li>Complete national coverage of police divisions in the first pass</li>
+          <li>Private hospitals or private schools &mdash; public provision only, by design</li>
+          <li>Real-time legislative coverage of every bill, rather than those with traceable local impact</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="colophon">
+    <span>OurNigeria &mdash; roadmap for partners &amp; funders</span>
+    <span>Figures live from production, 2026-08-24</span>
+    <span>Open source &middot; ournigeria.ng</span>
+  </div>
+</footer>
+
+</div>

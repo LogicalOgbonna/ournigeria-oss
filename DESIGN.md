@@ -74,6 +74,7 @@ The background strategy varies by platform for maximum impact:
 | **Twitter Images** | Gradient `#064e3b` -> `#065f46` -> `#047857` | Bright emerald pops on Twitter's white feed |
 | **TikTok/Reels Videos** | `#080c0a` near-black | Immersive dark for vertical video format |
 | **ShareCard (OG images)** | Gradient `#064e3b` -> `#065f46` -> `#047857` | Same as Twitter — optimized for link preview |
+| **Link preview cards** (awanaija `opengraph-image`) | Gradient `#052e26` -> `#064e3b` -> `#066f4d` | Deliberately darker than ShareCard. These carry a white Instrument Serif headline at 66px, and the lighter ShareCard ground loses contrast once WhatsApp scales the card to a thumbnail. See `apps/awanaija/src/lib/og.tsx`. |
 
 > **Why the difference?** Twitter/OG images appear as cards in a mostly-white feed — the emerald gradient creates contrast and brand recognition. TikTok videos are consumed in a dark, full-screen environment — dark backgrounds feel native and let data glow.
 

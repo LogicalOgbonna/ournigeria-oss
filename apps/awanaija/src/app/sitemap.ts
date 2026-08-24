@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getStates, getLgas, getWards, getOfficials, getConstituencies } from '@/lib/api';
+import { SITE_URL } from '@/lib/constants';
 
 export const revalidate = 86400; // Revalidate every 24 hours
 
@@ -7,7 +8,7 @@ const slugify = (s: string) =>
   encodeURIComponent(s.toLowerCase().replace(/\s+/g, '-'));
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://ournigeria.ng';
+  const baseUrl = SITE_URL;
 
   const staticRoutes = [
     '',
@@ -17,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/activity',
     '/donate',
     '/leaderboard',
+    '/roadmap',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
