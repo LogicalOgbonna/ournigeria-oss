@@ -28,6 +28,18 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # og-map.generated.ts is derived from nigeria-states.geo.json. If the source
+      # changes and nobody re-runs the generator, the Open Graph card silently keeps
+      # rendering the old country — nothing else would fail. The generator runs in
+      # well under a second, so regenerate and fail on any diff.
+      - name: Check generated OG map is current
+        run: |
+          pnpm --filter @ournigeria/awanaija gen:og-map
+          if ! git diff --exit-code -- apps/awanaija/src/lib/og-map.generated.ts; then
+            echo "::error file=apps/awanaija/src/lib/og-map.generated.ts::Out of date. Run 'pnpm --filter @ournigeria/awanaija gen:og-map' and commit the result."
+            exit 1
+          fi
+
       - name: Build Next apps with Analyzer
         run: |
           ANALYZE=true pnpm web:build --skip-nx-cache --webpack
