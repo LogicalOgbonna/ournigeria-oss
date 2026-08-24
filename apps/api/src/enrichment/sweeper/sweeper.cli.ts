@@ -30,17 +30,18 @@ const KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill
  * clSpend(0) = "is there budget left?"; clSpend(n) records n spent.
  */
 const CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
-const CL_RESERVE = 6; // max requests one lookup can plausibly spend
-let clWindowStart = Date.now();
-let clUsed = 0;
+// Max requests one lookup can plausibly spend: 3 pages + 1 variant fallback +
+// PARTIES_FETCH_CAP(5) authoritative-role fetches.
+const CL_RESERVE = 9;
+// SLIDING window (CourtListener's limit is rolling, not calendar-hour): a fixed
+// window would let ~2× the cap through at the boundary. Track per-spend timestamps.
+const clSpends: { at: number; n: number }[] = [];
 function clSpend(n: number): boolean {
-  const now = Date.now();
-  if (now - clWindowStart >= 60 * 60 * 1000) {
-    clWindowStart = now;
-    clUsed = 0;
-  }
-  clUsed += n;
-  return clUsed + CL_RESERVE <= CL_HOURLY_BUDGET;
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  while (clSpends.length && clSpends[0].at < cutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: Date.now(), n });
+  const used = clSpends.reduce((s, e) => s + e.n, 0);
+  return used + CL_RESERVE <= CL_HOURLY_BUDGET;
 }
 
 function tableFor(gap: StructuredGap): string {

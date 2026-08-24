@@ -33,6 +33,9 @@ const SITE = "https://www.courtlistener.com";
 const MAX_PAGES = 3;
 /** Leads stored in the enrichment_attempts note (full list is still returned). */
 const NOTE_LEADS_CAP = 20;
+/** Authoritative-role (/parties/) fetches per run — filed hits beyond this fall
+ *  back to caption inference, keeping one lookup's spend bounded vs the 50/hr cap. */
+const PARTIES_FETCH_CAP = 5;
 /** Standalone-run re-check cadence (the sweeper overrides with its own policy). */
 const RECHECK_DAYS = 90;
 
@@ -247,7 +250,8 @@ const ROLE_MAP: Record<string, string> = {
  */
 export async function fetchJsonDefault(url: string, headers?: Record<string, string>): Promise<unknown> {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, headers ? { headers } : undefined);
+    // 45s hard timeout — a hung connection must not stall the (serial) sweeper loop.
+    const res = await fetch(url, { ...(headers ? { headers } : {}), signal: AbortSignal.timeout(45_000) });
     if (res.ok) return res.json();
     if ((res.status === 429 || res.status === 503) && attempt < 2) {
       const after = Number.parseInt(res.headers.get("retry-after") ?? "", 10);
@@ -361,6 +365,7 @@ export async function lookupCourtRecords(
   const distinctive = isDistinctiveName(official.name);
   /** Within-run dedup — CL returns duplicate dockets (same matter, two docket ids). */
   const seen = new Set<string>();
+  let partiesFetches = 0;
 
   for (const r of results) {
     const caseName = str(r.caseName);
@@ -452,10 +457,11 @@ export async function lookupCourtRecords(
       }
 
       // Role: authoritative party-type from the /parties/ API (1 extra request,
-      // filed hits are rare) — falls back to caption inference on any failure.
+      // capped per run) — falls back to caption inference on any failure/overflow.
       let role: string | null = null;
       const docketId = docketIdOf(docketPath);
-      if (docketId) {
+      if (docketId && partiesFetches < PARTIES_FETCH_CAP) {
+        partiesFetches++;
         try {
           const pbody = (await deps.fetchJson(
             `${SITE}/api/rest/v4/parties/?docket=${docketId}`,
@@ -560,24 +566,28 @@ export async function lookupCourtRecords(
   try {
     await client.query("BEGIN");
     try {
-      let mergedLeads: CourtListenerLead[] = [...out.leads];
+      // Previously STORED leads are never evicted: they may be the Jefferson-class
+      // discovery a past run surfaced. Old survivors first, then this run's fresh
+      // leads fill whatever cap room remains (a noisy namesake run can add less,
+      // but can never erase history).
       const prev = await client.query(
         "SELECT note FROM enrichment_attempts WHERE official_id = $1 AND category = 'legal_case' FOR UPDATE",
         [official.id],
       );
       const prevNote = prev.rows?.[0]?.note as string | undefined;
+      let oldLeads: CourtListenerLead[] = [];
       if (prevNote) {
         try {
-          const parsed = JSON.parse(prevNote) as { leads?: CourtListenerLead[] };
-          const have = new Set(mergedLeads.map((l) => `${l.url}|${l.docketNumber}`));
-          for (const old of parsed.leads ?? []) {
-            if (!have.has(`${old.url}|${old.docketNumber}`)) mergedLeads.push(old);
-          }
+          oldLeads = (JSON.parse(prevNote) as { leads?: CourtListenerLead[] }).leads ?? [];
         } catch {
           // unreadable/legacy note — proceed with this run's leads only
         }
       }
-      mergedLeads = mergedLeads.slice(0, NOTE_LEADS_CAP);
+      const have = new Set(oldLeads.map((l) => `${l.url}|${l.docketNumber}`));
+      const mergedLeads = [
+        ...oldLeads,
+        ...out.leads.filter((l) => !have.has(`${l.url}|${l.docketNumber}`)),
+      ].slice(0, NOTE_LEADS_CAP);
 
       const note = JSON.stringify({
         source: "courtlistener",

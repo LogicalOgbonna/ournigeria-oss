@@ -930,14 +930,16 @@ function electionEntity() {
           stateCode
         );
         if (alreadyExists.length === 0) {
+          const electionYear = Number(payload.year) || (/* @__PURE__ */ new Date()).getFullYear();
           await tx.$queryRawUnsafe(
             `INSERT INTO official_positions
-               (official_id, role, state_code, status, appointment_type,
+               (official_id, role, state_code, status, appointment_type, start_date,
                 confidence, source_type, review_status, reviewed_by, last_verified_at)
-             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
-                     $3, 'manual', 'reviewed', $4, now())`,
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected', make_date($3::int, 5, 29),
+                     $4, 'manual', 'reviewed', $5, now())`,
             officialId,
             stateCode,
+            electionYear,
             ctx.confidence,
             ctx.adminId
           );
@@ -1284,7 +1286,7 @@ var CREATABLE_ENTITIES = {
     const norm = (v) => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
     payload.role = ROLES.includes(norm(payload.role)) ? norm(payload.role) : null;
     payload.recordKind = KINDS.includes(norm(payload.recordKind)) ? norm(payload.recordKind) : null;
-    if (legalCaseNewColsPresent === null) {
+    if (legalCaseNewColsPresent !== true) {
       const cols = await tx.$queryRawUnsafe(
         `SELECT column_name FROM information_schema.columns
           WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`
@@ -1292,6 +1294,9 @@ var CREATABLE_ENTITIES = {
       legalCaseNewColsPresent = cols.length === 2;
     }
     if (!legalCaseNewColsPresent) {
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) \u2014 softening both to null"
+      );
       payload.role = null;
       payload.recordKind = null;
     }
@@ -1527,6 +1532,7 @@ var SEARCH_URL2 = "https://www.courtlistener.com/api/rest/v4/search/";
 var SITE = "https://www.courtlistener.com";
 var MAX_PAGES = 3;
 var NOTE_LEADS_CAP = 20;
+var PARTIES_FETCH_CAP = 5;
 var RECHECK_DAYS = 90;
 var CAPTION_STOP = /* @__PURE__ */ new Set(["united", "states", "america", "usa", "us", "of", "the", "v", "vs", "et", "al"]);
 var HONORIFICS = /* @__PURE__ */ new Set([
@@ -1755,7 +1761,7 @@ var ROLE_MAP = {
 };
 async function fetchJsonDefault2(url, headers) {
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, headers ? { headers } : void 0);
+    const res = await fetch(url, { ...headers ? { headers } : {}, signal: AbortSignal.timeout(45e3) });
     if (res.ok) return res.json();
     if ((res.status === 429 || res.status === 503) && attempt < 2) {
       const after = Number.parseInt(res.headers.get("retry-after") ?? "", 10);
@@ -1836,6 +1842,7 @@ async function lookupCourtRecords(client, official, deps) {
   };
   const distinctive = isDistinctiveName(official.name);
   const seen = /* @__PURE__ */ new Set();
+  let partiesFetches = 0;
   for (const r of results) {
     const caseName = str(r.caseName);
     const docketNumber = str(r.docketNumber);
@@ -1922,7 +1929,8 @@ async function lookupCourtRecords(client, official, deps) {
       }
       let role = null;
       const docketId = docketIdOf(docketPath);
-      if (docketId) {
+      if (docketId && partiesFetches < PARTIES_FETCH_CAP) {
+        partiesFetches++;
         try {
           const pbody = await deps.fetchJson(
             `${SITE}/api/rest/v4/parties/?docket=${docketId}`,
@@ -2009,23 +2017,23 @@ async function lookupCourtRecords(client, official, deps) {
   try {
     await client.query("BEGIN");
     try {
-      let mergedLeads = [...out.leads];
       const prev = await client.query(
         "SELECT note FROM enrichment_attempts WHERE official_id = $1 AND category = 'legal_case' FOR UPDATE",
         [official.id]
       );
       const prevNote = prev.rows?.[0]?.note;
+      let oldLeads = [];
       if (prevNote) {
         try {
-          const parsed = JSON.parse(prevNote);
-          const have = new Set(mergedLeads.map((l) => `${l.url}|${l.docketNumber}`));
-          for (const old of parsed.leads ?? []) {
-            if (!have.has(`${old.url}|${old.docketNumber}`)) mergedLeads.push(old);
-          }
+          oldLeads = JSON.parse(prevNote).leads ?? [];
         } catch {
         }
       }
-      mergedLeads = mergedLeads.slice(0, NOTE_LEADS_CAP);
+      const have = new Set(oldLeads.map((l) => `${l.url}|${l.docketNumber}`));
+      const mergedLeads = [
+        ...oldLeads,
+        ...out.leads.filter((l) => !have.has(`${l.url}|${l.docketNumber}`))
+      ].slice(0, NOTE_LEADS_CAP);
       const note = JSON.stringify({
         source: "courtlistener",
         usChecked: true,
@@ -2175,17 +2183,14 @@ var config = {
 };
 var KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
 var CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
-var CL_RESERVE = 6;
-var clWindowStart = Date.now();
-var clUsed = 0;
+var CL_RESERVE = 9;
+var clSpends = [];
 function clSpend(n) {
-  const now = Date.now();
-  if (now - clWindowStart >= 60 * 60 * 1e3) {
-    clWindowStart = now;
-    clUsed = 0;
-  }
-  clUsed += n;
-  return clUsed + CL_RESERVE <= CL_HOURLY_BUDGET;
+  const cutoff = Date.now() - 60 * 60 * 1e3;
+  while (clSpends.length && clSpends[0].at < cutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: Date.now(), n });
+  const used = clSpends.reduce((s, e) => s + e.n, 0);
+  return used + CL_RESERVE <= CL_HOURLY_BUDGET;
 }
 function tableFor(gap) {
   return CATEGORY_BY_KEY[gap.category]?.table ?? gap.category;

@@ -17,6 +17,7 @@ const ADMIN = "11111111-1111-1111-1111-111111111111";
 
 describe("party_officers create (find-or-create official)", () => {
   let owner: Client;
+  let createdNdcFixture = false;
   const cleanupOfficerIds: string[] = [];
   const cleanupOfficialIds: string[] = [];
 
@@ -26,16 +27,21 @@ describe("party_officers create (find-or-create official)", () => {
     await owner.connect();
     // Self-sufficient fixture: NDC (registered 2026) postdates older dev-DB
     // seeds — upsert it so the FK insert below never depends on seed vintage.
-    await owner.query(
+    // Track whether WE created it so afterAll removes only our own row (the
+    // shared dev DB must not accumulate fixture-guessed party names).
+    const ins = await owner.query(
       `INSERT INTO political_parties (acronym, name) VALUES ('NDC', 'New Democratic Coalition')
        ON CONFLICT (acronym) DO NOTHING`,
     );
+    createdNdcFixture = (ins.rowCount ?? 0) > 0;
   });
   afterAll(async () => {
     if (cleanupOfficerIds.length)
       await owner.query(`DELETE FROM party_officers WHERE id = ANY($1::uuid[])`, [cleanupOfficerIds]);
     if (cleanupOfficialIds.length)
       await owner.query(`DELETE FROM nigerian_officials WHERE id = ANY($1::uuid[])`, [cleanupOfficialIds]);
+    if (createdNdcFixture)
+      await owner.query(`DELETE FROM political_parties WHERE acronym = 'NDC'`).catch(() => {});
     await owner.end();
   });
 

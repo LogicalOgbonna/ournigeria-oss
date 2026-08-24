@@ -987,7 +987,10 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     // proposal pre-migration would 500 on a nonexistent column — the exact bug
     // class PR #193 fixed. Soften to null (insert skips null columns) when the
     // columns aren't there yet; the values remain visible in proposed_value.
-    if (legalCaseNewColsPresent === null) {
+    // Cache only the POSITIVE result: once the columns exist they never vanish,
+    // but a skipped-then-applied migration must be picked up without an API
+    // restart, so a missing-columns answer is re-probed on every apply.
+    if (legalCaseNewColsPresent !== true) {
       const cols = await tx.$queryRawUnsafe<{ column_name: string }[]>(
         `SELECT column_name FROM information_schema.columns
           WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`,
@@ -995,6 +998,10 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
       legalCaseNewColsPresent = cols.length === 2;
     }
     if (!legalCaseNewColsPresent) {
+      // eslint-disable-next-line no-console -- deliberate: softening must be visible in API logs
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) — softening both to null",
+      );
       payload.role = null;
       payload.recordKind = null;
     }
