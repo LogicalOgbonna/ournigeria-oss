@@ -100,3 +100,6 @@ packages/database/scripts/reconcile_wards/reports/
 
 # socials capture extension release artifact
 apps/socials/extension/*.zip
+
+# Figma MCP asset dumps (get_design_context dirForAssetWrites) — never commit
+.figma-assets/

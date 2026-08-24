@@ -6,14 +6,14 @@ import {
   KitSectionTitle,
 } from "@/components/landing-variants/LandingVariantKit";
 import { Button } from "@/components/ui/button";
-import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
-import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePersistedLocation, readPersistedLocation } from "@/hooks/usePersistedLocation";
 import { Show } from "@/components/ui/Show";
+import { FeaturedOfficialCard, type LocalOfficial } from "@/app/_component/FeaturedOfficialCard";
+import { PeerOfficialsStrip } from "@/app/_component/PeerOfficialsStrip";
 
 const DEFAULT_SECTOR_BARS: BarDatum[] = [
   { label: "Education", value: 0, color: "bg-blue-500" },
@@ -112,6 +112,67 @@ type ProfileOfficialRow =
       proposed?: boolean;
       [key: string]: unknown;
     };
+
+/** Role label → the `role` slug the contribution flow expects. */
+const PROPOSAL_ROLE: Record<string, string> = {
+  Governor: "governor",
+  Senator: "senator",
+  "House of Reps": "rep",
+  "State House": "mha",
+  "LGA Chairman": "lga_chairman",
+};
+
+type LocationSelection = {
+  stateCode: string;
+  stateName: string;
+  lgaCode: string;
+  lgaName: string;
+  wardCode: string;
+  wardName: string;
+};
+
+/**
+ * Adapts a row of the assembled profile into the shape the official cards
+ * take. Missing seats keep their link into the "help us identify them"
+ * contribution flow, pre-filled with the viewer's location.
+ */
+function toLocalOfficial(
+  row: ProfileOfficialRow | undefined,
+  where: LocationSelection,
+): LocalOfficial {
+  if (!row) return { id: "unknown", name: "", role: "Representative", missing: true };
+
+  if (row.isMissing) {
+    const role = PROPOSAL_ROLE[row.role] ?? "councilor";
+    const q = new URLSearchParams({
+      role,
+      stateCode: where.stateCode,
+      stateName: where.stateName,
+      lgaCode: where.lgaCode,
+      lgaName: where.lgaName,
+      wardCode: where.wardCode,
+      wardName: where.wardName,
+    });
+    return {
+      id: `missing-${row.role}`,
+      name: "",
+      role: row.role,
+      missing: true,
+      missingHref: `/proposals/new?${q.toString()}`,
+    };
+  }
+
+  return {
+    id: row.id ?? row.role,
+    name: row.name ?? "",
+    role: row.role,
+    term: row.term,
+    party: row.party,
+    imageUrl: row.image,
+    slug: row.slug,
+    proposed: row.proposed,
+  };
+}
 
 type ProfileLineItem = {
   title: string;
@@ -571,7 +632,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   return (
     <>
     {/* Personalization Top Bar */}
-    <div id="personalized-data-section" className="border-y border-border/60 dark:border-white/30 bg-background/95 backdrop-blur-sm relative z-30 lg:-mt-32">
+    <div id="personalized-data-section" className="border-y border-border/60 dark:border-white/30 bg-background/95 backdrop-blur-sm relative z-30">
       <KitContainer>
         {/* Coverage stats first */}
         {children}
@@ -835,7 +896,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
           </Show>
           <Show when={locationState !== "loading"}>
           <div className="grid items-start gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-5 flex flex-col gap-16">
+            <div className="lg:col-span-5 flex flex-col gap-6">
               {/* LGA Financials — after the officials card on mobile, before it on desktop */}
               <div className="order-2 lg:order-1 rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
@@ -876,105 +937,28 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 </div>
               </div>
 
-              {/* Officials — "Know Your Leaders" comes first on mobile */}
-              <div className="order-1 lg:order-2 rounded-[1.75rem] border border-border/60 bg-card/50 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold">
-                    Know Your Leaders
-                  </h3>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-medium uppercase tracking-wide text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
-                    {data.ward}
-                  </span>
-                </div>
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-theme">
-                  {data.officials.map((official) => {
-                    if (official.isMissing) {
-                      return (
-                        <div 
-                          key={official.role} 
-                          className="flex items-start gap-4 border-b border-border/50 pb-4 last:border-0 last:pb-0 transition-colors rounded-xl p-2 -mx-2"
-                        >
-                          <div className="h-11 w-11 shrink-0 rounded-full bg-muted flex items-center justify-center text-muted-foreground">
-                            <span className="text-lg font-semibold">?</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-semibold text-muted-foreground truncate">Unknown {official.role}</p>
-                            </div>
-                            <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 font-medium truncate mt-0.5">
-                              {official.role}
-                            </p>
-                            <div className="mt-2">
-                              <Link
-                                href={`/proposals/new?role=${encodeURIComponent(official.role === "Governor" ? "governor" : official.role === "Senator" ? "senator" : official.role === "House of Reps" ? "rep" : official.role === "State House" ? "mha" : official.role === "LGA Chairman" ? "lga_chairman" : "councilor")}&stateCode=${currentSelection.stateCode}&stateName=${encodeURIComponent(currentSelection.stateName)}&lgaCode=${currentSelection.lgaCode}&lgaName=${encodeURIComponent(currentSelection.lgaName)}&wardCode=${currentSelection.wardCode}&wardName=${encodeURIComponent(currentSelection.wardName)}`}
-                                className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                              >
-                                Help us identify them <ArrowRight className="h-3 w-3" />
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <Link 
-                        href={`/officials/${official.slug ?? official.id}`}
-                        key={official.role} 
-                        className="group flex items-start gap-4 border-b border-border/50 pb-4 last:border-0 last:pb-0 transition-colors hover:bg-muted/20 rounded-xl p-2 -mx-2"
-                      >
-                        <div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900/50 transition-transform group-hover:scale-105 flex items-center justify-center">
-                          <OfficialAvatar
-                            src={official.image}
-                            alt={official.name ?? ""}
-                            initial={official.name?.charAt(0) || "?"}
-                            px={44}
-                            imgClassName="h-full w-full object-cover"
-                            initialClassName="font-semibold text-emerald-700 dark:text-emerald-400"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-foreground truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{official.name}</p>
-                            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                              {official.party}
-                            </span>
-                          </div>
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate mt-0.5">
-                            {official.role}
-                          </p>
-                          <Show when={!!official.proposed}>
-                            <span className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              <AlertCircle className="w-3 h-3" />
-                              Proposed · unverified
-                            </span>
-                          </Show>
-                          <div className="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1.5">
-                              <Calendar className="h-3 w-3" /> 
-                              {official.term}
-                            </span>
-                            <Show when={!!official.contact}>
-                              <span className="flex items-center gap-1.5">
-                                <Mail className="h-3 w-3" />
-                                {official.contact}
-                              </span>
-                            </Show>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
+              {/* Featured official — the headline holder for this area.
+                  Comes first on mobile, sits under the LGA card on desktop. */}
+              <FeaturedOfficialCard
+                className="order-1 lg:order-2"
+                official={toLocalOfficial(data.officials[0], currentSelection)}
+              />
             </div>
-            <div className="lg:col-span-7">
+            <div className="lg:col-span-7 flex flex-col gap-8">
               <KitDashboardMock
                 title={`${data.state} snapshot`}
                 region={`${data.lga} · ${data.ward}`}
                 kpis={data.kpis}
                 bars={data.bars}
                 hideBadge
+              />
+              {/* The viewer's other representatives, three across. */}
+              <PeerOfficialsStrip
+                officials={data.officials
+                  .slice(1)
+                  .map((o) => toLocalOfficial(o, currentSelection))}
+                moreHref={`/states/${currentSelection.stateName.toLowerCase().replace(/\s+/g, "-")}`}
+                moreLabel={`Learn more about ${data.state}`}
               />
             </div>
           </div>
