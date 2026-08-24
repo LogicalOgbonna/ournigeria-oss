@@ -204,3 +204,16 @@ export const LOTTIE_URLS = {
   bills:
     "https://lottie.host/b2f0c8e0-ee2c-4a1f-9e35-c8bf4e0f9c8a/bills.lottie", // Needs real URL or use local
 } as const;
+
+// ═══ Coverage ═══
+// Structural counts fixed by Nigeria's own delimitation — these do NOT drift with
+// data entry, which is why they're safe to bake into statically-generated pages and
+// Open Graph cards. Live counts (officials tracked, photos on file) belong in a
+// server fetch, not here: see COVERAGE_SNAPSHOT_DATE for figures that DO go stale.
+export const COVERAGE = {
+  wards: "8,807",
+  lgas: "774",
+  seats: "2,317",
+  constituencies: "1,468",
+  states: "37",
+} as const;
