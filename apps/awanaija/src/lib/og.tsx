@@ -5,10 +5,10 @@
  * render dark or light, but link previews always land in someone else's feed, so they
  * commit to one look.
  *
- * NOTE: this gradient is DARKER than the ShareCard row in DESIGN.md
- * (#064e3b -> #065f46 -> #047857). The deeper ground was chosen so white Instrument
- * Serif holds contrast at WhatsApp thumbnail size. Reconcile with DESIGN.md before
- * reusing these values elsewhere.
+ * The gradient is darker than the ShareCard row in DESIGN.md by design — white
+ * Instrument Serif at 66px loses contrast on the lighter ground once WhatsApp scales
+ * the card to a thumbnail. Documented as its own row in DESIGN.md ("Link preview
+ * cards"); ShareCard keeps the lighter values it already ships in apps/web.
  *
  * The map is drawn from our own state boundaries (see scripts/gen-og-map.mjs) rather than
  * stock art, so the claim the card makes is "this country, actually mapped".
