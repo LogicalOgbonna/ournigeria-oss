@@ -2,12 +2,26 @@ import { Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { PrismaService } from "@ournigeria/database";
+import { cache } from "@ournigeria/cache";
 
 const SALT_ROUNDS = 10;
 
 /** Opaque admin session token prefix — distinguishes new tokens from legacy HMAC. */
 export const ADMIN_SESSION_PREFIX = "ons_";
 const DEFAULT_ADMIN_SESSION_TTL_DAYS = 7;
+
+/**
+ * tokenHash → adminId cache shared with AdminGuard so the admin hot path costs
+ * zero DB queries on a hit. revokeSession() deletes the entry immediately on
+ * this instance; others age out within the TTL (same tradeoff as the ban cache).
+ */
+export const adminSessionCache = cache.namespace("admin:session");
+export const ADMIN_SESSION_CACHE_TTL_MS = 60_000;
+
+/** Keep at most this many live sessions per admin; oldest beyond the cap are revoked. */
+const MAX_LIVE_SESSIONS_PER_ADMIN = 10;
+/** Expired/revoked rows are kept this long for audit, then deleted by opportunistic pruning. */
+const PRUNE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface AdminSessionMeta {
   userAgent?: string | null;
@@ -80,7 +94,39 @@ export class AdminAuthService {
         ip: meta.ip?.slice(0, 64) ?? null,
       },
     });
+    // Opportunistic maintenance off the login path — tables never grow unboundedly.
+    this.pruneAdminSessions(adminId).catch(() => {});
     return token;
+  }
+
+  /**
+   * Opportunistic cleanup on login: delete rows long past expiry/revocation and
+   * revoke the oldest live sessions past the per-admin cap. Fire-and-forget.
+   */
+  private async pruneAdminSessions(adminId: string): Promise<void> {
+    const graveCutoff = new Date(Date.now() - PRUNE_GRACE_MS);
+    await this.prisma.adminSession.deleteMany({
+      where: {
+        adminId,
+        OR: [
+          { expiresAt: { lt: graveCutoff } },
+          { revokedAt: { lt: graveCutoff } },
+        ],
+      },
+    });
+
+    const overCap = await this.prisma.adminSession.findMany({
+      where: { adminId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+      skip: MAX_LIVE_SESSIONS_PER_ADMIN,
+    });
+    if (overCap.length > 0) {
+      await this.prisma.adminSession.updateMany({
+        where: { id: { in: overCap.map((s) => s.id) } },
+        data: { revokedAt: new Date() },
+      });
+    }
   }
 
   async login(
@@ -125,10 +171,13 @@ export class AdminAuthService {
   /** Revoke a single admin session by its raw token (used on logout). */
   async revokeSession(token: string): Promise<void> {
     if (!AdminAuthService.isSessionToken(token)) return;
+    const tokenHash = this.hash(token);
     await this.prisma.adminSession.updateMany({
-      where: { tokenHash: this.hash(token), revokedAt: null },
+      where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    // Immediate on this instance; other instances age out within the cache TTL.
+    await adminSessionCache.del(tokenHash);
   }
 
   async getAdmin(id: string) {
@@ -182,7 +231,11 @@ export class AdminAuthService {
   }
 
   async deleteAdmin(id: string) {
-    return this.prisma.adminUser.delete({ where: { id } });
+    const result = await this.prisma.adminUser.delete({ where: { id } });
+    // Sessions cascade-deleted with the row; drop any cached resolutions too so
+    // the deleted admin's token dies now, not at cache expiry.
+    await adminSessionCache.clear();
+    return result;
   }
 
   async ensureDefaultAdmin() {

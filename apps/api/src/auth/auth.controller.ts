@@ -14,6 +14,7 @@ import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { TelegramLoginService } from "../telegram/telegram-login.service";
+import { cache } from "@ournigeria/cache";
 import { AuthService } from "./auth.service";
 import { SessionService } from "./session.service";
 import { CurrentUser } from "./decorators/current-user";
@@ -21,6 +22,13 @@ import { Public } from "./decorators/public";
 
 const USER_COOKIE = "nb_uid";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+
+// Per-user cap on handoff-code minting. session-token inserts a DB row per
+// call, so an unthrottled loop is a free table-flooding vector. Keyed on the
+// authenticated userId (NOT IP — behind the Next.js rewrites every user shares
+// one upstream IP, and an IP bucket would rate-limit everyone collectively).
+const handoffRateCache = cache.namespace("auth:handoff-rl");
+const HANDOFF_RL_MAX_PER_MIN = 10;
 
 function getCookieDomain(): string | undefined {
   return process.env.AUTH_COOKIE_DOMAIN || undefined;
@@ -318,6 +326,14 @@ export class AuthController {
   @Get("session-token")
   @ApiOperation({ summary: "Get a one-time login handoff code for the current session" })
   async getSessionToken(@CurrentUser() userId: string, @Res() res: Response) {
+    const current = (await handoffRateCache.get<number>(userId)) ?? 0;
+    if (current >= HANDOFF_RL_MAX_PER_MIN) {
+      return res
+        .status(HttpStatus.TOO_MANY_REQUESTS)
+        .json({ error: "Too many requests. Please wait a moment." });
+    }
+    await handoffRateCache.set(userId, current + 1, 60_000);
+
     return res.json({ authToken: await this.sessionService.createHandoff(userId) });
   }
 

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import * as crypto from "node:crypto";
 import { PrismaService } from "@ournigeria/database";
+import { cache } from "@ournigeria/cache";
 
 /** Opaque user session token prefix — distinguishes new tokens from legacy UUIDs. */
 export const USER_SESSION_PREFIX = "nbs_";
@@ -9,6 +10,21 @@ export const HANDOFF_PREFIX = "nbh_";
 
 const DEFAULT_SESSION_TTL_DAYS = 30;
 const DEFAULT_HANDOFF_TTL_SECONDS = 120;
+
+/**
+ * tokenHash → userId cache so the auth hot path costs zero DB queries on a hit
+ * (mirrors the 60s ban cache in auth.guard). Revocation on THIS instance is
+ * immediate (revoke() deletes the entry); other instances lag ≤60s — the same
+ * tradeoff already accepted for bans. Ban enforcement itself is unaffected:
+ * the guard's separate ban check runs on every request regardless.
+ */
+const sessionCache = cache.namespace("auth:session");
+const SESSION_CACHE_TTL_MS = 60_000;
+
+/** Keep at most this many live sessions per user; oldest beyond the cap are revoked. */
+const MAX_LIVE_SESSIONS_PER_USER = 10;
+/** Expired/revoked rows are kept this long for audit, then deleted by opportunistic pruning. */
+const PRUNE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface SessionMeta {
   userAgent?: string | null;
@@ -61,22 +77,63 @@ export class SessionService {
         ip: meta.ip?.slice(0, 64) ?? null,
       },
     });
+    // Opportunistic maintenance off the login path — tables never grow unboundedly.
+    this.pruneUserSessions(userId).catch(() => {});
     return token;
   }
 
   /**
+   * Opportunistic cleanup on login: delete rows long past expiry/revocation
+   * (beyond the audit grace window) and revoke the oldest live sessions past
+   * the per-user cap. Runs fire-and-forget so it never adds login latency.
+   */
+  private async pruneUserSessions(userId: string): Promise<void> {
+    const graveCutoff = new Date(Date.now() - PRUNE_GRACE_MS);
+    await this.prisma.userSession.deleteMany({
+      where: {
+        userId,
+        OR: [
+          { expiresAt: { lt: graveCutoff } },
+          { revokedAt: { lt: graveCutoff } },
+        ],
+      },
+    });
+
+    const overCap = await this.prisma.userSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+      skip: MAX_LIVE_SESSIONS_PER_USER,
+    });
+    if (overCap.length > 0) {
+      await this.prisma.userSession.updateMany({
+        where: { id: { in: overCap.map((s) => s.id) } },
+        data: { revokedAt: new Date() },
+      });
+    }
+  }
+
+  /**
    * Resolve a raw session token to a userId, or null if it is unknown, revoked,
-   * or expired. Best-effort touches `lastUsedAt` without blocking auth.
+   * or expired. A 60s tokenHash→userId cache keeps the hot path at zero DB
+   * queries on a hit; `lastUsedAt` is touched only on cache misses, giving it
+   * ~1-minute granularity instead of one write per request.
    */
   async resolve(token: string): Promise<string | null> {
     if (!SessionService.isSessionToken(token)) return null;
+    const tokenHash = this.hash(token);
+
+    const cached = await sessionCache.get<string>(tokenHash);
+    if (cached) return cached;
+
     const session = await this.prisma.userSession.findUnique({
-      where: { tokenHash: this.hash(token) },
+      where: { tokenHash },
       select: { id: true, userId: true, expiresAt: true, revokedAt: true },
     });
     if (!session || session.revokedAt) return null;
     if (session.expiresAt.getTime() <= Date.now()) return null;
 
+    await sessionCache.set(tokenHash, session.userId, SESSION_CACHE_TTL_MS);
     this.prisma.userSession
       .update({ where: { id: session.id }, data: { lastUsedAt: new Date() } })
       .catch(() => {});
@@ -87,10 +144,13 @@ export class SessionService {
   /** Revoke a single session by its raw token (used on logout). */
   async revoke(token: string): Promise<void> {
     if (!SessionService.isSessionToken(token)) return;
+    const tokenHash = this.hash(token);
     await this.prisma.userSession.updateMany({
-      where: { tokenHash: this.hash(token), revokedAt: null },
+      where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    // Immediate on this instance; other instances age out within the cache TTL.
+    await sessionCache.del(tokenHash);
   }
 
   /**
@@ -103,6 +163,9 @@ export class SessionService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+    // Token hashes aren't enumerable per-user from the cache — clear the
+    // namespace. Rare operation (ban / log-out-everywhere), so the cost is fine.
+    await sessionCache.clear();
   }
 
   // ─── One-time login handoff codes ──────────────────────────
@@ -117,6 +180,11 @@ export class SessionService {
         expiresAt: new Date(Date.now() + this.handoffTtlMs()),
       },
     });
+    // Sweep codes expired more than a minute ago (covers used ones too — they
+    // expire within the TTL). Keeps the table tiny without a scheduled job.
+    this.prisma.authHandoff
+      .deleteMany({ where: { expiresAt: { lt: new Date(Date.now() - 60_000) } } })
+      .catch(() => {});
     return code;
   }
 

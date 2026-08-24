@@ -5,7 +5,11 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
-import { AdminAuthService } from "./admin-auth.service";
+import {
+  AdminAuthService,
+  adminSessionCache,
+  ADMIN_SESSION_CACHE_TTL_MS,
+} from "./admin-auth.service";
 
 const ADMIN_COOKIE = "on_admin_session";
 
@@ -32,9 +36,19 @@ export class AdminGuard implements CanActivate {
     let adminId: string | null = null;
 
     if (AdminAuthService.isSessionToken(token)) {
+      const tokenHash = AdminAuthService.hashToken(token);
+
+      // Cache hit = session AND admin existence verified within the last 60s —
+      // zero DB queries. Revocation/deletion clears the cache on this instance.
+      const cached = await adminSessionCache.get<string>(tokenHash);
+      if (cached) {
+        request.adminId = cached;
+        return true;
+      }
+
       // New opaque session token — look up server-side with expiry + revocation.
       const session = await this.prisma.adminSession.findUnique({
-        where: { tokenHash: AdminAuthService.hashToken(token) },
+        where: { tokenHash },
         select: { id: true, adminId: true, expiresAt: true, revokedAt: true },
       });
       if (
@@ -43,11 +57,32 @@ export class AdminGuard implements CanActivate {
         session.expiresAt.getTime() > Date.now()
       ) {
         adminId = session.adminId;
+        // Touch lastUsedAt only on cache misses (~1-minute granularity).
         this.prisma.adminSession
           .update({ where: { id: session.id }, data: { lastUsedAt: new Date() } })
           .catch(() => {});
       }
-    } else if (legacyAdminSessionsEnabled()) {
+
+      if (!adminId) {
+        throw new UnauthorizedException("Invalid admin token");
+      }
+
+      // Confirm the admin still exists (fail closed on any drift), then cache
+      // the fully-verified resolution.
+      const admin = await this.prisma.adminUser.findUnique({
+        where: { id: adminId },
+        select: { id: true },
+      });
+      if (!admin) {
+        throw new UnauthorizedException("Admin account no longer exists");
+      }
+      await adminSessionCache.set(tokenHash, adminId, ADMIN_SESSION_CACHE_TTL_MS);
+
+      request.adminId = adminId;
+      return true;
+    }
+
+    if (legacyAdminSessionsEnabled()) {
       // Legacy stateless HMAC token — accepted only during the migration window.
       adminId = AdminAuthService.verifyLegacyToken(token);
     }
