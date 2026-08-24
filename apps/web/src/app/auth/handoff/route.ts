@@ -15,9 +15,15 @@ const EXTERNAL_LOGIN_URL =
  * Origins allowed to POST a login handoff here: our own app, the awanaija login
  * page, and the API (its Telegram callback auto-submits the form). An Origin
  * outside this set is a cross-site login-CSRF attempt and is rejected.
+ *
+ * An ABSENT Origin passes deliberately: browsers always send Origin on
+ * cross-site form POSTs, so the CSRF threat this gate exists for is covered.
+ * Requests without Origin are non-browser clients (curl, server-side) that
+ * carry no victim cookies and still need a valid one-time code — do not
+ * "tighten" this to require Origin or you lock out legitimate tooling.
  */
 function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return true; // some same-origin/browser cases omit Origin
+  if (!origin) return true;
   const allowed = new Set<string>();
   for (const u of [APP_URL, EXTERNAL_LOGIN_URL, API_URL]) {
     try {
@@ -61,11 +67,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL(EXTERNAL_LOGIN_URL), { status: 303 });
   }
 
+  // Forward the real client's IP/UA so the session's audit columns record the
+  // user, not this Next.js server (the API trusts one proxy hop, so the
+  // x-forwarded-for we set here is what req.ip resolves to).
+  const clientIp =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+  const clientUa = request.headers.get("user-agent") ?? "";
+
   let sessionToken: string | null = null;
   try {
     const res = await fetch(`${API_URL}/api/auth/exchange`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(clientIp ? { "x-forwarded-for": clientIp } : {}),
+        ...(clientUa ? { "user-agent": clientUa } : {}),
+      },
       body: JSON.stringify({ code }),
       cache: "no-store",
     });
