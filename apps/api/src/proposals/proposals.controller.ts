@@ -329,6 +329,18 @@ export class ProposalsController {
 
   @Public()
   @UseGuards(AdminGuard)
+  @Get("admin/stats")
+  async adminStats(@Res() res: Response) {
+    try {
+      return res.json(await this.service.stats());
+    } catch (err) {
+      console.error("admin proposals stats error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
+  @UseGuards(AdminGuard)
   @Patch("admin/:id")
   async adminAction(
     @Param("id") id: string,

@@ -1,134 +1,122 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { StatsCards } from "@/components/dashboard/stats-cards";
-import { UserGrowthChart } from "@/components/dashboard/user-growth-chart";
-import { QueryCategoriesChart } from "@/components/dashboard/query-categories-chart";
-import { RecentRuns } from "@/components/dashboard/recent-runs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { adminFetch } from "@/lib/api";
+import { FileText, MessageCircle, MessagesSquare, Sparkles } from "lucide-react";
+import { QueueTile } from "@/components/dashboard/overview/queue-tile";
+import { SessionsPanel, type SessionsCounts } from "@/components/dashboard/overview/sessions-panel";
+import { adminFetch, proposalsFetch, socialsFetch } from "@/lib/api";
+import { enrichmentFetch } from "@/app/dashboard/enrichment/lib";
+import { useResource } from "@/lib/hooks/use-resource";
 
-interface Stats {
-  users: number;
-  conversations: number;
-  messages: number;
-  documents: number;
-  topCategories: { category: string; count: number }[];
+interface ProposalStats {
+  total: number;
+  pending: number;
 }
-
-interface GrowthPoint {
-  date: string;
-  count: number;
+interface EnrichmentStats {
+  total: number;
+  open: number;
+  pending: number;
+  needsHuman: number;
+  needsMoreSources: number;
 }
-
-interface Run {
-  id: string;
-  pipeline: string;
-  status: string;
-  totalFiles: number;
-  totalChunks: number;
-  startedAt: string;
+interface FeedbackStats {
+  total: number;
+  new: number;
 }
-
-// Placeholder data while the backend endpoints are being built
-const placeholderStats: Stats = {
-  users: 1247,
-  conversations: 8432,
-  messages: 42150,
-  documents: 700,
-  topCategories: [
-    { category: "Budget", count: 3421 },
-    { category: "Corruption", count: 2105 },
-    { category: "Infrastructure", count: 1230 },
-    { category: "Education", count: 890 },
-    { category: "Health", count: 786 },
-  ],
-};
-
-const placeholderGrowth: GrowthPoint[] = Array.from({ length: 30 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (29 - i));
-  return {
-    date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    count: Math.floor(20 + Math.random() * 60),
-  };
-});
-
-const placeholderRuns: Run[] = [
-  {
-    id: "fb323dc0",
-    pipeline: "budget",
-    status: "completed",
-    totalFiles: 700,
-    totalChunks: 708309,
-    startedAt: "2026-02-23T10:00:00Z",
-  },
-];
+interface ReplyStats {
+  pending: number;
+  publishedToday: number;
+}
+interface SessionsResponse {
+  counts: SessionsCounts;
+}
 
 export default function OverviewPage() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [growth, setGrowth] = useState<GrowthPoint[] | null>(null);
-  const [runs, setRuns] = useState<Run[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const proposals = useResource<ProposalStats>(() => proposalsFetch("/admin/stats"), []);
+  const enrichment = useResource<EnrichmentStats>(() => enrichmentFetch("/proposals/stats"), []);
+  const feedback = useResource<FeedbackStats>(() => adminFetch("/feedback/stats"), []);
+  const replies = useResource<ReplyStats>(() => socialsFetch("/v1/replies/stats"), []);
+  const sessions = useResource<SessionsResponse>(() => socialsFetch("/v1/sessions"), []);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [statsRes, growthRes, runsRes] = await Promise.allSettled([
-          adminFetch("/stats"),
-          adminFetch("/user-growth?days=30"),
-          adminFetch("/ingestion-runs?limit=5"),
-        ]);
-
-        setStats(statsRes.status === "fulfilled" ? statsRes.value : placeholderStats);
-        setGrowth(growthRes.status === "fulfilled" ? growthRes.value : placeholderGrowth);
-        setRuns(runsRes.status === "fulfilled" ? (runsRes.value.data ?? runsRes.value) : placeholderRuns);
-      } catch {
-        setStats(placeholderStats);
-        setGrowth(placeholderGrowth);
-        setRuns(placeholderRuns);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">Overview</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform analytics at a glance</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[100px] rounded-xl" />
-          ))}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <Skeleton className="h-[340px] rounded-xl lg:col-span-2" />
-          <Skeleton className="h-[340px] rounded-xl" />
-        </div>
-      </div>
-    );
-  }
+  const sc = sessions.data?.counts;
+  const sessionsTotal = sc ? sc.idle + sc.working + sc.auth_failed : 0;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Overview</h1>
-        <p className="text-muted-foreground text-sm mt-1">Platform analytics at a glance</p>
+        <h1 className="font-heading text-2xl font-bold">Overview</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Your review queues</p>
       </div>
 
-      <StatsCards data={stats!} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QueueTile
+          label="Proposals"
+          icon={FileText}
+          accent="green"
+          href="/dashboard/proposals"
+          cta="Review queue"
+          hero={proposals.data?.pending ?? 0}
+          heroSuffix="pending"
+          meta={<span className="font-mono tabular-nums">{(proposals.data?.total ?? 0).toLocaleString()} all-time</span>}
+          loading={proposals.loading}
+          error={proposals.error}
+        />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <UserGrowthChart data={growth!} />
-        <QueryCategoriesChart data={stats!.topCategories} />
+        <QueueTile
+          label="Enrichments"
+          icon={Sparkles}
+          accent="orange"
+          href="/dashboard/enrichment"
+          cta="Review queue"
+          hero={enrichment.data?.open ?? 0}
+          heroSuffix="open"
+          meta={
+            <span className="font-mono tabular-nums">
+              {enrichment.data?.pending ?? 0} pending
+              {" · "}
+              <span className="font-semibold text-foreground">
+                {enrichment.data?.needsHuman ?? 0} human
+              </span>
+              {" · "}
+              {enrichment.data?.needsMoreSources ?? 0} sources
+            </span>
+          }
+          loading={enrichment.loading}
+          error={enrichment.error}
+        />
+
+        <QueueTile
+          label="Feedback"
+          icon={MessageCircle}
+          accent="green"
+          href="/dashboard/feedback"
+          cta="Triage"
+          hero={feedback.data?.new ?? 0}
+          heroSuffix="new"
+          meta={<span className="font-mono tabular-nums">{(feedback.data?.total ?? 0).toLocaleString()} all-time</span>}
+          loading={feedback.loading}
+          error={feedback.error}
+        />
+
+        <QueueTile
+          label="Queued replies"
+          icon={MessagesSquare}
+          accent="orange"
+          href="/dashboard/social"
+          cta="Approve"
+          hero={replies.data?.pending ?? 0}
+          heroSuffix="to approve"
+          meta={<span className="font-mono tabular-nums">{replies.data?.publishedToday ?? 0} posted today</span>}
+          loading={replies.loading}
+          error={replies.error}
+        />
       </div>
 
-      <RecentRuns runs={runs!} />
+      <SessionsPanel
+        counts={sc}
+        total={sessionsTotal}
+        loading={sessions.loading}
+        error={sessions.error}
+      />
     </div>
   );
 }

@@ -36,11 +36,22 @@ export default async function ConstituencyPage({ params }: Props) {
     sublabel: "Local Government",
   }));
 
-  const wardLinks: RelatedLink[] = c.wards.map((w) => ({
-    href: `/states/${stateSlug}/${slug(w.lgaName)}/${wardSlug(w.name)}`,
-    label: w.name,
-    sublabel: w.lgaName,
-  }));
+  // Wards are grouped under the local government they belong to — a state or
+  // federal constituency routinely straddles several LGAs, and a flat list of
+  // 30+ ward names doesn't tell a citizen which part of the constituency they
+  // are looking at. Insertion order follows `c.wards`, which the API sorts by
+  // ward name, so each LGA's wards stay alphabetical.
+  const wardsByLga = new Map<string, RelatedLink[]>();
+  for (const w of c.wards) {
+    const links = wardsByLga.get(w.lgaName) ?? [];
+    links.push({
+      href: `/states/${stateSlug}/${slug(w.lgaName)}/${wardSlug(w.name)}`,
+      label: w.name,
+    });
+    wardsByLga.set(w.lgaName, links);
+  }
+  const wardGroups = [...wardsByLga.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const wardCount = c.wards.length;
 
   return (
     <PageLayout navLabel={c.name} className="bg-background" mainClassName="container max-w-5xl mx-auto px-4 pt-24 pb-20 space-y-16">
@@ -127,7 +138,7 @@ export default async function ConstituencyPage({ params }: Props) {
 
         {/* Coverage — LGAs + wards, or a compile note when neither is mapped yet
             (many state constituencies aren't ward-mapped in the source data). */}
-        <Show when={lgaLinks.length === 0 && wardLinks.length === 0}>
+        <Show when={lgaLinks.length === 0 && wardCount === 0}>
           <section className="space-y-6">
             <h2 className="font-heading text-2xl font-semibold">Coverage</h2>
             <div className="rounded-[10px] border border-border bg-muted/30 px-5 py-4 flex items-center gap-3">
@@ -139,9 +150,21 @@ export default async function ConstituencyPage({ params }: Props) {
             </div>
           </section>
         </Show>
-        <Show when={!(lgaLinks.length === 0 && wardLinks.length === 0)}>
-          <RelatedLinks title="Local Governments in this constituency" items={lgaLinks} />
-          <RelatedLinks title="Wards in this constituency" items={wardLinks} />
+        <Show when={!(lgaLinks.length === 0 && wardCount === 0)}>
+          <div className="space-y-16">
+            <RelatedLinks title="Local Governments in this constituency" items={lgaLinks} />
+            {wardGroups.map(([lgaName, links]) => (
+              <RelatedLinks
+                key={lgaName}
+                title={
+                  wardGroups.length > 1
+                    ? `Wards in this constituency — ${lgaName} LGA`
+                    : "Wards in this constituency"
+                }
+                items={links}
+              />
+            ))}
+          </div>
         </Show>
     </PageLayout>
   );

@@ -25,10 +25,20 @@ export interface ChangeProposal {
   reviewNote: string | null;
   createdAt: string;
   sources: ProposalSource[];
-  /** Whose data is changing — resolved server-side from targetPk (null for unknown rows). */
+  /** Whose data is changing — resolved server-side (from targetPk OR proposedValue.officialId). */
   officialName?: string | null;
-  /** Public-profile id for the link; null for create proposals (no page yet). */
+  /** Public-profile id for the link; null for brand-new-official create proposals (no page yet). */
   officialId?: string | null;
+  /** Official's photo (relative path, e.g. /officials/...); null when unresolved or new. */
+  officialImage?: string | null;
+  /** Official's slug for the public link. */
+  officialSlug?: string | null;
+  /** Raw current-position role of the official (e.g. "governor"), for the identity chip. */
+  officialRole?: string | null;
+  /** Official's current state code (e.g. "benue"). */
+  officialState?: string | null;
+  /** Official's current party acronym (e.g. "APC"). */
+  officialParty?: string | null;
   /** Resolved entity bucket for the "by entity" filter (governor, senator, …, or "unknown"). */
   entityRole: string;
 }
