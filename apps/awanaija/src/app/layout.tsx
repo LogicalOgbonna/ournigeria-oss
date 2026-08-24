@@ -7,9 +7,7 @@ import {
 } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { FeedbackFab } from "@/components/FeedbackFab";
-import { CivicModal } from "@/components/civic/CivicModal";
-import { MobileFabMenu } from "@/components/sections/MobileFabMenu";
+import { DeferredWidgets } from "@/components/DeferredWidgets";
 import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
@@ -40,25 +38,45 @@ const ibmPlexMono = IBM_Plex_Mono({
 
   export const metadata: Metadata = {
     metadataBase: new URL("https://ournigeria.ng"),
-    title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
+    title: "OurNigeria — Know Who Governs You & Where Your Money Dey Go",
     description:
-      "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states. Ask questions and get clear, sourced answers on government spending.",
+      "Find out who governs you. Look up your elected officials, representatives, parties & constituencies — and track their budgets, spending & corruption cases. In English or Pidgin.",
+    keywords: [
+      "who is my representative Nigeria",
+      "who governs me Nigeria",
+      "Nigerian elected officials",
+      "find my senator Nigeria",
+      "Nigeria officials directory",
+      "Nigerian political parties",
+      "my constituency Nigeria",
+      "local government area chairman",
+      "LGA chairman Nigeria",
+      "ward councillor Nigeria",
+      "LGA budget",
+      "LGA spending",
+      "Nigeria government spending",
+      "Nigeria budget tracker",
+      "Nigeria corruption tracker",
+      "EFCC cases",
+      "where Nigeria money dey go",
+    ],
+    applicationName: "OurNigeria",
     openGraph: {
-      title: "Our Nigeria - See Where Nigeria Money Dey Go | Budget & FAAC",
+      title: "OurNigeria — Know Who Governs You & Where Your Money Dey Go",
       description:
-        "Explore how Nigeria spends public money. Search 700+ budget documents across 36 states.",
-    url: "https://ournigeria.ng",
-    siteName: "Our Nigeria",
-    type: "website",
-    locale: "en_NG",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Our Nigeria - See Where Nigeria Money Dey Go",
-    description:
-      "Explore how Nigeria spends public money. Search 700+ budget documents across all 36 states.",
-  },
-};
+        "Find out who governs you. Look up your elected officials, representatives, parties & constituencies — and track their budgets, spending & corruption cases.",
+      url: "https://ournigeria.ng",
+      siteName: "OurNigeria",
+      type: "website",
+      locale: "en_NG",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "OurNigeria — Know Who Governs You & Where Your Money Dey Go",
+      description:
+        "Find out who governs you. Look up Nigerian officials, representatives & parties — and track their budgets, spending & corruption cases. In English or Pidgin.",
+    },
+  };
 
 export default function RootLayout({
   children,
@@ -87,9 +105,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster position="bottom-left" richColors closeButton />
-          <FeedbackFab />
-          <CivicModal />
-          <MobileFabMenu />
+          <DeferredWidgets />
           <Analytics />
         </ThemeProvider>
       </body>

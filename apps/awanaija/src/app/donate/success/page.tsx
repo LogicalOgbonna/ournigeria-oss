@@ -3,8 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import {
   CheckCircle2,
   Loader2,
@@ -13,6 +12,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { Show } from "@/components/ui/Show";
 
 const API_URL = typeof window !== "undefined" 
   ? "/api" 
@@ -101,15 +101,13 @@ function DonateSuccessContent() {
   }, []);
 
   return (
-    <main className="min-h-screen dark bg-[oklch(0.10_0.005_160)] text-white">
-      <Navbar />
-
+    <PageLayout className="dark bg-[oklch(0.10_0.005_160)] text-white">
       <section className="relative flex min-h-[70vh] items-center justify-center pt-32 pb-16">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-emerald-500/5 blur-[120px]" />
 
         <div className="relative mx-auto max-w-lg px-6 text-center">
           {/* Loading State */}
-          {state === "loading" && (
+          <Show when={state === "loading"}>
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-emerald-400" />
               <h2 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-white">
@@ -119,10 +117,10 @@ function DonateSuccessContent() {
                 Please wait while we confirm your donation.
               </p>
             </div>
-          )}
+          </Show>
 
           {/* Success State */}
-          {state === "success" && (
+          <Show when={state === "success"}>
             <div className="flex flex-col items-center">
               <CheckCircle2 className="h-16 w-16 text-emerald-400" />
 
@@ -200,13 +198,15 @@ function DonateSuccessContent() {
                   {/* Copy Link */}
                   <button
                     onClick={handleCopyLink}
+                    type="button"
                     className="flex h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 text-sm text-slate-300 transition-all hover:border-slate-600 hover:text-white"
                   >
-                    {linkCopied ? (
+                    <Show when={linkCopied}>
                       <Check className="h-4 w-4 text-emerald-400" />
-                    ) : (
+                    </Show>
+                    <Show when={!linkCopied}>
                       <Copy className="h-4 w-4" />
-                    )}
+                    </Show>
                     {linkCopied ? "Copied!" : "Copy Link"}
                   </button>
                 </div>
@@ -220,10 +220,10 @@ function DonateSuccessContent() {
                 Donate Again
               </Link>
             </div>
-          )}
+          </Show>
 
           {/* Pending State */}
-          {state === "pending" && (
+          <Show when={state === "pending"}>
             <div className="flex flex-col items-center gap-4">
               <Clock className="h-16 w-16 text-yellow-400" />
 
@@ -236,15 +236,16 @@ function DonateSuccessContent() {
                 Please check back shortly.
               </p>
 
-              {reference && (
+              <Show when={!!reference}>
                 <p className="mt-2 font-[family-name:var(--font-mono)] text-xs text-slate-500">
                   Reference: {reference}
                 </p>
-              )}
+              </Show>
 
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={() => window.location.reload()}
+                  type="button"
                   className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-6 text-sm text-white transition-all hover:border-slate-600"
                 >
                   <Loader2 className="h-4 w-4" />
@@ -258,10 +259,10 @@ function DonateSuccessContent() {
                 </Link>
               </div>
             </div>
-          )}
+          </Show>
 
           {/* Error State */}
-          {state === "error" && (
+          <Show when={state === "error"}>
             <div className="flex flex-col items-center gap-4">
               <AlertCircle className="h-16 w-16 text-red-400" />
 
@@ -273,11 +274,11 @@ function DonateSuccessContent() {
                 {errorMessage}
               </p>
 
-              {reference && (
+              <Show when={!!reference}>
                 <p className="mt-2 font-[family-name:var(--font-mono)] text-xs text-slate-500">
                   Reference: {reference}
                 </p>
-              )}
+              </Show>
 
               <Link
                 href="/donate"
@@ -286,12 +287,10 @@ function DonateSuccessContent() {
                 Try Again
               </Link>
             </div>
-          )}
+          </Show>
         </div>
       </section>
-
-      <Footer />
-    </main>
+    </PageLayout>
   );
 }
 
@@ -299,16 +298,14 @@ export default function DonateSuccessPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen dark bg-[oklch(0.10_0.005_160)] text-white">
-          <Navbar />
+        <PageLayout className="dark bg-[oklch(0.10_0.005_160)] text-white">
           <section className="flex min-h-[70vh] items-center justify-center pt-32 pb-16">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-emerald-400" />
               <p className="text-slate-400">Loading...</p>
             </div>
           </section>
-          <Footer />
-        </main>
+        </PageLayout>
       }
     >
       <DonateSuccessContent />

@@ -8,12 +8,15 @@ import { ActivityFeed } from "./ActivityFeed";
 import { OfficialCard } from "./OfficialCard";
 import { CivicTabSkeleton } from "./CivicTabSkeleton";
 import { getOfficialsByLocation, type ChainEntry } from "@/lib/api";
+import { usePersistedLocation } from "@/hooks/usePersistedLocation";
+import { Show } from "@/components/ui/Show";
 
 const ROLE_ORDER = ["councilor", "lga_chairman", "mha", "rep", "representative", "senator", "governor"];
 
 type Tab = "reps" | "leaderboard" | "activity";
 
 export function CivicModal() {
+  const { location: persistedLocation, setLocation: setPersistedLocation } = usePersistedLocation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("reps");
   const [chain, setChain] = useState<ChainEntry[]>([]);
@@ -40,6 +43,22 @@ export function CivicModal() {
     };
   }, []);
 
+  // Pre-populate from the persisted location on open, so the modal and the
+  // home page stay in sync instead of each holding its own copy.
+  useEffect(() => {
+    if (open && !location && persistedLocation?.stateCode) {
+      handleLocationSelect({
+        stateCode: persistedLocation.stateCode,
+        stateName: persistedLocation.stateName,
+        lgaCode: persistedLocation.lgaCode,
+        lgaName: persistedLocation.lgaName,
+        wardCode: persistedLocation.wardCode,
+        wardName: persistedLocation.wardName,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, persistedLocation]);
+
   async function handleLocationSelect(loc: {
     stateCode: string;
     stateName: string;
@@ -49,6 +68,14 @@ export function CivicModal() {
     wardName?: string;
   }) {
     setLocation(loc);
+    setPersistedLocation({
+      stateCode: loc.stateCode,
+      stateName: loc.stateName,
+      lgaCode: loc.lgaCode,
+      lgaName: loc.lgaName,
+      wardCode: loc.wardCode,
+      wardName: loc.wardName,
+    });
     setLoading(true);
     try {
       const result = await getOfficialsByLocation({
@@ -102,7 +129,7 @@ export function CivicModal() {
       </button>
 
       {/* Modal overlay */}
-      {open && (
+      <Show when={open}>
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           {/* Backdrop */}
           <div
@@ -115,21 +142,21 @@ export function CivicModal() {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <div className="flex items-center gap-3">
-                {location && (
+                <Show when={!!location}>
                   <button
                     onClick={() => { setLocation(null); setChain([]); }}
                     className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     <ArrowLeft className="w-5 h-5 text-slate-500" />
                   </button>
-                )}
+                </Show>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white font-heading">
                     Who Governs You?
                   </h2>
-                  {location && (
+                  <Show when={!!location}>
                     <p className="text-sm text-slate-500 mt-0.5">{breadcrumb}</p>
-                  )}
+                  </Show>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -151,25 +178,25 @@ export function CivicModal() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto scrollbar-theme p-5">
-              {tab === "reps" && (
+              <Show when={tab === "reps"}>
                 <div className="flex min-h-full flex-col">
                   {/* Location picker */}
-                  {!location && (
+                  <Show when={!location}>
                     <div className="mb-4">
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
                         Select your location to see who represents you
                       </p>
-                      <LocationPicker onLocationSelect={handleLocationSelect} />
+                      <LocationPicker onLocationSelect={handleLocationSelect} initialLocation={persistedLocation} />
                     </div>
-                  )}
+                  </Show>
 
                   {/* Loading */}
-                  {loading && (
+                  <Show when={loading}>
                     <CivicTabSkeleton variant="reps" />
-                  )}
+                  </Show>
 
                   {/* Chain */}
-                  {!loading && chain.length > 0 && (
+                  <Show when={!loading && chain.length > 0}>
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium text-emerald-600">
@@ -195,10 +222,10 @@ export function CivicModal() {
                         ))}
                       </div>
                     </div>
-                  )}
+                  </Show>
 
                   {/* Empty after location selected */}
-                  {!loading && location && chain.length === 0 && (
+                  <Show when={!loading && !!location && chain.length === 0}>
                     <div className="text-center py-8">
                       <p className="text-slate-500">No officials found for this location.</p>
                       <button
@@ -208,11 +235,11 @@ export function CivicModal() {
                         Try a different location
                       </button>
                     </div>
-                  )}
+                  </Show>
                 </div>
-              )}
+              </Show>
 
-              {tab === "leaderboard" && (
+              <Show when={tab === "leaderboard"}>
                 <div className="flex min-h-full flex-col">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     Which states have the most complete official data?
@@ -223,9 +250,9 @@ export function CivicModal() {
                     loadingFallback={<CivicTabSkeleton variant="leaderboard" />}
                   />
                 </div>
-              )}
+              </Show>
 
-              {tab === "activity" && (
+              <Show when={tab === "activity"}>
                 <div className="flex min-h-full flex-col">
                   <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
                     Recent contributions from citizens
@@ -235,11 +262,11 @@ export function CivicModal() {
                     loadingFallback={<CivicTabSkeleton variant="activity" />}
                   />
                 </div>
-              )}
+              </Show>
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

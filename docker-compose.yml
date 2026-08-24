@@ -62,12 +62,47 @@ x-ingest-common: &ingest-common
       max-file: "5"
   networks: [internal]
 
+x-socials-common: &socials-common
+  image: ghcr.io/${GHCR_OWNER:-ournigeria}/ournigeria-socials:${IMAGE_TAG:-latest}
+  restart: unless-stopped
+  stop_grace_period: 30s
+  environment:
+    - INFISICAL_TOKEN=${INFISICAL_TOKEN}
+    - INFISICAL_ENV=${INFISICAL_ENV:-prod}
+    - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
+    - PORT=3005
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+    interval: 15s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+  deploy:
+    resources:
+      limits:
+        memory: 2G
+        cpus: "1.0"
+      reservations:
+        memory: 512M
+  depends_on:
+    postgres:
+      condition: service_healthy
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "50m"
+      max-file: "5"
+  networks: [internal]
+
 services:
   # ─── Database (unchanged) ───────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ournigeria_prod_db
     restart: unless-stopped
+    # pgvector HNSW index builds use parallel-worker shared memory; the default
+    # 64MB /dev/shm overflows on large tables (e.g. 2.3M budget_chunks). Give it room.
+    shm_size: 2gb
     environment:
       POSTGRES_DB: spending
       POSTGRES_USER: spending
@@ -82,7 +117,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 6G
     logging:
       driver: "json-file"
       options:
@@ -90,7 +125,7 @@ services:
         max-file: "5"
     networks: [internal]
 
-  # ─── Reverse Proxy (HTTP-only, behind NPM) ─────────────────────
+  # ─── Reverse Proxy (TLS termination via Let's Encrypt) ────────
   traefik:
     image: traefik:v3.3
     container_name: ournigeria_traefik
@@ -99,19 +134,28 @@ services:
       - "--providers.file.filename=/etc/traefik/dynamic.yml"
       - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.traefikping.address=:8082"
+      - "--certificatesresolvers.le.acme.httpchallenge=true"
+      - "--certificatesresolvers.le.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.le.acme.email=admin@ournigeria.ng"
+      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
       - "--api.dashboard=false"
       - "--log.level=WARN"
       - "--ping=true"
-      - "--ping.entrypoint=web"
+      - "--ping.entrypoint=traefikping"
     ports:
       - "80:80"
+      - "443:443"
     networks:
       - internal
-      - npm-proxy
     volumes:
       - ./deploy/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik_le:/letsencrypt
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ping || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/ping || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -139,39 +183,14 @@ services:
     <<: *ingest-common
     container_name: ournigeria_ingest_green
 
-  # ─── Social Intelligence Agent ────────────────────────────────
-  socials:
-    image: ghcr.io/${GHCR_OWNER:-ournigeria}/ournigeria-socials:${IMAGE_TAG:-latest}
-    container_name: ournigeria_socials
-    restart: unless-stopped
-    stop_grace_period: 30s
-    environment:
-      - INFISICAL_TOKEN=${INFISICAL_TOKEN}
-      - INFISICAL_ENV=${INFISICAL_ENV:-prod}
-      - DATABASE_URL=postgresql://spending:${POSTGRES_PASSWORD}@postgres:5432/spending
-      - PORT=3005
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: "1.0"
-        reservations:
-          memory: 512M
-    depends_on:
-      postgres:
-        condition: service_healthy
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "5"
-    networks: [internal]
+  # ─── Social Intelligence Agent (Blue/Green) ────────────────────
+  socials-blue:
+    <<: *socials-common
+    container_name: ournigeria_socials_blue
+
+  socials-green:
+    <<: *socials-common
+    container_name: ournigeria_socials_green
 
   # ─── Webhook Receiver ──────────────────────────────────────────
   webhook:
@@ -181,8 +200,6 @@ services:
     container_name: ournigeria_webhook
     restart: unless-stopped
     command: ["-hooks", "/etc/webhook/hooks.yaml", "-port", "9000", "-verbose", "-template"]
-    ports:
-      - "${WEBHOOK_PORT:-9000}:9000"
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - STATUS_BEARER_TOKEN=${STATUS_BEARER_TOKEN}
@@ -196,7 +213,6 @@ services:
       - ./deploy/hooks.yaml:/etc/webhook/hooks.yaml:ro
     networks:
       - internal
-      - npm-proxy
     deploy:
       resources:
         limits:
@@ -204,5 +220,6 @@ services:
 
 networks:
   internal:
-  npm-proxy:
-    external: true
+
+volumes:
+  traefik_le:

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getCompletenessRankings, type CompletenessEntry } from "@/lib/api";
 import Link from "next/link";
 import { Trophy, Medal, Award, ChevronRight } from "lucide-react";
+import { Show } from "@/components/ui/Show";
 
 interface LeaderboardProps {
   readonly limit?: number;
@@ -112,20 +113,20 @@ export function Leaderboard({
             >
               {/* Rank */}
               <div className={`w-12 text-sm flex items-center gap-2 ${rankColorClass}`}>
-                {isFirst ? <Trophy className="w-4 h-4" /> : 
-                 isSecond ? <Medal className="w-4 h-4" /> : 
-                 isThird ? <Award className="w-4 h-4" /> : 
-                 <span className="opacity-70">#{i + 1}</span>}
+                <Show when={isFirst}><Trophy className="w-4 h-4" /></Show>
+                <Show when={isSecond}><Medal className="w-4 h-4" /></Show>
+                <Show when={isThird}><Award className="w-4 h-4" /></Show>
+                <Show when={!isTop3}><span className="opacity-70">#{i + 1}</span></Show>
               </div>
 
               {/* State Name */}
               <div className={`w-48 flex items-center gap-3 ${colorClass}`}>
                 <span className="truncate">{entry.stateName}</span>
-                {pct < 30 && (
+                <Show when={pct < 30}>
                   <span className="hidden md:inline-flex px-2 py-0.5 text-[9px] font-sans font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 rounded-full border border-rose-500/20">
                     Needs Help
                   </span>
-                )}
+                </Show>
               </div>
 
               {/* Progress Bar & Percentage */}

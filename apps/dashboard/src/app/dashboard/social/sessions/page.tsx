@@ -6,15 +6,28 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, Puzzle } from "lucide-react";
 import { socialsFetch } from "@/lib/api";
 import type { SessionsListResponse } from "@/components/socials/types";
 
 const statusColor: Record<string, string> = {
   idle: "bg-emerald-100 text-emerald-700",
-  working: "bg-blue-100 text-blue-700",
+  working: "bg-cyan-100 text-cyan-700",
   auth_failed: "bg-red-100 text-red-700",
 };
+
+// The dashboard can't open the extension's Options page directly (browsers block
+// web → chrome-extension navigation), so we guide the operator there instead.
+function ReCaptureGuide() {
+  return (
+    <span className="text-muted-foreground">
+      Open the <span className="font-medium text-foreground">OurNigeria capture
+      extension</span> → <span className="font-medium text-foreground">Options</span>{" "}
+      and click <span className="font-medium text-foreground">Re-authenticate</span>{" "}
+      on that account.
+    </span>
+  );
+}
 
 export default function SessionsPage() {
   const [data, setData] = useState<SessionsListResponse | null>(null);
@@ -64,7 +77,7 @@ export default function SessionsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Idle", value: data.counts.idle, color: "text-emerald-600" },
-            { label: "Working", value: data.counts.working, color: "text-blue-600" },
+            { label: "Working", value: data.counts.working, color: "text-cyan-600" },
             { label: "Auth failed", value: data.counts.auth_failed, color: "text-red-600" },
             { label: "Claimable", value: data.counts.claimable, color: "text-foreground" },
           ].map((s) => (
@@ -82,20 +95,42 @@ export default function SessionsPage() {
         <Skeleton className="h-64 rounded-xl" />
       ) : !data || data.items.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground space-y-3">
-            <p>No bot sessions captured yet.</p>
-            <p className="text-xs">
-              Install the Chrome extension at{" "}
+          <CardContent className="py-12 text-center space-y-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <Puzzle className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="font-heading font-semibold text-foreground">
+                No bot sessions yet
+              </p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                Open the OurNigeria capture extension, log into your bot accounts,
+                and browse x.com normally. Sessions appear here on their own — no
+                arming, no clicks.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Extension lives at{" "}
               <code className="bg-muted px-1.5 py-0.5 rounded">
                 apps/socials/extension
-              </code>
-              , configure the backend URL + roamer key, then arm a capture from
-              x.com.
+              </code>{" "}
+              — set the backend URL + roamer key in its popup.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
+          {data.items.some((s) => !s.hasOpHash || s.status === "auth_failed") && (
+            <Card className="border-amber-500/40 bg-amber-50 dark:bg-amber-950/20">
+              <CardContent className="py-3 px-4 flex items-start gap-3">
+                <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-600 flex-none" />
+                <p className="text-sm text-muted-foreground">
+                  {data.items.filter((s) => !s.hasOpHash || s.status === "auth_failed").length}{" "}
+                  session(s) need a fresh capture. <ReCaptureGuide />
+                </p>
+              </CardContent>
+            </Card>
+          )}
           {data.items.map((s) => (
             <Card key={s.id}>
               <CardContent className="py-3 px-4 flex items-center justify-between gap-3 flex-wrap">
@@ -108,8 +143,11 @@ export default function SessionsPage() {
                       {s.status.replace("_", " ")}
                     </Badge>
                     {!s.hasOpHash && (
-                      <Badge variant="outline" className="text-[11px] text-amber-600">
-                        op hash missing — re-capture
+                      <Badge
+                        variant="outline"
+                        className="text-[11px] text-amber-600 border-amber-500/40"
+                      >
+                        needs re-capture
                       </Badge>
                     )}
                   </div>

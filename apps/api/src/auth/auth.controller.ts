@@ -13,7 +13,7 @@ import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Request, Response } from "express";
 import crypto from "node:crypto";
 import { z } from "zod";
-import { TelegramApiService } from "../telegram/telegram-api.service";
+import { TelegramLoginService } from "../telegram/telegram-login.service";
 import { AuthService } from "./auth.service";
 import { SessionService } from "./session.service";
 import { CurrentUser } from "./decorators/current-user";
@@ -43,92 +43,6 @@ function sessionMeta(req: Request) {
     userAgent: req.headers["user-agent"] ?? null,
     ip: req.ip || req.socket?.remoteAddress || null,
   };
-}
-
-function getAllowedRedirectOrigins(): string[] {
-  const origins = new Set<string>();
-  const appUrl = process.env.APP_URL;
-  const corsOrigins = process.env.CORS_ORIGINS;
-
-  if (appUrl) {
-    try {
-      origins.add(new URL(appUrl).origin);
-    } catch {}
-  }
-
-  if (corsOrigins) {
-    for (const rawOrigin of corsOrigins.split(",")) {
-      const origin = rawOrigin.trim();
-      if (!origin) continue;
-      try {
-        origins.add(new URL(origin).origin);
-      } catch {}
-    }
-  }
-
-  return [...origins];
-}
-
-function resolveTelegramRedirectTarget(returnTo?: string): string {
-  const fallback = process.env.APP_URL!;
-  if (!returnTo) return fallback;
-
-  try {
-    const target = new URL(returnTo);
-    if (getAllowedRedirectOrigins().includes(target.origin)) {
-      return `${target.origin}${target.pathname}${target.search}${target.hash}`;
-    }
-  } catch {}
-
-  return fallback;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (ch) => {
-    switch (ch) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      default:
-        return "&#39;";
-    }
-  });
-}
-
-/**
- * Render a self-submitting HTML form that POSTs the one-time handoff code to the
- * web app's /auth/handoff endpoint. This keeps the code out of the redirect URL
- * (no browser history / Referer / proxy-log exposure) — it travels in the POST
- * body instead of a query param.
- */
-function renderHandoffForm(webTarget: string, code: string): string {
-  const url = new URL(webTarget);
-  // The /auth/handoff route lives on the web app (APP_URL). Pin the POST target
-  // there regardless of which allow-listed origin `returnTo` resolved to, so the
-  // form never posts to an origin that lacks the handoff route.
-  const webOrigin = (() => {
-    try {
-      return new URL(process.env.APP_URL!).origin;
-    } catch {
-      return url.origin;
-    }
-  })();
-  const action = `${webOrigin}/auth/handoff`;
-  const returnTo = `${url.origin}${url.pathname}${url.search}${url.hash}`;
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Signing you in…</title></head>
-<body>
-<form id="handoff" method="POST" action="${escapeHtml(action)}">
-  <input type="hidden" name="code" value="${escapeHtml(code)}">
-  <input type="hidden" name="returnTo" value="${escapeHtml(returnTo)}">
-  <noscript><button type="submit">Continue</button></noscript>
-</form>
-<script>document.getElementById('handoff').submit();</script>
-</body></html>`;
 }
 
 /**
@@ -212,8 +126,87 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
-    private readonly telegramApi: TelegramApiService,
+    private readonly telegramLogin: TelegramLoginService,
   ) {}
+
+  @Public()
+  @Post("telegram/start")
+  @ApiOperation({ summary: "Begin Telegram deep-link login; returns startParam + pollKey" })
+  async telegramStart(
+    @Body() body: { intent?: string },
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    // NOTE: behind the Next.js /api rewrite + infra proxy this `ip` collapses to a
+    // shared upstream address, so this is effectively a global cap on login-start
+    // volume (anti-spam for the request rows), not a true per-user limit. Keep it
+    // generous so legitimate peak login traffic isn't blocked.
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || "unknown";
+    if (await this.telegramLogin.hitRateLimit(`start:${ip}`, 60, 60_000)) {
+      return res
+        .status(HttpStatus.TOO_MANY_REQUESTS)
+        .json({ error: "Too many login attempts. Please wait." });
+    }
+
+    const intent = body?.intent === "link" ? "link" : "login";
+    let userId: string | undefined;
+    if (intent === "link") {
+      // Resolve the caller's session: opaque token → server lookup; a legacy
+      // raw-UUID cookie is accepted only while the migration window is open.
+      const cookie = req.cookies?.[USER_COOKIE];
+      let resolved: string | null = null;
+      if (SessionService.isSessionToken(cookie)) {
+        resolved = await this.sessionService.resolve(cookie);
+      } else if (
+        process.env.LEGACY_UID_SESSIONS !== "false" &&
+        typeof cookie === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cookie)
+      ) {
+        resolved = cookie;
+      }
+      if (!resolved) {
+        return res
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ error: "Sign in before linking Telegram." });
+      }
+      userId = resolved;
+    }
+
+    const { startParam, pollKey } = await this.telegramLogin.createLoginRequest(intent, userId);
+    return res.json({ startParam, pollKey });
+  }
+
+  @Public()
+  @Get("telegram/poll")
+  @ApiOperation({ summary: "Poll a Telegram deep-link login; sets session cookie on success" })
+  async telegramPoll(
+    @Query("pollKey") pollKey: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    if (!pollKey) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: "pollKey is required" });
+    }
+    // Rate-limit per pollKey, NOT per IP. Behind the Next.js /api rewrite + infra
+    // proxy, every user's poll reaches the API from one shared upstream IP, so an
+    // IP bucket collapses all users together and saturates under normal 2s polling
+    // → 429 for everyone → login never completes. The pollKey is unique per attempt
+    // and unguessable (192-bit random, never sent to Telegram), so keying on it
+    // isolates each attempt. One client polls ~30/min; 120/min gives ample headroom.
+    if (await this.telegramLogin.hitRateLimit(`poll:${pollKey}`, 120, 60_000)) {
+      return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: "Too many requests." });
+    }
+
+    const result = await this.telegramLogin.pollByKey(pollKey);
+    if (result.status === "authenticated") {
+      // Issue an opaque server-stored session token (not the raw userId).
+      const sessionToken = await this.sessionService.issue(result.userId, sessionMeta(req));
+      res.cookie(USER_COOKIE, sessionToken, buildUserCookieOptions());
+      return res.json({ status: "authenticated", success: true, userId: result.userId });
+    }
+    return res.json({ status: result.status });
+  }
 
   @Public()
   @Post("send-otp")
@@ -475,144 +468,5 @@ export class AuthController {
     }
 
     return res.json({ success: true, userId });
-  }
-
-  private async completeTelegramLogin(
-    telegramAuthPayload: Record<string, string>,
-    req: Request,
-    res: Response,
-  ) {
-    const result = this.authService.verifyTelegramAuth(telegramAuthPayload);
-    if (!result.valid) {
-      return { ok: false as const, error: result.error || "Invalid Telegram auth data" };
-    }
-
-    const { telegramUser } = result;
-    const isNewUser = !(await this.authService.telegramUserExists(telegramUser.id));
-    const user = await this.authService.upsertUserByTelegram(telegramUser.id);
-
-    const banStatus = await this.authService.checkBanStatus(user.id);
-    if (banStatus.banned) {
-      return {
-        ok: false as const,
-        banned: true as const,
-        reason: banStatus.reason || "Your account has been suspended.",
-      };
-    }
-
-    const sessionToken = await this.sessionService.issue(user.id, sessionMeta(req));
-    res.cookie(USER_COOKIE, sessionToken, buildUserCookieOptions());
-
-    if (isNewUser) {
-      const chatId = Number(telegramUser.id);
-      const name = telegramUser.first_name || "there";
-      this.telegramApi
-        .sendMessage(
-          chatId,
-          `Welcome to OurNigeria, ${name}! Your account has been created.\n\nYou can now ask me questions right here about Nigerian budgets, government spending, and EFCC corruption cases.\n\nSend /help to see available commands.`,
-        )
-        .catch((err) =>
-          console.error("Failed to send Telegram welcome:", err),
-        );
-    }
-
-    return { ok: true as const, userId: user.id };
-  }
-
-  @Public()
-  @Get("telegram")
-  @ApiOperation({ summary: "Telegram login callback" })
-  async telegramAuth(
-    @Query() query: Record<string, string>,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    const { returnTo, ...telegramPayload } = query;
-    const baseUrl = resolveTelegramRedirectTarget(returnTo);
-
-    try {
-      const loginResult = await this.completeTelegramLogin(telegramPayload, req, res);
-      if (!loginResult.ok) {
-        if ("banned" in loginResult && loginResult.banned) {
-          return res.redirect(`${new URL(baseUrl).origin}/banned`);
-        }
-        console.error("Telegram auth failed:", loginResult.error);
-        return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
-      }
-
-      // Hand the one-time code to the web app via an auto-submitting POST form
-      // (keeps it out of the redirect URL / browser history / Referer).
-      const code = await this.sessionService.createHandoff(loginResult.userId);
-      return res
-        .status(HttpStatus.OK)
-        .type("html")
-        .send(renderHandoffForm(baseUrl, code));
-    } catch (err) {
-      console.error("Telegram auth error:", err);
-      return res.redirect(`${baseUrl}/login?error=telegram_auth_failed`);
-    }
-  }
-
-  @Public()
-  @Post("telegram/login")
-  @ApiOperation({ summary: "Login with Telegram widget payload" })
-  async telegramLogin(
-    @Body() body: Record<string, string>,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    try {
-      const loginResult = await this.completeTelegramLogin(body, req, res);
-      if (!loginResult.ok) {
-        if ("banned" in loginResult && loginResult.banned) {
-          return res.status(HttpStatus.FORBIDDEN).json({
-            error: "banned",
-            reason: loginResult.reason,
-          });
-        }
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ error: loginResult.error });
-      }
-
-      return res.json({
-        success: true,
-        userId: loginResult.userId,
-        authToken: await this.sessionService.createHandoff(loginResult.userId),
-      });
-    } catch (err) {
-      console.error("Telegram login error:", err);
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Internal server error" });
-    }
-  }
-
-  @Post("telegram/link")
-  @ApiOperation({ summary: "Link Telegram account to active session" })
-  async linkTelegram(
-    @CurrentUser() userId: string,
-    @Body() body: Record<string, string>,
-    @Res() res: Response,
-  ) {
-    try {
-      const result = this.authService.verifyTelegramAuth(body);
-      if (!result.valid) {
-        return res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ error: "Invalid Telegram auth data" });
-      }
-
-      await this.authService.linkTelegramAccount(
-        userId,
-        result.telegramUser.id,
-      );
-      return res.json({ success: true });
-    } catch (err) {
-      console.error("Telegram link error:", err);
-      return res
-        .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({ error: "Internal server error" });
-    }
   }
 }

@@ -1,0 +1,78 @@
+name: Build Camofox (one-shot)
+
+# Build-once, manually-triggered image for the enrichment stack's headless browser.
+# camofox rarely changes, so it is NOT part of build-push.yml's per-push pipeline —
+# trigger this by hand when the Camoufox version or the upstream pin needs bumping.
+#
+# Recipe (validated 2026-08-14 on the homeland arm64 runner):
+#   - pin jo-inc/camofox-browser @ v1.9.1 (last release; newer main added a native dep
+#     that breaks the slim build AND refactored the code our old patch targeted).
+#   - add python3/make/g++ so the transitive `better-sqlite3` compiles (no prebuilt arm64).
+#   - NO headless patch: v1.9.1 fixed the DISPLAY bug and runs headless via xvfb cleanly
+#     (xvfb enabled = WebGL/GLX = better anti-detect). Our old Dockerfile.camofox is obsolete.
+# Pushes ghcr.io/<owner>/ournigeria-enrichment-camofox:{latest,<version>} via GITHUB_TOKEN
+# (no PAT needed). The OCI prod box pulls it (oci compose, pull_policy: missing).
+
+on:
+  workflow_dispatch:
+    inputs:
+      camofox_ref:
+        description: "jo-inc/camofox-browser git ref to build"
+        default: "v1.9.1"
+      camoufox_version:
+        description: "Camoufox version (also the base image tag)"
+        default: "135.0.1"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-camofox:
+    # Native arm64 on the homeland runner — same arch as the OCI prod box, no QEMU.
+    runs-on: ["self-hosted", "ARM64", "Linux"]
+    steps:
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd  # v4
+      - uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push camofox
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REF: ${{ inputs.camofox_ref }}
+          VER: ${{ inputs.camoufox_version }}
+        run: |
+          set -euo pipefail
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          git clone --depth 1 --branch "$REF" https://github.com/jo-inc/camofox-browser "$WORK/camofox"
+          cd "$WORK/camofox"
+
+          # Fix 1 — pin deps: upstream Dockerfile copies only package.json (not the
+          # lockfile) then `npm install`, so playwright-core drifts to a newer version
+          # (1.62.x) that sends viewport.isMobile — unsupported by the beta.24 Camoufox
+          # juggler → every tab/newContext fails. Copy the lockfile + `npm ci` to pin
+          # playwright-core@1.58.1 (what v1.9.1 matched to beta.24).
+          sed -i "s#^COPY package.json \./#COPY package.json package-lock.json ./#" Dockerfile
+          sed -i "s#^RUN npm install --production#RUN npm ci --omit=dev#" Dockerfile
+
+          # Fix 2 — toolchain: the slim base ships no compiler, and better-sqlite3
+          # (transitive) has no prebuilt arm64 binary for this node → build from source.
+          grep -q "install -y python3 make g" Dockerfile || \
+            sed -i "/^RUN npm ci --omit=dev/i RUN apt-get update \&\& apt-get install -y python3 make g++ \&\& rm -rf /var/lib/apt/lists/*" Dockerfile
+
+          make build ARCH=aarch64 VERSION="$VER"
+
+          BASE="camofox-browser:${VER}-aarch64"
+          IMG="ghcr.io/${OWNER}/ournigeria-enrichment-camofox"
+          docker tag "$BASE" "${IMG}:latest"
+          docker tag "$BASE" "${IMG}:${VER}"
+          docker push "${IMG}:latest"
+          docker push "${IMG}:${VER}"
+
+          # Protect the shared runner's disk (self-hosted → no auto-cleanup).
+          docker rmi "$BASE" "${IMG}:latest" "${IMG}:${VER}" || true
+          docker builder prune -f || true

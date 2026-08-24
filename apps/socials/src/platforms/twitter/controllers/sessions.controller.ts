@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
@@ -23,7 +24,13 @@ interface CapturedSessionPayload {
   authorization: string;
   xClientTransactionId: string;
   xClientUuid: string;
-  searchTimelineOpHash: string;
+  // Each capture carries only the op-hash it saw; the other is preserved
+  // server-side. Both optional so a TweetDetail-only (or old-extension
+  // SearchTimeline-only) capture is accepted.
+  searchTimelineOpHash?: string;
+  tweetDetailOpHash?: string;
+  createTweetOpHash?: string;
+  userTweetsOpHash?: string;
   path?: string;
 }
 
@@ -40,7 +47,7 @@ export class SessionsController {
   })
   async ingest(@Body() body: CapturedSessionPayload) {
     const path = body.path ?? TWITTER_PATH_SEARCH_TIMELINE;
-    const session = await this.sessions.upsertByUserNamePath({
+    const session = await this.sessions.saveCapture({
       userName: body.userName,
       path,
       cookie: body.cookie,
@@ -49,8 +56,23 @@ export class SessionsController {
       xClientTransactionId: body.xClientTransactionId,
       xClientUuid: body.xClientUuid,
       searchTimelineOpHash: body.searchTimelineOpHash,
+      tweetDetailOpHash: body.tweetDetailOpHash,
+      createTweetOpHash: body.createTweetOpHash,
+      userTweetsOpHash: body.userTweetsOpHash,
     });
     return { id: session.id, userName: session.userName, path: session.path };
+  }
+
+  @Get("health")
+  @UseGuards(RoamerIngestGuard)
+  @ApiOperation({
+    summary: "Slim session health for the capture extension (roamer-key gated)",
+  })
+  async health(@Query("handles") handles?: string) {
+    const list = handles
+      ? handles.split(",").map((h) => h.trim()).filter(Boolean)
+      : undefined;
+    return this.sessions.healthFor(list);
   }
 
   @Get()
@@ -76,6 +98,7 @@ export class SessionsController {
         consecutiveErrors: s.consecutiveErrors,
         lastError: s.lastError,
         hasOpHash: !!s.searchTimelineOpHash,
+        hasTweetDetailHash: !!s.tweetDetailOpHash,
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       })),

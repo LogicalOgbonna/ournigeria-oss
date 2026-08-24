@@ -3,7 +3,13 @@ import { PrismaService } from "@ournigeria/database";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { formatNaira } from "../lib/format";
+import { computeBudgetFigures } from "./budget-breakdown";
 import { buildTopFunctionSectorRows } from "./sector-expenditure";
+import {
+  shapeWardConstituencies,
+  type ConstituencyRow,
+  type WardConstituencies,
+} from "./ward-constituencies";
 
 /** Lower = preferred headline row when multiple `IgrRecord`s share the same fiscal year (FY over partials). */
 const IGR_PERIOD_RANK: Record<string, number> = {
@@ -279,16 +285,33 @@ export class GeoService implements OnModuleInit {
               include: { disbursement: true }
             }
           }
-        }
+        },
+        stateProfile: true,
       }
     });
 
     if (!state) return null;
 
+    // Internal "view source budget data" — the actual ingested documents we
+    // analyzed for this state (not an external portal; states have none).
+    const documents = await this.prisma.document.findMany({
+      where: { stateCode: state.code, fileType: "pdf" },
+      orderBy: { fiscalYear: "desc" },
+      take: 6,
+      select: { fileName: true, fiscalYear: true, filePath: true },
+    });
+    const sourceDocuments = documents.map((d) => ({
+      fileName: d.fileName,
+      fiscalYear: d.fiscalYear,
+      // Consumed by the page as /api/sources/download?path=<filePath>
+      path: d.filePath,
+    }));
+
     // Formatting the response to match the frontend expectations
     const governorPosition = state.officialPositions[0];
     const governor = governorPosition ? {
       id: governorPosition.official.id,
+      slug: governorPosition.official.slug,
       name: governorPosition.official.name,
       party: governorPosition.partyAcronym || "N/A",
       term: governorPosition.endDate ? `${governorPosition.startDate.getFullYear()} - ${governorPosition.endDate.getFullYear()}` : `${governorPosition.startDate.getFullYear()} - Present`,
@@ -334,11 +357,7 @@ export class GeoService implements OnModuleInit {
     if (latestBudget) {
       const fy = latestBudget.fiscalYear;
       const baseWhere = { entityCode: state.code, fiscalYear: fy };
-      const [budgetSum, recurrentSumAgg, capitalSumAgg] = await Promise.all([
-        this.prisma.budgetLineItem.aggregate({
-          where: baseWhere,
-          _sum: { approvedBudget: true },
-        }),
+      const [recurrentSumAgg, capitalSumAgg] = await Promise.all([
         this.prisma.budgetLineItem.aggregate({
           where: { ...baseWhere, budgetType: "recurrent_expenditure" },
           _sum: { approvedBudget: true },
@@ -349,36 +368,15 @@ export class GeoService implements OnModuleInit {
         }),
       ]);
 
-      const sumValue = budgetSum._sum.approvedBudget;
-      if (sumValue) {
-        budgetTotal = `₦${(Number(sumValue) / 1_000_000_000_000).toFixed(2)}T`;
-      }
-
-      const recurrentNum = Number(recurrentSumAgg._sum.approvedBudget) || 0;
-      const capitalNum = Number(capitalSumAgg._sum.approvedBudget) || 0;
-      recurrentExpenditure = formatNaira(recurrentNum);
-      capitalExpenditure = formatNaira(capitalNum);
-
-      const expTotal = recurrentNum + capitalNum;
-      const capitalPct =
-        expTotal > 0 ? Number(((capitalNum / expTotal) * 100).toFixed(1)) : 0;
-      const recurrentPct =
-        expTotal > 0 ? Number(((recurrentNum / expTotal) * 100).toFixed(1)) : 0;
-
-      budgetBreakdown = {
-        total: budgetTotal,
-        capital: {
-          amount: capitalExpenditure,
-          percentage: capitalPct,
-          color: "bg-emerald-500",
-        },
-        recurrent: {
-          amount: recurrentExpenditure,
-          percentage: recurrentPct,
-          color: "bg-amber-500",
-        },
-        explanation: `Approved budget line items for FY ${fy}: capital expenditure (projects, infrastructure) versus recurrent expenditure (running costs and salaries), from published state appropriation data.`,
-      };
+      const figures = computeBudgetFigures(
+        Number(recurrentSumAgg._sum.approvedBudget) || 0,
+        Number(capitalSumAgg._sum.approvedBudget) || 0,
+        fy,
+      );
+      budgetTotal = figures.budgetTotal;
+      recurrentExpenditure = figures.recurrentExpenditure;
+      capitalExpenditure = figures.capitalExpenditure;
+      budgetBreakdown = figures.breakdown;
 
       sectorsPayload = await buildTopFunctionSectorRows(this.prisma, state.code, fy);
     }
@@ -419,6 +417,7 @@ export class GeoService implements OnModuleInit {
 
     const mapOfficial = (pos: any) => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
@@ -429,6 +428,56 @@ export class GeoService implements OnModuleInit {
     const senators = senatorPositions.map(mapOfficial);
     const houseMembers = houseMemberPositions.map(mapOfficial);
     const stateAssemblyMembers = stateAssemblyPositions.map(mapOfficial);
+
+    // Constituencies grouped by type, each with its current representative (if
+    // known). Powers the state page's "who represents each district" accordion +
+    // links to the per-constituency pages. Includes ALL constituencies, even ones
+    // with no identified representative yet.
+    const mapRep = (pos: any) => ({
+      id: pos.official.id,
+      slug: pos.official.slug,
+      name: pos.official.name,
+      party: pos.partyAcronym || "N/A",
+      image: pos.official.imageUrl,
+    });
+    const repByCode = (positions: any[]) => {
+      const m = new Map<string, any>();
+      for (const p of positions) {
+        if (p.constituencyCode && !m.has(p.constituencyCode)) m.set(p.constituencyCode, mapRep(p));
+      }
+      return m;
+    };
+    const senRepByCode = repByCode(senatorPositions);
+    const repRepByCode = repByCode(houseMemberPositions);
+    const mhaRepByCode = repByCode(stateAssemblyPositions);
+
+    const allConstituencies = await this.prisma.nigerianConstituency.findMany({
+      where: { stateCode: state.code },
+      orderBy: { name: "asc" },
+      select: { code: true, name: true, type: true },
+    });
+    // Dedupe by name: the constituency tables still carry duplicate rows per
+    // district (the known "+extra-code" issue from the INEC reconciliation), so a
+    // district can appear twice — one code linked to the officeholder, one empty.
+    // Collapse by name and keep the row that resolves a representative (its code
+    // is the one that also powers a populated /constituencies/<code> page).
+    const buildGroup = (type: string, reps: Map<string, any>) => {
+      const byName = new Map<string, { code: string; name: string; representative: any }>();
+      for (const c of allConstituencies.filter((x) => x.type === type)) {
+        const representative = reps.get(c.code) || null;
+        const existing = byName.get(c.name);
+        if (!existing || (!existing.representative && representative)) {
+          byName.set(c.name, { code: c.code, name: c.name, representative });
+        }
+      }
+      return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+    };
+
+    const constituencies = {
+      senatorial: buildGroup("senatorial", senRepByCode),
+      federal: buildGroup("federal", repRepByCode),
+      state: buildGroup("state", mhaRepByCode),
+    };
 
     let faacDate = "";
     if (faacYtd > 0) {
@@ -448,6 +497,7 @@ export class GeoService implements OnModuleInit {
         houseMembers,
         stateAssembly: stateAssemblyMembers,
       },
+      constituencies,
       ...(budgetBreakdown ? { budgetBreakdown } : {}),
       sectors: sectorsPayload,
       stats: {
@@ -497,6 +547,42 @@ export class GeoService implements OnModuleInit {
         };
       }),
       availablePeriods: await this.getAvailableFaacPeriods(),
+      sourceDocuments,
+      profile: state.stateProfile
+        ? {
+            about: state.stateProfile.about,
+            motto: state.stateProfile.motto,
+            dateCreated: state.stateProfile.dateCreated
+              ? state.stateProfile.dateCreated.getFullYear()
+              : null,
+            landAreaSqKm: state.stateProfile.landAreaSqKm
+              ? Number(state.stateProfile.landAreaSqKm)
+              : null,
+            sealImageUrl: state.stateProfile.sealImageUrl,
+            flagImageUrl: state.stateProfile.flagImageUrl,
+            links: {
+              official: state.stateProfile.officialWebsiteUrl,
+              financeMinistry: state.stateProfile.financeMinistryUrl,
+              assembly: state.stateProfile.assemblyWebsiteUrl,
+              inec: state.stateProfile.inecInfoUrl,
+              stateElectoral: state.stateProfile.stateElectoralCommissionUrl,
+            },
+            contact: {
+              address: state.stateProfile.contactAddress,
+              phone: state.stateProfile.contactPhone,
+              email: state.stateProfile.contactEmail,
+              complaintPortal: state.stateProfile.complaintPortalUrl,
+              whistleblower: state.stateProfile.whistleblowerUrl,
+            },
+            socials: {
+              twitter: state.stateProfile.twitterUrl,
+              facebook: state.stateProfile.facebookUrl,
+              instagram: state.stateProfile.instagramUrl,
+              youtube: state.stateProfile.youtubeUrl,
+              news: state.stateProfile.newsUrl,
+            },
+          }
+        : null,
     };
   }
 
@@ -624,22 +710,26 @@ export class GeoService implements OnModuleInit {
 
     const councilors = councilorPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       ward: pos.ward?.name || "Unknown Ward",
       leadershipRole: pos.leadershipRole,
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
 
     const chairmanPosition = lga.officialPositions[0];
     const chairman = chairmanPosition ? {
       id: chairmanPosition.official.id,
+      slug: chairmanPosition.official.slug,
       name: chairmanPosition.official.name,
       party: chairmanPosition.partyAcronym || "N/A",
       term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
       image: chairmanPosition.official.imageUrl,
       email: chairmanPosition.official.email,
+      proposed: false,
     } : null;
 
     // Fetch Senator
@@ -660,11 +750,13 @@ export class GeoService implements OnModuleInit {
 
     const senator = senatorPosition ? {
       id: senatorPosition.official.id,
+      slug: senatorPosition.official.slug,
       name: senatorPosition.official.name,
       party: senatorPosition.partyAcronym || "N/A",
       constituency: senatorPosition.constituency?.name || "Unknown Constituency",
       image: senatorPosition.official.imageUrl,
       email: senatorPosition.official.email,
+      proposed: false,
     } : null;
 
     // Fetch House of Reps Members
@@ -687,11 +779,13 @@ export class GeoService implements OnModuleInit {
 
     const houseMembers = houseMemberPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
 
     // Fetch State Assembly Members
@@ -714,12 +808,24 @@ export class GeoService implements OnModuleInit {
 
     const stateAssemblyMembers = stateAssemblyPositions.map(pos => ({
       id: pos.official.id,
+      slug: pos.official.slug,
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
       email: pos.official.email,
+      proposed: false,
     }));
+
+    // Flag officials that only exist via an unapproved citizen "identify" submission
+    // (pending identify proposal) so the UI can badge them "Proposed · unverified".
+    // review_status alone is not a usable signal — most bulk-imported rows are also
+    // "unreviewed"; the pending identify proposal is the precise, self-clearing marker.
+    const cards = [chairman, senator, ...councilors, ...houseMembers, ...stateAssemblyMembers];
+    const proposedIds = await this.proposedOfficialIds(cards.flatMap(c => (c ? [c.id] : [])));
+    for (const card of cards) {
+      if (card && proposedIds.has(card.id)) card.proposed = true;
+    }
 
     const fiscal = lga.fiscalEntity;
     const faacYtd = fiscal?.faacLgaAllocations.reduce((sum, record) => {
@@ -762,6 +868,25 @@ export class GeoService implements OnModuleInit {
         name: ward.name,
       }))
     };
+  }
+
+  /**
+   * Given a set of official ids, return those that have a PENDING "identify" proposal
+   * (status submitted/under_review). Such officials were created by a citizen
+   * submission and not yet approved, so they should be surfaced as unverified.
+   */
+  private async proposedOfficialIds(officialIds: string[]): Promise<Set<string>> {
+    const ids = [...new Set(officialIds)];
+    if (ids.length === 0) return new Set();
+    const pending = await this.prisma.dataProposal.findMany({
+      where: { officialId: { in: ids }, status: { in: ["submitted", "under_review"] } },
+      select: { officialId: true, proposedValue: true },
+    });
+    const proposed = new Set<string>();
+    for (const p of pending) {
+      if ((p.proposedValue as any)?.type === "identify") proposed.add(p.officialId);
+    }
+    return proposed;
   }
 
   async getWardDetails(stateSlug: string, lgaSlug: string, wardSlug: string) {
@@ -812,13 +937,18 @@ export class GeoService implements OnModuleInit {
     if (!ward) return null;
 
     const councilorPosition = ward.officialPositions[0];
+    const proposedIds = councilorPosition
+      ? await this.proposedOfficialIds([councilorPosition.official.id])
+      : new Set<string>();
     const councilor = councilorPosition ? {
       id: councilorPosition.official.id,
+      slug: councilorPosition.official.slug,
       name: councilorPosition.official.name,
       party: councilorPosition.partyAcronym || "N/A",
       phone: councilorPosition.official.phoneNumber || "N/A",
       image: councilorPosition.official.imageUrl,
       email: councilorPosition.official.email,
+      proposed: proposedIds.has(councilorPosition.official.id),
     } : null;
 
     return {
@@ -829,9 +959,46 @@ export class GeoService implements OnModuleInit {
       lgaName: lga.name,
       stateName: state.name,
       councilor,
+      constituencies: await this.getWardConstituencies(ward.code, lga.code),
       projects: [],
       civicUpdates: [],
     };
+  }
+
+  /**
+   * The senatorial district / federal constituency / state constituency a ward
+   * sits inside, each with its sitting representative(s). Senatorial districts
+   * are mapped at LGA level; federal + state constituencies at ward level. Any
+   * tier can come back null while its INEC mapping is still unreconciled.
+   */
+  private async getWardConstituencies(
+    wardCode: string,
+    lgaCode: string,
+  ): Promise<WardConstituencies> {
+    const positions = {
+      where: { status: "active" },
+      include: { official: true },
+    } as const;
+
+    const [wardMappings, senatorialMappings] = await Promise.all([
+      this.prisma.constituencyWard.findMany({
+        where: { wardCode },
+        include: { constituency: { include: { officialPositions: positions } } },
+      }),
+      this.prisma.senatorialDistrictLga.findMany({
+        where: { lgaCode },
+        include: {
+          senatorialDistrict: { include: { officialPositions: positions } },
+        },
+      }),
+    ]);
+
+    const rows: ConstituencyRow[] = [
+      ...wardMappings.map((row) => row.constituency),
+      ...senatorialMappings.map((row) => row.senatorialDistrict),
+    ];
+
+    return shapeWardConstituencies(rows);
   }
 
   async getLgasByState(stateCode: string) {
@@ -874,6 +1041,81 @@ export class GeoService implements OnModuleInit {
       orderBy: { name: "asc" },
       select: { code: true, name: true, type: true },
     });
+  }
+
+  /**
+   * Full detail for a single constituency: its current representative(s) plus
+   * the wards/LGAs it covers (from the mapping tables). Federal HoR + state
+   * assembly constituencies map to wards (ConstituencyWard); senatorial
+   * districts map to LGAs (SenatorialDistrictLga). `projects` is a placeholder
+   * until constituency-level project data is ingested.
+   */
+  async getConstituencyDetails(code: string) {
+    const constituency = await this.prisma.nigerianConstituency.findUnique({
+      where: { code },
+      include: {
+        state: true,
+        officialPositions: {
+          where: { status: "active" },
+          include: { official: true },
+        },
+      },
+    });
+
+    if (!constituency) return null;
+
+    const representatives = constituency.officialPositions.map((pos) => ({
+      id: pos.official.id,
+      slug: pos.official.slug,
+      name: pos.official.name,
+      role: pos.role,
+      party: pos.partyAcronym || "N/A",
+      image: pos.official.imageUrl,
+      email: pos.official.email,
+    }));
+
+    // Coverage: ward-mapped (federal/state) or LGA-mapped (senatorial).
+    const wardRows = await this.prisma.constituencyWard.findMany({
+      where: { constituencyCode: code },
+      include: { ward: { include: { lga: true } } },
+    });
+    const wards = wardRows
+      .map((row) => ({
+        code: row.ward.code,
+        name: row.ward.name,
+        lgaName: row.ward.lga.name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const senatorialLgaRows = await this.prisma.senatorialDistrictLga.findMany({
+      where: { senatorialDistrictCode: code },
+      include: { lga: true },
+    });
+    // LGAs come straight from senatorial mappings, or are derived from the
+    // covered wards for ward-mapped constituencies.
+    const lgaMap = new Map<string, { code: string; name: string }>();
+    for (const row of senatorialLgaRows) {
+      lgaMap.set(row.lga.code, { code: row.lga.code, name: row.lga.name });
+    }
+    for (const row of wardRows) {
+      lgaMap.set(row.ward.lga.code, {
+        code: row.ward.lga.code,
+        name: row.ward.lga.name,
+      });
+    }
+    const lgas = [...lgaMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      code: constituency.code,
+      name: constituency.name,
+      type: constituency.type,
+      stateCode: constituency.stateCode,
+      stateName: constituency.state.name,
+      representatives,
+      wards,
+      lgas,
+      projects: [],
+    };
   }
 
   /**

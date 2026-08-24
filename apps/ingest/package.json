@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "infisical run --env dev --watch -- nest start",
+    "dev": "infisical run --env dev --path /ingest --watch -- nest start",
     "build": "nest build",
-    "start": "infisical run --env dev -- nest start",
-    "start:prod": "infisical run --env dev -- node dist/main",
-    "upload-to-s3": "tsx src/scripts/upload-to-s3.ts"
+    "start": "infisical run --env dev --path /ingest -- nest start",
+    "start:prod": "infisical run --env dev --path /ingest -- node dist/main",
+    "upload-to-s3": "tsx src/scripts/upload-to-s3.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "catalog:",
@@ -25,6 +26,7 @@
     "ai": "catalog:",
     "cookie-parser": "catalog:",
     "dotenv": "16.6.1",
+    "jszip": "3.10.1",
     "mime-types": "2.1.35",
     "multer": "2.0.2",
     "p-limit": "3.1.0",
@@ -45,6 +47,7 @@
     "ts-loader": "catalog:",
     "ts-node": "catalog:",
     "tsconfig-paths": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

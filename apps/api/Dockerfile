@@ -16,6 +16,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/cache/package.json packages/cache/package.json
 COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/official-records/package.json packages/official-records/package.json
 COPY packages/tools/package.json packages/tools/package.json
 
 # Hoisted layout + install only api workspace
@@ -29,11 +30,13 @@ COPY apps/api/ apps/api/
 COPY packages/database/ packages/database/
 COPY packages/cache/ packages/cache/
 COPY packages/shared-types/ packages/shared-types/
+COPY packages/official-records/ packages/official-records/
 COPY packages/tools/ packages/tools/
 COPY packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
+ && pnpm --filter @ournigeria/official-records run build \
  && pnpm --filter @ournigeria/tools run build \
  && pnpm --filter @ournigeria/api exec nest build
 
@@ -57,8 +60,6 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
     node_modules/react-dom \
     node_modules/@next \
     node_modules/@swc \
-    node_modules/sharp \
-    node_modules/@img \
     node_modules/@napi-rs \
     node_modules/lightningcss \
     node_modules/esbuild \
@@ -87,9 +88,21 @@ RUN pnpm install --frozen-lockfile --filter @ournigeria/api... --prod \
 # ── Stage 4: Production runner ──
 FROM node:22.14.0-slim AS runner
 
-RUN apt-get update && apt-get install -y openssl curl bash gnupg \
+# git + openssh-client: required by the OKF knowledge-bundle publisher (dist/okf/okf-publish.cli.js)
+# to clone/push the public mirror over an SSH deploy key. tar (for the bundle tarball) ships in the base.
+RUN apt-get update && apt-get install -y openssl curl bash gnupg git openssh-client \
  && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
  && apt-get update && apt-get install -y infisical \
+ && rm -rf /var/lib/apt/lists/*
+
+# postgresql-client-16: pg_dump for the dashboard DB-backup feature.
+# Must be >= the PG16 server version, so pin via the official PGDG apt repo.
+# PGDG ships amd64 + arm64, so this works for current prod and the future OCI box.
+RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+      | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update && apt-get install -y postgresql-client-16 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -113,6 +126,8 @@ COPY --from=api-build /app/packages/database/package.json packages/database/pack
 COPY --from=api-build /app/packages/cache/dist/ packages/cache/dist/
 COPY --from=api-build /app/packages/cache/package.json packages/cache/package.json
 COPY --from=api-build /app/packages/shared-types/ packages/shared-types/
+COPY --from=api-build /app/packages/official-records/dist/ packages/official-records/dist/
+COPY --from=api-build /app/packages/official-records/package.json packages/official-records/package.json
 COPY --from=api-build /app/packages/tools/dist/ packages/tools/dist/
 COPY --from=api-build /app/packages/tools/package.json packages/tools/package.json
 COPY --from=api-build /app/packages/source/nga_admin_boundaries.geojson/ packages/source/nga_admin_boundaries.geojson/
@@ -122,6 +137,7 @@ RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database && \
     ln -s /app/packages/cache node_modules/@ournigeria/cache && \
     ln -s /app/packages/shared-types node_modules/@ournigeria/shared-types && \
+    ln -s /app/packages/official-records node_modules/@ournigeria/official-records && \
     ln -s /app/packages/tools node_modules/@ournigeria/tools
 
 # Copy Infisical config

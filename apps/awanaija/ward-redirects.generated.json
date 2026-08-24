@@ -1,0 +1,1147 @@
+[
+  {
+    "source": "/states/kano/ghari",
+    "destination": "/states/kano/kunchi",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/ghari/:ward*",
+    "destination": "/states/kano/kunchi/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dambatta",
+    "destination": "/states/kano/danbata",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dambatta/:ward*",
+    "destination": "/states/kano/danbata/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/bayelsa/yenegoa",
+    "destination": "/states/bayelsa/yenagoa",
+    "permanent": true
+  },
+  {
+    "source": "/states/bayelsa/yenegoa/:ward*",
+    "destination": "/states/bayelsa/yenagoa/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/gombe/shomgom",
+    "destination": "/states/gombe/shongom",
+    "permanent": true
+  },
+  {
+    "source": "/states/gombe/shomgom/:ward*",
+    "destination": "/states/gombe/shongom/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/edo/uhunmwonde",
+    "destination": "/states/edo/uhunmwode",
+    "permanent": true
+  },
+  {
+    "source": "/states/edo/uhunmwonde/:ward*",
+    "destination": "/states/edo/uhunmwode/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dawakin_tofa",
+    "destination": "/states/kano/dawaki-tofa",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dawakin_tofa/:ward*",
+    "destination": "/states/kano/dawaki-tofa/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/abia/osisioma_ngwa",
+    "destination": "/states/abia/osisioma",
+    "permanent": true
+  },
+  {
+    "source": "/states/abia/osisioma_ngwa/:ward*",
+    "destination": "/states/abia/osisioma/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/garum_mallam",
+    "destination": "/states/kano/garun-malam",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/garum_mallam/:ward*",
+    "destination": "/states/kano/garun-malam/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/bauchi/damban",
+    "destination": "/states/bauchi/dambam",
+    "permanent": true
+  },
+  {
+    "source": "/states/bauchi/damban/:ward*",
+    "destination": "/states/bauchi/dambam/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ebonyi/edda",
+    "destination": "/states/ebonyi/afikpo-south",
+    "permanent": true
+  },
+  {
+    "source": "/states/ebonyi/edda/:ward*",
+    "destination": "/states/ebonyi/afikpo-south/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dawakin_kudu",
+    "destination": "/states/kano/dawaki-kudu",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/dawakin_kudu/:ward*",
+    "destination": "/states/kano/dawaki-kudu/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/gombe/yamaltu_deba",
+    "destination": "/states/gombe/yalmaltu-deba",
+    "permanent": true
+  },
+  {
+    "source": "/states/gombe/yamaltu_deba/:ward*",
+    "destination": "/states/gombe/yalmaltu-deba/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ekiti/aiyekire_(gbonyin)",
+    "destination": "/states/ekiti/gbonyin",
+    "permanent": true
+  },
+  {
+    "source": "/states/ekiti/aiyekire_(gbonyin)/:ward*",
+    "destination": "/states/ekiti/gbonyin/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/imo/owerri_municipal",
+    "destination": "/states/imo/owerri-urban",
+    "permanent": true
+  },
+  {
+    "source": "/states/imo/owerri_municipal/:ward*",
+    "destination": "/states/imo/owerri-urban/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/imo/unuimo",
+    "destination": "/states/imo/onuimo",
+    "permanent": true
+  },
+  {
+    "source": "/states/imo/unuimo/:ward*",
+    "destination": "/states/imo/onuimo/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/biriniwa",
+    "destination": "/states/jigawa/birniwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/biriniwa/:ward*",
+    "destination": "/states/jigawa/birniwa/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ekiti/ilejemeji",
+    "destination": "/states/ekiti/ilejemeje",
+    "permanent": true
+  },
+  {
+    "source": "/states/ekiti/ilejemeji/:ward*",
+    "destination": "/states/ekiti/ilejemeje/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/markafi",
+    "destination": "/states/kaduna/makarfi",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/markafi/:ward*",
+    "destination": "/states/kaduna/makarfi/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/zango_kataf",
+    "destination": "/states/kaduna/zangon-kataf",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/zango_kataf/:ward*",
+    "destination": "/states/kaduna/zangon-kataf/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/edati",
+    "destination": "/states/niger/edatti",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/edati/:ward*",
+    "destination": "/states/niger/edatti/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/shomolu",
+    "destination": "/states/lagos/somolu",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/shomolu/:ward*",
+    "destination": "/states/lagos/somolu/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/birni_kudu",
+    "destination": "/states/jigawa/birnin-kudu",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/birni_kudu/:ward*",
+    "destination": "/states/jigawa/birnin-kudu/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/arewa_dandi",
+    "destination": "/states/kebbi/arewa",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/arewa_dandi/:ward*",
+    "destination": "/states/kebbi/arewa/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/aleiro",
+    "destination": "/states/kebbi/aliero",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/aleiro/:ward*",
+    "destination": "/states/kebbi/aliero/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/muya",
+    "destination": "/states/niger/munya",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/muya/:ward*",
+    "destination": "/states/niger/munya/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/olamabolo",
+    "destination": "/states/kogi/olamaboro",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/olamabolo/:ward*",
+    "destination": "/states/kogi/olamaboro/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/pategi",
+    "destination": "/states/kwara/patigi",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/pategi/:ward*",
+    "destination": "/states/kwara/patigi/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/kogi",
+    "destination": "/states/kogi/koton-karfe",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/kogi/:ward*",
+    "destination": "/states/kogi/koton-karfe/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/egbado_north",
+    "destination": "/states/ogun/yewa-egbado-north",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/egbado_north/:ward*",
+    "destination": "/states/ogun/yewa-egbado-north/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/shagamu",
+    "destination": "/states/ogun/sagamu",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/shagamu/:ward*",
+    "destination": "/states/ogun/sagamu/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/ilesha_west",
+    "destination": "/states/osun/ilesa-west",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/ilesha_west/:ward*",
+    "destination": "/states/osun/ilesa-west/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/ilesha_east",
+    "destination": "/states/osun/ilesa-east",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/ilesha_east/:ward*",
+    "destination": "/states/osun/ilesa-east/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/egbado_south",
+    "destination": "/states/ogun/yewa-egbado-south",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/egbado_south/:ward*",
+    "destination": "/states/ogun/yewa-egbado-south/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/aiyedire",
+    "destination": "/states/osun/ayedire",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/aiyedire/:ward*",
+    "destination": "/states/osun/ayedire/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/aiyedade",
+    "destination": "/states/osun/ayedaade",
+    "permanent": true
+  },
+  {
+    "source": "/states/osun/aiyedade/:ward*",
+    "destination": "/states/osun/ayedaade/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/atigbo",
+    "destination": "/states/oyo/atisbo",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/atigbo/:ward*",
+    "destination": "/states/oyo/atisbo/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/ogbomosho_north",
+    "destination": "/states/oyo/ogbomoso-north",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/ogbomosho_north/:ward*",
+    "destination": "/states/oyo/ogbomoso-north/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/rivers/omumma",
+    "destination": "/states/rivers/omuma",
+    "permanent": true
+  },
+  {
+    "source": "/states/rivers/omumma/:ward*",
+    "destination": "/states/rivers/omuma/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/wamako",
+    "destination": "/states/sokoto/wamakko",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/wamako/:ward*",
+    "destination": "/states/sokoto/wamakko/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/ogbomosho_south",
+    "destination": "/states/oyo/ogbomoso-south",
+    "permanent": true
+  },
+  {
+    "source": "/states/oyo/ogbomosho_south/:ward*",
+    "destination": "/states/oyo/ogbomoso-south/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/yobe/tarmua",
+    "destination": "/states/yobe/tarmuwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/yobe/tarmua/:ward*",
+    "destination": "/states/yobe/tarmuwa/:ward*",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/buruku/mabikyongo",
+    "destination": "/states/benue/buruku/mbaikyongo-nyifon",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/gwer-west/saghev",
+    "destination": "/states/benue/gwer-west/sagher-ukusu",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/konshisha/mbavegh",
+    "destination": "/states/benue/konshisha/mbayegh-mbaikyer",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/konshisha/mbavaa",
+    "destination": "/states/benue/konshisha/mbavoa",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/ado/akpoge",
+    "destination": "/states/benue/ado/akoge-ogbilolo",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/gwer-west/tsambe",
+    "destination": "/states/benue/gwer-west/isambe-mbasev",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/gboko/gboko-central",
+    "destination": "/states/benue/gboko/gbk-central-market",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/makurdi/fiidi",
+    "destination": "/states/benue/makurdi/fildi",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/okpokwu/okapile",
+    "destination": "/states/benue/okpokwu/okpaile-ingle",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/vandeikya/tsampe",
+    "destination": "/states/benue/vandeikya/tsambe",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/ushongo/mbaawe",
+    "destination": "/states/benue/ushongo/mbagwe",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/doguwa/doguwa",
+    "destination": "/states/kano/doguwa/duguwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/kiru/babafi",
+    "destination": "/states/kano/kiru/badafi",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/makoda/koren-tabo",
+    "destination": "/states/kano/makoda/koren-tatso",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/warawa/jumar-galadima",
+    "destination": "/states/kano/warawa/j-galadima",
+    "permanent": true
+  },
+  {
+    "source": "/states/benue/ukum/kumbuv",
+    "destination": "/states/benue/ukum/lumbuv",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/ganye/ganye-2",
+    "destination": "/states/adamawa/ganye/ganye-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/kano/gwale/kubuga",
+    "destination": "/states/kano/gwale/kabuga",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/ganye/ganye-1",
+    "destination": "/states/adamawa/ganye/ganye-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/gombi/gabon",
+    "destination": "/states/adamawa/gombi/gabun",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/jada/koma-2",
+    "destination": "/states/adamawa/jada/koma-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/girei/girei-1",
+    "destination": "/states/adamawa/girei/gerei-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/madagali/bebel",
+    "destination": "/states/adamawa/madagali/babel",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/jada/koma-1",
+    "destination": "/states/adamawa/jada/koma-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/lamurde/lamorde",
+    "destination": "/states/adamawa/lamurde/lamurde",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/lamurde/ngbebogun",
+    "destination": "/states/adamawa/lamurde/mgbebongun",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/jada/jada-1",
+    "destination": "/states/adamawa/jada/jada-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/jada/jada-2",
+    "destination": "/states/adamawa/jada/jada-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/hong/hoserezum",
+    "destination": "/states/adamawa/hong/hushere-zum",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/michika-2",
+    "destination": "/states/adamawa/michika/michika-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/michika-1",
+    "destination": "/states/adamawa/michika/michika-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/vih",
+    "destination": "/states/adamawa/michika/vi-boka",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/ninkisi",
+    "destination": "/states/adamawa/michika/minkisi-wuro-ngiki",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/wambilimi",
+    "destination": "/states/adamawa/michika/wamblimi-tilli",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/tsukumu",
+    "destination": "/states/adamawa/michika/sukumu-tillijo",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/mubi-south/lamurde",
+    "destination": "/states/adamawa/mubi-south/lamorde",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/numan/numan-3",
+    "destination": "/states/adamawa/numan/numan-iii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/numan/numan-1",
+    "destination": "/states/adamawa/numan/numan-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/numan/numan-2",
+    "destination": "/states/adamawa/numan/numan-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/michika/munkavachitta",
+    "destination": "/states/adamawa/michika/munkavicita",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/dawo-2",
+    "destination": "/states/adamawa/toungo/dawo-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/toungo-2",
+    "destination": "/states/adamawa/toungo/toungo-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/kiri-2",
+    "destination": "/states/adamawa/toungo/kiri-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/toungo-1",
+    "destination": "/states/adamawa/toungo/toungo-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/kogin-baba-2",
+    "destination": "/states/adamawa/toungo/kongin-baba-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/kiri-1",
+    "destination": "/states/adamawa/toungo/kiri-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/toungo-3",
+    "destination": "/states/adamawa/toungo/toungo-iii",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/dawo-1",
+    "destination": "/states/adamawa/toungo/dawo-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/abadam/yitiwa",
+    "destination": "/states/borno/abadam/yituwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/toungo/kogin-baba-1",
+    "destination": "/states/adamawa/toungo/kongin-baba-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/yola-north/karewa",
+    "destination": "/states/adamawa/yola-north/karena",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/damboa/mulgo-kopchi",
+    "destination": "/states/borno/damboa/mulgwai-kopchi",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/abadam/foguwa",
+    "destination": "/states/borno/abadam/fuguwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/magumeri/kupti",
+    "destination": "/states/borno/magumeri/kubti",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/jere/galtimari",
+    "destination": "/states/borno/jere/bale-galtimari",
+    "permanent": true
+  },
+  {
+    "source": "/states/edo/owan-east/ivbi-mion",
+    "destination": "/states/edo/owan-east/ivbianion",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/gwoza/wala-warabe",
+    "destination": "/states/borno/gwoza/dure-wala-warabe",
+    "permanent": true
+  },
+  {
+    "source": "/states/borno/maiduguri/bulabulin",
+    "destination": "/states/borno/maiduguri/bulablin",
+    "permanent": true
+  },
+  {
+    "source": "/states/adamawa/girei/girei-2",
+    "destination": "/states/adamawa/girei/girei-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/miga/garbo",
+    "destination": "/states/jigawa/miga/harbo",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/malam-madori/shayya",
+    "destination": "/states/jigawa/malam-madori/shaiya",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/malam-madori/tagin-aro",
+    "destination": "/states/jigawa/malam-madori/tagwaro",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/jaba/duyyah",
+    "destination": "/states/kaduna/jaba/nduyah",
+    "permanent": true
+  },
+  {
+    "source": "/states/jigawa/taura/sabon-garin-yaya",
+    "destination": "/states/jigawa/taura/s-garin-yaya",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kachia/guwel",
+    "destination": "/states/kaduna/kachia/gumel",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-north/ung.-maiburji",
+    "destination": "/states/kaduna/kaduna-north/maiburji",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-north/ung.-shanu",
+    "destination": "/states/kaduna/kaduna-north/unguwan-shanu",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-south/unguwan-sanusi",
+    "destination": "/states/kaduna/kaduna-south/ung-sanusi",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-north/ung.sarki",
+    "destination": "/states/kaduna/kaduna-north/unguwan-sarki",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-north/ung.-liman",
+    "destination": "/states/kaduna/kaduna-north/unguwan-liman",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-south/tudun-nupawa",
+    "destination": "/states/kaduna/kaduna-south/tudun-nuwapa",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/danja/danji-'b",
+    "destination": "/states/katsina/danja/danja-b",
+    "permanent": true
+  },
+  {
+    "source": "/states/kaduna/kaduna-south/twlwvision",
+    "destination": "/states/kaduna/kaduna-south/television",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/faskari/shema",
+    "destination": "/states/katsina/faskari/sheme",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/kusada/kudada",
+    "destination": "/states/katsina/kusada/kusada",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/katsina/wakilin-yamma-i",
+    "destination": "/states/katsina/katsina/wakilin-yamma-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/funtua/unguwar-ibrahim",
+    "destination": "/states/katsina/funtua/ung-ibrahim",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/mashi/karai",
+    "destination": "/states/katsina/mashi/karau",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/mani/dawan",
+    "destination": "/states/katsina/mani/duwan-makau",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/funtua/ung.dandutse",
+    "destination": "/states/katsina/funtua/dandutse",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/mani/tsagm",
+    "destination": "/states/katsina/mani/tsagem-takusheyi",
+    "permanent": true
+  },
+  {
+    "source": "/states/katsina/zango/rigogo",
+    "destination": "/states/katsina/zango/rogogo-cidari",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/amuwo-odofin/ibeshi",
+    "destination": "/states/lagos/amuwo-odofin/ibeshe",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/badagry/ologbo",
+    "destination": "/states/lagos/badagry/ilogbo-araromi",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/ibeju-lekki/siriwon",
+    "destination": "/states/lagos/ibeju-lekki/s-2a-siriwon-igbekodo-ii",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/badagry/awhajigho",
+    "destination": "/states/lagos/badagry/awhanjigoh",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/ibeju-lekki/siriwon",
+    "destination": "/states/lagos/ibeju-lekki/s2-siriwon-igbekodo-i",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/badagry/ajera",
+    "destination": "/states/lagos/badagry/ajara",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/ikeja/adekunle-village",
+    "destination": "/states/lagos/ikeja/adekunle-vill-adeniyi-jones-ogba",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/lagos-mainland/makoko",
+    "destination": "/states/lagos/lagos-mainland/maroko-ebute-metta",
+    "permanent": true
+  },
+  {
+    "source": "/states/lagos/lagos-mainland/itoto",
+    "destination": "/states/lagos/lagos-mainland/otto-iddo",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/augie/tggi",
+    "destination": "/states/kebbi/augie/tiggi-awade",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/augie/birnin-tuda",
+    "destination": "/states/kebbi/augie/birnin-tudu-gudale",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/lapai/birnini-tashibo",
+    "destination": "/states/niger/lapai/birnin-maza-tashibo",
+    "permanent": true
+  },
+  {
+    "source": "/states/kebbi/zuru/runu",
+    "destination": "/states/kebbi/zuru/rumu-daben-seme",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/mashegu/kpatachin",
+    "destination": "/states/niger/mashegu/kwatachi",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/gbako/batago",
+    "destination": "/states/niger/gbako/batako",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/lapai/kupa",
+    "destination": "/states/niger/lapai/gupa-abugi",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/mashegu/kulluho",
+    "destination": "/states/niger/mashegu/kulho",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/lapai/munye",
+    "destination": "/states/niger/lapai/muye-egba",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/shiroro/kwali",
+    "destination": "/states/niger/shiroro/kwaki-chukwuba",
+    "permanent": true
+  },
+  {
+    "source": "/states/niger/shiroro/erena",
+    "destination": "/states/niger/shiroro/erana",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/adavi/ikarworo",
+    "destination": "/states/kogi/adavi/ikaraworo-idobanyere",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/ijumu/ife",
+    "destination": "/states/kogi/ijumu/iffe-ikoyi-okejumu",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/ijumu/igbolayere",
+    "destination": "/states/kogi/ijumu/ibgolayere-ilaere",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/mopa-muro/illeteju-i",
+    "destination": "/states/kogi/mopa-muro/ileteju-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/mopa-muro/odele-2",
+    "destination": "/states/kogi/mopa-muro/odole-2",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/mopa-muro/okrsgi",
+    "destination": "/states/kogi/mopa-muro/okeagi-ilai",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/mopa-muro/elleteju-ii",
+    "destination": "/states/kogi/mopa-muro/illeteju-2",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/ofu/ugwolawo-ii",
+    "destination": "/states/kogi/ofu/ugwolawo-2",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/mopa-muro/odole-i",
+    "destination": "/states/kogi/mopa-muro/odole-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/okehi/okuehi",
+    "destination": "/states/kogi/okehi/okuehu",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/omala/oja-aji",
+    "destination": "/states/kogi/omala/oji-aji",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/baruten/gwedere",
+    "destination": "/states/kwara/baruten/gwedebereru-babane",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/omala/opada",
+    "destination": "/states/kogi/omala/opoda-ofejiji",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/asa/yowere-ii",
+    "destination": "/states/kwara/asa/yowere-11-okeweru",
+    "permanent": true
+  },
+  {
+    "source": "/states/kogi/yagba-west/ese",
+    "destination": "/states/kogi/yagba-west/isaulu-esa-okoloke-okunran",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/ekiti/osi-i",
+    "destination": "/states/kwara/ekiti/osi-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/ifelodun/share-i",
+    "destination": "/states/kwara/ifelodun/share-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/ifelodun/aro-ago",
+    "destination": "/states/kwara/ifelodun/oro-ago",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/ilorin-south/okaka-i",
+    "destination": "/states/kwara/ilorin-south/okaka-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/oyun/egbona",
+    "destination": "/states/kwara/oyun/igbona",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/ilorin-east/yangi",
+    "destination": "/states/kwara/ilorin-east/agbeyangi-gbadamu-osin",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/irepodun/omu-aran-iii-(ifaja)",
+    "destination": "/states/kwara/irepodun/omu-aran-111-ifaja",
+    "permanent": true
+  },
+  {
+    "source": "/states/kwara/irepodun/oro-i",
+    "destination": "/states/kwara/irepodun/oro-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/nasarawa/karu/guraku",
+    "destination": "/states/nasarawa/karu/gurku-kabusu",
+    "permanent": true
+  },
+  {
+    "source": "/states/nasarawa/karu/keffin-shanu",
+    "destination": "/states/nasarawa/karu/kafin-shanu-betti",
+    "permanent": true
+  },
+  {
+    "source": "/states/nasarawa/keffi/sagon-gai",
+    "destination": "/states/nasarawa/keffi/sabon-gari",
+    "permanent": true
+  },
+  {
+    "source": "/states/ogun/abeokuta-north/ita-oshin",
+    "destination": "/states/ogun/abeokuta-north/ita-osin-olomore",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/akure-south/ala",
+    "destination": "/states/ondo/akure-south/aponmu",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/ilaje/ugbo-i",
+    "destination": "/states/ondo/ilaje/ugbo-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/ilaje/mahin-i",
+    "destination": "/states/ondo/ilaje/mahin-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/odigbo/ore-i",
+    "destination": "/states/ondo/odigbo/ore-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/owo/iyere",
+    "destination": "/states/ondo/owo/iyare",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/ose/ifon-i",
+    "destination": "/states/ondo/ose/ifon-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/ondo/owo/ijebu-i",
+    "destination": "/states/ondo/owo/ijebu-1",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/jos-east/bobur-b",
+    "destination": "/states/plateau/jos-east/fobur-b",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/jos-east/bobur-a",
+    "destination": "/states/plateau/jos-east/fobur-a",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/bassa/rurum",
+    "destination": "/states/plateau/bassa/gurum",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/langtang-north/warok",
+    "destination": "/states/plateau/langtang-north/waroh",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/bodinga/dingyadu",
+    "destination": "/states/sokoto/bodinga/dingyadi-badawa",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/langtang-north/kwanpe",
+    "destination": "/states/plateau/langtang-north/kwande",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/bodinga/bodingna",
+    "destination": "/states/sokoto/bodinga/bodinga-tauma",
+    "permanent": true
+  },
+  {
+    "source": "/states/plateau/shendam/koekat",
+    "destination": "/states/plateau/shendam/moekat",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/gwadabawa/asra",
+    "destination": "/states/sokoto/gwadabawa/asara-kudu",
+    "permanent": true
+  },
+  {
+    "source": "/states/sokoto/sabon-birni/kurawa",
+    "destination": "/states/sokoto/sabon-birni/kuruwa",
+    "permanent": true
+  },
+  {
+    "source": "/states/zamfara/anka/bagege",
+    "destination": "/states/zamfara/anka/bagega",
+    "permanent": true
+  }
+]

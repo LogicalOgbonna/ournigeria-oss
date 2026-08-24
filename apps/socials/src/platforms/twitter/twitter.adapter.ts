@@ -11,6 +11,32 @@ import type {
 import { XTokenRepo } from "./x-token.repo.js";
 
 /**
+ * True when X refused a reply/quote because the account is engagement-restricted
+ * ("not been mentioned or otherwise engaged by the author" / "not part of the
+ * conversation thread"). That's an account-level anti-spam limit X puts on
+ * new/automated accounts — separate from token/permission/length. We detect it
+ * to auto-fall back to a quote-by-URL, which posts through the unrestricted path.
+ */
+export function isEngagementRestricted(err: unknown): boolean {
+  if (err instanceof ApiResponseError && err.code === 403) {
+    const detail = String(
+      (err as { data?: { detail?: string } }).data?.detail ?? "",
+    ).toLowerCase();
+    return /not been mentioned|not part of the conversation|otherwise engaged/.test(
+      detail,
+    );
+  }
+  return false;
+}
+
+/** Canonical x.com status URL; handle is cosmetic, the id is what resolves. */
+export function statusUrl(tweetId: string, authorHandle?: string): string {
+  return authorHandle
+    ? `https://x.com/${authorHandle}/status/${tweetId}`
+    : `https://x.com/i/web/status/${tweetId}`;
+}
+
+/**
  * X/Twitter adapter — posting only.
  *
  * Auth: OAuth2 user-context (not OAuth1). Tokens persist in
@@ -178,25 +204,79 @@ export class TwitterAdapter implements PlatformAdapter {
     return posted;
   }
 
-  async postReply(tweetId: string, text: string): Promise<TweetResult> {
-    const result = await this.withRefresh((c) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      c.v2.tweet({
-        text,
-        reply: { in_reply_to_tweet_id: tweetId },
-      } as any),
-    );
-    this.logger.log(`Posted reply to ${tweetId}: ${result.data.id}`);
+  async postReply(
+    tweetId: string,
+    text: string,
+    authorHandle?: string,
+  ): Promise<TweetResult> {
+    try {
+      const result = await this.withRefresh((c) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        c.v2.tweet({
+          text,
+          reply: { in_reply_to_tweet_id: tweetId },
+        } as any),
+      );
+      this.logger.log(`Posted reply to ${tweetId}: ${result.data.id}`);
+      return { id: result.data.id, text: result.data.text };
+    } catch (err) {
+      if (isEngagementRestricted(err)) {
+        this.logger.warn(
+          `reply to ${tweetId} engagement-restricted by X — falling back to quote-by-URL`,
+        );
+        return this.postQuoteByUrl(text, tweetId, authorHandle);
+      }
+      throw err;
+    }
+  }
+
+  async postQuote(
+    quoteTweetId: string,
+    text: string,
+    authorHandle?: string,
+  ): Promise<TweetResult> {
+    try {
+      const result = await this.withRefresh((c) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        c.v2.tweet({ text, quote_tweet_id: quoteTweetId } as any),
+      );
+      this.logger.log(`Posted quote of ${quoteTweetId}: ${result.data.id}`);
+      return { id: result.data.id, text: result.data.text };
+    } catch (err) {
+      if (isEngagementRestricted(err)) {
+        this.logger.warn(
+          `quote of ${quoteTweetId} engagement-restricted by X — falling back to quote-by-URL`,
+        );
+        return this.postQuoteByUrl(text, quoteTweetId, authorHandle);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Publish an ordinary tweet with the target's URL appended. X renders it as a
+   * quote, but it goes through the unrestricted `POST /2/tweets` path — so it
+   * succeeds even when the account is reply/quote-restricted (verified on the
+   * @awanigeria account, where native reply/quote 403 but this posts fine).
+   */
+  async postQuoteByUrl(
+    text: string,
+    tweetId: string,
+    authorHandle?: string,
+  ): Promise<TweetResult> {
+    const url = statusUrl(tweetId, authorHandle);
+    const result = await this.withRefresh((c) => c.v2.tweet(`${text} ${url}`));
+    this.logger.log(`Posted quote-by-URL of ${tweetId}: ${result.data.id}`);
     return { id: result.data.id, text: result.data.text };
   }
 
-  async postQuote(quoteTweetId: string, text: string): Promise<TweetResult> {
-    const result = await this.withRefresh((c) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      c.v2.tweet({ text, quote_tweet_id: quoteTweetId } as any),
-    );
-    this.logger.log(`Posted quote of ${quoteTweetId}: ${result.data.id}`);
-    return { id: result.data.id, text: result.data.text };
+  /** Repost (retweet) a tweet. Uses POST /2/users/:id/retweets — a separate
+   * endpoint that is NOT affected by the reply/quote restriction. */
+  async retweet(tweetId: string): Promise<{ id: string; retweeted: boolean }> {
+    const userId = await this.getUserId();
+    const result = await this.withRefresh((c) => c.v2.retweet(userId, tweetId));
+    this.logger.log(`Reposted ${tweetId}: retweeted=${result.data?.retweeted}`);
+    return { id: tweetId, retweeted: result.data?.retweeted ?? true };
   }
 
   async getEngagement(postId: string): Promise<EngagementData> {

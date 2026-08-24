@@ -11,6 +11,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "x-oauth-bootstrap": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-bootstrap.ts",
+    "x-oauth-authorize": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-authorize.ts",
+    "x-post-test": "infisical run --env dev --path /socials -- tsx src/scripts/x-post-test.ts",
+    "x-reply-test": "infisical run --env dev --path /socials -- tsx src/scripts/x-reply-test.ts",
     "seed-topics": "infisical run --env dev --path /socials -- tsx src/scripts/seed-topics.ts",
     "seed-bot-sessions": "infisical run --env dev --path /socials -- tsx src/scripts/seed-bot-sessions.ts"
   },
@@ -30,6 +33,7 @@
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "twitter-api-v2": "1.29.0",
+    "x-client-transaction-id": "^0.3.1",
     "zod": "catalog:"
   },
   "devDependencies": {

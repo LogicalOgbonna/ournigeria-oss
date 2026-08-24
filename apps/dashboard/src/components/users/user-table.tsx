@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, Ban, CheckCircle } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { relativeTime } from "@/lib/format";
 
 export interface UserRow {
   id: string;
@@ -25,18 +26,6 @@ export interface UserRow {
   createdAt: string;
   lastSeenAt: string | null;
   _count: { conversations: number };
-}
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
 }
 
 export function UserTable({
@@ -126,7 +115,7 @@ export function UserTable({
                   )}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {user.lastSeenAt ? timeAgo(user.lastSeenAt) : "-"}
+                  {user.lastSeenAt ? relativeTime(user.lastSeenAt) : "-"}
                 </TableCell>
                 <TableCell className="text-right">
                   <Badge variant="secondary" className="text-xs">

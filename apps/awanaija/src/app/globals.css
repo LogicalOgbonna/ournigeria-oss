@@ -102,6 +102,14 @@
   z-index: 9999;
   opacity: 0.025;
 }
+/* The full-viewport feTurbulence filter is expensive to rasterize on mobile GPUs
+   (hurts paint time / INP) and the 2.5% grain is imperceptible on small screens —
+   skip it below the tablet breakpoint. */
+@media (max-width: 768px) {
+  .noise-overlay {
+    display: none;
+  }
+}
 
 /* ═══ Magnetic Button ═══ */
 .btn-magnetic {
@@ -328,4 +336,19 @@
 .scrollbar-theme {
   scrollbar-width: thin;
   scrollbar-color: var(--emerald) transparent;
+}
+
+/* ═══ Reduced motion ═══
+   Users who ask for reduced motion (and the many mobile users this benefits for
+   battery/jank) get the static layout: kill the always-running infinite loops
+   (orbs, float, carousels, scan, rotate) and collapse entrance animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

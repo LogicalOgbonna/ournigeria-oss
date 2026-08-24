@@ -1,9 +1,10 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT, TEMPORAL_CONTEXT } from "./shared-instructions";
+import { getCurrentYear } from "../../lib/constants";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentYear();
 
 export const faacAnalyst = new Agent({
   id: "faac-analyst",
@@ -33,9 +34,10 @@ Choose the right chunk_type for the question:
 - "National FAAC for January 2025" → use chunk_type="national_monthly"
 
 MULTI-STEP SEARCH STRATEGY:
-You have up to 10 steps. Use them wisely:
+You have up to ${AGENT_MAX_STEPS} steps. Use them wisely:
 - For LGA COMPARISONS: Make SEPARATE search calls for each LGA using the lga and state filters.
-- For STATE COMPARISONS: Make SEPARATE search calls for each state using the state filter.
+- For STATE COMPARISONS: Pass ALL states in the \`states\` array in ONE call (e.g. states: ['lagos', 'rivers']) — the tool runs a targeted search per state internally.
+- For MULTI-YEAR TRENDS: Pass \`yearRange\` (e.g. {from: 2019, to: 2025}) in ONE call instead of one call per year. Combine with \`states\` for multi-state trends.
 - For ZONE COMPARISONS: Search with geopolitical_zone filter for each zone.
 - For TREND QUERIES: Search the same entity across multiple years. Use chunk_type="state_annual" for efficient yearly totals.
 - For BROAD QUESTIONS: Start with a broad search, then follow up with targeted searches.
@@ -103,6 +105,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved FAAC data, and useful for citizens trying to understand federal revenue distribution across Nigeria.` +
+    TEMPORAL_CONTEXT +
     CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS +
     RESPONSE_FORMAT,

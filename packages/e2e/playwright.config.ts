@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 const WEB_URL = process.env.WEB_URL || 'https://spending.arinze.online';
 const DASHBOARD_URL =
   process.env.DASHBOARD_URL || 'https://spending-dashboard.arinze.online';
+const AWANAIJA_URL =
+  process.env.AWANAIJA_URL || 'https://ounigeria.arinze.online';
 
 export default defineConfig({
   testDir: './tests',
@@ -50,6 +52,19 @@ export default defineConfig({
       // Only run login tests on mobile to keep suite fast
       testIgnore: /0[2-9]|10/,
       dependencies: ['web-auth-setup'],
+    },
+
+    // --- Awanaija (landing app) Tests ---
+    {
+      name: 'awanaija-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: AWANAIJA_URL,
+        // Runs logged-OUT: no auth storageState. The anonymous proposal flow
+        // must succeed without a session, so we explicitly clear any state.
+        storageState: { cookies: [], origins: [] },
+      },
+      testMatch: /tests\/awanaija\/.+\.spec\.ts/,
     },
 
     // --- Dashboard Tests ---

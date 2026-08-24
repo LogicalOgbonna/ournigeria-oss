@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euxo pipefail
+exec > /var/log/ournigeria-cloudinit.log 2>&1
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y ca-certificates curl gnupg git jq
+
+# --- Docker ---
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" > /etc/apt/sources.list.d/docker.list
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+systemctl enable --now docker
+
+# --- Infisical CLI ---
+curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash
+apt-get install -y infisical
+
+# --- Tailscale ---
+curl -fsSL https://tailscale.com/install.sh | sh
+
+set +x   # stop tracing — secrets below must not hit the log
+# --- Authenticate Infisical (Universal Auth) ---
+export INFISICAL_CLIENT_ID='${infisical_client_id}'
+export INFISICAL_CLIENT_SECRET='${infisical_client_secret}'
+export INFISICAL_PROJECT_ID='${infisical_project_id}'
+INFISICAL_TOKEN="$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" --silent --plain)"
+export INFISICAL_TOKEN
+geti() { infisical secrets get "$1" --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/infra --plain | tr -d '\r\n'; }
+geta() { infisical secrets get "$1" --token="$INFISICAL_TOKEN" --projectId="$INFISICAL_PROJECT_ID" --env=prod --path=/api --plain | tr -d '\r\n'; }
+
+TS_KEY="$(geti TAILSCALE_AUTHKEY)"
+GHCR_TOKEN="$(geti GHCR_TOKEN)"; GHCR_USER="$(geti GHCR_USER)"
+WEBHOOK_SECRET="$(geti OCI_WEBHOOK_SECRET)"; STATUS_TOKEN="$(geti OCI_STATUS_TOKEN)"
+PG_PASS="$(geti POSTGRES_PASSWORD)"
+SVC_TOKEN="$(geti INFISICAL_SERVICE_TOKEN)"
+TG_BOT="$(geta TELEGRAM_BOT_TOKEN)"; TG_CHAT="$(geta TELEGRAM_DEPLOY_CHAT_ID)"
+
+# --- Join Tailscale (admin SSH over tailnet) ---
+tailscale up --authkey="$TS_KEY" --ssh --hostname='ournigeria-prod'
+
+# --- Mount the Postgres data volume (idempotent) ---
+# Mount point MUST match the compose Postgres bind mount (./postgres_data, i.e.
+# /opt/ournigeria/postgres_data) so the DB lives on the durable block volume,
+# not the boot disk.
+DEV=/dev/oracleoci/oraclevdb
+PGVOL=/opt/ournigeria/postgres_data
+for i in $(seq 1 30); do [ -b "$DEV" ] && break; sleep 2; done
+[ -b "$DEV" ] || { echo "ERROR: $DEV did not appear after 60s — aborting"; exit 1; }
+if ! blkid "$DEV"; then mkfs.ext4 -F "$DEV"; fi
+mkdir -p "$PGVOL"
+grep -q "$DEV" /etc/fstab || echo "$DEV $PGVOL ext4 defaults,_netdev,nofail 0 2" >> /etc/fstab
+mount -a
+
+# --- Fetch deploy files + bootstrap the stack ---
+# Private repo: authenticate the clone with the GHCR PAT (it has repo read scope).
+# set +x is active above, so the token is never written to the cloud-init log.
+git clone --branch '${repo_ref}' --depth 1 "https://$GHCR_USER:$GHCR_TOKEN@$(echo '${repo_url}' | sed 's#https://##')" /opt/ournigeria-src
+
+# bootstrap.sh must run FROM the repo's deploy/ dir: it copies ../docker-compose.yml
+# and deploy/* into /opt/ournigeria itself (relative to its own location).
+cd /opt/ournigeria-src/deploy
+bash bootstrap.sh \
+  --webhook-secret "$WEBHOOK_SECRET" \
+  --status-token "$STATUS_TOKEN" \
+  --ghcr-token "$GHCR_TOKEN" --ghcr-user "$GHCR_USER" \
+  --postgres-password "$PG_PASS" \
+  --infisical-token "$SVC_TOKEN" \
+  --telegram-bot-token "$TG_BOT" --telegram-chat-id "$TG_CHAT"
+
+# bootstrap.sh only builds the webhook image + pulls app images — it does NOT
+# start the stack. Bring up ONLY the active (blue) stack + infra; the green
+# stack is started by deploy.sh during a blue/green deploy, not at boot.
+cd /opt/ournigeria
+docker compose up -d postgres traefik webhook api-blue ingest-blue socials-blue
+
+rm -rf /opt/ournigeria-src   # drop the clone (its .git/config embeds the token)
+echo "cloud-init provisioning complete"

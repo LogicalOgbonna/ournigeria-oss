@@ -1,0 +1,21 @@
+# Prod override for the enrichment stack.
+# Only difference vs the dev compose: the agent's DB network is the prod stack's
+# `ournigeria_internal` (where the DB resolves as `postgres`) instead of dev `spending_default`.
+# Run from a host that has the repo + Infisical, targeting the prod Docker daemon:
+#   DOCKER_HOST=ssh://ournigeria infisical run --env prod --path /enrichment -- \
+#     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Secrets inject from Infisical into the container env; nothing is written to the box's /opt/ournigeria/.env.
+services:
+  # The camofox base image is built on the box for amd64 (the dev base is arm64-only):
+  #   git clone https://github.com/jo-inc/camofox-browser && cd camofox-browser
+  #   curl the camoufox x86_64 zip + yt-dlp into dist/, then
+  #   docker build --build-arg ARCH=x86_64 -t camofox-browser:135.0.1-x86_64 .
+  camofox:
+    build:
+      args:
+        CAMOFOX_BASE: camofox-browser:135.0.1-x86_64
+
+networks:
+  devdb:
+    external: true
+    name: ournigeria_internal

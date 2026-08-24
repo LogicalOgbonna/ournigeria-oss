@@ -1,0 +1,150 @@
+{
+  "benue": {
+    "seal": "/states/seals/benue.png",
+    "flag": null
+  },
+  "kogi": {
+    "seal": "/states/seals/kogi.png",
+    "flag": null
+  },
+  "kwara": {
+    "seal": "/states/seals/kwara.png",
+    "flag": null
+  },
+  "nasarawa": {
+    "seal": "/states/seals/nasarawa.svg",
+    "flag": null
+  },
+  "niger": {
+    "seal": "/states/seals/niger.png",
+    "flag": null
+  },
+  "plateau": {
+    "seal": "/states/seals/plateau.jpg",
+    "flag": null
+  },
+  "fct": {
+    "seal": "/states/seals/fct.png",
+    "flag": "/states/flags/fct.svg"
+  },
+  "adamawa": {
+    "seal": "/states/seals/adamawa.png",
+    "flag": null
+  },
+  "bauchi": {
+    "seal": "/states/seals/bauchi.png",
+    "flag": null
+  },
+  "borno": {
+    "seal": "/states/seals/borno.svg",
+    "flag": null
+  },
+  "gombe": {
+    "seal": "/states/seals/gombe.png",
+    "flag": null
+  },
+  "taraba": {
+    "seal": "/states/seals/taraba.png",
+    "flag": null
+  },
+  "yobe": {
+    "seal": "/states/seals/yobe.png",
+    "flag": null
+  },
+  "jigawa": {
+    "seal": null,
+    "flag": "/states/flags/jigawa.svg"
+  },
+  "kaduna": {
+    "seal": "/states/seals/kaduna.png",
+    "flag": null
+  },
+  "kano": {
+    "seal": "/states/seals/kano.png",
+    "flag": null
+  },
+  "katsina": {
+    "seal": "/states/seals/katsina.png",
+    "flag": null
+  },
+  "kebbi": {
+    "seal": "/states/seals/kebbi.png",
+    "flag": null
+  },
+  "sokoto": {
+    "seal": "/states/seals/sokoto.png",
+    "flag": null
+  },
+  "zamfara": {
+    "seal": "/states/seals/zamfara.jpg",
+    "flag": null
+  },
+  "abia": {
+    "seal": "/states/seals/abia.png",
+    "flag": null
+  },
+  "anambra": {
+    "seal": "/states/seals/anambra.png",
+    "flag": "/states/flags/anambra.png"
+  },
+  "ebonyi": {
+    "seal": "/states/seals/ebonyi.png",
+    "flag": null
+  },
+  "enugu": {
+    "seal": "/states/seals/enugu.png",
+    "flag": null
+  },
+  "imo": {
+    "seal": "/states/seals/imo.png",
+    "flag": "/states/flags/imo.svg"
+  },
+  "akwa_ibom": {
+    "seal": "/states/seals/akwa_ibom.jpg",
+    "flag": null
+  },
+  "bayelsa": {
+    "seal": "/states/seals/bayelsa.webp",
+    "flag": "/states/flags/bayelsa.svg"
+  },
+  "cross_river": {
+    "seal": "/states/seals/cross_river.jpg",
+    "flag": null
+  },
+  "delta": {
+    "seal": "/states/seals/delta.png",
+    "flag": null
+  },
+  "edo": {
+    "seal": "/states/seals/edo.png",
+    "flag": null
+  },
+  "rivers": {
+    "seal": null,
+    "flag": null
+  },
+  "ekiti": {
+    "seal": "/states/seals/ekiti.jpg",
+    "flag": "/states/flags/ekiti.gif"
+  },
+  "lagos": {
+    "seal": "/states/seals/lagos.svg",
+    "flag": "/states/flags/lagos.svg"
+  },
+  "ogun": {
+    "seal": "/states/seals/ogun.png",
+    "flag": "/states/flags/ogun.jpg"
+  },
+  "ondo": {
+    "seal": "/states/seals/ondo.png",
+    "flag": "/states/flags/ondo.png"
+  },
+  "osun": {
+    "seal": "/states/seals/osun.png",
+    "flag": "/states/flags/osun.svg"
+  },
+  "oyo": {
+    "seal": "/states/seals/oyo.png",
+    "flag": "/states/flags/oyo.svg"
+  }
+}

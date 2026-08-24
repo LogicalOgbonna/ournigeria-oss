@@ -8,34 +8,30 @@ import { ProposalsService } from "./proposals.service";
 export class ProposalsController {
   constructor(private service: ProposalsService) {}
 
+  @Public()
   @Post()
   async create(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
-      const userId = (req as any).userId;
-      if (!userId) {
-        return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Authentication required" });
-      }
-
-      // Get user identifier for rate limiting (phone or userId fallback)
-      const identifier = await this.getUserIdentifier(req);
-
-      const { officialId, positionId, targetField, proposedValue, sourceUrl } = body;
-
+      const { userId, phone } = await this.resolveProposer(req);
+      const { officialId, positionId, targetField, proposedValue, sourceUrl, nameChangeKind, partyChangeKind, effectiveDate } = body;
       if (!officialId || !targetField || proposedValue === undefined) {
         return res.status(HttpStatus.BAD_REQUEST).json({
           error: "officialId, targetField, and proposedValue are required",
         });
       }
-
       const result = await this.service.create({
         officialId,
         positionId,
-        proposerPhone: identifier,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
         targetField,
         proposedValue,
         sourceUrl,
+        nameChangeKind,
+        partyChangeKind,
+        effectiveDate,
       });
-
       return res.status(HttpStatus.CREATED).json(result);
     } catch (err: any) {
       if (err.status === 403) {
@@ -49,15 +45,77 @@ export class ProposalsController {
     }
   }
 
+  /** Citizen structured contribution — batch ADD (Plan 55). */
+  @Public()
+  @Post("records")
+  async createRecords(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const { userId, phone } = await this.resolveProposer(req);
+      const { officialId, records } = body;
+      if (!officialId || !Array.isArray(records)) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: "officialId and records[] are required" });
+      }
+      const result = await this.service.createRecordBatch({
+        officialId,
+        records,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
+      });
+      return res.status(HttpStatus.CREATED).json(result);
+    } catch (err: any) {
+      if (err.status === 403) {
+        return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: err.message });
+      }
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("record batch create error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  /** Citizen structured contribution — correct a field on an existing record (Plan 55). */
+  @Public()
+  @Post("record/edit")
+  async createRecordEdit(@Body() body: any, @Req() req: Request, @Res() res: Response) {
+    try {
+      const { userId, phone } = await this.resolveProposer(req);
+      const { officialId, recordType, targetPk, field, value, sourceUrl } = body;
+      if (!officialId || !recordType || !targetPk || !field || value === undefined) {
+        return res
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ error: "officialId, recordType, targetPk, field, value are required" });
+      }
+      const result = await this.service.createRecordEdit({
+        officialId,
+        recordType,
+        targetPk,
+        field,
+        value,
+        sourceUrl,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
+      });
+      return res.status(HttpStatus.CREATED).json(result);
+    } catch (err: any) {
+      if (err.status === 403) {
+        return res.status(HttpStatus.TOO_MANY_REQUESTS).json({ error: err.message });
+      }
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("record edit create error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
   @Post("identify")
   async identify(@Body() body: any, @Req() req: Request, @Res() res: Response) {
     try {
-      const userId = (req as any).userId;
-      if (!userId) {
-        return res.status(HttpStatus.UNAUTHORIZED).json({ error: "Authentication required" });
-      }
-
-      const identifier = await this.getUserIdentifier(req);
+      const { userId, phone } = await this.resolveProposer(req);
       const {
         name,
         role,
@@ -86,7 +144,9 @@ export class ProposalsController {
       }
 
       const result = await this.service.identify({
-        proposerPhone: identifier,
+        proposerPhone: userId ? phone : null,
+        proposerIp: userId ? null : this.clientIp(req),
+        trust: userId ? "verified" : "anonymous",
         name,
         role,
         imageUrl,
@@ -116,6 +176,21 @@ export class ProposalsController {
         return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
       }
       console.error("identify error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Post(":id/claim")
+  async claim(@Param("id") id: string, @Req() req: Request, @Res() res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const result = await this.service.claim(id, userId);
+      return res.status(HttpStatus.OK).json(result);
+    } catch (err: any) {
+      if (err.status === 400 || err.status === 404) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("proposal claim error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
   }
@@ -170,6 +245,31 @@ export class ProposalsController {
   }
 
   @Public()
+  @Get("seat")
+  async seat(
+    @Query("role") role: string | undefined,
+    @Query("wardCode") wardCode: string | undefined,
+    @Query("lgaCode") lgaCode: string | undefined,
+    @Query("constituencyCode") constituencyCode: string | undefined,
+    @Query("stateCode") stateCode: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      if (!role) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: "role is required" });
+      }
+      const result = await this.service.getSeatCandidates({ role, wardCode, lgaCode, constituencyCode, stateCode });
+      return res.json(result);
+    } catch (err: any) {
+      if (err.status === 400) {
+        return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
+      }
+      console.error("seat candidates error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
   @Get(":id")
   async getById(@Param("id") id: string, @Res() res: Response) {
     try {
@@ -209,10 +309,47 @@ export class ProposalsController {
 
   @Public()
   @UseGuards(AdminGuard)
+  @Get("admin/queue/grouped")
+  async adminQueueGrouped(
+    @Query("page") page: string | undefined,
+    @Query("limit") limit: string | undefined,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.service.listPendingIdentifyGrouped({
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? Math.min(parseInt(limit, 10), 50) : 20,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("admin grouped queue error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
+  @UseGuards(AdminGuard)
+  @Get("admin/stats")
+  async adminStats(@Res() res: Response) {
+    try {
+      return res.json(await this.service.stats());
+    } catch (err) {
+      console.error("admin proposals stats error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  @Public()
+  @UseGuards(AdminGuard)
   @Patch("admin/:id")
   async adminAction(
     @Param("id") id: string,
-    @Body() body: { action: "approve" | "reject" | "needs_evidence" },
+    @Body() body: {
+      action: "approve" | "reject" | "needs_evidence";
+      nameChangeKind?: "correction" | "succession";
+      partyChangeKind?: "correction" | "defection";
+      effectiveDate?: string;
+    },
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -220,7 +357,11 @@ export class ProposalsController {
       const adminId = (req as any).adminId;
       let result;
       if (body.action === "approve") {
-        result = await this.service.approve(id, adminId);
+        result = await this.service.approve(id, adminId, {
+          nameChangeKind: body.nameChangeKind,
+          partyChangeKind: body.partyChangeKind,
+          effectiveDate: body.effectiveDate,
+        });
       } else if (body.action === "reject") {
         result = await this.service.reject(id, adminId);
       } else if (body.action === "needs_evidence") {
@@ -264,6 +405,26 @@ export class ProposalsController {
       console.error("admin bulk error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
+  }
+
+  private readonly UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  /** Resolve { userId, phone } from the nb_uid cookie, or nulls if not logged in. */
+  private async resolveProposer(req: Request): Promise<{ userId: string | null; phone: string | null }> {
+    const cookieId = (req as any).cookies?.["nb_uid"];
+    if (!cookieId || !this.UUID_RE.test(cookieId)) return { userId: null, phone: null };
+    const prisma = (this.service as any).prisma;
+    const user = await prisma.user.findUnique({
+      where: { id: cookieId },
+      select: { phoneNumber: true, banned: true },
+    });
+    if (!user || user.banned) return { userId: null, phone: null };
+    return { userId: cookieId, phone: user.phoneNumber || `user:${cookieId}` };
+  }
+
+  /** Client IP from the trusted proxy chain (Express `trust proxy` is configured in main.ts). */
+  private clientIp(req: Request): string | null {
+    return req.ip || null;
   }
 
   private async getUserIdentifier(req: Request): Promise<string> {

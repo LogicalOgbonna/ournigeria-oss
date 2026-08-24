@@ -1,0 +1,672 @@
+{
+  "_meta": {
+    "description": "National party officers (chairman / secretary / leader) per party, researched against 2025-2026 sources. Consumed by scripts/seed-party-officers.ts, which find-or-creates a nigerian_officials row per officer and links it via party_officers.official_id.",
+    "asOf": "2026-06-19",
+    "roleOrder": {
+      "national_chairman": 0,
+      "national_secretary": 1,
+      "party_leader": 2
+    },
+    "fields": "name, imageUrl, bio, gender, dateOfBirth (YYYY-MM-DD full dates only), twitterHandle (no @), facebookUrl, confidence (high|medium|low), priorOffice (dedup hint), sourceUrl. A null officer = not reliably sourced; left unseeded."
+  },
+  "APC": {
+    "national_chairman": {
+      "name": "Nentawe Goshwe Yilwatda",
+      "imageUrl": "https://apc.com.ng/img/apcnwc/1755178511.jpg",
+      "bio": "Nentawe Yilwatda is a Nigerian engineer, professor of electrical engineering and politician who became APC National Chairman on 24 July 2025 and was re-elected at the party's 8th national convention on 28 March 2026. He previously served as Minister of Humanitarian Affairs and Poverty Reduction (2024-2025) and was the APC governorship candidate in Plateau State in 2023.",
+      "gender": "male",
+      "dateOfBirth": "1968-08-08",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Minister of Humanitarian Affairs and Poverty Reduction",
+      "sourceUrl": "https://apc.com.ng/bio.php?nwcid=1"
+    },
+    "national_secretary": {
+      "name": "Surajudeen Ajibola Basiru",
+      "imageUrl": "https://apc.com.ng/img/apcnwc/ajbola.jpg",
+      "bio": "Senator Dr. Surajudeen Ajibola Basiru is a Nigerian lawyer who has served as APC National Secretary since August 2023 and was returned to the office at the 28 March 2026 national convention. He represented Osun Central Senatorial District in the Senate (2019-2023), where he was Senate Spokesperson.",
+      "gender": "male",
+      "dateOfBirth": "1972-07-01",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Senator for Osun Central",
+      "sourceUrl": "https://apc.com.ng/bio.php?nwcid=4"
+    },
+    "party_leader": {
+      "name": "Bola Ahmed Tinubu",
+      "imageUrl": "https://apc.com.ng/img/bola-ahmad-tinubu.png",
+      "bio": "President Bola Ahmed Tinubu is the de-facto national leader of the APC, presiding over the party's 2026 national convention. He is President of Nigeria (since 2023) and a former two-term Governor of Lagos State (1999-2007).",
+      "gender": "male",
+      "dateOfBirth": "1952-03-29",
+      "twitterHandle": "officialABAT",
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "President of Nigeria; former Governor of Lagos State",
+      "sourceUrl": "https://apc.com.ng/biography.php"
+    }
+  },
+  "PDP": {
+    "national_chairman": {
+      "name": "Abdulrahman Mohammed",
+      "imageUrl": null,
+      "bio": "Abdulrahman Mohammed, from Nasarawa State, is the INEC-recognised National Chairman of the PDP (Wike-backed faction), confirmed on INEC's portal on 30 March 2026 after the 29 March 2026 Abuja convention, having previously served as Acting National Chairman. His chairmanship is heavily contested amid the party's 2025-2026 leadership crisis.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": "Acting National Chairman / PDP Caretaker Committee chairman",
+      "sourceUrl": "https://www.channelstv.com/2026/03/30/inec-recognises-wike-backed-pdp-leadership/"
+    },
+    "national_secretary": {
+      "name": "Samuel Anyanwu",
+      "imageUrl": null,
+      "bio": "Senator Samuel Anyanwu, a former senator for Imo East (2015-2019), is listed by INEC (March 2026) as PDP National Secretary within the Wike-backed NWC. His tenure is sharply disputed: he was expelled for 'anti-party activities' in November 2025, and a rival camp recognises Setonji Koshoedo as Acting National Secretary.",
+      "gender": "male",
+      "dateOfBirth": "1965-06-18",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": "former Senator for Imo East",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Samuel_Anyanwu"
+    },
+    "party_leader": {
+      "name": "Adolphus Wabara",
+      "imageUrl": null,
+      "bio": "Senator Adolphus Nduneweh Wabara, 10th President of the Nigerian Senate (2003-2005), is Chairman of the PDP Board of Trustees. Following the Supreme Court ruling of 30 April 2026 that voided the contested conventions, the Wabara-led BoT assumed administrative leadership of the party, positioning him as de-facto party leader amid the leadership vacuum.",
+      "gender": "male",
+      "dateOfBirth": "1948-06-01",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": "former President of the Senate; Senator for Abia South",
+      "sourceUrl": "https://politicsnigeria.com/2026/05/01/wabara-led-pdp-bot-assumes-duty-after-supreme-court-ruling/"
+    }
+  },
+  "LP": {
+    "national_chairman": {
+      "name": "Nenadi Usman",
+      "imageUrl": null,
+      "bio": "Senator Nenadi Esther Usman, a former Minister of Finance (2006-2007) and former Senator for Kaduna South (2011-2015), was elected substantive National Chairman of the Labour Party at its 28 April 2026 convention in Umuahia, having led the caretaker committee from September 2024. The Court of Appeal affirmed her leadership in April 2026; the Julius Abure faction continues to contest it.",
+      "gender": "female",
+      "dateOfBirth": "1966-11-12",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Minister of Finance; former Senator for Kaduna South",
+      "sourceUrl": "https://www.premiumtimesng.com/news/top-news/873761-lp-crisis-court-of-appeal-dismisses-abures-suit-affirms-nenadi-usman-as-chair.html"
+    },
+    "national_secretary": {
+      "name": "Iheanacho Obioma",
+      "imageUrl": null,
+      "bio": "Hon. Iheanacho Obioma was elected National Secretary of the Labour Party at the party's 28 April 2026 national convention in Umuahia, replacing Senator Darlington Nwokocha. A former member of the House of Representatives (Ikwuano/Umuahia, 1999-2003), he served as DG of the 2023 campaign that elected Abia Governor Alex Otti.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": "former Member, House of Representatives (Ikwuano/Umuahia)",
+      "sourceUrl": "https://saharareporters.com/2026/04/28/labour-party-elects-nenadi-usman-national-chairman-names-hilda-dokubo-others-national"
+    },
+    "party_leader": null
+  },
+  "NNPP": {
+    "national_chairman": {
+      "name": "Bala Yunusa Mohammed",
+      "imageUrl": null,
+      "bio": "A Kaduna State-born politician and former National Organising Secretary of the NNPP, installed by the party's National Working Committee in April 2026 after former chairman Ajuji Ahmed defected to the ADC. His chairmanship is contested: an FCT High Court (November 2025) affirmed a rival, Dr. Agbo Gilbert Major, leaving the leadership unresolved.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": "former NNPP National Organising Secretary",
+      "sourceUrl": "https://dailypost.ng/2026/04/19/bala-now-nnpp-national-chairman-as-ajuji-joins-adc/"
+    },
+    "national_secretary": {
+      "name": "Dipo Olayoku",
+      "imageUrl": null,
+      "bio": "National Secretary of the New Nigeria Peoples Party, re-elected at the party's national elective convention in Abuja in December 2025. He served as a party spokesman during the wave of defections that hit the NNPP in early 2026.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": null,
+      "sourceUrl": "https://www.channelstv.com/2026/01/26/defection-gov-yusuf-gave-assurances-that-he-would-remain-with-nnpp-dipo-olayoku/"
+    },
+    "party_leader": null
+  },
+  "APGA": {
+    "national_chairman": {
+      "name": "Sylvester Ezeokenwa",
+      "imageUrl": null,
+      "bio": "A legal practitioner and former personal assistant to Anambra Governor Chukwuma Soludo, Sylvester 'Sly' Ezeokenwa was elected APGA National Chairman at the party's Awka convention in May 2023. His chairmanship was affirmed by the Supreme Court on 27 November 2024 and restored by INEC in December 2024.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Personal Assistant to Governor Chukwuma Soludo",
+      "sourceUrl": "https://www.vanguardngr.com/2024/11/breaking-supreme-court-affirms-sly-ezeokenwa-as-apga-national-chairman/"
+    },
+    "national_secretary": {
+      "name": "Ibrahim Mani",
+      "imageUrl": null,
+      "bio": "Ibrahim Mani serves as National Secretary of APGA, part of the national executive elected at the party's May 2023 convention in Awka and later affirmed as the authentic leadership.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": null,
+      "sourceUrl": "https://en.wikipedia.org/wiki/All_Progressives_Grand_Alliance"
+    },
+    "party_leader": {
+      "name": "Charles Chukwuma Soludo",
+      "imageUrl": null,
+      "bio": "Governor of Anambra State and a former Central Bank of Nigeria governor, Charles Chukwuma Soludo was appointed National Leader of APGA by the party's NEC on 13 January 2023. His standing as de-facto party leader was reinforced by his landslide re-election as Anambra governor on 8 November 2025.",
+      "gender": "male",
+      "dateOfBirth": "1960-07-28",
+      "twitterHandle": "CCSoludo",
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Governor of Anambra State; former Governor of the Central Bank of Nigeria",
+      "sourceUrl": "https://businessday.ng/politics/article/soludo-appointed-national-leader-of-apga/"
+    }
+  },
+  "ADC": {
+    "national_chairman": {
+      "name": "David Mark",
+      "imageUrl": null,
+      "bio": "David Alechenu Bonaventure Mark is a retired Nigerian Army brigadier general who served as President of the Nigerian Senate from 2007 to 2015, the longest-serving in the nation's history. In July 2025 he was named Interim National Chairman of the ADC after the opposition coalition adopted the party; his chairmanship was affirmed by the Supreme Court on 30 April 2026.",
+      "gender": "male",
+      "dateOfBirth": "1948-04-08",
+      "twitterHandle": "SenDavidABMark",
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former President of the Senate",
+      "sourceUrl": "https://en.wikipedia.org/wiki/David_Mark"
+    },
+    "national_secretary": {
+      "name": "Rauf Aregbesola",
+      "imageUrl": null,
+      "bio": "Ogbeni Rauf Adesoji Aregbesola served as Governor of Osun State from 2010 to 2018 and as Minister of Interior from 2019 to 2023. In July 2025 he accepted appointment as Interim National Secretary of the ADC under the opposition coalition, a role reaffirmed following the Supreme Court ruling of 30 April 2026.",
+      "gender": "male",
+      "dateOfBirth": "1957-05-25",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Governor of Osun State",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Rauf_Aregbesola"
+    },
+    "party_leader": null
+  },
+  "SDP": {
+    "national_chairman": {
+      "name": "Sadiq Umar Abubakar Gombe",
+      "imageUrl": null,
+      "bio": "An academic who is the INEC-recognised National Chairman of the SDP, re-elected unopposed at the party's May 2026 national convention in Bauchi. His leadership was contested by the Shehu Gabam faction but affirmed by the Supreme Court in May 2026, with INEC updating its records in his favour on 17 June 2026.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://politicsnigeria.com/2026/06/17/just-in-inec-recognises-gombe-as-sdp-chairman-after-supreme-court-verdict/"
+    },
+    "national_secretary": {
+      "name": "Olu Agunloye",
+      "imageUrl": null,
+      "bio": "A former Minister of State for Defence (Navy) and former Minister of Power and Steel, Olu Agunloye serves as SDP National Secretary, returned to the post at the party's May 2026 national convention. His tenure was challenged by a rival faction but he was retained under the INEC-recognised convention slate.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": "former Minister of State for Defence (Navy); former Minister of Power and Steel",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Olu_Agunloye"
+    },
+    "party_leader": {
+      "name": "Adewole Adebayo",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/ADEWOLE_ADEBAYO.jpg/250px-ADEWOLE_ADEBAYO.jpg",
+      "bio": "Prince Adewole Adebayo is a Nigerian lawyer, international arbitrator and media entrepreneur (founder of KAFTAN TV) who is the de-facto national leader of the SDP. He was the party's 2023 presidential candidate and was returned unopposed as its 2027 presidential flagbearer at the May 2026 convention in Bauchi.",
+      "gender": "male",
+      "dateOfBirth": "1972-01-08",
+      "twitterHandle": "Pres_Adebayo",
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "SDP 2023 presidential candidate",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Adewole_Adebayo"
+    }
+  },
+  "YPP": {
+    "national_chairman": {
+      "name": "Bishop Amakiri",
+      "imageUrl": null,
+      "bio": "Comrade Bishop Emmanuel Amakiri is the founding National Chairman of the Young Progressives Party, a position he has held since the party's registration in 2017 and to which he was re-elected for a second term in 2023; he remained chairman as of June 2026.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Founding National Chairman, YPP",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Young_Progressives_Party"
+    },
+    "national_secretary": {
+      "name": "Vidiyeno Bamaiyi",
+      "imageUrl": null,
+      "bio": "Barr. Vidiyeno Bamaiyi is listed as the National Secretary of the Young Progressives Party and was referenced supervising the party's candidate selection exercises in 2025-2026.",
+      "gender": null,
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": null,
+      "sourceUrl": "https://en.wikipedia.org/wiki/Young_Progressives_Party"
+    },
+    "party_leader": null
+  },
+  "AA": {
+    "national_chairman": {
+      "name": "Adekunle Rufai Omoaje",
+      "imageUrl": null,
+      "bio": "A grassroots politician and businessman from Ede, Osun State, recognised by INEC on its portal as Action Alliance National Chairman on 17 December 2025 following a Federal High Court (Osogbo) ruling. The chairmanship remains contested, with a rival Federal High Court (Abuja) ruling affirming Kenneth Udeze.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": null,
+      "sourceUrl": "https://dailypost.ng/2025/12/17/action-alliance-leadership-dispute-resolved-as-inec-recognizes-omoaje-as-national-chairman/"
+    },
+    "national_secretary": {
+      "name": "Vernimbe A. James",
+      "imageUrl": null,
+      "bio": "National Secretary of the Kenneth Udeze-led faction of Action Alliance; co-signed the party's correspondence to INEC and had his tenure extended at the party's February 2025 national convention. His standing is faction-dependent given AA's unresolved leadership dispute.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": null,
+      "sourceUrl": "https://tribuneonlineng.com/action-alliance-extends-tenure-of-udeze-led-executive-nec-for-two-years/"
+    },
+    "party_leader": null
+  },
+  "AAC": {
+    "national_chairman": {
+      "name": "Samuel Ajeigbe",
+      "imageUrl": null,
+      "bio": "Pastor Samuel (Sam) Ajeigbe became AAC National Chairman on 26 May 2026 after Omoyele Sowore stepped down upon securing the party's 2027 presidential ticket. He had previously served as the party's Deputy National Chairman (Admin) on the NWC elected at the November 2025 Abuja convention.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former AAC Deputy National Chairman (Admin)",
+      "sourceUrl": "https://www.channelstv.com/2026/05/27/2027-sowore-emerges-as-aac-presidential-candidate-steps-down-as-party-chair/"
+    },
+    "national_secretary": {
+      "name": "Oshiokhue Philip Ikpeminoghens",
+      "imageUrl": null,
+      "bio": "Oshiokhue Philip Ikpeminoghens was elected AAC National Secretary at the party's national convention in Abuja on 29 November 2025. (Name spelling varies across sources: Ikpeminoghens / Ikpeminoghena.)",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": null,
+      "sourceUrl": "https://www.westafricanpilotnews.com/2025/12/01/activist-sowore-re-elected-as-aac-national-chairman/"
+    },
+    "party_leader": {
+      "name": "Omoyele Sowore",
+      "imageUrl": null,
+      "bio": "Omoyele Sowore is the founder and de-facto national leader of the AAC and the publisher of Sahara Reporters. He served as AAC National Chairman (re-elected November 2025) until stepping down on 26 May 2026 after being adopted as the party's 2027 presidential candidate.",
+      "gender": "male",
+      "dateOfBirth": "1971-02-16",
+      "twitterHandle": "YeleSowore",
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "AAC founder; 2019 & 2023 presidential candidate; publisher of Sahara Reporters",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Omoyele_Sowore"
+    }
+  },
+  "Accord": {
+    "national_chairman": {
+      "name": "Maxwell Mgbudem",
+      "imageUrl": null,
+      "bio": "Barrister Maxwell Obinali Mgbudem, from Imo State, was elected National Chairman of the Accord Party at the party's national convention in Abuja in July 2024, having previously chaired its caretaker committee. He is the INEC-recognised authentic National Chairman; a rival faction's November 2025 attempt to install Chris Imumolen was rejected.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Chairman, Accord Party Caretaker Committee",
+      "sourceUrl": "https://leadership.ng/accord-party-dismisses-factional-claims-reaffirms-mgbudem-as-authentic-national-chairman/"
+    },
+    "national_secretary": {
+      "name": "Adebukola Ajaja",
+      "imageUrl": null,
+      "bio": "Hon. Dr. Adebukola Abiola Ajaja is a Nigerian politician from Oyo State who represented the Ibadan North-East/Ibadan South-East federal constituency in the House of Representatives from 2011 to 2015. She serves as National Secretary of the Accord Party within the INEC-recognised NWC.",
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Member, House of Representatives (Ibadan North-East/South-East)",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Adebukola_Ajaja"
+    },
+    "party_leader": null
+  },
+  "ADP": {
+    "national_chairman": {
+      "name": "Yabagi Sani",
+      "imageUrl": null,
+      "bio": "Engr. Yabagi Yusuf Sani is the National Chairman of the Action Democratic Party (ADP) and was the party's presidential candidate in the 2019 and 2023 general elections. An energy expert from Bida, Niger State, he also served as National Chairman of IPAC from 2021 until December 2023.",
+      "gender": "male",
+      "dateOfBirth": "1957-07-01",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "ADP presidential candidate (2019, 2023); former IPAC National Chairman",
+      "sourceUrl": "https://dailypost.ng/2026/02/19/electoral-act-2026-anti-people-adp-chairman-yabagi/"
+    },
+    "national_secretary": {
+      "name": "Victor Tamie Fingesi",
+      "imageUrl": null,
+      "bio": "Victor Tamie Fingesi is the National Secretary of the Action Democratic Party (ADP). He previously contested as the ADP governorship candidate in Rivers State in the 2023 elections and frequently issues the party's official statements.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": "ADP Rivers State governorship candidate (2023)",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Action_Democratic_Party_(Nigeria)"
+    },
+    "party_leader": null
+  },
+  "APP": {
+    "national_chairman": {
+      "name": "Uchenna Nnadi",
+      "imageUrl": null,
+      "bio": "Barrister Uchenna Nnadi is the National Chairman of the Action Peoples Party (APP). He presided over the party's 31 January 2025 national convention where the 'Big Elephant' was ratified as the official logo.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.actionpeoplesparty.com/"
+    },
+    "national_secretary": {
+      "name": "Abu Ibrahim Bossan",
+      "imageUrl": null,
+      "bio": "Abu Ibrahim Bossan is reported as the National Secretary of the Action Peoples Party (APP), serving on the NWC under Chairman Uchenna Nnadi. (Surname spelled variously 'Bossan' / 'Sossan' across sources.)",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "low",
+      "priorOffice": null,
+      "sourceUrl": "https://inecnigeria.org/?poltical_parties=action-peoples-party"
+    },
+    "party_leader": {
+      "name": "Ikenga Imo Ugochinyere",
+      "imageUrl": null,
+      "bio": "Hon. Ikenga Imo Ugochinyere is the National Leader of the Action Peoples Party (APP) and the member of the House of Representatives for Ideato North/Ideato South Federal Constituency of Imo State. He is the party's most prominent public figure.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Member, House of Representatives (Ideato North/Ideato South, Imo State)",
+      "sourceUrl": "https://blueprint.ng/app-appoints-ikenga-as-house-of-reps-caucus-leader/"
+    }
+  },
+  "PRP": {
+    "national_chairman": {
+      "name": "Hakeem Baba-Ahmed",
+      "imageUrl": null,
+      "bio": "A retired Nigerian civil servant who rose to Federal Permanent Secretary and served as Secretary of INEC, later Special Adviser (Political) to Vice-President Kashim Shettima before resigning in 2025. He was elected PRP National Chairman at the party's 28 March 2026 Abuja convention and recognised by INEC on 1 May 2026, though a rival faction has petitioned INEC disputing it.",
+      "gender": "male",
+      "dateOfBirth": "1955-09-11",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former Special Adviser (Political) to Vice-President Kashim Shettima; former Federal Permanent Secretary and Secretary of INEC",
+      "sourceUrl": "https://punchng.com/inec-updates-portal-recognises-baba-ahmed-as-prp-chairman/"
+    },
+    "national_secretary": {
+      "name": "Kanu Sunday Uchenna",
+      "imageUrl": null,
+      "bio": "Elected National Secretary of the Peoples Redemption Party at the party's 28 March 2026 national convention in Abuja; recognised on INEC's updated party leadership portal on 1 May 2026. Sometimes reported as 'Kanu Sunny'.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://thenationonlineng.net/prp-elects-baba-ahmed-national-chairman-kanu-sunny-secretary/"
+    },
+    "party_leader": null
+  },
+  "ZLP": {
+    "national_chairman": {
+      "name": "Dan Nwanyanwu",
+      "imageUrl": null,
+      "bio": "Chief Barr. Dan Nwanyanwu is the National Chairman of the Zenith Labour Party, re-elected to a four-year term at the party's February 2025 National Convention. He emerged as ZLP's consensus presidential candidate for the 2027 general election at a Special Convention in Abuja on 30 May 2026.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "former National Chairman of the Labour Party",
+      "sourceUrl": "https://dailypost.ng/2025/02/09/zlp-elects-new-national-leadership-to-steer-party-for-next-four-years/"
+    },
+    "national_secretary": {
+      "name": "Yahaya Makama",
+      "imageUrl": null,
+      "bio": "Hon. Yahaya Makama is the National Secretary of the Zenith Labour Party, elected at the party's National Convention in February 2025.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "medium",
+      "priorOffice": null,
+      "sourceUrl": "https://dailypost.ng/2025/02/09/zlp-elects-new-national-leadership-to-steer-party-for-next-four-years/"
+    },
+    "party_leader": null
+  },
+  "APM": {
+    "national_chairman": {
+      "name": "Yusuf Mamman Dantalle",
+      "imageUrl": null,
+      "bio": "Grassroots politician and businessman from Bunkure LGA, Kano State (b. 25 Oct 1971); re-elected APM National Chairman unopposed at the party's 2022 national convention; National Secretary of the Inter-Party Advisory Council (IPAC).",
+      "gender": "male",
+      "dateOfBirth": "1971-10-25",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "National Secretary, Inter-Party Advisory Council (IPAC)",
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/allied-peoples-movement-apm/"
+    },
+    "national_secretary": {
+      "name": "Oyadeyi Ayodele Adebayo",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/allied-peoples-movement-apm/"
+    },
+    "party_leader": null
+  },
+  "BP": {
+    "national_chairman": {
+      "name": "Adenuga Sunday",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/boot-party-bp/"
+    },
+    "national_secretary": {
+      "name": "Egwuatu Maryann C.",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/boot-party-bp/"
+    },
+    "party_leader": null
+  },
+  "DLA": {
+    "national_chairman": {
+      "name": "Barr. Samuel M. Memeh",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/democratic-leadership-alliance-dla/"
+    },
+    "national_secretary": {
+      "name": "Barr. Munirat Adama",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/democratic-leadership-alliance-dla/"
+    },
+    "party_leader": null
+  },
+  "NDP": {
+    "national_chairman": {
+      "name": "Ada Elizabeth Fredrick Okwori",
+      "imageUrl": null,
+      "bio": "Politician from Otukpo, Benue State; founder and promoter of the NDP, which she successfully sued INEC to register; NDP presidential aspirant for 2027.",
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-democratic-party/"
+    },
+    "national_secretary": {
+      "name": "Silva Opusunju",
+      "imageUrl": null,
+      "bio": "National Secretary of the NDP; emerged as the party's Rivers State governorship aspirant ahead of 2027.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-democratic-party/"
+    },
+    "party_leader": null
+  },
+  "NRM": {
+    "national_chairman": {
+      "name": "Prince (Dr) Chinedu Obi",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-rescue-movement-nrm/"
+    },
+    "national_secretary": {
+      "name": "Alh. Hassan Aminu Ibrahim",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/national-rescue-movement-nrm/"
+    },
+    "party_leader": null
+  },
+  "YP": {
+    "national_chairman": {
+      "name": "Dr. Umar Muhammad",
+      "imageUrl": "https://youthpartyng.com/wp-content/uploads/2015/12/PHOTO-2023-04-13-11-59-30-200x300.jpg",
+      "bio": "Veterinary doctor from Gusau, Zamfara State (b. 25 Oct 1986); Senior Veterinary Officer with the Zamfara State Government; founding member of the Youth Party who served as National Auditor and BoT Secretary before becoming Acting National Chairman.",
+      "gender": "male",
+      "dateOfBirth": "1986-10-25",
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "National Auditor, Youth Party; Secretary, Board of Trustees, Youth Party",
+      "sourceUrl": "https://youthpartyng.com/member/dr-umar-mohammed/"
+    },
+    "national_secretary": {
+      "name": "Mrs. Helen Adoh",
+      "imageUrl": "https://youthpartyng.com/wp-content/uploads/2024/12/1715484743264-WhatsApp-Image-2024-05-11-at-20.13.06.jpeg",
+      "bio": "From Kogi State; Business Education graduate (Ekiti State University); Admin Supervisor of the Youth Party since June 2017, liaising with INEC. (INEC lists her email as helen.attah@youthpartyng.com, so her surname may be Attah.)",
+      "gender": "female",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": "Admin Supervisor, Youth Party",
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/youth-party-yp/"
+    },
+    "party_leader": null
+  },
+  "NDC": {
+    "national_chairman": {
+      "name": "Sen. Cleopas Moses Zuwoghe",
+      "imageUrl": null,
+      "bio": "Pro-tem National Chairman of the NDC (by court order) pending the party's inaugural national convention.",
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/nigeria-democratic-congress/"
+    },
+    "national_secretary": {
+      "name": "Barr. Ikenna Morgan Enekweizu",
+      "imageUrl": null,
+      "bio": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "twitterHandle": null,
+      "facebookUrl": null,
+      "confidence": "high",
+      "priorOffice": null,
+      "sourceUrl": "https://www.inecnigeria.org/political-parties/nigeria-democratic-congress/"
+    },
+    "party_leader": null
+  }
+}

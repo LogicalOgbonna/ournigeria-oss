@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { useState, useCallback, useEffect } from "react";
+import posthog from "posthog-js";
+import { PageLayout } from "@/components/layout/PageLayout";
 import {
   Heart,
   // CreditCard,
@@ -13,6 +13,7 @@ import {
   Check,
   ExternalLink,
 } from "lucide-react";
+import { Show } from "@/components/ui/Show";
 
 const API_URL = typeof window !== "undefined" 
   ? "/api" 
@@ -67,6 +68,10 @@ export default function DonatePage() {
     setCustomAmount("");
   };
 
+  useEffect(() => {
+    posthog.capture("donate_page_viewed");
+  }, []);
+
   const handleCopyAddress = useCallback(async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
@@ -82,6 +87,7 @@ export default function DonatePage() {
       setCopiedAddress(address);
       setTimeout(() => setCopiedAddress(null), 2000);
     }
+    posthog.capture("donation_crypto_address_copied", { network: CRYPTO_WALLETS.find(w => w.address === address)?.network });
   }, []);
 
   const handleDonate = async (provider: PaymentProvider) => {
@@ -131,9 +137,7 @@ export default function DonatePage() {
   };
 
   return (
-    <main className="min-h-screen bg-white dark:bg-[oklch(0.10_0.005_160)]">
-      <Navbar />
-
+    <PageLayout className="bg-white dark:bg-[oklch(0.10_0.005_160)]">
       {/* Impact Hero Section */}
       <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-20">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-emerald-500/5 blur-[120px]" />
@@ -348,6 +352,7 @@ export default function DonatePage() {
                 href="https://giveth.io/project/our-nigeria"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => posthog.capture("donate_giveth_clicked")}
                 className="mb-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 font-medium text-slate-900 dark:text-white transition-all hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 Donate via Giveth
@@ -355,18 +360,20 @@ export default function DonatePage() {
               </a>
 
               <button
+                type="button"
                 onClick={() => setShowCryptoAddresses(!showCryptoAddresses)}
                 className="flex w-full items-center justify-between text-sm text-slate-500 dark:text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
               >
                 <span>Or send directly</span>
-                {showCryptoAddresses ? (
+                <Show when={showCryptoAddresses}>
                   <ChevronUp className="h-4 w-4" />
-                ) : (
+                </Show>
+                <Show when={!showCryptoAddresses}>
                   <ChevronDown className="h-4 w-4" />
-                )}
+                </Show>
               </button>
 
-              {showCryptoAddresses && (
+              <Show when={showCryptoAddresses}>
                 <div className="mt-4 space-y-3">
                   {CRYPTO_WALLETS.map((wallet) => (
                     <div
@@ -384,18 +391,20 @@ export default function DonatePage() {
                           onClick={() => handleCopyAddress(wallet.address)}
                           className="flex-shrink-0 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white"
                           title="Copy address"
+                          type="button"
                         >
-                          {copiedAddress === wallet.address ? (
+                          <Show when={copiedAddress === wallet.address}>
                             <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
+                          </Show>
+                          <Show when={copiedAddress !== wallet.address}>
                             <Copy className="h-4 w-4" />
-                          )}
+                          </Show>
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
+              </Show>
             </div>
           </div>
         </div>
@@ -427,8 +436,6 @@ export default function DonatePage() {
           </div>
         </div>
       </section>
-
-      <Footer />
-    </main>
+    </PageLayout>
   );
 }

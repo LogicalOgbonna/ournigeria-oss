@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Trash2, ShieldCheck, UserPlus } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 
 interface AdminItem {
   id: string;
@@ -26,14 +27,6 @@ interface AdminItem {
   createdAt: string;
   lastLoginAt: string | null;
   createdBy: { name: string; email: string } | null;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 export default function AdminUsersPage() {

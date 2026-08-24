@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ChevronDown,
   Bot,
@@ -12,42 +12,76 @@ import {
   X,
 } from "lucide-react";
 import { LOGIN_URL } from "@/lib/constants";
+import posthog from "posthog-js";
+import { Show } from "@/components/ui/Show";
+import { ElectionHero } from "@/components/sections/ElectionHero";
+import { CandidateTracker } from "@/components/election/CandidateTracker";
+import type { BallotRace } from "@/lib/election-ballot";
 
-export function Hero() {
+export function Hero({
+  electionActive = false,
+  electionState,
+  initialBallot,
+  officeYears,
+}: {
+  electionActive?: boolean;
+  electionState?: string;
+  initialBallot?: BallotRace[];
+  officeYears?: { office: string; year: number }[];
+}) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Close the channel dropdown when the user scrolls away from it.
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const close = () => setIsDropdownOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [isDropdownOpen]);
+
+  if (electionActive && electionState && initialBallot && officeYears) {
+    return (
+      <CandidateTracker
+        state={electionState}
+        initialBallot={initialBallot}
+        officeYears={officeYears}
+      />
+    );
+  }
+
+  if (electionActive) {
+    return <ElectionHero />;
+  }
+
   return (
     <section
-      className="relative min-h-[100dvh] overflow-hidden"
+      className="relative lg:min-h-[100dvh]"
     >
-      {/* Deep gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
+      {/* Decorative background — clipped on its own layer so the section itself
+          can keep overflow visible (otherwise it clips the hero CTA dropdown,
+          hiding all but the first option on mobile). */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        {/* Deep gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/60 via-background to-background dark:from-emerald-950/40 dark:via-background" />
 
-      {/* Floating orbs */}
-      <div className="absolute top-[15%] left-[8%] h-80 w-80 rounded-full bg-emerald-400/12 blur-[100px] animate-orb-1 dark:bg-emerald-400/6" />
-      <div className="absolute bottom-[10%] right-[5%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-[120px] animate-orb-2 dark:bg-emerald-500/4" />
-      <div className="absolute top-[40%] left-[50%] h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/8 blur-[80px] animate-orb-3 dark:bg-emerald-300/4" />
+        {/* Floating orbs */}
+        <div className="absolute top-[15%] left-[8%] h-80 w-80 rounded-full bg-emerald-400/12 blur-[100px] animate-orb-1 dark:bg-emerald-400/6" />
+        <div className="absolute bottom-[10%] right-[5%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/8 blur-[120px] animate-orb-2 dark:bg-emerald-500/4" />
+        <div className="absolute top-[40%] left-[50%] h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/8 blur-[80px] animate-orb-3 dark:bg-emerald-300/4" />
+      </div>
 
       <div
         className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"
       >
-        <div className="flex min-h-[100dvh] flex-col items-center justify-end gap-16 pb-24 pt-32 lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
+        <div className="flex flex-col items-center justify-center gap-16 pb-6 pt-28 lg:min-h-[100dvh] lg:flex-row lg:items-center lg:justify-between lg:pb-0 lg:pt-0">
           {/* Left — Text content, pushed bottom-left on desktop */}
           <div className="flex max-w-2xl flex-col items-center text-center lg:items-start lg:text-left">
-            {/* Badge */}
-            <div className="hero-badge mb-8 opacity-0 animate-fade-in-up" style={{ animationDelay: "0s" }}>
-              <span className="inline-flex items-center gap-2.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-4 py-1.5 text-sm font-medium text-emerald-700 backdrop-blur-sm dark:border-emerald-700/40 dark:bg-emerald-950/50 dark:text-emerald-300">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                </span>
-                Na Our Country
-              </span>
-            </div>
 
             {/* Headline — Carousel */}
-            <div className="hero-line opacity-0 animate-fade-in-up group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden" style={{ animationDelay: "0.3s" }}>
+            {/* LCP element — renders at full opacity immediately (no entrance fade) so
+                Largest Contentful Paint isn't delayed by the animation. */}
+            <div className="hero-line group relative h-[90px] sm:h-[180px] lg:h-[200px] w-full mt-2 mb-4 max-w-[95vw] lg:max-w-none overflow-hidden">
               <div
                 className="absolute left-0 top-0 flex flex-col w-full animate-[carousel-headline_20s_linear_infinite]"
                 style={{
@@ -107,13 +141,22 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Subtext */}
-            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground opacity-0 animate-fade-in-up sm:text-lg leading-relaxed" style={{ animationDelay: "0.7s" }}>
+            {/* Subtext — desktop gets the fuller list of what we cover;
+                mobile keeps the shorter copy so the hero stays compact. */}
+            <p className="hero-sub mt-8 hidden max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:block">
+              Knowledge is the first step to good citizenship. Explore{" "}
+              <strong className="text-foreground">
+                budgets, daily govspend, corruption records, public officials, and bills
+              </strong>{" "}
+              across all <strong className="text-foreground">36 states and the FCT</strong>.
+              Ask in plain English or Pidgin.
+            </p>
+            <p className="hero-sub mt-8 max-w-lg text-base text-muted-foreground sm:text-lg leading-relaxed lg:hidden">
               Knowledge is the first step to good citizenship. Explore{" "}
               <strong className="text-foreground">
                 budgets, daily govspend, and corruption records
               </strong>{" "}
-              across all <strong className="text-foreground">36 states</strong>.
+              across all <strong className="text-foreground">36 states and the FCT</strong>.
               Ask in plain English or Pidgin.
             </p>
 
@@ -125,7 +168,10 @@ export function Hero() {
                 onMouseLeave={() => setIsDropdownOpen(false)}
               >
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen);
+                    posthog.capture("hero_cta_clicked");
+                  }}
                   className="hero-cta btn-magnetic inline-flex h-13 items-center gap-2.5 rounded-[1.5rem] bg-emerald-600 px-8 text-base font-semibold text-white opacity-0 animate-fade-in-up shadow-xl shadow-emerald-600/20 dark:bg-emerald-500 cursor-pointer"
                   style={{ animationDelay: "1.0s" }}
                 >
@@ -138,11 +184,12 @@ export function Hero() {
                   </span>
                 </button>
 
-                {isDropdownOpen && (
+                <Show when={isDropdownOpen}>
                   <div className="absolute top-full left-0 pt-2 w-full min-w-[240px] z-50">
                     <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
                     <a
                         href={LOGIN_URL}
+                        onClick={() => posthog.capture("hero_platform_selected", { platform: "web" })}
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                       >
                         <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -152,6 +199,7 @@ export function Hero() {
                         href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => posthog.capture("hero_platform_selected", { platform: "telegram" })}
                         className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors hover:bg-muted"
                       >
                         <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -159,6 +207,7 @@ export function Hero() {
                       </a>
                       <button
                         onClick={() => {
+                          posthog.capture("hero_platform_selected", { platform: "whatsapp" });
                           setIsModalOpen(true);
                           setIsDropdownOpen(false);
                         }}
@@ -169,7 +218,7 @@ export function Hero() {
                       </button>
                     </div>
                   </div>
-                )}
+                </Show>
               </div>
             </div>
 
@@ -179,8 +228,9 @@ export function Hero() {
             </p>
           </div>
 
-          {/* Right — Mock chat interface card */}
-          <div className="hero-card w-full max-w-md opacity-0 animate-fade-in-up lg:max-w-lg perspective-[1200px]" style={{ animationDelay: "1.0s" }}>
+          {/* Right — Mock chat interface card (desktop only; removed on mobile so it
+              isn't mistaken for a real, typable chat) */}
+          <div className="hero-card hidden w-full max-w-md opacity-0 animate-fade-in-up lg:block lg:max-w-lg perspective-[1200px]" style={{ animationDelay: "1.0s" }}>
             <div className="relative">
               {/* Main card */}
               <div className="rounded-[2rem] border border-border/50 bg-card/80 p-6 shadow-2xl shadow-black/5 backdrop-blur-sm dark:bg-card/60 dark:shadow-black/20">
@@ -350,7 +400,7 @@ export function Hero() {
       </div>
 
       {/* WhatsApp Modal */}
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
             <button
@@ -377,7 +427,7 @@ export function Hero() {
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </section>
   );
 }

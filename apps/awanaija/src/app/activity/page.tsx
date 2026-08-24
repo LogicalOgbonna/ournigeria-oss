@@ -1,8 +1,5 @@
 import { ActivityFeed } from "@/components/civic/ActivityFeed";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export const metadata = {
   title: "Recent Activity | OurNigeria",
@@ -11,10 +8,8 @@ export const metadata = {
 
 export default function ActivityPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]">
-      <Navbar />
-      <main className="flex-grow pt-24">
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
+    <PageLayout className="bg-[oklch(0.98_0.002_120)] dark:bg-[oklch(0.15_0.005_260)]" mainClassName="pt-24">
+      <div className="max-w-2xl mx-auto px-4 pt-6 pb-8">
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white font-heading mb-1">
             Recent Activity
           </h1>
@@ -24,8 +19,6 @@ export default function ActivityPage() {
 
           <ActivityFeed limit={50} />
         </div>
-      </main>
-      <Footer />
-    </div>
+    </PageLayout>
   );
 }

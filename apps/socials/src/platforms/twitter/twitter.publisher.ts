@@ -53,29 +53,37 @@ export class TwitterPublisher {
   async publishReply(
     tweetId: string,
     content: string,
+    authorHandle?: string,
   ): Promise<TweetResult> {
     try {
-      return await this.twitter.postReply(tweetId, content);
+      return await this.twitter.postReply(tweetId, content, authorHandle);
     } catch (error) {
       this.logger.warn(
         `Reply failed, retrying: ${error instanceof Error ? error.message : error}`,
       );
-      return await this.twitter.postReply(tweetId, content);
+      return await this.twitter.postReply(tweetId, content, authorHandle);
     }
   }
 
   async publishQuote(
     quoteTweetId: string,
     content: string,
+    authorHandle?: string,
   ): Promise<TweetResult> {
     try {
-      return await this.twitter.postQuote(quoteTweetId, content);
+      return await this.twitter.postQuote(quoteTweetId, content, authorHandle);
     } catch (error) {
       this.logger.warn(
         `Quote failed, retrying: ${error instanceof Error ? error.message : error}`,
       );
-      return await this.twitter.postQuote(quoteTweetId, content);
+      return await this.twitter.postQuote(quoteTweetId, content, authorHandle);
     }
+  }
+
+  async publishRetweet(
+    tweetId: string,
+  ): Promise<{ id: string; retweeted: boolean }> {
+    return this.twitter.retweet(tweetId);
   }
 
   private async publishThread(tweets: string[]): Promise<TweetResult[]> {

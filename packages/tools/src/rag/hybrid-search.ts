@@ -14,7 +14,7 @@ interface HybridSearchParams {
   ef?: number;
 }
 
-interface HybridResult {
+export interface HybridResult {
   metadata?: Record<string, unknown>;
   score: number;
 }

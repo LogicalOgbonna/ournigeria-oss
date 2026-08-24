@@ -29,6 +29,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { socialsFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 
 interface FunnelData {
   scanned: number;
@@ -175,16 +176,6 @@ interface ListResp {
   page: number;
   pageSize: number;
   totalPages: number;
-}
-
-function formatDate(iso: string | null) {
-  if (!iso) return "-";
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function tweetUrl(authorScreenName: string | null, tweetId: string) {
@@ -501,7 +492,7 @@ function TweetCard({
             </div>
             <div className="text-[10px] text-muted-foreground">
               {tweet.authorFollowers.toLocaleString()} followers ·{" "}
-              {formatDate(tweet.tweetCreatedAt)}
+              {formatDateTime(tweet.tweetCreatedAt)}
             </div>
           </div>
           <Badge

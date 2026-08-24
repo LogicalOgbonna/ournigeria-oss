@@ -2,6 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
+import posthog from "posthog-js";
+import { Show } from "@/components/ui/Show";
 
 export function ShareButtons() {
   const [linkCopied, setLinkCopied] = useState(false);
@@ -32,6 +34,7 @@ export function ShareButtons() {
         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => posthog.capture("donation_share_clicked", { platform: "twitter" })}
         className="flex h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 text-sm text-slate-300 transition-all hover:border-slate-600 hover:text-white"
       >
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
@@ -45,6 +48,7 @@ export function ShareButtons() {
         href={`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={() => posthog.capture("donation_share_clicked", { platform: "whatsapp" })}
         className="flex h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 text-sm text-slate-300 transition-all hover:border-slate-600 hover:text-white"
       >
         <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
@@ -55,14 +59,16 @@ export function ShareButtons() {
 
       {/* Copy Link */}
       <button
-        onClick={handleCopyLink}
+        type="button"
+        onClick={() => { handleCopyLink(); posthog.capture("donation_share_clicked", { platform: "copy_link" }); }}
         className="flex h-12 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-5 text-sm text-slate-300 transition-all hover:border-slate-600 hover:text-white"
       >
-        {linkCopied ? (
+        <Show when={linkCopied}>
           <Check className="h-4 w-4 text-emerald-400" />
-        ) : (
+        </Show>
+        <Show when={!linkCopied}>
           <Copy className="h-4 w-4" />
-        )}
+        </Show>
         {linkCopied ? "Copied!" : "Copy Link"}
       </button>
     </div>

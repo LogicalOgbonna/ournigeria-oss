@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@ournigeria/database";
+import type { PrismaClient } from "@prisma/client";
 import { VectorService } from "../vector/vector.service";
 import { ExtractorRegistry } from "../extractors/extractor.registry";
 import { S3Service } from "../s3/s3.service";
@@ -11,39 +12,33 @@ import {
   PipelineResult,
   DEFAULT_PIPELINE_CONFIG,
 } from "./pipeline.types";
-import { FaacExtractorService, type FaacExtraction } from "./faac-extractor.service";
-import {
-  buildLgaMonthlyChunks,
-  buildStateMonthlyChunks,
-  buildNationalMonthlyChunk,
-  buildZoneMonthlyChunks,
-  buildStateAnnualChunks,
-  type FaacChunk,
-} from "./faac-chunk-builder";
-import { elapsed } from "../lib/timing.utils";
-
-/** S3 prefix for FAAC PDFs. Expected layout: faac/{Year}/{Month}/faac_allocation.pdf */
-const S3_PREFIX = "faac/";
+import { loadFaacDisbursements } from "./faac-db-loader";
+import { buildAllFaacChunks, type FaacChunk } from "./faac-db-chunk-builder";
 
 /**
- * S3 key for caching the LLM extraction JSON alongside each PDF.
- * e.g. faac/2025/January/extraction.json
+ * FAAC vector indexer.
+ *
+ * Source of truth is the database: the structured FAAC tables
+ * (`faac_disbursements`, `faac_state_allocations`, `faac_lga_allocations`,
+ * `faac_fgn_details`) are populated by the Excel seeder. This pipeline reads
+ * them back, builds rich chunks (see `faac-db-chunk-builder.ts`), embeds, and
+ * upserts to the FAAC vector index with deterministic IDs so re-runs replace
+ * rather than duplicate. No S3, PDF, or LLM extraction involved.
  */
-function cacheKey(year: number, month: string): string {
-  return `faac/${year}/${month}/extraction.json`;
-}
-
 @Injectable()
 export class FaacPipeline extends PipelineBase {
   protected readonly logger = new Logger(FaacPipeline.name);
 
+  // Explicit constructor is REQUIRED: a NestJS @Injectable subclass that relies
+  // on the inherited constructor gets no `design:paramtypes` metadata, so Nest
+  // instantiates it with zero args and every dependency (vector, prisma, …) is
+  // undefined. Declaring it here forces DI to inject and forward to super().
   constructor(
     config: ConfigService,
     prisma: PrismaService,
     vector: VectorService,
     extractors: ExtractorRegistry,
     s3: S3Service,
-    private readonly faacExtractor: FaacExtractorService,
   ) {
     super(config, prisma, vector, extractors, s3);
   }
@@ -57,10 +52,7 @@ export class FaacPipeline extends PipelineBase {
   }
 
   /**
-   * Custom run() that:
-   * 1. Discovers FAAC PDFs from S3
-   * 2. For each: download → extract text → LLM structured extraction → build chunks → embed + upsert
-   * 3. After all files: build annual aggregation chunks
+   * Read FAAC data from the DB → build chunks → embed → upsert.
    */
   async run(
     configOverrides?: Partial<PipelineConfig>,
@@ -68,13 +60,19 @@ export class FaacPipeline extends PipelineBase {
     const config = { ...DEFAULT_PIPELINE_CONFIG, ...configOverrides };
     const pipelineStart = Date.now();
 
-    this.emitLog("log", `=== ${this.pipelineType} Ingestion Pipeline ===`);
+    this.emitLog("log", `=== ${this.pipelineType} Ingestion Pipeline (DB source) ===`);
     await this.vector.ensureIndex(this.indexName);
 
-    const files = await this.discoverFiles();
-    this.emitLog("log", `Discovered ${files.length} FAAC PDF files`);
+    this.emitLog("log", "Loading FAAC disbursements from database...");
+    const disbursements = await loadFaacDisbursements(
+      this.prisma as unknown as PrismaClient,
+    );
 
-    if (files.length === 0) {
+    if (disbursements.length === 0) {
+      this.emitLog(
+        "warn",
+        "No FAAC disbursements found in DB. Seed them first (seed-faac-excel.ts).",
+      );
       return {
         pipeline: this.pipelineType,
         totalFiles: 0,
@@ -87,237 +85,86 @@ export class FaacPipeline extends PipelineBase {
       };
     }
 
-    let processed = 0;
-    let skipped = 0;
-    let errors = 0;
+    this.emitLog(
+      "log",
+      `Loaded ${disbursements.length} disbursements. Building chunks...`,
+    );
+    const chunks: FaacChunk[] = buildAllFaacChunks(disbursements);
+    this.emitLog(
+      "log",
+      `Built ${chunks.length} chunks. Embedding + upserting (batchSize=${config.batchSize})...`,
+    );
+
     let totalChunks = 0;
+    let errors = 0;
+    const batchSize = config.batchSize;
 
-    // Collect all extractions for annual aggregation
-    const allExtractions: FaacExtraction[] = [];
-
-    // Process files sequentially (LLM extraction is the bottleneck)
-    for (const file of files) {
-      const { year, month } = file.identity as { year: number; month: string };
-      const fileTag = `${year}/${month}`;
-      let localFilePath: string | undefined;
-
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
       try {
-        // ETag-based dedup
-        const existing = await this.prisma.ingestionRecord.findUnique({
-          where: {
-            pipeline_filePath: {
-              pipeline: this.pipelineType,
-              filePath: file.filePath,
-            },
-          },
-        });
-
-        if (existing?.status === "done" && file.s3Etag) {
-          if (existing.s3Etag === file.s3Etag) {
-            this.emitLog("log", `[${fileTag}] Skipping (ETag unchanged)`);
-
-            // Still try to load cached extraction for annual aggregation
-            const cached = await this.loadCachedExtraction(year, month);
-            if (cached) allExtractions.push(cached);
-
-            skipped++;
-            continue;
-          }
-        }
-
-        // Check for cached LLM extraction in S3
-        let extraction: FaacExtraction;
-        const cached = await this.loadCachedExtraction(year, month);
-
-        if (cached) {
-          this.emitLog("log", `[${fileTag}] Using cached LLM extraction from S3`);
-          extraction = cached;
-        } else {
-          // Download PDF from S3
-          this.emitLog("log", `[${fileTag}] Downloading PDF from S3...`);
-          localFilePath = await this.s3.downloadToTemp(file.s3Key!);
-
-          // Extract text from PDF
-          this.emitLog("log", `[${fileTag}] Extracting text from PDF...`);
-          const text = await this.extractors.extract("pdf", localFilePath);
-
-          if (!text || text.trim().length < 100) {
-            this.emitLog("warn", `[${fileTag}] PDF extraction yielded insufficient text`);
-            errors++;
-            continue;
-          }
-
+        const embeddings = await this.vector.embedBatch(
+          batch.map((c) => c.text),
+        );
+        await this.vector.upsert(
+          this.indexName,
+          embeddings,
+          batch.map((c) => c.metadata),
+          batch.map((c) => c.id),
+        );
+        totalChunks += batch.length;
+        if ((i / batchSize) % 10 === 0) {
           this.emitLog(
             "log",
-            `[${fileTag}] Extracted ${text.length} chars, running LLM extraction...`,
+            `  upserted ${totalChunks}/${chunks.length} chunks...`,
           );
-
-          const extractStart = Date.now();
-          extraction = await this.faacExtractor.extract(text, year, month);
-          this.emitLog(
-            "log",
-            `[${fileTag}] LLM extraction complete (${elapsed(extractStart)}): ` +
-              `${extraction.states.length} states, ${extraction.lgas.length} LGAs`,
-          );
-
-          // Cache the extraction to S3
-          await this.saveCachedExtraction(year, month, extraction);
         }
-
-        allExtractions.push(extraction);
-
-        // Build chunks
-        const sourceFile = `faac/${year}/${month}/faac_allocation.pdf`;
-        const chunks: FaacChunk[] = [
-          ...buildLgaMonthlyChunks(extraction, sourceFile),
-          ...buildStateMonthlyChunks(extraction, sourceFile),
-          buildNationalMonthlyChunk(extraction, sourceFile),
-          ...buildZoneMonthlyChunks(extraction, sourceFile),
-        ];
-
-        this.emitLog(
-          "log",
-          `[${fileTag}] Built ${chunks.length} chunks, embedding + upserting...`,
-        );
-
-        // Embed and upsert in batches
-        const batchSize = config.batchSize;
-        let fileChunks = 0;
-
-        for (let i = 0; i < chunks.length; i += batchSize) {
-          const batch = chunks.slice(i, i + batchSize);
-          const batchTexts = batch.map((c) => c.text);
-          const batchMeta = batch.map((c) => c.metadata);
-
-          try {
-            const embeddings = await this.vector.embedBatch(batchTexts);
-            await this.vector.upsert(this.indexName, embeddings, batchMeta);
-            fileChunks += batch.length;
-          } catch (err) {
-            this.emitLog(
-              "error",
-              `[${fileTag}] Batch ${Math.floor(i / batchSize) + 1} failed: ${err instanceof Error ? err.message : err}`,
-            );
-          }
-        }
-
-        totalChunks += fileChunks;
-        processed++;
-
-        // Record in ingestion table
-        await this.prisma.ingestionRecord.upsert({
-          where: {
-            pipeline_filePath: {
-              pipeline: this.pipelineType,
-              filePath: file.filePath,
-            },
-          },
-          create: {
-            pipeline: this.pipelineType,
-            filePath: file.filePath,
-            fileHash: "",
-            s3Etag: file.s3Etag || null,
-            sourceType: "pdf",
-            identity: file.identity as any,
-            status: "done",
-            chunks: fileChunks,
-          },
-          update: {
-            status: "done",
-            s3Etag: file.s3Etag || null,
-            chunks: fileChunks,
-          },
-        });
-
-        this.emitLog(
-          "log",
-          `[${fileTag}] DONE: ${fileChunks} chunks upserted`,
-        );
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        this.emitLog("error", `[${fileTag}] FAILED: ${errMsg}`);
         errors++;
-
-        await this.prisma.ingestionRecord
-          .upsert({
-            where: {
-              pipeline_filePath: {
-                pipeline: this.pipelineType,
-                filePath: file.filePath,
-              },
-            },
-            create: {
-              pipeline: this.pipelineType,
-              filePath: file.filePath,
-              fileHash: "",
-              s3Etag: file.s3Etag || null,
-              sourceType: "pdf",
-              identity: file.identity as any,
-              status: "error",
-              errorMsg: errMsg,
-              chunks: 0,
-            },
-            update: {
-              status: "error",
-              errorMsg: errMsg,
-            },
-          })
-          .catch(() => {});
-      } finally {
-        if (localFilePath) {
-          this.s3.cleanupTempFile(localFilePath);
-        }
+        this.emitLog(
+          "error",
+          `Batch ${Math.floor(i / batchSize) + 1} failed: ${err instanceof Error ? err.message : err}`,
+        );
       }
     }
 
-    // Build annual aggregation chunks only when at least one file was newly processed
-    if (processed > 0 && allExtractions.length > 0) {
-      this.emitLog("log", "Building annual aggregation chunks...");
-      const annualStart = Date.now();
-      const annualChunks = buildStateAnnualChunks(allExtractions);
-
-      this.emitLog(
-        "log",
-        `Built ${annualChunks.length} annual chunks, embedding + upserting...`,
-      );
-
-      const batchSize = config.batchSize;
-      for (let i = 0; i < annualChunks.length; i += batchSize) {
-        const batch = annualChunks.slice(i, i + batchSize);
-        const batchTexts = batch.map((c) => c.text);
-        const batchMeta = batch.map((c) => c.metadata);
-
-        try {
-          const embeddings = await this.vector.embedBatch(batchTexts);
-          await this.vector.upsert(this.indexName, embeddings, batchMeta);
-          totalChunks += batch.length;
-        } catch (err) {
-          this.emitLog(
-            "error",
-            `Annual batch failed: ${err instanceof Error ? err.message : err}`,
-          );
-        }
-      }
-
-      this.emitLog(
-        "log",
-        `Annual chunks done (${elapsed(annualStart)})`,
-      );
-    }
+    // Record a single ingestion summary row for the DB-sourced run.
+    await this.prisma.ingestionRecord
+      .upsert({
+        where: {
+          pipeline_filePath: {
+            pipeline: this.pipelineType,
+            filePath: "db/faac",
+          },
+        },
+        create: {
+          pipeline: this.pipelineType,
+          filePath: "db/faac",
+          fileHash: "",
+          sourceType: "database",
+          identity: { source: "faac_disbursements", disbursements: disbursements.length },
+          status: errors > 0 ? "error" : "done",
+          chunks: totalChunks,
+        },
+        update: {
+          status: errors > 0 ? "error" : "done",
+          chunks: totalChunks,
+          identity: { source: "faac_disbursements", disbursements: disbursements.length },
+        },
+      })
+      .catch(() => {});
 
     const durationMs = Date.now() - pipelineStart;
     this.emitLog("log", `=== ${this.pipelineType} Complete ===`);
-    this.emitLog("log", `Total time: ${elapsed(pipelineStart)}`);
     this.emitLog(
       "log",
-      `Processed: ${processed}, Skipped: ${skipped}, Errors: ${errors}, Chunks: ${totalChunks}`,
+      `Disbursements: ${disbursements.length}, Chunks: ${totalChunks}, Failed batches: ${errors}, Time: ${durationMs}ms`,
     );
 
     return {
       pipeline: this.pipelineType,
-      totalFiles: files.length,
-      processedFiles: processed,
-      skippedFiles: skipped,
+      totalFiles: disbursements.length,
+      processedFiles: disbursements.length,
+      skippedFiles: 0,
       errorFiles: errors,
       totalChunks,
       durationMs,
@@ -325,147 +172,24 @@ export class FaacPipeline extends PipelineBase {
     };
   }
 
-  /**
-   * Discover FAAC PDF files from S3.
-   * Expected key format: faac/{Year}/{Month}/faac_allocation.pdf
-   */
+  // FAAC reads from the DB, not from discovered files. The abstract members
+  // below are required by PipelineBase but unused by the custom run() above.
+
   async discoverFiles(): Promise<DiscoveredFile[]> {
-    const files: DiscoveredFile[] = [];
-    // Track year/month pairs to avoid processing multiple PDFs for the same period
-    const seen = new Set<string>();
-
-    this.emitLog("log", `Listing S3 objects under ${S3_PREFIX}`);
-    const objects = await this.s3.listObjects(S3_PREFIX);
-    this.emitLog("log", `Found ${objects.length} objects in S3`);
-
-    for (const obj of objects) {
-      if (!obj.key.endsWith(".pdf")) continue;
-      if (obj.size === 0) continue;
-
-      // Expected: faac/{Year}/{Month}/faac_allocation.pdf
-      const parts = obj.key.split("/");
-      if (parts.length < 4) continue;
-
-      const yearStr = parts[1];
-      const month = parts[2];
-      if (!/^\d{4}$/.test(yearStr)) continue;
-
-      // Deduplicate: only take the first PDF per year/month
-      const periodKey = `${yearStr}/${month}`;
-      if (seen.has(periodKey)) {
-        this.emitLog("log", `Skipping duplicate PDF for ${periodKey}: ${obj.key}`);
-        continue;
-      }
-      seen.add(periodKey);
-
-      files.push({
-        filePath: obj.key,
-        sourceType: "pdf",
-        s3Key: obj.key,
-        s3Etag: obj.etag,
-        identity: {
-          year: parseInt(yearStr, 10),
-          month,
-        },
-      });
-    }
-
-    return files;
+    return [];
   }
 
-  protected generateContextPrefix(
-    _file: DiscoveredFile,
-    metadata: Record<string, unknown>,
-  ): string {
-    const chunkType = metadata.chunk_type || "raw";
-    const state = metadata.state || "";
-    const lga = metadata.lga || "";
-    const month = metadata.month || "";
-    const year = metadata.year || "";
-    const location = lga ? `${lga} LGA, ${state}` : state || "national";
-    const period = [month, year].filter(Boolean).join(" ");
-    return `This chunk is from the FAAC ${chunkType} allocation data for ${location}, ${period}: `;
+  buildChunkMetadata(): Record<string, unknown> {
+    return {};
   }
 
-  buildChunkMetadata(
-    file: DiscoveredFile,
-    chunkText: string,
-    chunkIndex: number,
-  ): Record<string, unknown> {
-    const { year, month } = file.identity as { year: number; month: string };
-    return {
-      text: chunkText,
-      chunk_type: "raw",
-      year,
-      month,
-      state: "",
-      lga: "",
-      geopolitical_zone: "",
-      total_allocation: 0,
-      is_oil_producing: false,
-      source_file: `faac/${year}/${month}/faac_allocation.pdf`,
-      chunk_index: chunkIndex,
-    };
+  buildFileFromS3Key(): DiscoveredFile | null {
+    return null;
   }
 
-  /** FAAC uses a custom run() flow — single-file processing via SQS is not supported. */
   override async processSingleFile(): Promise<PipelineResult> {
     throw new Error(
-      "FaacPipeline does not support processSingleFile; use run() instead",
+      "FaacPipeline reads from the DB; use run() (single-file/SQS not supported).",
     );
-  }
-
-  buildFileFromS3Key(key: string, etag: string): DiscoveredFile | null {
-    if (!key.endsWith(".pdf")) return null;
-    const parts = key.split("/");
-    if (parts.length < 4) return null;
-
-    const yearStr = parts[1];
-    const month = parts[2];
-    if (!/^\d{4}$/.test(yearStr)) return null;
-
-    return {
-      filePath: key,
-      sourceType: "pdf",
-      s3Key: key,
-      s3Etag: etag,
-      identity: {
-        year: parseInt(yearStr, 10),
-        month,
-      },
-    };
-  }
-
-  /** Try to load a cached LLM extraction JSON from S3. */
-  private async loadCachedExtraction(
-    year: number,
-    month: string,
-  ): Promise<FaacExtraction | null> {
-    try {
-      const key = cacheKey(year, month);
-      const data = await this.s3.downloadAsString(key);
-      return JSON.parse(data) as FaacExtraction;
-    } catch {
-      return null;
-    }
-  }
-
-  /** Save LLM extraction JSON to S3 for caching. */
-  private async saveCachedExtraction(
-    year: number,
-    month: string,
-    extraction: FaacExtraction,
-  ): Promise<void> {
-    try {
-      const key = cacheKey(year, month);
-      const body = JSON.stringify(extraction, null, 2);
-      await this.s3.uploadBuffer(Buffer.from(body, "utf-8"), key, "application/json");
-      this.emitLog("log", `Cached extraction to S3: ${key}`);
-    } catch (err) {
-      this.emitLog(
-        "warn",
-        `Failed to cache extraction to S3: ${err instanceof Error ? err.message : err}`,
-      );
-    }
   }
 }

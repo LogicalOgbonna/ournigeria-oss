@@ -31,8 +31,8 @@ source "$ENV_FILE"
 ACTIVE="${ACTIVE_STACK:-blue}"
 
 export IMAGE_TAG
-docker compose -f "$COMPOSE_FILE" pull "api-${ACTIVE}" "ingest-${ACTIVE}"
-docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}" "ingest-${ACTIVE}"
+docker compose -f "$COMPOSE_FILE" pull "api-${ACTIVE}" "ingest-${ACTIVE}" "socials-${ACTIVE}"
+docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}" "ingest-${ACTIVE}" "socials-${ACTIVE}"
 
 # Update .env
 sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${IMAGE_TAG}/" "$ENV_FILE"

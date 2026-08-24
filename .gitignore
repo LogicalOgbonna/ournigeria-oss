@@ -85,3 +85,18 @@ packages/plans/
 
 # lighthouse
 .lighthouseci/
+
+# gstack local scratch
+.superpowers/
+
+# playwright mcp scratch (screenshots, snapshots, console logs)
+.playwright-mcp/
+
+# reconcile_wards workbook cache
+packages/database/scripts/reconcile_wards/.cache/
+
+# reconcile_wards transient proposal reports + residual worklists
+packages/database/scripts/reconcile_wards/reports/
+
+# socials capture extension release artifact
+apps/socials/extension/*.zip

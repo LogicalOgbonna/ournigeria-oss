@@ -3,17 +3,48 @@
   "name": "OurNigeria Socials — session capture",
   "version": "0.1.0",
   "description": "Capture an x.com session row (cookie, csrf, headers) for the OurNigeria socials roamer.",
-  "permissions": ["cookies", "webRequest", "storage"],
+  "permissions": ["cookies", "webRequest", "storage", "alarms", "notifications"],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "host_permissions": [
     "*://*.x.com/*",
-    "*://*.twitter.com/*"
+    "*://*.twitter.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
+  "content_scripts": [
+    {
+      "matches": ["*://x.com/*", "*://twitter.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["capture.js"],
+      "matches": ["*://x.com/*", "*://twitter.com/*"]
+    }
+  ],
   "action": {
-    "default_title": "Capture x.com session",
-    "default_popup": "popup.html"
+    "default_title": "OurNigeria — Session Capture",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   }
 }

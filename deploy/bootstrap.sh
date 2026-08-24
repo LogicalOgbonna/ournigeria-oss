@@ -61,16 +61,12 @@ echo "1. Creating directory structure..."
 mkdir -p "$DEPLOY_DIR/deploy/traefik"
 mkdir -p /var/log/ournigeria-deploy
 
-# ─── Create shared Docker network for NPM ↔ Traefik ──────────────
-echo "2. Creating npm-proxy network..."
-docker network create npm-proxy 2>/dev/null || echo "   npm-proxy network already exists"
-
 # ─── Authenticate to GHCR ─────────────────────────────────────────
-echo "3. Authenticating to GitHub Container Registry..."
+echo "2. Authenticating to GitHub Container Registry..."
 echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
 # ─── Copy files ───────────────────────────────────────────────────
-echo "4. Copying deploy files..."
+echo "3. Copying deploy files..."
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cp "$SCRIPT_DIR/hooks.yaml" "$DEPLOY_DIR/deploy/hooks.yaml"
 cp "$SCRIPT_DIR/deploy.sh" "$DEPLOY_DIR/deploy/deploy.sh"
@@ -83,8 +79,11 @@ cp "$SCRIPT_DIR/traefik/dynamic-blue.yml" "$DEPLOY_DIR/deploy/traefik/dynamic.ym
 chmod +x "$DEPLOY_DIR/deploy/"*.sh
 
 # ─── Set up .env if not exists ─────────────────────────────────────
+# GHCR_OWNER is used in image refs (ghcr.io/<owner>/...), which Docker requires
+# to be lowercase — even though GHCR_USER may be mixed-case (e.g. LogicalOgbonna).
+GHCR_OWNER_LC="$(printf '%s' "$GHCR_USER" | tr '[:upper:]' '[:lower:]')"
 if [ ! -f "$DEPLOY_DIR/.env" ]; then
-  echo "5. Creating .env file..."
+  echo "4. Creating .env file..."
   cat > "$DEPLOY_DIR/.env" <<ENVEOF
 # ── Deploy config ──
 ACTIVE_STACK=blue
@@ -92,7 +91,7 @@ IMAGE_TAG=latest
 WEBHOOK_SECRET=$WEBHOOK_SECRET
 WEBHOOK_PORT=$WEBHOOK_PORT
 STATUS_BEARER_TOKEN=$STATUS_TOKEN
-GHCR_OWNER=$GHCR_USER
+GHCR_OWNER=$GHCR_OWNER_LC
 
 # ── Telegram deploy alerts (optional) ──
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
@@ -101,33 +100,33 @@ TELEGRAM_DEPLOY_CHAT_ID=$TELEGRAM_DEPLOY_CHAT_ID
 # ── App config ──
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 INFISICAL_TOKEN=$INFISICAL_TOKEN
-INFISICAL_ENV=prod
+INFISICAL_ENV=${INFISICAL_ENV:-prod}
 ENVEOF
   echo "   .env created with all required values."
 else
-  echo "5. .env already exists, appending missing deploy vars..."
+  echo "4. .env already exists, appending missing deploy vars..."
   grep -q "ACTIVE_STACK" "$DEPLOY_DIR/.env" || echo "ACTIVE_STACK=blue" >> "$DEPLOY_DIR/.env"
   grep -q "IMAGE_TAG" "$DEPLOY_DIR/.env" || echo "IMAGE_TAG=latest" >> "$DEPLOY_DIR/.env"
   grep -q "WEBHOOK_SECRET" "$DEPLOY_DIR/.env" || echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$DEPLOY_DIR/.env"
   grep -q "WEBHOOK_PORT" "$DEPLOY_DIR/.env" || echo "WEBHOOK_PORT=$WEBHOOK_PORT" >> "$DEPLOY_DIR/.env"
   grep -q "STATUS_BEARER_TOKEN" "$DEPLOY_DIR/.env" || echo "STATUS_BEARER_TOKEN=$STATUS_TOKEN" >> "$DEPLOY_DIR/.env"
-  grep -q "GHCR_OWNER" "$DEPLOY_DIR/.env" || echo "GHCR_OWNER=$GHCR_USER" >> "$DEPLOY_DIR/.env"
+  grep -q "GHCR_OWNER" "$DEPLOY_DIR/.env" || echo "GHCR_OWNER=$GHCR_OWNER_LC" >> "$DEPLOY_DIR/.env"
   grep -q "TELEGRAM_BOT_TOKEN" "$DEPLOY_DIR/.env" || echo "TELEGRAM_BOT_TOKEN=" >> "$DEPLOY_DIR/.env"
   grep -q "TELEGRAM_DEPLOY_CHAT_ID" "$DEPLOY_DIR/.env" || echo "TELEGRAM_DEPLOY_CHAT_ID=" >> "$DEPLOY_DIR/.env"
 fi
 
 # ─── Copy docker-compose.yml ──────────────────────────────────────
-echo "6. Copying docker-compose.yml..."
+echo "5. Copying docker-compose.yml..."
 cp "$SCRIPT_DIR/../docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
 
 # ─── Build webhook image ──────────────────────────────────────────
-echo "7. Building webhook image..."
+echo "6. Building webhook image..."
 cd "$DEPLOY_DIR"
 docker compose build webhook
 
 # ─── Pull initial images ──────────────────────────────────────────
-echo "8. Pulling initial images..."
-docker compose pull api-blue ingest-blue || echo "   WARNING: Pull failed — check GHCR auth"
+echo "7. Pulling initial images..."
+docker compose pull api-blue ingest-blue socials-blue || echo "   WARNING: Pull failed — check GHCR auth"
 
 echo ""
 echo "═══════════════════════════════════════════════════"
@@ -135,9 +134,11 @@ echo "  Bootstrap complete!"
 echo ""
 echo "  Next steps:"
 echo "  1. Verify $DEPLOY_DIR/.env has correct values"
-echo "  2. Configure NPM to forward API traffic to traefik:80"
-echo "     (NPM and Traefik are on the 'npm-proxy' network)"
+echo "  2. Traefik terminates TLS via Let's Encrypt directly (no NPM)."
+echo "     Ensure ports 80 and 443 are open to the internet (OCI security list)."
+echo "     Hosts served: api / ingest / socials .ournigeria.ng"
 echo "  3. Run: cd $DEPLOY_DIR && docker compose up -d"
-echo "  4. Ensure port $WEBHOOK_PORT is reachable for GitHub webhooks"
-echo "  5. Set DEPLOY_WEBHOOK_URL and WEBHOOK_SECRET in GitHub repo secrets"
+echo "  4. Webhook is served via Traefik HTTPS at https://deploy.ournigeria.ng/hooks/deploy"
+echo "     (internal only — port 9000 is NOT publicly exposed)"
+echo "  5. Set OCI_DEPLOY_WEBHOOK_URL and OCI_WEBHOOK_SECRET in GitHub repo secrets"
 echo "═══════════════════════════════════════════════════"

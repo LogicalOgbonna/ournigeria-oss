@@ -20,6 +20,7 @@ import {
 } from "@/lib/constants";
 import { useInView } from "@/hooks/useInView";
 import { cn } from "@/lib/utils";
+import { Show } from "@/components/ui/Show";
 
 const iconMap: Record<string, LucideIcon> = {
   ShieldAlert,
@@ -94,7 +95,7 @@ function ShufflerCard() {
                         : "bg-emerald-100 dark:bg-emerald-900/40",
                     )}
                   >
-                    {Icon && (
+                    <Show when={!!Icon}>
                       <Icon
                         className={cn(
                           "h-4 w-4 transition-colors duration-500",
@@ -103,7 +104,7 @@ function ShufflerCard() {
                             : "text-emerald-600 dark:text-emerald-400",
                         )}
                       />
-                    )}
+                    </Show>
                   </div>
                   <span className="font-semibold">{item.label}</span>
                 </div>
@@ -219,14 +220,14 @@ function TypewriterCard() {
               {line}
             </div>
           ))}
-          {currentLine && (
+          <Show when={!!currentLine}>
             <div className="text-emerald-400">
               {currentLine}
               <span className="animate-cursor-blink ml-0.5 text-emerald-500">
                 █
               </span>
             </div>
-          )}
+          </Show>
         </div>
       </div>
     </div>
@@ -281,12 +282,12 @@ function ExplorerCard() {
               >
                 {zone.states} states
               </span>
-              {activeZone === i && (
+              <Show when={activeZone === i}>
                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 border-2 border-white dark:border-emerald-900" />
                 </span>
-              )}
+              </Show>
             </button>
           ))}
         </div>

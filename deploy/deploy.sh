@@ -52,19 +52,15 @@ verify_traefik_switch() {
 # Curls through Traefik's entrypoint to confirm routing is live.
 # If routing fails, restarts Traefik and retries.
 verify_traefik_routing() {
-  local host_header="$1"   # e.g. api.example.invalid
+  local host_header="$1"   # e.g. api.ournigeria.ng
   local health_path="$2"   # e.g. /health
   local max_wait="${3:-15}"
-
-  # NOTE: deploy.sh runs inside the webhook container, so we reach
-  # Traefik via its Docker service name, not localhost.
-  local traefik_url="http://traefik:80"
 
   echo "Verifying Traefik routes to $host_header (up to ${max_wait}s)..."
 
   # First attempt: wait for file watch to pick up the change
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
+    if curl -sfk --connect-to "$host_header:443:traefik:443" "https://$host_header$health_path" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after ${i}s"
       return 0
     fi
@@ -77,7 +73,7 @@ verify_traefik_routing() {
 
   # Wait for Traefik to come back up and route correctly
   for i in $(seq 1 "$max_wait"); do
-    if curl -sf -H "Host: $host_header" "${traefik_url}${health_path}" >/dev/null 2>&1; then
+    if curl -sfk --connect-to "$host_header:443:traefik:443" "https://$host_header$health_path" >/dev/null 2>&1; then
       echo "Traefik routing verified for $host_header after restart (${i}s)"
       return 0
     fi
@@ -131,10 +127,12 @@ if [ "$AGE" -gt 300 ] || [ "$AGE" -lt -30 ]; then
 fi
 
 # ─── Determine environment from branch ────────────────────────────
+# prod branch → production box (Infisical `prod`).
+# main/staging branch → staging box (Infisical `staging`).
 case "$BRANCH" in
-  main)    DEPLOY_ENV="prod" ;;
-  staging) DEPLOY_ENV="staging" ;;
-  *)       echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
+  prod)         DEPLOY_ENV="prod" ;;
+  main|staging) DEPLOY_ENV="staging" ;;
+  *)            echo "ERROR: Unknown branch $BRANCH"; exit 1 ;;
 esac
 
 # ─── Deploy lock (flock) ──────────────────────────────────────────
@@ -148,6 +146,20 @@ fi
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/deploy-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Load env (Telegram notify creds + ACTIVE_STACK) BEFORE the first notify, so the
+# "Deploy started"/staging-complete messages can actually send. Previously .env was
+# sourced only at the blue-green step below — after those notifies — so they silently
+# no-op'd (notify() guards on TELEGRAM_BOT_TOKEN/TELEGRAM_DEPLOY_CHAT_ID being set).
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+
+# The Infisical environment the containers boot against follows the deploy
+# environment (prod branch → prod secrets, main/staging → staging secrets).
+# Authoritative over any static INFISICAL_ENV in .env, so one shared deploy.sh
+# serves both the prod box and the staging box. Exported here (after sourcing
+# .env) so the branch-derived value wins over the box's static .env.
+export INFISICAL_ENV="$DEPLOY_ENV"
 
 echo "═══════════════════════════════════════════════════"
 echo "  DEPLOY STARTED"
@@ -164,8 +176,15 @@ Env: \`$DEPLOY_ENV\`"
 if [ "$DEPLOY_ENV" = "staging" ]; then
   echo "Staging deploy: simple restart (no blue-green)"
   export IMAGE_TAG="$NEW_IMAGE_TAG"
-  docker compose -f "$COMPOSE_FILE" pull api-blue ingest-blue
-  docker compose -f "$COMPOSE_FILE" up -d api-blue ingest-blue
+  # api + ingest run on every box; socials only on boxes whose compose defines it
+  # (the dev/staging box doesn't run socials). Treat socials as best-effort so its
+  # absence doesn't abort the deploy under `set -e`.
+  STAGING_SVCS=(api-blue ingest-blue)
+  if docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null | grep -qx socials-blue; then
+    STAGING_SVCS+=(socials-blue)
+  fi
+  docker compose -f "$COMPOSE_FILE" pull "${STAGING_SVCS[@]}"
+  docker compose -f "$COMPOSE_FILE" up -d "${STAGING_SVCS[@]}"
   DEPLOY_END=$(date +%s)
   log_deploy "success" "" "$(( DEPLOY_END - DEPLOY_START ))"
   notify "✅ *Staging deploy complete*
@@ -179,9 +198,7 @@ Duration: $(( DEPLOY_END - DEPLOY_START ))s"
   exit 0
 fi
 
-# ─── Read current active stack ─────────────────────────────────────
-# shellcheck source=/dev/null
-source "$ENV_FILE"
+# ─── Read current active stack (env already sourced above) ─────────
 ACTIVE="${ACTIVE_STACK:-blue}"
 if [ "$ACTIVE" = "blue" ]; then
   STANDBY="green"
@@ -200,7 +217,7 @@ echo "Pulling images with tag: $NEW_IMAGE_TAG"
 export IMAGE_TAG="$NEW_IMAGE_TAG"
 REGISTRY="ghcr.io/logicalogbonna"
 
-for svc in api ingest; do
+for svc in api ingest socials; do
   new_image="${REGISTRY}/ournigeria-${svc}:${NEW_IMAGE_TAG}"
   if docker pull "$new_image" >/dev/null 2>&1; then
     echo "Pulled new ${svc} image: $new_image"
@@ -265,6 +282,51 @@ Action: Rolled back"
   exit 1
 fi
 
+# ─── DEPLOY SOCIALS (before the shared Traefik switch) ────────────
+# Socials shares the single Traefik dynamic file with api + ingest, so it must be
+# healthy on $STANDBY BEFORE we flip the file (one swap switches all three).
+echo ""
+echo "── Deploying Socials to $STANDBY stack ──"
+echo "Starting socials-$STANDBY..."
+if ! docker compose -f "$COMPOSE_FILE" up -d "socials-${STANDBY}"; then
+  echo "ERROR: Failed to start socials-$STANDBY. Aborting before switch (active stack untouched)."
+  docker compose -f "$COMPOSE_FILE" rm -sf "api-${STANDBY}" 2>/dev/null || true
+  log_deploy "socials_start_failed"
+  notify "❌ *Deploy FAILED*
+Stage: Socials start (\`$STANDBY\`)
+Tag: \`$NEW_IMAGE_TAG\`"
+  exit 1
+fi
+
+echo "Health check socials-$STANDBY (up to ${HEALTH_TIMEOUT}s)..."
+SOCIALS_HEALTHY=false
+for i in $(seq 1 $HEALTH_TIMEOUT); do
+  if curl -sf "http://socials-${STANDBY}:3005/health" >/dev/null 2>&1; then
+    SOCIALS_HEALTHY=true
+    echo "Socials health check PASSED after ${i}s"
+    break
+  fi
+  if [ $((i % 10)) -eq 0 ]; then
+    if ! check_container_alive "ournigeria_socials_${STANDBY}"; then
+      echo "Container crashed — aborting health check early"
+      break
+    fi
+  fi
+  sleep 1
+done
+
+if [ "$SOCIALS_HEALTHY" != "true" ]; then
+  echo "ERROR: Socials health check FAILED after ${HEALTH_TIMEOUT}s"
+  echo "Aborting before Traefik switch — active stack untouched (no downtime)."
+  docker compose -f "$COMPOSE_FILE" rm -sf "socials-${STANDBY}" "api-${STANDBY}" 2>/dev/null || true
+  log_deploy "socials_health_check_failed" "rollback"
+  notify "❌ *Deploy FAILED*
+Stage: Socials health check (\`$STANDBY\`)
+Tag: \`$NEW_IMAGE_TAG\`
+Action: Aborted before switch"
+  exit 1
+fi
+
 # Switch Traefik routing for API
 # NOTE: Use 'cat src > dst' instead of 'cp' to preserve the file inode.
 # Docker bind mounts track inodes — 'cp' creates a new inode, leaving
@@ -290,7 +352,7 @@ Tag: \`$NEW_IMAGE_TAG\`"
 }
 
 # Verify Traefik actually routes traffic to the new API backend
-verify_traefik_routing "api.example.invalid" "/health" 15 || {
+verify_traefik_routing "api.ournigeria.ng" "/health" 15 || {
   echo "CRITICAL: Traefik routing failed. Rolling back config..."
   cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
   log_deploy "traefik_routing_failed" "rollback"
@@ -304,6 +366,10 @@ Tag: \`$NEW_IMAGE_TAG\`"
 echo "Draining api-$ACTIVE (${DRAIN_WAIT}s)..."
 sleep "$DRAIN_WAIT"
 docker compose -f "$COMPOSE_FILE" stop "api-${ACTIVE}"
+
+# Drain old Socials (switched together with API via the shared Traefik file)
+echo "Draining socials-$ACTIVE..."
+docker compose -f "$COMPOSE_FILE" stop "socials-${ACTIVE}" 2>/dev/null || true
 
 # ─── DEPLOY INGEST (step 2 of 2) ──────────────────────────────────
 echo ""
@@ -342,16 +408,16 @@ if [ "$INGEST_HEALTHY" != "true" ]; then
   echo "Rolling back: stopping ingest-$STANDBY..."
   docker compose -f "$COMPOSE_FILE" stop "ingest-${STANDBY}"
   docker compose -f "$COMPOSE_FILE" rm -f "ingest-${STANDBY}"
-  # Also rollback API back to original stack
-  echo "Rolling back API to $ACTIVE..."
+  # Also rollback API + Socials back to original stack (both were switched + drained above)
+  echo "Rolling back API + Socials to $ACTIVE..."
   cat "$TRAEFIK_DIR/dynamic-${ACTIVE}.yml" > "$TRAEFIK_DIR/dynamic.yml"
-  docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}"
-  docker compose -f "$COMPOSE_FILE" stop "api-${STANDBY}"
+  docker compose -f "$COMPOSE_FILE" up -d "api-${ACTIVE}" "socials-${ACTIVE}"
+  docker compose -f "$COMPOSE_FILE" stop "api-${STANDBY}" "socials-${STANDBY}"
   log_deploy "ingest_health_check_failed" "rollback"
   notify "❌ *Deploy FAILED*
 Stage: Ingest health check (\`$STANDBY\`)
 Tag: \`$NEW_IMAGE_TAG\`
-Action: Rolled back API + Ingest"
+Action: Rolled back API + Socials + Ingest"
   exit 1
 fi
 
@@ -369,6 +435,45 @@ docker compose -f "$COMPOSE_FILE" stop "ingest-${ACTIVE}"
 # ─── Update .env ──────────────────────────────────────────────────
 sed -i "s/^ACTIVE_STACK=.*/ACTIVE_STACK=${STANDBY}/" "$ENV_FILE"
 sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=${NEW_IMAGE_TAG}/" "$ENV_FILE"
+
+# ─── Bump enrichment sibling stack (prod only, best-effort) ───────
+# Enrichment is a NON-blue/green sibling stack (agent + camofox, single containers)
+# that exists only on the prod box. CI builds a fresh agent image only when
+# deploy/enrichment/** (or apps/api/src/enrichment/**) changed, so:
+#   - if the agent image for THIS sha exists, we recreate the agent with it;
+#   - otherwise we retag the running agent image to the new tag so compose (which
+#     interpolates ${IMAGE_TAG}) finds it and just ensures the stack is up.
+# camofox is a pinned, build-once image (pull_policy: missing in the oci override).
+# This block MUST NEVER fail the deploy — the app blue/green already succeeded above,
+# so any error here is logged, alerted, and swallowed (|| true on the group).
+ENRICHMENT_DIR="$COMPOSE_DIR/deploy/enrichment"
+if [ -f "$ENRICHMENT_DIR/docker-compose.yml" ] && [ -f "$ENRICHMENT_DIR/docker-compose.oci.yml" ]; then
+  echo ""
+  echo "── Bumping enrichment sibling stack (best-effort) ──"
+  ENRICHMENT_COMPOSE=(-f "$ENRICHMENT_DIR/docker-compose.yml" -f "$ENRICHMENT_DIR/docker-compose.oci.yml")
+  {
+    agent_img="${REGISTRY}/ournigeria-enrichment-agent:${NEW_IMAGE_TAG}"
+    if docker pull "$agent_img" >/dev/null 2>&1; then
+      echo "New enrichment agent image for this commit — recreating agent"
+    else
+      echo "Enrichment agent not rebuilt this commit — reusing running image under the new tag"
+      current_agent=$(docker inspect --format='{{.Config.Image}}' enrichment_agent 2>/dev/null || true)
+      if [ -n "$current_agent" ]; then
+        docker tag "$current_agent" "$agent_img" || true
+      fi
+    fi
+    # Secrets inject from Infisical /enrichment for this env; IMAGE_TAG was exported
+    # above. `source "$ENV_FILE"` does NOT export INFISICAL_TOKEN (no `set -a`), so
+    # pass it explicitly with --token or `infisical run` (a child) can't authenticate.
+    infisical run --token "$INFISICAL_TOKEN" --env "$DEPLOY_ENV" --path /enrichment -- \
+      docker compose "${ENRICHMENT_COMPOSE[@]}" up -d camofox agent
+    echo "Enrichment stack ensured up (tag ${NEW_IMAGE_TAG})."
+    notify "🧪 *Enrichment stack up* — tag \`$NEW_IMAGE_TAG\`"
+  } || {
+    echo "WARNING: enrichment bump failed — app deploy UNAFFECTED (sibling stack)."
+    notify "⚠️ *Enrichment bump failed* — app deploy OK, agent may be stale"
+  }
+fi
 
 # ─── Log deploy ──────────────────────────────────────────────────
 DEPLOY_END=$(date +%s)

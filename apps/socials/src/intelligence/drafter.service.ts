@@ -2,14 +2,16 @@ import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from "@nestjs/commo
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@ournigeria/database";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
+import { SocialsSettingsService } from "../config/socials-settings.service.js";
 import { TelegramService } from "../notifications/telegram.service.js";
 import { DiscoveredTweetRepo } from "../platforms/twitter/roamer/discovered-tweet.repo.js";
 import { RoamStateRepo } from "../platforms/twitter/roamer/roam-state.repo.js";
+import { TwitterConversationService } from "../platforms/twitter/roamer/twitter-conversation.service.js";
 import {
   ReplyQueueService,
   type OriginalTweetSnapshot,
 } from "../reply-queue/reply-queue.service.js";
-import { AgentService } from "./agent.service.js";
+import { AgentService, type ThreadContextInput } from "./agent.service.js";
 import { SafetyFilter } from "./safety-filter.js";
 
 const VALID_DOMAINS = ["budget", "corruption", "faac", "govspend", "general"] as const;
@@ -50,6 +52,8 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
     private readonly safety: SafetyFilter,
     private readonly queue: ReplyQueueService,
     private readonly telegram: TelegramService,
+    private readonly settings: SocialsSettingsService,
+    private readonly conversation: TwitterConversationService,
   ) {
     this.intervalMs = config.get("SOCIALS_DRAFTER_INTERVAL_MS")!;
     this.backlogCap = config.get("SOCIALS_DRAFTER_BACKLOG_CAP")!;
@@ -125,6 +129,9 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       ? (topic.domain as ValidDomain)
       : "general";
 
+    const threadContext = await this.buildThreadContext(tweet);
+    const inbound = await this.buildInboundContext(tweet);
+
     const result = await this.agent.generate(
       {
         discoveredTweet: {
@@ -152,6 +159,8 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
           intent: passing.intent,
           reason: passing.reason,
         },
+        threadContext,
+        inbound,
       },
       this.toolExecutor.bind(this),
     );
@@ -186,7 +195,29 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // Inbound engagement must never retweet someone who replied to us (a
+    // retweet has no text, so it can't be coerced to a reply) — suppress it.
+    if (tweet.source !== "roam" && result.action === "retweet") {
+      await this.tweets.setDraftStatus(tweet.id, "skipped", {
+        draftError: "inbound retweet suppressed",
+      });
+      return;
+    }
+
     const safety = this.safety.check(result.text, result.toolResults);
+
+    // Hard gate: an ungrounded comparison (e.g. a fabricated year-over-year
+    // "drop" the tool data can't support) must never reach the queue. Skip it
+    // with the reason recorded instead of publishing a false claim.
+    if (safety.blocked) {
+      this.logger.warn(
+        `blocked draft for tweet=${tweet.id} topic="${topic.name}": ${safety.blockReasons.join("; ")}`,
+      );
+      await this.tweets.setDraftStatus(tweet.id, "skipped", {
+        draftError: `safety block: ${safety.blockReasons.join("; ")}`,
+      });
+      return;
+    }
 
     const snapshot: OriginalTweetSnapshot = {
       id: tweet.id,
@@ -205,8 +236,15 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       tweetCreatedAt: tweet.tweetCreatedAt.toISOString(),
     };
 
-    await this.queue.createDraft({
-      action: result.action,
+    // Safety net for inbound: the prompt already forbids quote, but coerce a
+    // quote to a reply so we never quote-tweet someone who just replied to us.
+    const action =
+      tweet.source !== "roam" && result.action === "quote"
+        ? "reply"
+        : result.action;
+
+    const draft = await this.queue.createDraft({
+      action,
       originalTweet: snapshot,
       content: result.text,
       agentConfidence: result.confidence,
@@ -218,13 +256,112 @@ export class DrafterService implements OnModuleInit, OnModuleDestroy {
       dataQuery: result.dataQuery,
       triggerTopic: topic.name,
       discoveredTweetId: tweet.id,
+      source: tweet.source,
     });
 
     await this.tweets.setDraftStatus(tweet.id, "drafted");
 
     this.logger.log(
-      `drafted ${result.action} for tweet=${tweet.id} topic="${topic.name}" cost=$${result.costUsd.toFixed(4)} (daily=$${this.dailyCost.toFixed(2)})`,
+      `drafted ${action} (source=${tweet.source}) for tweet=${tweet.id} topic="${topic.name}" cost=$${result.costUsd.toFixed(4)} (daily=$${this.dailyCost.toFixed(2)})`,
     );
+
+    await this.maybeAutoPublish(draft);
+  }
+
+  /**
+   * Zero-touch posting: when the `socials.auto_publish` setting is on (toggled
+   * from the dashboard, read live from the DB — no redeploy), publish drafts
+   * the agent rated "recommended" (confidence ≥ 0.8 and zero safety warnings)
+   * immediately via the API — no dashboard click. Reply/quote that X blocks
+   * fall back to a quote-by-URL inside the publisher, so this works on the
+   * reply-restricted account. Failures are logged, never thrown (the drafter
+   * loop must keep running). Default off → existing manual-review behavior.
+   */
+  private async maybeAutoPublish(draft: {
+    id: string;
+    reviewStatus: string | null;
+    postType: string;
+    source?: string | null;
+  }): Promise<void> {
+    if (draft.reviewStatus !== "recommended") return;
+    // Inbound drafts (replies to us / mentions) are gated on the SEPARATE
+    // auto_publish_inbound flag (default off) — they stay human-reviewed even
+    // when general roamed-draft auto-publish is on.
+    const isInbound = !!draft.source && draft.source !== "roam";
+    const allowed = isInbound
+      ? await this.settings.getAutoPublishInbound()
+      : await this.settings.getAutoPublish();
+    if (!allowed) return;
+    try {
+      await this.queue.approve(draft.id, "auto");
+      this.logger.log(`auto-published ${draft.postType} draft=${draft.id}`);
+    } catch (e) {
+      this.logger.warn(
+        `auto-publish failed for draft=${draft.id}: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
+  /**
+   * Best-effort thread context: the ancestor chain above a reply (so the agent
+   * responds to the thread, not the lone tweet) plus the quoted tweet's text for
+   * a quote tweet. Never blocks the tick — if no capable session is free or X
+   * refuses, `fetchThread` returns null and we draft without context.
+   */
+  private async buildThreadContext(tweet: {
+    id: string;
+    isReply: boolean;
+    isQuote: boolean;
+    inReplyToTweetId: string | null;
+    quotedText: string | null;
+    quotedAuthorHandle: string | null;
+  }): Promise<ThreadContextInput | undefined> {
+    let ctx: ThreadContextInput | undefined;
+    if (tweet.isReply && tweet.inReplyToTweetId) {
+      const thread = await this.conversation.fetchThread(tweet.id);
+      if (thread?.ancestors.length) {
+        ctx = {
+          ancestors: thread.ancestors.map((a) => ({
+            authorHandle: a.authorScreenName,
+            text: a.text,
+          })),
+        };
+      }
+    }
+    if (tweet.isQuote && tweet.quotedText) {
+      ctx = {
+        ancestors: ctx?.ancestors ?? [],
+        quoted: {
+          authorHandle: tweet.quotedAuthorHandle ?? "",
+          text: tweet.quotedText,
+        },
+      };
+    }
+    return ctx;
+  }
+
+  /**
+   * Inbound framing for the agent: whether this is a reply under our post or a
+   * mention, plus our original post's text (loaded by the reply's ourPostId) so
+   * the agent sees what they engaged with. Undefined for roamed tweets.
+   */
+  private async buildInboundContext(tweet: {
+    source: string;
+    ourPostId: string | null;
+  }): Promise<
+    { kind: "inbound_reply" | "mention"; ourPostText?: string } | undefined
+  > {
+    if (tweet.source === "roam") return undefined;
+    const kind = tweet.source === "mention" ? "mention" : "inbound_reply";
+    let ourPostText: string | undefined;
+    if (tweet.ourPostId) {
+      const ourPost = await this.prisma.socialPost.findFirst({
+        where: { externalId: tweet.ourPostId },
+        select: { content: true },
+      });
+      ourPostText = ourPost?.content ?? undefined;
+    }
+    return { kind, ourPostText };
   }
 
   private async toolExecutor(

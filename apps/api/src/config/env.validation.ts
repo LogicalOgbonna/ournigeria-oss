@@ -22,6 +22,15 @@ export interface EnvConfig {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   S3_BUCKET: string;
+  /** CloudFront (or other CDN) base URL for stored images. Falls back to direct S3 when unset. */
+  CDN_BASE_URL?: string;
+  /** OKF knowledge-bundle publishing (see apps/api/src/okf). All optional. */
+  OKF_SNAPSHOT_BASE_URL?: string; // public base for archived snapshots (defaults to CDN_BASE_URL)
+  OKF_WEB_BASE_URL?: string; // canonical site base for `resource` links
+  OKF_GIT_REPO?: string; // owner/name (SSH) or host/owner/name (token)
+  OKF_GIT_SSH_KEY?: string; // private deploy key (preferred auth)
+  OKF_GIT_TOKEN?: string; // fine-grained PAT scoped to the mirror repo (fallback)
+  OKF_PUBLISH_ENABLED?: string; // "1" to allow publishing
   ADMIN_SESSION_SECRET: string;
   LANGFUSE_PUBLIC_KEY?: string;
   LANGFUSE_SECRET_KEY?: string;
@@ -39,9 +48,6 @@ export interface EnvConfig {
   FLUTTERWAVE_SECRET_KEY?: string;
   FLUTTERWAVE_PUBLIC_KEY?: string;
   FLUTTERWAVE_SECRET_HASH?: string;
-  NEO4J_URI?: string;
-  NEO4J_USER?: string;
-  NEO4J_PASSWORD?: string;
 }
 
 const REQUIRED_VARS: (keyof EnvConfig)[] = [
@@ -109,6 +115,13 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     AWS_ACCESS_KEY_ID: config.AWS_ACCESS_KEY_ID as string,
     AWS_SECRET_ACCESS_KEY: config.AWS_SECRET_ACCESS_KEY as string,
     S3_BUCKET: config.S3_BUCKET as string,
+    CDN_BASE_URL: (config.CDN_BASE_URL as string) || undefined,
+    OKF_SNAPSHOT_BASE_URL: (config.OKF_SNAPSHOT_BASE_URL as string) || undefined,
+    OKF_WEB_BASE_URL: (config.OKF_WEB_BASE_URL as string) || undefined,
+    OKF_GIT_REPO: (config.OKF_GIT_REPO as string) || undefined,
+    OKF_GIT_SSH_KEY: (config.OKF_GIT_SSH_KEY as string) || undefined,
+    OKF_GIT_TOKEN: (config.OKF_GIT_TOKEN as string) || undefined,
+    OKF_PUBLISH_ENABLED: (config.OKF_PUBLISH_ENABLED as string) || undefined,
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
     LANGFUSE_PUBLIC_KEY: (config.LANGFUSE_PUBLIC_KEY as string) || undefined,
     LANGFUSE_SECRET_KEY: (config.LANGFUSE_SECRET_KEY as string) || undefined,
@@ -126,8 +139,5 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     FLUTTERWAVE_SECRET_KEY: (config.FLUTTERWAVE_SECRET_KEY as string) || undefined,
     FLUTTERWAVE_PUBLIC_KEY: (config.FLUTTERWAVE_PUBLIC_KEY as string) || undefined,
     FLUTTERWAVE_SECRET_HASH: (config.FLUTTERWAVE_SECRET_HASH as string) || undefined,
-    NEO4J_URI: (config.NEO4J_URI as string) || undefined,
-    NEO4J_USER: (config.NEO4J_USER as string) || undefined,
-    NEO4J_PASSWORD: (config.NEO4J_PASSWORD as string) || undefined,
   };
 }

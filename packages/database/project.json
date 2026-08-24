@@ -5,6 +5,7 @@
   "targets": {
     "build": {
       "command": "prisma generate && tsc",
+      "cache": false,
       "options": {
         "cwd": "packages/database"
       }
@@ -16,13 +17,13 @@
       }
     },
     "prisma:migrate": {
-      "command": "infisical run -- prisma migrate deploy",
+      "command": "infisical run --path /api -- prisma migrate deploy",
       "options": {
         "cwd": "packages/database"
       }
     },
     "prisma:studio": {
-      "command": "infisical run -- prisma studio",
+      "command": "infisical run --path /api -- prisma studio",
       "options": {
         "cwd": "packages/database"
       }

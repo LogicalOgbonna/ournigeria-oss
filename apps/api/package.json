@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "infisical run --env dev --watch -- nest start",
+    "dev": "infisical run --env dev --path /api --watch -- nest start",
     "build": "nest build",
-    "start": "infisical run --env prod -- nest start",
-    "start:prod": "infisical run --env prod -- node dist/main",
+    "start": "infisical run --env prod --path /api -- nest start",
+    "start:prod": "infisical run --env prod --path /api -- node dist/main",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -16,6 +16,7 @@
     "@ai-sdk/provider": "catalog:",
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-ses": "^3.1030.0",
+    "@aws-sdk/lib-storage": "3.999.0",
     "@aws-sdk/s3-request-presigner": "3.999.0",
     "@mastra/core": "1.6.0",
     "@mastra/langfuse": "1.0.3",
@@ -32,6 +33,7 @@
     "@opentelemetry/sdk-node": "0.212.0",
     "@ournigeria/cache": "workspace:*",
     "@ournigeria/database": "workspace:*",
+    "@ournigeria/official-records": "workspace:*",
     "@ournigeria/shared-types": "workspace:*",
     "@ournigeria/tools": "workspace:*",
     "@tavily/core": "0.7.1",
@@ -43,8 +45,11 @@
     "langfuse": "3.38.6",
     "langfuse-vercel": "3.38.6",
     "opossum": "catalog:",
+    "pdf-parse": "2.4.5",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "sharp": "^0.34.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "catalog:"
   },
   "devDependencies": {

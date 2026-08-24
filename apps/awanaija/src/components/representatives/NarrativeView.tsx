@@ -3,6 +3,7 @@
 import type { ChainEntry } from "@/lib/api";
 import { NarrativeOfficialCard } from "./OfficialCard";
 import { StatBlock } from "./StatBlock";
+import { Show } from "@/components/ui/Show";
 
 interface LocationInfo {
   stateCode: string;
@@ -119,18 +120,19 @@ export function NarrativeView({
 
         <p>
           The closest government official to you is your Ward Councilor.{" "}
-          {councilorName ? (
+          <Show when={!!councilorName}>
             <>
               <strong className="text-emerald-700 dark:text-emerald-400">{councilorName}</strong> sits
               in the local council and is your first point of contact for everything that
               happens on the ground in {ward}.
             </>
-          ) : (
+          </Show>
+          <Show when={!councilorName}>
             <>
               This person sits in the local council and is your first point of contact for
               everything that happens on the ground in {ward}.
             </>
-          )}
+          </Show>
         </p>
 
         {/* Councilor Card */}
@@ -148,20 +150,21 @@ export function NarrativeView({
         <p>
           While your councilor advocates for your ward, the actual budget for{" "}
           {lga} LGA is managed by{" "}
-          {chairmanName ? (
+          <Show when={!!chairmanName}>
             <>
               your LGA Chairman,{" "}
               <strong className="text-emerald-700 dark:text-emerald-400">{chairmanName}</strong>.
               The Chairman is the chief executive of the entire local government and
               decides how public money is allocated across all wards.
             </>
-          ) : (
+          </Show>
+          <Show when={!chairmanName}>
             <>
               your LGA Chairman. The Chairman is the chief executive of the
               entire local government and decides how public money is allocated
               across all wards.
             </>
-          )}
+          </Show>
         </p>
 
         {/* Chairman Card */}
@@ -176,7 +179,7 @@ export function NarrativeView({
         )}
 
         {/* LGA Financial Context */}
-        {lgaFaac ? (
+        <Show when={!!lgaFaac}>
           <p>
             This year, {lga} LGA has received{" "}
             <strong className="text-emerald-700 dark:text-emerald-400">{lgaFaac}</strong>{" "}
@@ -186,13 +189,14 @@ export function NarrativeView({
             manage waste, and fund primary education across all wards,
             including {ward}.
           </p>
-        ) : (
+        </Show>
+        <Show when={!lgaFaac}>
           <p>
             The LGA receives federal allocations (FAAC) that are used to
             maintain local roads, manage waste, and fund primary education
             across all wards, including {ward}.
           </p>
-        )}
+        </Show>
 
         {/* LGA Stats */}
         <StatBlock
@@ -232,13 +236,14 @@ export function NarrativeView({
         )}
 
         {/* State Financial Context */}
-        {(stateBudget || stateFaac || stateIgr) && (
+        <Show when={!!(stateBudget || stateFaac || stateIgr)}>
           <p>
-            {governorName ? (
+            <Show when={!!governorName}>
               <>{governorName} manages</>
-            ) : (
+            </Show>
+            <Show when={!governorName}>
               <>The Governor manages</>
-            )}{" "}
+            </Show>{" "}
             {stateBudget && (
               <>
                 a <strong className="text-emerald-700 dark:text-emerald-400">{stateBudget}</strong> budget
@@ -273,7 +278,7 @@ export function NarrativeView({
               </>
             )}
           </p>
-        )}
+        </Show>
 
         {/* State Stats */}
         <StatBlock
@@ -290,20 +295,21 @@ export function NarrativeView({
         <p>
           But the Governor doesn&apos;t spend all that money unchecked. The{" "}
           {state} State House of Assembly provides legislative oversight.{" "}
-          {mhaName ? (
+          <Show when={!!mhaName}>
             <>
               <strong className="text-emerald-700 dark:text-emerald-400">{mhaName}</strong>{" "}
               represents {lga} in the State House of Assembly, ensuring
               that the LGA&apos;s interests are protected and providing legislative
               oversight over how the state budget is spent.
             </>
-          ) : (
+          </Show>
+          <Show when={!mhaName}>
             <>
               Your representative in that House is responsible for scrutinizing
               the Governor&apos;s budget, making state laws, and ensuring{" "}
               {lga}&apos;s interests are protected at the state level.
             </>
-          )}
+          </Show>
         </p>
 
         {/* MHA Card */}
@@ -332,19 +338,20 @@ export function NarrativeView({
               Abuja.
             </>
           )}{" "}
-          {horName ? (
+          <Show when={!!horName}>
             <>
               <strong className="text-emerald-700 dark:text-emerald-400">{horName}</strong>&apos;s
               job is to attract federal projects back to {lga}, vote on the
               national budget, and make federal laws that affect you.
             </>
-          ) : (
+          </Show>
+          <Show when={!horName}>
             <>
               This person&apos;s job is to attract federal projects back to{" "}
               {lga}, vote on the national budget, and make federal laws that
               affect you.
             </>
-          )}
+          </Show>
         </p>
 
         {/* HoR Card */}
@@ -369,7 +376,7 @@ export function NarrativeView({
           ) : (
             <>{state} has senators representing you in the upper chamber.</>
           )}{" "}
-          {senatorName ? (
+          <Show when={!!senatorName}>
             <>
               <strong className="text-emerald-700 dark:text-emerald-400">{senatorName}</strong>{" "}
               sits in the Senate—the upper chamber of the National Assembly.
@@ -377,14 +384,15 @@ export function NarrativeView({
               legislation, and represent the broader interests of your
               senatorial district at the highest level of government.
             </>
-          ) : (
+          </Show>
+          <Show when={!senatorName}>
             <>
               Your Senator sits in the upper chamber of the National Assembly,
               confirming ministerial appointments, voting on national legislation,
               and representing the broader interests of your senatorial district
               at the highest level of government.
             </>
-          )}
+          </Show>
         </p>
 
         {/* Senator Card */}

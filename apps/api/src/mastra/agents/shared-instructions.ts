@@ -2,6 +2,31 @@
  * Shared instruction constants appended to all agent system prompts.
  */
 
+import { getCurrentYear } from "../../lib/constants";
+
+/**
+ * Temporal grounding appended to every agent prompt so relative phrases
+ * ("last year", "recent") resolve against the real calendar instead of the
+ * model's training cutoff (issues #26/#28). Interpolated at module load, so
+ * it deliberately carries only year-precision claims — the exact date comes
+ * from the fresh per-message stamp the router injects, and the rule-based
+ * resolver in query-analysis is the deterministic backstop.
+ */
+export const TEMPORAL_CONTEXT = `
+
+## Temporal Context
+The current year is ${getCurrentYear()}. The exact current date is stamped on each user message.
+When users say "last year" they mean ${getCurrentYear() - 1}, "this year" means ${getCurrentYear()}, and "recent" means the last 1-2 years.
+Our data covers 2019 to ${getCurrentYear()}. NEVER infer the current year from your training data.
+`;
+
+/**
+ * Max agentic steps per specialist run. Router passes this as maxSteps;
+ * agent prompts interpolate it so the stated budget never drifts from the
+ * enforced one (issue #23).
+ */
+export const AGENT_MAX_STEPS = 25;
+
 export const CITATION_INSTRUCTIONS = `
 
 ## Inline Citations

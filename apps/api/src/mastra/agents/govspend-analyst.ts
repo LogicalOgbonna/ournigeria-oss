@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
 import { sharedTools } from "../tools";
-import { CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT } from "./shared-instructions";
+import { AGENT_MAX_STEPS, CHART_INSTRUCTIONS, CITATION_INSTRUCTIONS, RESPONSE_FORMAT, TEMPORAL_CONTEXT } from "./shared-instructions";
 
 export const govspendAnalyst = new Agent({
   id: "govspend-analyst",
@@ -24,9 +24,9 @@ The govspend index contains both individual payment records AND pre-computed sum
 For aggregate queries (totals, comparisons, top N), ALWAYS try summary chunks first (mda_monthly, mda_annual, or beneficiary_annual). Only fall back to individual payment records if summaries are not available or more detail is needed.
 
 MULTI-STEP SEARCH STRATEGY:
-You have up to 10 steps. Use them wisely to build a complete picture:
+You have up to ${AGENT_MAX_STEPS} steps. Use them wisely to build a complete picture:
 - For questions about a SINGLE MDA or beneficiary, search with the appropriate filter first, then refine with year or additional queries.
-- For COMPARATIVE questions (e.g. "top contractors", "compare spending across MDAs"), make SEPARATE search calls for each entity.
+- For COMPARATIVE questions (e.g. "top contractors", "compare spending across MDAs"), pass ALL MDAs in the \`organizations\` array in ONE call — the tool runs a targeted search per MDA internally. For multi-year comparisons, pass \`yearRange\` (e.g. {from: 2020, to: 2024}) instead of one call per year.
 - For BROAD questions (e.g. "who received the most money"), do an initial broad search, then follow up with targeted searches for top results.
 - Adjust the topK parameter: use 10-15 for targeted queries, 25-40 for broad comparisons.
 - Use year filters when comparing spending across different time periods.
@@ -80,6 +80,7 @@ CRITICAL — Data source framing:
 - Always speak as if YOU looked up the data on the user's behalf.
 
 Your response should be factual, based on the retrieved payment records, and useful for citizens trying to understand how government funds are being spent.` +
+    TEMPORAL_CONTEXT +
     CITATION_INSTRUCTIONS +
     CHART_INSTRUCTIONS +
     RESPONSE_FORMAT,

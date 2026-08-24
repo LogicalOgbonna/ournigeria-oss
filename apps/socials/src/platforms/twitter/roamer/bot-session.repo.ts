@@ -107,7 +107,15 @@ export class BotSessionRepo {
     });
   }
 
-  async upsertByUserNamePath(input: {
+  /**
+   * Persist a captured session. Distinguishes two intents so a routine
+   * freshness capture never yanks the roamer's rate-limit state:
+   *   - new row / auth_failed row  -> REVIVE (reset status, cooldown, errors)
+   *   - idle / working row         -> MATERIAL REFRESH (credentials + op-hashes
+   *                                    only; leave status/cooldown/errors intact)
+   * Op-hashes stay preserve-on-partial: only the hash actually carried is written.
+   */
+  async saveCapture(input: {
     userName: string;
     path: string;
     cookie: string;
@@ -115,22 +123,171 @@ export class BotSessionRepo {
     authorization: string;
     xClientTransactionId: string;
     xClientUuid: string;
-    searchTimelineOpHash: string;
-  }) {
+    searchTimelineOpHash?: string | null;
+    tweetDetailOpHash?: string | null;
+    createTweetOpHash?: string | null;
+    userTweetsOpHash?: string | null;
+  }): Promise<SocialsBotSession> {
     const now = new Date();
-    const data = {
+    const material: Prisma.SocialsBotSessionUpdateInput = {
       cookie: input.cookie,
       csrfToken: input.csrfToken,
       authorization: input.authorization,
       xClientTransactionId: input.xClientTransactionId,
       xClientUuid: input.xClientUuid,
-      searchTimelineOpHash: input.searchTimelineOpHash,
       lastUsedAt: now,
+      ...(input.searchTimelineOpHash
+        ? { searchTimelineOpHash: input.searchTimelineOpHash }
+        : {}),
+      ...(input.tweetDetailOpHash
+        ? { tweetDetailOpHash: input.tweetDetailOpHash }
+        : {}),
+      ...(input.createTweetOpHash
+        ? { createTweetOpHash: input.createTweetOpHash }
+        : {}),
+      ...(input.userTweetsOpHash
+        ? { userTweetsOpHash: input.userTweetsOpHash }
+        : {}),
     };
-    return this.prisma.socialsBotSession.upsert({
+
+    const existing = await this.prisma.socialsBotSession.findUnique({
       where: { userName_path: { userName: input.userName, path: input.path } },
-      create: { ...data, userName: input.userName, path: input.path },
-      update: data,
+    });
+
+    if (!existing) {
+      return this.prisma.socialsBotSession.create({
+        data: {
+          userName: input.userName,
+          path: input.path,
+          cookie: input.cookie,
+          csrfToken: input.csrfToken,
+          authorization: input.authorization,
+          xClientTransactionId: input.xClientTransactionId,
+          xClientUuid: input.xClientUuid,
+          lastUsedAt: now,
+          searchTimelineOpHash: input.searchTimelineOpHash ?? null,
+          tweetDetailOpHash: input.tweetDetailOpHash ?? null,
+          createTweetOpHash: input.createTweetOpHash ?? null,
+          userTweetsOpHash: input.userTweetsOpHash ?? null,
+          status: "idle",
+          consecutiveErrors: 0,
+          cooldownUntil: null,
+          lastError: null,
+        },
+      });
+    }
+
+    if (existing.status === "auth_failed") {
+      return this.prisma.socialsBotSession.update({
+        where: { id: existing.id },
+        data: {
+          ...material,
+          status: "idle",
+          consecutiveErrors: 0,
+          cooldownUntil: null,
+          lastError: null,
+        },
+      });
+    }
+
+    // idle | working -> material refresh only; preserve pacing.
+    return this.prisma.socialsBotSession.update({
+      where: { id: existing.id },
+      data: material,
+    });
+  }
+
+  /**
+   * How many sessions carry a TweetDetail op-hash — i.e. can serve conversation
+   * reads (thread context + reply inbox). Zero means those features no-op until
+   * an operator re-captures with the updated extension.
+   */
+  async countWithTweetDetailHash(): Promise<number> {
+    return this.prisma.socialsBotSession.count({
+      where: { tweetDetailOpHash: { not: null } },
+    });
+  }
+
+  /**
+   * Pick a session for a light, one-shot conversation read (TweetDetail).
+   *
+   * Deliberately NOT `claimRandomIdle`: that flips a session to `working` for
+   * the roamer's 300s pagination window. Here we only READ one tweet, so we take
+   * a session WITHOUT locking it — and only an `idle` one, never a `working`
+   * session the roamer is actively paginating on (protects its rate budget; a
+   * 429 there = a 30-min roam cooldown). Respects the separate
+   * `tweetDetailCooldownUntil` backoff, ignores the roamer's `cooldownUntil`
+   * (that's SearchTimeline pacing, not an X-side limit on a single read).
+   *
+   * Returns null when nothing suitable is free — callers MUST degrade (draft
+   * without thread context / skip the inbox cycle), never block.
+   */
+  async pickForRead(opts?: {
+    op?: "tweetDetail" | "search";
+  }): Promise<SocialsBotSession | null> {
+    const op = opts?.op ?? "tweetDetail";
+    const now = new Date();
+    return this.prisma.socialsBotSession.findFirst({
+      where: {
+        status: "idle",
+        ...(op === "tweetDetail"
+          ? { tweetDetailOpHash: { not: null } }
+          : { searchTimelineOpHash: { not: null } }),
+        // tweetDetailCooldownUntil doubles as the generic read backoff for both
+        // op types (a 429 on either should pause light reads on that session).
+        OR: [
+          { tweetDetailCooldownUntil: null },
+          { tweetDetailCooldownUntil: { lt: now } },
+        ],
+      },
+      orderBy: { lastUsedAt: "asc" },
+    });
+  }
+
+  /** An idle/working session for a SPECIFIC handle carrying a UserTweets hash,
+   * taken WITHOUT locking or touching pacing state — for reconciliation reads. */
+  async pickForReadByHandle(userName: string): Promise<SocialsBotSession | null> {
+    return this.prisma.socialsBotSession.findFirst({
+      where: {
+        userName: { equals: userName, mode: "insensitive" },
+        status: { in: ["idle", "working"] },
+        userTweetsOpHash: { not: null },
+      },
+      orderBy: { lastUsedAt: "asc" },
+    });
+  }
+
+  /**
+   * Free sessions stuck in `working` past a crash. The roamer flips a session to
+   * `working` for one window (≤ ROAM_WINDOW_MS ≈ 300s); if the process dies
+   * mid-window the row never returns to `idle` and becomes permanently
+   * unclaimable. maxAgeMs must exceed a legit roam window so we only reap truly
+   * stuck rows. Returns how many were reaped.
+   */
+  async reapStuckWorking(maxAgeMs: number): Promise<number> {
+    const cutoff = new Date(Date.now() - maxAgeMs);
+    const res = await this.prisma.socialsBotSession.updateMany({
+      where: { status: "working", startedWorkingAt: { lt: cutoff } },
+      data: { status: "idle", stoppedWorkingAt: new Date() },
+    });
+    return res.count;
+  }
+
+  /** Back off TweetDetail reads on a session after a 429, without touching its
+   * roam status/cooldown. */
+  async markTweetDetailRateLimited(sessionId: string, cooldownMs: number) {
+    return this.prisma.socialsBotSession.update({
+      where: { id: sessionId },
+      data: { tweetDetailCooldownUntil: new Date(Date.now() + cooldownMs) },
+    });
+  }
+
+  /** Clear only the TweetDetail op-hash (stale/404) — leaves the SearchTimeline
+   * hash and the session otherwise intact so roaming continues. */
+  async clearTweetDetailOpHash(sessionId: string) {
+    return this.prisma.socialsBotSession.update({
+      where: { id: sessionId },
+      data: { tweetDetailOpHash: null },
     });
   }
 
@@ -138,6 +295,25 @@ export class BotSessionRepo {
     return this.prisma.socialsBotSession.update({
       where: { id: sessionId },
       data: { searchTimelineOpHash: null },
+    });
+  }
+
+  /**
+   * Sessions eligible for a proactive health probe: `idle`, carrying a
+   * SearchTimeline hash, and past any cooldown. Deliberately excludes
+   * `auth_failed` (already known dead — probing again just wastes a request and
+   * re-alerts) and `working` (the roamer is mid-window on it; a probe would
+   * steal its SearchTimeline rate budget and risk a 429 that stalls roaming).
+   */
+  async listHealthProbeable(): Promise<SocialsBotSession[]> {
+    const now = new Date();
+    return this.prisma.socialsBotSession.findMany({
+      where: {
+        status: "idle",
+        searchTimelineOpHash: { not: null },
+        OR: [{ cooldownUntil: null }, { cooldownUntil: { lt: now } }],
+      },
+      orderBy: { lastUsedAt: "asc" },
     });
   }
 
@@ -164,6 +340,34 @@ export class BotSessionRepo {
     return this.prisma.socialsBotSession.findMany({
       orderBy: { lastUsedAt: "desc" },
     });
+  }
+
+  /**
+   * Slim, secrets-stripped per-session health for the capture extension.
+   * `needsRelogin` keys ONLY on auth_failed (never consecutiveErrors, which
+   * counts 429s too); `needsSearchHash` flags a missing/rotated search hash.
+   */
+  async healthFor(handles?: string[]) {
+    const rows = await this.prisma.socialsBotSession.findMany({
+      orderBy: { lastUsedAt: "desc" },
+    });
+    const wanted = handles?.length
+      ? new Set(handles.map((h) => h.toLowerCase()))
+      : null;
+    return rows
+      .filter((r) => !wanted || wanted.has(r.userName.toLowerCase()))
+      .map((r) => ({
+        userName: r.userName,
+        path: r.path,
+        status: r.status,
+        consecutiveErrors: r.consecutiveErrors,
+        cooldownUntil: r.cooldownUntil,
+        needsRelogin: r.status === "auth_failed",
+        needsSearchHash: !r.searchTimelineOpHash,
+        hasTweetDetailHash: !!r.tweetDetailOpHash,
+        hasCreateTweetHash: !!r.createTweetOpHash,
+        hasUserTweetsHash: !!r.userTweetsOpHash,
+      }));
   }
 
   async delete(id: string) {

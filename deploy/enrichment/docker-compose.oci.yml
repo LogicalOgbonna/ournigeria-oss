@@ -1,0 +1,34 @@
+# OCI prod override for the enrichment sibling stack.
+#
+# Differences vs the dev compose (docker-compose.yml):
+#   1. DB network is the prod stack's external `ournigeria_internal` (DB resolves as
+#      `ournigeria_prod_db` / `postgres`), not dev `spending_default`.
+#   2. Images are PULLED from GHCR, not built on the box:
+#        - agent  : ournigeria-enrichment-agent:${IMAGE_TAG}  (CI builds on prod pushes)
+#        - camofox : ournigeria-enrichment-camofox:latest      (built once, pinned)
+#      The `build:` keys from the base compose are ignored because deploy.sh runs
+#      `docker compose ... up -d` WITHOUT `--build` (compose uses the `image:` ref,
+#      pulling if absent). IMAGE_TAG is exported by deploy.sh.
+#
+# Run (deploy.sh does this automatically on prod; manual bootstrap does it once):
+#   infisical run --env prod --path /enrichment -- \
+#     docker compose -f deploy/enrichment/docker-compose.yml \
+#                    -f deploy/enrichment/docker-compose.oci.yml up -d camofox agent
+services:
+  camofox:
+    image: ghcr.io/logicalogbonna/ournigeria-enrichment-camofox:latest
+    pull_policy: missing   # pinned, build-once image — don't re-pull every deploy
+    # Firefox needs a large /dev/shm; Docker's default 64M crashes tabs under load.
+    # Upstream's `make up` uses --shm-size=2g; mirror it here.
+    shm_size: 2gb
+
+  agent:
+    image: ghcr.io/logicalogbonna/ournigeria-enrichment-agent:${IMAGE_TAG:-latest}
+
+  sweeper:
+    image: ghcr.io/logicalogbonna/ournigeria-enrichment-agent:${IMAGE_TAG:-latest}
+
+networks:
+  devdb:
+    external: true
+    name: ournigeria_internal

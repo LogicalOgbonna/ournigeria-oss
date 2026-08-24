@@ -28,6 +28,7 @@ import {
   Download,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { formatDateTimeFull } from "@/lib/format";
 
 interface Attachment {
   id: string;
@@ -74,16 +75,6 @@ const statusColors: Record<string, string> = {
   archived:
     "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500",
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -206,7 +197,7 @@ export default function FeedbackDetailPage() {
                 {feedback.category.replace("_", " ")}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {formatDate(feedback.createdAt)}
+                {formatDateTimeFull(feedback.createdAt)}
               </span>
             </div>
           </div>

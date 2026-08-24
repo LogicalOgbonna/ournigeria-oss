@@ -8,12 +8,16 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy workspace root config
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
+# Copy workspace root config (tsconfig.base.json needed: cache/tools tsconfigs extend it)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json tsconfig.base.json ./
 
 # Copy only the workspace package.json needed
+# socials depends on @ournigeria/{database,content,tools}; tools depends on @ournigeria/cache.
 COPY apps/socials/package.json apps/socials/package.json
 COPY packages/database/package.json packages/database/package.json
+COPY packages/content/package.json packages/content/package.json
+COPY packages/tools/package.json packages/tools/package.json
+COPY packages/cache/package.json packages/cache/package.json
 
 # Hoisted layout + install only socials workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -24,8 +28,13 @@ FROM deps AS build
 
 COPY apps/socials/ apps/socials/
 COPY packages/database/ packages/database/
+COPY packages/content/ packages/content/
+COPY packages/tools/ packages/tools/
+COPY packages/cache/ packages/cache/
 
 RUN pnpm --filter @ournigeria/database run build \
+ && pnpm --filter @ournigeria/cache run build \
+ && pnpm --filter @ournigeria/tools run build \
  && pnpm --filter @ournigeria/socials exec nest build
 
 # -- Stage 3: Prune to production deps only --
@@ -69,10 +78,21 @@ COPY --from=build /app/node_modules/@prisma/client/ node_modules/@prisma/client/
 COPY --from=build /app/apps/socials/dist/ dist/
 COPY --from=build /app/packages/database/dist/ packages/database/dist/
 COPY --from=build /app/packages/database/package.json packages/database/package.json
+COPY --from=build /app/packages/cache/dist/ packages/cache/dist/
+COPY --from=build /app/packages/cache/package.json packages/cache/package.json
+COPY --from=build /app/packages/tools/dist/ packages/tools/dist/
+COPY --from=build /app/packages/tools/package.json packages/tools/package.json
+# content has no JS build (exports raw .ts); ship source so @ournigeria/content resolves.
+# Its only runtime use (FAAC image render) is a try/catch'd dynamic import that degrades
+# to null if it can't load — core drafting/roamer/publish do not depend on it.
+COPY --from=build /app/packages/content/ packages/content/
 
-# Link workspace packages
+# Link workspace packages so Node can resolve @ournigeria/*
 RUN mkdir -p node_modules/@ournigeria && \
-    ln -s /app/packages/database node_modules/@ournigeria/database
+    ln -s /app/packages/database node_modules/@ournigeria/database && \
+    ln -s /app/packages/cache node_modules/@ournigeria/cache && \
+    ln -s /app/packages/tools node_modules/@ournigeria/tools && \
+    ln -s /app/packages/content node_modules/@ournigeria/content
 
 # Copy Infisical config
 COPY apps/socials/.infisical.json .infisical.json
@@ -85,4 +105,9 @@ USER appuser
 
 STOPSIGNAL SIGTERM
 
-CMD ["node", "dist/main"]
+# Mirror api/ingest: wrap with Infisical so prod secrets (ROAMER_INGEST_KEY,
+# DEEPSEEK_API_KEY, X OAuth tokens, SOCIALS_CORS_ORIGINS, …) are injected at runtime.
+# Socials secrets live under the /socials path (see apps/socials/package.json scripts).
+# Exec/JSON form so SIGTERM reaches PID 1. sh -c gives us ${INFISICAL_ENV}
+# expansion; exec replaces the shell with infisical (which forwards signals to node).
+CMD ["sh", "-c", "exec infisical run --env \"${INFISICAL_ENV:-prod}\" --path /socials -- node dist/main"]

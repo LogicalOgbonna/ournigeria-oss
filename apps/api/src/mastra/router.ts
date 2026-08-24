@@ -22,8 +22,10 @@ import { tracingMetadata, getPrompt } from "../lib/langfuse";
 import { cache as cacheManager } from "@ournigeria/cache";
 import { extractStateName, analyzeQueryComplexity } from "./rag/query-analysis";
 import { getOfficials } from "./tools/metadata";
+import { AGENT_MAX_STEPS } from "./agents/shared-instructions";
+import { getCurrentYear } from "../lib/constants";
 
-const MAX_STEPS = 25;
+const MAX_STEPS = AGENT_MAX_STEPS;
 
 const intentCache = cacheManager.namespace("intent");
 
@@ -256,36 +258,6 @@ const IMPACT_KEYWORDS = [
 
 // Cross-domain detection removed in Phase 2 — agents now have access
 // to all search tools and handle cross-domain queries autonomously.
-
-const GRAPH_SIGNAL_KEYWORDS = [
-  "connected to",
-  "linked to",
-  "which officials",
-  "follow the money",
-  "all states that",
-  "who",
-  "compare across",
-  "relationship between",
-  "how is .* connected",
-  "network",
-  "trace",
-  "chain of",
-  "web of",
-  "associates of",
-  "co-accused",
-  "contractors linked",
-  "officials involved",
-];
-
-function hasGraphSignal(message: string): boolean {
-  const lower = message.toLowerCase();
-  return GRAPH_SIGNAL_KEYWORDS.some((kw) => {
-    if (kw.includes(".*")) {
-      return new RegExp(kw, "i").test(lower);
-    }
-    return lower.includes(kw);
-  });
-}
 
 export function inferTool(
   message: string,
@@ -1341,13 +1313,9 @@ export async function routeToAgent({
     augmentedMessage += entityHints + "\n";
   }
 
-  // Graph enrichment hint for relationship-heavy queries
-  const graphDomains: RouterIntent[] = ["budget", "corruption", "govspend", "faac"];
-  if (graphDomains.includes(tool as RouterIntent) && hasGraphSignal(message)) {
-    augmentedMessage +=
-      "\n[GRAPH HINT] This query involves relationships or connections. Use the graphSearchTool to find connected entities in the knowledge graph, and traverseGraphTool for complex relationship queries. Combine graph results with vector search results for a comprehensive answer.\n\n";
-  }
-
+  // Date stamp so relative phrases ("last year") resolve against the real
+  // calendar even when the agent prompt's temporal block is stale (issue #26)
+  augmentedMessage += `Current date: ${new Date().toISOString().slice(0, 10)} (year ${getCurrentYear()})\n`;
   augmentedMessage += `Current user message: ${message}`;
 
   // General intent — respond directly, no RAG
@@ -1392,7 +1360,7 @@ export async function routeToAgent({
     }
 
     if (isGovernorQuery && resolvedStates.length > 0) {
-      const currentYear = new Date().getFullYear();
+      const currentYear = getCurrentYear();
       const officialsResults = await Promise.all(
         resolvedStates.map((s: string) => getOfficials(s, currentYear)),
       );

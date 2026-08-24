@@ -1,6 +1,6 @@
 import { Leaderboard } from "@/components/civic/Leaderboard";
 import Link from "next/link";
-import { Navbar } from "@/components/sections/Navbar";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export const metadata = {
   title: "State Completeness Leaderboard | OurNigeria",
@@ -9,8 +9,7 @@ export const metadata = {
 
 export default function LeaderboardPage() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
-      <Navbar />
+    <PageLayout className="bg-[#0a0a0a] text-white relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -45,6 +44,6 @@ export default function LeaderboardPage() {
           <Leaderboard limit={37} />
         </div>
       </div>
-    </main>
+    </PageLayout>
   );
 }

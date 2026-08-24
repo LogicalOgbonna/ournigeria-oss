@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import React from "react";
-import { Navbar } from "@/components/sections/Navbar";
-import { Footer } from "@/components/sections/Footer";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { getStates, getParties, getRegions, getFaacPeriods } from "@/lib/api";
 import { StatesClientContent } from "./StatesClientContent";
 
@@ -59,10 +58,7 @@ export default async function StatesDirectoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar />
-
-      <main className="container max-w-5xl mx-auto px-4 pt-24 pb-20 space-y-10 flex-1">
+    <PageLayout className="bg-background" mainClassName="container max-w-5xl mx-auto px-4 pt-24 pb-20 space-y-10">
         <section className="space-y-4">
           <h1 className="font-serif text-4xl md:text-5xl text-foreground">
             Explore All States
@@ -79,8 +75,6 @@ export default async function StatesDirectoryPage() {
           bestYear={bestYear}
           bestMonth={bestMonth}
         />
-      </main>
-      <Footer />
-    </div>
+    </PageLayout>
   );
 }

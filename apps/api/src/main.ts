@@ -16,6 +16,12 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  // Single reverse proxy in front (prod box / edge). Trust exactly one hop so
+  // req.ip is the real client IP from the trusted end of X-Forwarded-For, not a
+  // client-spoofable first hop. If the deployment adds proxy hops (e.g. a CDN in
+  // front), bump this number to match.
+  app.set("trust proxy", 1);
+
   app.use(helmet({
     crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: false,

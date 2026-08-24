@@ -5,16 +5,36 @@
 http:
   routers:
     api:
-      rule: "Host(`api.example.invalid`)"
+      rule: "Host(`api.ournigeria.ng`)"
       service: api
       entryPoints:
-        - web
+        - websecure
+      tls:
+        certResolver: le
 
     ingest:
-      rule: "Host(`ingest.example.invalid`)"
+      rule: "Host(`ingest.ournigeria.ng`)"
       service: ingest
       entryPoints:
-        - web
+        - websecure
+      tls:
+        certResolver: le
+
+    socials:
+      rule: "Host(`socials.ournigeria.ng`)"
+      service: socials
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: le
+
+    deploy:
+      rule: "Host(`deploy.ournigeria.ng`)"
+      service: webhook
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: le
 
   services:
     api:
@@ -26,3 +46,13 @@ http:
       loadBalancer:
         servers:
           - url: "http://ingest-green:3002"
+
+    socials:
+      loadBalancer:
+        servers:
+          - url: "http://socials-green:3005"
+
+    webhook:
+      loadBalancer:
+        servers:
+          - url: "http://webhook:9000"

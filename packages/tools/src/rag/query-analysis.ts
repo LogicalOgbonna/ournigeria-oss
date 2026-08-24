@@ -1,5 +1,3 @@
-import { generateText } from "ai";
-import { chatModelSmall } from "./config";
 
 // ─── Nigerian States ────────────────────────────────────────────
 
@@ -142,13 +140,6 @@ export interface QueryAnalysis {
   sectors: string[];
 }
 
-export interface SubQuery {
-  query: string;
-  state?: string;
-  year?: number;
-  sector?: string;
-}
-
 // ─── Sector normalization ────────────────────────────────────────
 
 const SECTOR_ALIAS_MAP: Record<string, string> = {
@@ -219,6 +210,89 @@ export function normalizeSector(keyword: string): string | undefined {
   return SECTOR_ALIAS_MAP[keyword.toLowerCase()];
 }
 
+// ─── Temporal phrase resolution ─────────────────────────────────
+
+const WORD_NUMBERS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+};
+
+const MIN_DATA_YEAR = 2019;
+const MAX_RANGE_SPAN = 15;
+
+function parseCount(raw: string): number {
+  return WORD_NUMBERS[raw] ?? Number(raw);
+}
+
+function addRange(years: Set<number>, from: number, to: number): void {
+  if (to < from) return;
+  // Clamp oversized spans to the newest MAX_RANGE_SPAN+1 years ("since 2005"
+  // must still anchor the query, not silently resolve to nothing)
+  if (to - from > MAX_RANGE_SPAN) from = to - MAX_RANGE_SPAN;
+  for (let y = from; y <= to; y++) years.add(y);
+}
+
+/**
+ * Resolve relative temporal phrases ("last year", "past 3 years",
+ * "since 2020", pidgin "dis year") into explicit calendar years so
+ * downstream search filters never fall back to the LLM's training-data
+ * guess (issue #26). Rule-based and deterministic; explicit standalone
+ * years are extracted separately by analyzeQueryComplexity.
+ */
+export function resolveTemporalPhrases(
+  query: string,
+  currentYear: number = new Date().getFullYear(),
+): number[] {
+  const lower = query.toLowerCase();
+  const years = new Set<number>();
+
+  // Ranges first: "since 2020", "2020 to 2023", "2020-2023", "between 2021 and 2023"
+  const since = lower.match(/\bsince\s+(20[0-2]\d)\b/);
+  if (since) addRange(years, Number(since[1]), currentYear);
+  for (const m of lower.matchAll(
+    /\b(20[0-2]\d)\s*(?:-|–|—|to|through)\s*(20[0-2]\d)\b/g,
+  )) {
+    addRange(years, Number(m[1]), Number(m[2]));
+  }
+  // "X and Y" is two discrete years, not a range — expand only with "between"
+  const between = lower.match(/\bbetween\s+(20[0-2]\d)\s+and\s+(20[0-2]\d)\b/);
+  if (between) addRange(years, Number(between[1]), Number(between[2]));
+
+  // "past/last N years" — inclusive of the current year
+  const lastN = lower.match(
+    /\b(?:past|last)\s+(one|two|three|four|five|\d{1,2})\s+years?\b/,
+  );
+  if (lastN) {
+    const n = parseCount(lastN[1]);
+    if (n > 0) addRange(years, currentYear - n + 1, currentYear);
+  }
+
+  // "N years ago"
+  const ago = lower.match(/\b(one|two|three|four|five|\d{1,2})\s+years?\s+ago\b/);
+  if (ago) {
+    const n = parseCount(ago[1]);
+    if (n > 0) years.add(currentYear - n);
+  }
+
+  // Single-year phrases. "the year before last" must win over "last year".
+  if (/\byear\s+before\s+last\b/.test(lower)) {
+    years.add(currentYear - 2);
+  } else if (/\b(?:last|previous)\s+year\b/.test(lower)) {
+    years.add(currentYear - 1);
+  }
+  if (/\b(?:this|dis|current)\s+year\b/.test(lower)) years.add(currentYear);
+  if (/\bnext\s+year\b/.test(lower)) years.add(currentYear + 1);
+  if (/\brecent(?:ly)?\b/.test(lower)) {
+    years.add(currentYear - 1);
+    years.add(currentYear);
+  }
+
+  return [...years].filter((y) => y >= MIN_DATA_YEAR - 5).sort((a, b) => a - b);
+}
+
 // ─── Rule-based complexity analysis ─────────────────────────────
 
 export function analyzeQueryComplexity(query: string): QueryAnalysis {
@@ -229,9 +303,13 @@ export function analyzeQueryComplexity(query: string): QueryAnalysis {
     new RegExp(`\\b${s.replace(/\s+/g, "\\s+")}\\b`).test(lower),
   );
 
-  // Extract years (2019–2029 range)
+  // Extract years: explicit 4-digit mentions + resolved relative phrases
+  // ("last year", "past 3 years", "since 2020" — issue #26)
   const yearMatches = lower.match(/\b(20[12]\d)\b/g);
-  const years = yearMatches ? [...new Set(yearMatches.map(Number))] : [];
+  const explicitYears = yearMatches ? yearMatches.map(Number) : [];
+  const years = [
+    ...new Set([...explicitYears, ...resolveTemporalPhrases(lower)]),
+  ].sort((a, b) => a - b);
 
   // Extract sectors (word-boundary match)
   const sectors = BUDGET_SECTORS.filter((s) =>
@@ -277,87 +355,3 @@ export function analyzeQueryComplexity(query: string): QueryAnalysis {
   };
 }
 
-// ─── Query decomposition ────────────────────────────────────────
-
-/**
- * Decompose a comparative or complex query into targeted sub-queries.
- * Uses rule-based decomposition when possible, LLM for complex cases.
- */
-export async function decomposeQuery(
-  query: string,
-  analysis: QueryAnalysis,
-  sessionId?: string,
-  userId?: string,
-): Promise<SubQuery[]> {
-  // Resolve sector for metadata filtering (only when a single sector is detected)
-  const resolvedSector =
-    analysis.sectors.length === 1
-      ? normalizeSector(analysis.sectors[0])
-      : undefined;
-
-  // Simple queries: no decomposition
-  if (!analysis.isComparative) {
-    return [{ query, ...(resolvedSector && { sector: resolvedSector }) }];
-  }
-
-  // Rule-based: if we have explicit states AND years, decompose programmatically
-  if (analysis.states.length > 0 && analysis.years.length > 0) {
-    const sectorClause =
-      analysis.sectors.length > 0 ? ` ${analysis.sectors.join(" ")}` : "";
-    const subQueries: SubQuery[] = [];
-    for (const state of analysis.states) {
-      for (const year of analysis.years) {
-        subQueries.push({
-          query: `${state} ${year}${sectorClause} budget spending allocation`,
-          state,
-          year,
-          ...(resolvedSector && { sector: resolvedSector }),
-        });
-      }
-    }
-    // Cap at 8 sub-queries to avoid excessive API calls
-    return subQueries.slice(0, 8);
-  }
-
-  // LLM-based decomposition for complex/ambiguous queries
-  try {
-    const { text } = await generateText({
-      model: chatModelSmall,
-      system: `You decompose complex Nigerian budget questions into 2-6 targeted sub-queries for vector similarity search against a budget document database.
-
-Available states: ${NIGERIAN_STATES.join(", ")}
-Available budget years: 2019 to ${new Date().getFullYear()}
-
-Rules:
-- Each sub-query should be a concise phrase (under 15 words) optimised for cosine similarity search against budget document chunks.
-- When the question mentions specific states, create per-state sub-queries with the state filter set.
-- When the question mentions specific years, create per-year sub-queries with the year filter set.
-- When the question asks about "all states" or "which state", create 2 broad sub-queries per year mentioned (no state filter) so the search covers multiple states.
-- Include relevant sector keywords (education, health, infrastructure, etc.) in each sub-query.
-- Generate between 2 and 6 sub-queries. Prefer fewer, broader queries over many narrow ones.
-
-Respond with ONLY a JSON array. No explanation, no markdown fencing. Example:
-[{"query": "education spending allocation", "year": 2021}, {"query": "education spending allocation", "year": 2024}]`,
-      prompt: query,
-      maxOutputTokens: 500,
-    });
-
-    // Strip markdown fences if the LLM wraps its output
-    const cleaned = text
-      .trim()
-      .replace(/^```(?:json)?\n?|```$/g, "")
-      .trim();
-    const parsed = JSON.parse(cleaned) as Array<{
-      query: string;
-      state?: string;
-      year?: number;
-    }>;
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.slice(0, 6);
-    }
-    return [{ query }];
-  } catch {
-    // Fallback: return original query
-    return [{ query }];
-  }
-}

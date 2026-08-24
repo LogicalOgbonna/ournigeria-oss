@@ -1,52 +1,88 @@
 # OurNigeria Socials — session capture extension
 
-Chrome extension that captures x.com authentication headers + cookies + the
-current SearchTimeline op hash and POSTs them to the socials roamer's
-`POST /v1/sessions` endpoint. The roamer rotates through these sessions to
-pull tweet pages without using the official rate-limited X API.
+Chrome MV3 extension that **passively** captures x.com auth material + GraphQL
+op-hashes for the socials roamer, bucketed per account, and keeps the backend copy
+fresh on its own. No arming.
 
 ## Install
 
-1. Open `chrome://extensions`.
-2. Toggle **Developer mode** (top right).
-3. Click **Load unpacked** and pick this folder (`apps/socials/extension`).
+**From a release (recommended for operators)**
 
-## Configure
+1. Download `ournigeria-session-capture-v<version>.zip` from the project's
+   [GitHub Releases](../../releases) page and unzip it.
+2. Open `chrome://extensions` → enable **Developer mode** (top right).
+3. Click **Load unpacked** and select the unzipped folder.
 
-Click the extension icon in Chrome's toolbar to open the popup. After your
-first capture you'll see two config inputs:
+**From source (developers)**
 
-- **Backend endpoint** — full URL to `POST /v1/sessions`. Examples:
-  - dev: `https://socials.arinze.online/v1/sessions`
+1. `chrome://extensions` → enable **Developer mode**.
+2. **Load unpacked** → pick this folder (`apps/socials/extension`).
+
+> Chrome has no first-party way to install an unpacked/dev extension from a `.zip`
+> without unzipping first — that is expected. The zip is just the packaged folder.
+
+## Configure (once)
+
+Open the popup (toolbar icon) and fill:
+
+- **Backend endpoint** — full URL to `POST /v1/sessions`:
+  - local: `http://localhost:3005/v1/sessions`
   - prod: `https://socials.ournigeria.ng/v1/sessions`
-- **X-Roamer-Key** — the `ROAMER_INGEST_KEY` from the socials Infisical path.
+- **X-Roamer-Key** — `ROAMER_INGEST_KEY` from the socials Infisical `/socials` path.
 
-Both values persist in `chrome.storage.local` and survive extension reloads.
+Both persist in `chrome.storage.local`. The popup is compact — click
+**Open full tracker →** for the full-page Options view (status, backend health,
+per-account re-authenticate).
 
-## Capture flow
+## How it works
 
-1. Make sure you're logged into x.com as the account you want the roamer to
-   scrape from. (One session per account; the popup will tell you if it
-   couldn't resolve `userName`.)
-2. Click **Arm capture** in the popup.
-3. Within 60 seconds, run any search on x.com.
-4. Popup flips to the result view with the JSON payload.
-5. Click **Send to backend**.
+While you are logged into x.com, the extension records four op-hashes as you use the
+site — but each only appears when you actually perform its action:
 
-The roamer immediately becomes eligible to use the new session on the next
-window.
+| Chip | Appears when you… |
+|------|-------------------|
+| **search** | run any search |
+| **thread** | open any tweet |
+| **write** | post a tweet (captured + stored only; nothing posts on your behalf) |
+| **tweets** | open any **profile** (the Posts/Tweets tab) |
 
-## Refresh cycle
+Scrolling the home timeline is NOT enough — the roamer needs the **search hash**, so
+run at least one search per account. Multiple bot accounts in one Chrome profile are
+supported: switch accounts and each fills its own card.
 
-X invalidates session cookies and rotates the SearchTimeline op hash on
-their deploys. When that happens the roamer fires Telegram alerts (`🔒 Auth
-failed` or `🔁 SearchTimeline hash rotated`) — re-capture by repeating the
-flow above.
+When an op-hash changes, the extension pushes it to the backend automatically. A
+background health check (~every 3 min) keeps the backend copy fresh and flags trouble:
 
-## Troubleshooting
+- **needs re-login** (red badge + desktop notification) — the account's session died
+  and it is logged out. Log back in on x.com; it self-refreshes.
+- **needs search** — the search hash rotated/expired and no fresh one has been seen.
+  Run a search on x.com.
 
-- **"ct0 cookie missing"** — you're not logged in. Reload x.com and sign in.
-- **"could not parse SearchTimeline op hash"** — the request didn't match
-  the expected URL pattern. Try a different search query.
-- **"HTTP 401"** — `X-Roamer-Key` doesn't match the server's
-  `ROAMER_INGEST_KEY`. Verify in Infisical.
+The roamer's existing Telegram `🔒 Auth failed` alert is the backstop when Chrome is
+closed.
+
+## Manual controls
+
+Each account card has **Send** (force-push now) and **Remove** (drop a stale/logged-out
+account). **Send all ready** pushes every account with a resolved handle. On the full
+tracker, **Re-authenticate** refreshes a live account's session, or opens x.com to log
+a logged-out one back in (the row shows "waiting for login" until it returns).
+
+## Notes / limits
+
+- The extension can only refresh an account **while it is logged in**; a logged-out
+  account needs a human re-login (that is what the badge is for).
+- If a single `CreateTweet` fires while the service worker was asleep, the write hash
+  may be missed — just post again, or use **Send** after composing.
+
+## Packaging (maintainers)
+
+Build the distributable zip that gets attached to a GitHub Release:
+
+```bash
+apps/socials/extension/build-zip.sh
+# -> apps/socials/extension/ournigeria-session-capture-v<version>.zip
+```
+
+The version comes from `manifest.json` (`version`). Bump it there before packaging a
+new release. `*.zip` is git-ignored — the artifact lives on the Release, not in the repo.

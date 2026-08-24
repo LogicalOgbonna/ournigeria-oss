@@ -1,0 +1,16 @@
+# Camofox browser, headless. Base = the jo-inc/camofox-browser image.
+#
+# Local: the base was built once via the upstream repo:
+#   git clone https://github.com/jo-inc/camofox-browser && cd camofox-browser && make build
+#   (produces e.g. camofox-browser:135.0.1-aarch64)
+# Prod: build the same base in CI, then this layer applies the headless patch.
+#
+# Patch: the image's Xvfb factory resolves DISPLAY to "[object Promise]" (a bug), so the
+# camoufox Firefox process can't open a display and won't launch. We make the virtual-display
+# factory throw, which triggers the server's own headless fallback. Camoufox stays anti-detect
+# headless; Xvfb only adds WebGL/GLX, which research browsing does not need.
+ARG CAMOFOX_BASE=camofox-browser:135.0.1-aarch64
+FROM ${CAMOFOX_BASE}
+
+RUN sed -i "s/createVirtualDisplay: () => new VirtualDisplay(),/createVirtualDisplay: () => { throw new Error('xvfb disabled (forced headless)'); },/" /app/server.js \
+ && grep -q "xvfb disabled (forced headless)" /app/server.js

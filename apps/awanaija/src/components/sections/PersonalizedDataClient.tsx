@@ -6,11 +6,14 @@ import {
   KitSectionTitle,
 } from "@/components/landing-variants/LandingVariantKit";
 import { Button } from "@/components/ui/button";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
-import { ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePersistedLocation, readPersistedLocation } from "@/hooks/usePersistedLocation";
+import { Show } from "@/components/ui/Show";
 
 const DEFAULT_SECTOR_BARS: BarDatum[] = [
   { label: "Education", value: 0, color: "bg-blue-500" },
@@ -33,11 +36,13 @@ const FALLBACK_BAR_COLORS = [
 
 type GeoOfficial = {
   id?: string;
+  slug?: string | null;
   name?: string;
   party?: string | null;
   constituency?: string | null;
   email?: string | null;
   image?: string | null;
+  proposed?: boolean;
   [key: string]: unknown;
 };
 
@@ -97,12 +102,14 @@ type ProfileOfficialRow =
       isMissing?: false;
       role: string;
       id?: string;
+      slug?: string | null;
       name?: string;
       party?: string | null;
       term?: string;
       contact?: string | null;
       contactType?: string;
       image?: string | null;
+      proposed?: boolean;
       [key: string]: unknown;
     };
 
@@ -188,21 +195,21 @@ export function transformProfileData(
   
   if (lgaDetails?.senator) {
     const sen = lgaDetails.senator;
-    officials.push({ id: sen.id, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image });
+    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image, proposed: sen.proposed });
   } else {
     officials.push({ isMissing: true, role: "Senator" });
   }
   
   if (lgaDetails?.houseMembers?.[0]) {
     const rep = lgaDetails.houseMembers[0];
-    officials.push({ id: rep.id, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image });
+    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image, proposed: rep.proposed });
   } else {
     officials.push({ isMissing: true, role: "House of Reps" });
   }
   
   if (lgaDetails?.stateAssemblyMembers?.[0]) {
     const mha = lgaDetails.stateAssemblyMembers[0];
-    officials.push({ id: mha.id, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image });
+    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image, proposed: mha.proposed });
   } else {
     officials.push({ isMissing: true, role: "State House" });
   }
@@ -319,11 +326,23 @@ interface PersonalizedDataClientProps {
 }
 
 export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, children }: PersonalizedDataClientProps) {
+  const { setLocation: setPersistedLocation } = usePersistedLocation();
   const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
   const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
-  
+
+  // Close the location/date dropdowns on scroll so they don't float over the page.
+  useEffect(() => {
+    if (!dropdownOpen && !dateDropdownOpen) return;
+    const close = () => {
+      setDropdownOpen(false);
+      setDateDropdownOpen(false);
+    };
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [dropdownOpen, dateDropdownOpen]);
+
   const [faacPeriods, setFaacPeriods] = useState<{ years: number[], monthsByYear: Record<number, number[]> }>(initialFaacPeriods);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(initialMonth);
   const [selectedYear, setSelectedYear] = useState<number | null>(initialYear);
@@ -382,13 +401,9 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
       setData(newData);
       setLocationState("success");
 
-      try {
-        localStorage.setItem("awanaija_user_location", JSON.stringify({
-          stateCode, stateName, lgaCode, lgaName, wardCode, wardName, year, month
-        }));
-      } catch (e) {
-        console.error("Failed to save location to local storage", e);
-      }
+      setPersistedLocation({
+        stateCode, stateName, lgaCode, lgaName, wardCode, wardName, year, month
+      });
     } catch (err) {
       console.error(err);
       setLocationState("denied");
@@ -513,64 +528,74 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   }, []);
 
   useEffect(() => {
-    const loadFromStorage = () => {
-      const saved = localStorage.getItem("awanaija_user_location");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed.year) setSelectedYear(parsed.year);
-          if (parsed.month) setSelectedMonth(parsed.month);
-          
-          fetchFullProfile(
-            parsed.stateCode, parsed.stateName,
-            parsed.lgaCode, parsed.lgaName,
-            parsed.wardCode, parsed.wardName,
-            parsed.year, parsed.month
-          );
-          return true;
-        } catch (e) {
-          console.error("Failed to parse saved location", e);
-        }
-      }
-      return false;
-    };
+    // SAVED WINS: a previously-persisted location always takes priority over
+    // auto-geolocation. Geolocation only runs on a genuine first visit (nothing
+    // saved yet). The explicit "detect my location" path (requestLocation, via
+    // the `request-location` window event or the "Use my current location"
+    // button) remains an opt-in that re-runs geolocation and overwrites the
+    // saved location via setPersistedLocation.
+    const saved = readPersistedLocation();
+    if (saved) {
+      if (saved.year) setSelectedYear(saved.year);
+      if (saved.month) setSelectedMonth(saved.month);
 
-        if (navigator.permissions) {
-          navigator.permissions.query({ name: "geolocation" }).then((result) => {
-            if (result.state === "granted") {
-              requestLocation();
-            } else {
-              const loaded = loadFromStorage();
-              if (!loaded) {
-                if (result.state === "prompt") {
-                  setLocationState("idle");
-                } else if (result.state === "denied") {
-                  setLocationState("success");
-                }
-              }
-            }
-          });
-        } else {
-      loadFromStorage();
+      fetchFullProfile(
+        saved.stateCode, saved.stateName,
+        saved.lgaCode ?? "", saved.lgaName ?? "",
+        saved.wardCode ?? "", saved.wardName ?? "",
+        saved.year, saved.month
+      );
+      return;
     }
+
+    // No saved location — first-visit behavior: check permission, auto-detect
+    // if already granted, otherwise show the idle "Use my current location" prompt.
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then((result) => {
+        if (result.state === "granted") {
+          requestLocation();
+        } else if (result.state === "prompt") {
+          setLocationState("idle");
+        } else if (result.state === "denied") {
+          setLocationState("success");
+        }
+      });
+    } else {
+      // Browsers without the Permissions API: fall back to the idle prompt
+      // (same as "prompt" state above) so the user still sees a CTA.
+      setLocationState("idle");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <>
     {/* Personalization Top Bar */}
-    <div id="personalized-data-section" className="border-y border-border/50 bg-background/95 backdrop-blur-sm relative z-30 -mt-20 lg:-mt-32">
+    <div id="personalized-data-section" className="border-y border-border/60 dark:border-white/30 bg-background/95 backdrop-blur-sm relative z-30 lg:-mt-32">
       <KitContainer>
-        {/* Top: Viewing Status */}
-        <div className="flex items-center justify-between py-4 border-b border-border/50">
+        {/* Coverage stats first */}
+        {children}
+
+        {/* Then: Viewing Status + location/date selectors.
+            Divider is white-ish in dark mode so the section boundary stays visible
+            against the near-black background (border-border is dark-on-dark there). */}
+        <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               <span className="hidden sm:inline">You are viewing</span>
               <span className="sm:hidden">Viewing</span>
             </span>
-            <span className="font-semibold text-sm text-foreground">
+            <button
+              type="button"
+              onClick={() => {
+                setDropdownOpen(!dropdownOpen);
+                setDateDropdownOpen(false);
+              }}
+              className="font-semibold text-sm text-foreground text-left transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
+            >
               {data.state} · {data.lga} · {data.ward}
-            </span>
+            </button>
           </div>
           
           <div className="flex items-center gap-3">
@@ -581,6 +606,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                   setDropdownOpen(!dropdownOpen);
                   setDateDropdownOpen(false);
                 }}
+                type="button"
                 className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 sm:px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
               >
                 <MapPin className="h-4 w-4 sm:hidden text-emerald-600 dark:text-emerald-400" />
@@ -588,21 +614,22 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
               
-              {dropdownOpen && (
+              <Show when={dropdownOpen}>
                 <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 top-full mt-2 w-[300px] sm:w-80 rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/10 z-50 overflow-hidden flex flex-col">
                   {/* Header */}
                   <div className="p-3 border-b border-border/50 flex items-center gap-2 bg-muted/30">
-                    {selectorStep !== "state" && (
-                      <button 
+                    <Show when={selectorStep !== "state"}>
+                      <button
+                        type="button"
                         onClick={() => {
                           setSelectorStep(selectorStep === "ward" ? "lga" : "state");
                           setSearchQuery("");
-                        }} 
+                        }}
                         className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                       >
                         <ArrowLeft className="h-4 w-4 text-muted-foreground" />
                       </button>
-                    )}
+                    </Show>
                     <div className={`font-semibold text-sm flex-1 text-center ${selectorStep === "state" ? "" : "pr-6"}`}>
                       {selectorStep === "state" ? "Select State" : selectorStep === "lga" ? "Select LGA" : "Select Ward"}
                     </div>
@@ -626,21 +653,22 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                   <div className="max-h-60 overflow-y-auto p-2 scrollbar-theme">
                     {getListItems().map(item => (
                       <button
+                        type="button"
                         key={item.code}
                         onClick={() => handleLocationSelect(item)}
                         className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50 text-foreground"
                       >
                         {item.name}
-                        {selectorStep !== "ward" && <ChevronRight className="h-4 w-4 text-muted-foreground/50" />}
-                        {selectorStep === "ward" && data.ward === item.name && data.lga === pendingSelection.lgaName && <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                        <Show when={selectorStep !== "ward"}><ChevronRight className="h-4 w-4 text-muted-foreground/50" /></Show>
+                        <Show when={selectorStep === "ward" && data.ward === item.name && data.lga === pendingSelection.lgaName}><Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></Show>
                       </button>
                     ))}
-                    {getListItems().length === 0 && (
+                    <Show when={getListItems().length === 0}>
                       <div className="py-8 text-center text-sm text-muted-foreground">No results found.</div>
-                    )}
+                    </Show>
                   </div>
                 </div>
-              )}
+              </Show>
             </div>
 
             {/* Date Selector */}
@@ -650,6 +678,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                   setDateDropdownOpen(!dateDropdownOpen);
                   setDropdownOpen(false);
                 }}
+                type="button"
                 className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
               >
                 <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -662,12 +691,13 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
               
-              {dateDropdownOpen && (
+              <Show when={dateDropdownOpen}>
                 <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-72 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
                   <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
                     <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Month</div>
                     {selectedYear && faacPeriods.monthsByYear[selectedYear]?.map((m) => (
                       <button
+                        type="button"
                         key={m}
                         onClick={() => {
                           setSelectedMonth(m);
@@ -693,6 +723,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                     <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Year</div>
                     {faacPeriods.years.map((y) => (
                       <button
+                        type="button"
                         key={y}
                         onClick={() => {
                           setSelectedYear(y);
@@ -724,13 +755,10 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                     ))}
                   </div>
                 </div>
-              )}
+              </Show>
             </div>
           </div>
         </div>
-
-        {/* Bottom: Stats */}
-        {children}
       </KitContainer>
     </div>
 
@@ -743,9 +771,10 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
             subtitle="Grant location access to instantly see budgets, projects, and FAAC allocations for your specific State, Local Government, and Ward."
           />
           
-          {locationState === "idle" && (
+          <Show when={locationState === "idle"}>
             <div className="mt-8 flex justify-center">
-              <Button 
+              <Button
+                type="button"
                 onClick={requestLocation}
                 className="h-12 rounded-2xl bg-emerald-600 px-7 text-base font-semibold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
               >
@@ -753,22 +782,23 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 Use my current location
               </Button>
             </div>
-          )}
+          </Show>
 
-          {locationState === "loading" && (
+          <Show when={locationState === "loading"}>
             <div className="mt-8 flex justify-center items-center gap-3 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
               <span className="text-sm font-medium">Fetching local data...</span>
             </div>
-          )}
+          </Show>
 
-          {locationState === "denied" && (
+          <Show when={locationState === "denied"}>
             <div className="mt-8 flex flex-col items-center gap-2">
               <p className="text-sm text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-full border border-amber-200 dark:border-amber-900">
                 Location access denied. Showing default data for Lagos.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                type="button"
                 onClick={requestLocation}
                 className="mt-2 h-10 rounded-xl px-5 text-sm"
               >
@@ -776,15 +806,16 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 Try again
               </Button>
             </div>
-          )}
+          </Show>
 
-          {locationState === "outside_nigeria" && (
+          <Show when={locationState === "outside_nigeria"}>
             <div className="mt-8 flex flex-col items-center gap-2">
               <p className="text-sm text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-4 py-2 rounded-full border border-amber-200 dark:border-amber-900">
                 Your detected location is outside Nigeria. Showing default data for Lagos.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                type="button"
                 onClick={() => {
                   setDropdownOpen(true);
                   setDateDropdownOpen(false);
@@ -795,17 +826,18 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 Choose manually
               </Button>
             </div>
-          )}
+          </Show>
         </div>
 
         <div className="mx-auto max-w-5xl transition-all duration-500 ease-in-out">
-          {locationState === "loading" ? (
+          <Show when={locationState === "loading"}>
             <SkeletonLoader />
-          ) : (
+          </Show>
+          <Show when={locationState !== "loading"}>
           <div className="grid items-start gap-10 lg:grid-cols-12">
             <div className="lg:col-span-5 flex flex-col gap-16">
-              {/* LGA Financials */}
-              <div className="rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
+              {/* LGA Financials — after the officials card on mobile, before it on desktop */}
+              <div className="order-2 lg:order-1 rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                     <MapPin className="h-6 w-6" />
@@ -844,8 +876,8 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                 </div>
               </div>
 
-              {/* Officials */}
-              <div className="rounded-[1.75rem] border border-border/60 bg-card/50 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
+              {/* Officials — "Know Your Leaders" comes first on mobile */}
+              <div className="order-1 lg:order-2 rounded-[1.75rem] border border-border/60 bg-card/50 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className="font-[family-name:var(--font-heading)] text-lg font-semibold">
                     Know Your Leaders
@@ -887,25 +919,19 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
 
                     return (
                       <Link 
-                        href={`/officials/${official.id}`}
+                        href={`/officials/${official.slug ?? official.id}`}
                         key={official.role} 
                         className="group flex items-start gap-4 border-b border-border/50 pb-4 last:border-0 last:pb-0 transition-colors hover:bg-muted/20 rounded-xl p-2 -mx-2"
                       >
                         <div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-emerald-100 dark:bg-emerald-900/50 transition-transform group-hover:scale-105 flex items-center justify-center">
-                          {official.image ? (
-                            <img 
-                              src={official.image} 
-                              alt={official.name} 
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                          ) : null}
-                          <span className={`font-semibold text-emerald-700 dark:text-emerald-400 ${official.image ? 'hidden' : ''}`}>
-                            {official.name?.charAt(0) || "?"}
-                          </span>
+                          <OfficialAvatar
+                            src={official.image}
+                            alt={official.name ?? ""}
+                            initial={official.name?.charAt(0) || "?"}
+                            px={44}
+                            imgClassName="h-full w-full object-cover"
+                            initialClassName="font-semibold text-emerald-700 dark:text-emerald-400"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
@@ -917,17 +943,23 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                           <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium truncate mt-0.5">
                             {official.role}
                           </p>
+                          <Show when={!!official.proposed}>
+                            <span className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              <AlertCircle className="w-3 h-3" />
+                              Proposed · unverified
+                            </span>
+                          </Show>
                           <div className="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1.5">
                               <Calendar className="h-3 w-3" /> 
                               {official.term}
                             </span>
-                            {official.contact && (
+                            <Show when={!!official.contact}>
                               <span className="flex items-center gap-1.5">
                                 <Mail className="h-3 w-3" />
                                 {official.contact}
                               </span>
-                            )}
+                            </Show>
                           </div>
                         </div>
                       </Link>
@@ -946,12 +978,12 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
               />
             </div>
           </div>
-          )}
+          </Show>
         </div>
       </KitContainer>
     </section>
 
-    {locationState !== "loading" && (
+    <Show when={locationState !== "loading"}>
       <>
         <section className="pb-8 pt-16 lg:pb-12 lg:pt-20 border-t border-border/50 bg-muted/10 dark:bg-muted/5 relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
@@ -970,7 +1002,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
         <NeighbourComparison data={data} />
         <TakeAction data={data} />
       </>
-    )}
+    </Show>
     <Methodology />
     <FaqAndTestimonials />
     </>
@@ -1193,11 +1225,11 @@ function StateBreakdown({ loc }: { loc: Pick<NairaLocationContext, "name" | "der
             <div className="font-[family-name:var(--font-mono)] text-[11px] text-foreground font-semibold w-7 text-right">{p.pct}%</div>
           </div>
         ))}
-        {loc.derivation && (
+        <Show when={!!loc.derivation}>
           <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 border border-amber-100 dark:border-amber-900/50">
             <strong>+ 13% derivation</strong> — oil-producing state bonus
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );
@@ -1242,7 +1274,7 @@ function LgLineItems({ data }: { data: ProfileViewData }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-24">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-12">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -1271,7 +1303,7 @@ function NeighbourComparison({ data }: { data: ProfileViewData }) {
           />
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-24">
+        <div className="rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/5 overflow-hidden flex items-center justify-center py-12">
           <div className="text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">Coming Soon</h3>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -1340,20 +1372,20 @@ function TakeAction({ data }: { data: ProfileViewData }) {
           </div>
 
           {/* Card 3: Join */}
-          <div className="group relative overflow-hidden rounded-[2rem] border border-violet-200/60 bg-gradient-to-b from-violet-50/80 to-violet-100/50 dark:border-violet-900/30 dark:from-violet-950/20 dark:to-violet-900/10 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-200/50 text-violet-700 dark:bg-violet-900/50 dark:text-violet-400 transition-transform group-hover:scale-110">
+          <div className="group relative overflow-hidden rounded-[2rem] border border-emerald-200/60 bg-gradient-to-b from-emerald-50/80 to-emerald-100/50 dark:border-emerald-900/30 dark:from-emerald-950/20 dark:to-emerald-900/10 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10">
+            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200/50 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 transition-transform group-hover:scale-110">
               <Users className="h-6 w-6" />
             </div>
-            <div className="mb-3 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-violet-700/80 dark:text-violet-400/80">
+            <div className="mb-3 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-emerald-700/80 dark:text-emerald-400/80">
               Join a circle
             </div>
-            <h3 className="mb-4 font-[family-name:var(--font-heading)] text-2xl font-bold text-violet-950 dark:text-violet-100 leading-tight">
+            <h3 className="mb-4 font-[family-name:var(--font-heading)] text-2xl font-bold text-emerald-950 dark:text-emerald-100 leading-tight">
               Join others in your ward
             </h3>
-            <p className="mb-8 text-[15px] leading-relaxed text-violet-900/80 dark:text-violet-200/70">
+            <p className="mb-8 text-[15px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/70">
               148 neighbours in {data.ward} are already tracking these projects — join the circle.
             </p>
-            <Button asChild className="w-full sm:w-auto rounded-xl bg-violet-700 text-white hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-700 shadow-sm transition-all group-hover:pr-6 relative overflow-hidden">
+            <Button asChild className="w-full sm:w-auto rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 dark:bg-emerald-600 dark:hover:bg-emerald-700 shadow-sm transition-all group-hover:pr-6 relative overflow-hidden">
               <a href="https://t.me/+ZFpykF_Ka4RjMGQ0" target="_blank" rel="noopener noreferrer">
                 <span className="relative z-10 flex items-center">
                   Join circle <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -1472,17 +1504,19 @@ function FaqAndTestimonials() {
               {faqs.map((faq, i) => (
                 <div key={i} className="border-b border-border/50 py-5">
                   <button 
+                    type="button"
                     onClick={() => setOpenIndex(openIndex === i ? null : i)} 
                     className="flex w-full items-center justify-between text-left group"
                   >
                     <span className="font-semibold text-lg text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {faq.q}
                     </span>
-                    {openIndex === i ? (
+                    <Show when={openIndex === i}>
                       <Minus className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    ) : (
+                    </Show>
+                    <Show when={openIndex !== i}>
                       <Plus className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    )}
+                    </Show>
                   </button>
                   <div 
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === i ? 'max-h-40 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
@@ -1646,9 +1680,9 @@ function FollowTheNaira({ data }: { data: ProfileViewData }) {
             </p>
 
             {/* Step-specific inline illustration */}
-            {i === 1 && <SplitPreview />}
-            {i === 2 && <StateBreakdown loc={loc} />}
-            {i === 4 && <WardOutcomes ward={loc.ward} />}
+            <Show when={i === 1}><SplitPreview /></Show>
+            <Show when={i === 2}><StateBreakdown loc={loc} /></Show>
+            <Show when={i === 4}><WardOutcomes ward={loc.ward} /></Show>
 
             {/* Amount Box */}
             <div className="mt-6 p-3 rounded-2xl bg-card border border-border/60 shadow-lg shadow-black/5 flex items-center gap-3 self-start">

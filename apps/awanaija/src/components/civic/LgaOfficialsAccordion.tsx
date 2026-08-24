@@ -3,14 +3,18 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Users, X } from "lucide-react";
+import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
+import { Show } from "@/components/ui/Show";
 
 interface Councilor {
   id: string;
+  slug?: string | null;
   name: string;
   party: string;
   ward: string;
   leadershipRole?: string | null;
   image?: string | null;
+  proposed?: boolean;
 }
 
 interface Ward {
@@ -47,32 +51,40 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               {councilors?.length || wardCount} Councilors
             </p>
           </div>
-          {isOpen ? (
+          <Show when={isOpen}>
             <ChevronDown className="w-5 h-5 text-emerald-500 transition-colors" />
-          ) : (
+          </Show>
+          <Show when={!isOpen}>
             <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-          )}
+          </Show>
         </button>
 
-        {isOpen && (
+        <Show when={isOpen}>
           <div className="border-t border-border p-2 space-y-1 max-h-[300px] overflow-y-auto scrollbar-theme">
             {councilors && councilors.length > 0 ? (
               councilors.map((councilor, i) => (
                 <Link
                   key={i}
-                  href={`/officials/${councilor.id}`}
+                  href={`/officials/${councilor.slug ?? councilor.id}`}
                   className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors group"
                 >
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden relative">
-                    {councilor.image ? (
-                      <img src={councilor.image} alt={councilor.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Users className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <OfficialAvatar
+                      src={councilor.image}
+                      alt={councilor.name}
+                      px={32}
+                      imgClassName="w-full h-full object-cover"
+                      fallback={<Users className="w-4 h-4 text-muted-foreground" />}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                       {councilor.name}
+                      {councilor.proposed && (
+                        <span className="ml-1.5 inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 align-middle">
+                          Proposed
+                        </span>
+                      )}
                     </p>
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                       {councilor.leadershipRole ? (
@@ -100,10 +112,10 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
               </div>
             )}
           </div>
-        )}
+        </Show>
       </div>
 
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-[10px] shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between p-4 border-b border-border">
@@ -138,7 +150,7 @@ export function LgaOfficialsAccordion({ councilors, wardCount, wards, lgaCode, l
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

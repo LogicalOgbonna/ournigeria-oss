@@ -38,6 +38,7 @@ import {
   User,
 } from "lucide-react";
 import { adminFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 
 interface NotificationItem {
   id: string;
@@ -70,15 +71,6 @@ const typeColors: Record<string, string> = {
   info: "text-blue-500",
   warning: "text-amber-500",
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-NG", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function userLabel(user: NotificationItem["user"]) {
   if (user.name) return user.name;
@@ -361,7 +353,7 @@ export default function NotificationsPage() {
                           <User className="h-3 w-3" />
                           {userLabel(notif.user)}
                         </span>
-                        <span>{formatDate(notif.createdAt)}</span>
+                        <span>{formatDateTime(notif.createdAt)}</span>
                       </div>
                     </div>
                     <Button

@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v4
 
-      - uses: pnpm/action-setup@903f9c1a6ebcba6cf41d87230be49611ac97822e  # v6
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093  # v6
         with:
           run_install: false
 
@@ -68,7 +68,7 @@ jobs:
           calculate_size "awanaija"
 
       - name: Comment PR
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b  # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         if: github.event_name == 'pull_request'
         with:
           script: |

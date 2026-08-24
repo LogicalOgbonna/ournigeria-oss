@@ -1,8 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { BotSessionRepo } from "./bot-session.repo.js";
 import { jsonToUrl } from "./url-encode.util.js";
+import { XTransactionService } from "./x-transaction.service.js";
 
-const TWITTER_BASE_API_URL = "https://x.com/i/api/graphql";
+const TWITTER_BASE_PATH = "/i/api/graphql";
+const TWITTER_BASE_API_URL = `https://x.com${TWITTER_BASE_PATH}`;
 
 const USER_AGENTS = [
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -43,7 +45,10 @@ export interface GraphqlGetResult {
 export class TwitterGraphqlClient {
   private readonly logger = new Logger(TwitterGraphqlClient.name);
 
-  constructor(private readonly sessions: BotSessionRepo) {}
+  constructor(
+    private readonly sessions: BotSessionRepo,
+    private readonly xtx: XTransactionService,
+  ) {}
 
   async get(opts: {
     sessionId: string;
@@ -51,33 +56,58 @@ export class TwitterGraphqlClient {
     operationName: string;
     variables: Record<string, unknown>;
     features: Record<string, unknown>;
+    // Some ops (e.g. TweetDetail) 400 without a fieldToggles param. Optional so
+    // SearchTimeline callers are unaffected.
+    fieldToggles?: Record<string, unknown>;
   }): Promise<GraphqlGetResult> {
     const session = await this.sessions.getById(opts.sessionId);
 
-    const path = jsonToUrl({
+    const query = jsonToUrl({
       url: `/${opts.opHash}/${opts.operationName}`,
       variables: opts.variables,
       features: opts.features,
+      ...(opts.fieldToggles ? { fieldToggles: opts.fieldToggles } : {}),
     });
-    const url = `${TWITTER_BASE_API_URL}${path}`;
+    const url = `${TWITTER_BASE_API_URL}${query}`;
+    // The transaction id is bound to the request path WITHOUT the query string.
+    const txPath = `${TWITTER_BASE_PATH}/${opts.opHash}/${opts.operationName}`;
+    const clientUuid = this.xtx.clientUuidFor(
+      opts.sessionId,
+      session.xClientUuid,
+    );
 
-    const headers: Record<string, string> = {
-      ...STATIC_HEADERS,
-      "User-Agent": USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
-      Authorization: session.authorization,
-      Cookie: session.cookie,
-      "x-csrf-token": session.csrfToken,
-      "x-client-transaction-id": session.xClientTransactionId,
-      "x-client-uuid": session.xClientUuid,
-    };
-
-    let res: Response;
-    try {
-      res = await fetch(url, {
+    const doFetch = async (forceRefreshTxid: boolean): Promise<Response> => {
+      // A fresh x-client-transaction-id for EVERY request — the value is
+      // single-use, so reusing one (the old bug) 404s after the first call.
+      const txid = await this.xtx.generate("GET", txPath, {
+        forceRefresh: forceRefreshTxid,
+      });
+      const headers: Record<string, string> = {
+        ...STATIC_HEADERS,
+        "User-Agent":
+          USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
+        Authorization: session.authorization,
+        Cookie: session.cookie,
+        "x-csrf-token": session.csrfToken,
+        "x-client-transaction-id": txid,
+        "x-client-uuid": clientUuid,
+      };
+      return fetch(url, {
         method: "GET",
         headers,
         signal: AbortSignal.timeout(30_000),
       });
+    };
+
+    let res: Response;
+    try {
+      res = await doFetch(false);
+      // A 404 here can mean X rotated the verification key under us. Rebuild the
+      // cached key/frames once and retry before surfacing it as a stale hash.
+      if (res.status === 404) {
+        this.xtx.invalidate();
+        res = await doFetch(true);
+      }
     } finally {
       // Always update last-used so we rotate fairly even on transport errors.
       this.sessions.updateUsage(opts.sessionId).catch((e) => {

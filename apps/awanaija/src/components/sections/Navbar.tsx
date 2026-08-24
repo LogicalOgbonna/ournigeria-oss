@@ -3,15 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X } from "lucide-react";
+import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X, Landmark, Menu, Heart } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGIN_URL } from "@/lib/constants";
+import { Show } from "@/components/ui/Show";
 
 export function Navbar() {
   const [morphed, setMorphed] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Close the "Ask Now" dropdown on scroll so it doesn't linger over the page.
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const close = () => setIsDropdownOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
+  }, [isDropdownOpen]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -85,6 +95,13 @@ export function Navbar() {
                       <div className="text-xs text-muted-foreground">Recent contributions, you should contribute too</div>
                     </div>
                   </Link>
+                  <Link href="/parties" className="flex items-start gap-3 rounded-xl p-3 hover:bg-muted/50 transition-colors">
+                    <Landmark className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Political Parties</div>
+                      <div className="text-xs text-muted-foreground">Who holds power, by party</div>
+                    </div>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -150,8 +167,21 @@ export function Navbar() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
+
+            {/* Mobile: hamburger replaces "Ask Now" */}
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white md:hidden cursor-pointer"
+              aria-label="Toggle menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <Show when={mobileMenuOpen}><X className="h-5 w-5" /></Show>
+              <Show when={!mobileMenuOpen}><Menu className="h-5 w-5" /></Show>
+            </button>
+
+            {/* Desktop: "Ask Now" dropdown */}
             <div
-              className="relative"
+              className="relative hidden md:block"
               onMouseEnter={() => setIsDropdownOpen(true)}
               onMouseLeave={() => setIsDropdownOpen(false)}
             >
@@ -168,7 +198,7 @@ export function Navbar() {
                 </span>
               </button>
 
-              {isDropdownOpen && (
+              <Show when={isDropdownOpen}>
                 <div className="absolute right-0 top-full pt-2 w-48 z-50">
                   <div className="rounded-xl border border-border/50 bg-card p-2 shadow-xl shadow-black/10 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 flex flex-col gap-1">
                     <a
@@ -199,14 +229,60 @@ export function Navbar() {
                     </button>
                   </div>
                 </div>
-              )}
+              </Show>
             </div>
           </div>
         </div>
+
+        {/* Mobile menu panel */}
+        <Show when={mobileMenuOpen}>
+          <div className="md:hidden mt-2 rounded-3xl border border-border/50 bg-background/95 backdrop-blur-2xl shadow-xl shadow-black/10 p-4 max-h-[75vh] overflow-y-auto animate-in fade-in slide-in-from-top-2">
+            {/* Ask the platform */}
+            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Ask Questions</div>
+            <a href={LOGIN_URL} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Ask on Web
+            </a>
+            <a href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ournigeria_dev_bot"}`} target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Send className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Ask on Telegram
+            </a>
+            <button onClick={() => { setIsModalOpen(true); setMobileMenuOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted text-left cursor-pointer">
+              <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Ask on WhatsApp
+            </button>
+
+            <div className="my-2 border-t border-border/50" />
+            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">The Big Picture</div>
+            <Link href="/states" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Map className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Browse States
+            </Link>
+            <Link href="/leaderboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Trophy className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> State Rankings
+            </Link>
+            <Link href="/activity" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Contribution Updates
+            </Link>
+            <Link href="/parties" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Landmark className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Political Parties
+            </Link>
+
+            <div className="my-2 border-t border-border/50" />
+            <div className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Your Leaders</div>
+            <Link href="/officials" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> All Officials
+            </Link>
+            <Link href="/representatives" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Find Your Reps
+            </Link>
+
+            <div className="my-2 border-t border-border/50" />
+            <Link href="/donate" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-muted">
+              <Heart className="h-4 w-4" /> Back Our Mission
+            </Link>
+          </div>
+        </Show>
       </nav>
 
       {/* WhatsApp Modal */}
-      {isModalOpen && (
+      <Show when={isModalOpen}>
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-border/50 bg-card p-6 shadow-2xl">
             <button
@@ -233,7 +309,7 @@ export function Navbar() {
             </div>
           </div>
         </div>
-      )}
+      </Show>
     </>
   );
 }

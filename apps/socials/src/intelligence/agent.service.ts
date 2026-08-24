@@ -4,6 +4,7 @@ import { generateText, stepCountIs, tool } from "ai";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { z } from "zod";
 import type { SocialsEnvConfig } from "../config/env.validation.js";
+import { getSystemPrompt, type DraftDomain } from "./system-prompts.js";
 
 export interface DiscoveredTweetSnapshot {
   id: string;
@@ -23,7 +24,7 @@ export interface DiscoveredTweetSnapshot {
 
 export interface AgentTopicContext {
   name: string;
-  domain: "budget" | "corruption" | "faac" | "govspend" | "general";
+  domain: DraftDomain;
   description: string;
 }
 
@@ -33,8 +34,18 @@ export interface AgentClassification {
   reason: string;
 }
 
+export interface ThreadContextInput {
+  /**
+   * Ancestor tweets oldest-first (root → immediate parent). The tweet being
+   * responded to is NOT included — it's the focal `discoveredTweet`.
+   */
+  ancestors: Array<{ authorHandle: string; text: string }>;
+  /** The tweet the discovered tweet quotes, when it's a quote tweet. */
+  quoted?: { authorHandle: string; text: string } | null;
+}
+
 export interface AgentResult {
-  action: "quote" | "reply" | "skip";
+  action: "quote" | "reply" | "retweet" | "skip";
   text: string;
   confidence: number;
   reasoning: string;
@@ -45,35 +56,179 @@ export interface AgentResult {
 }
 
 const AgentResultJsonSchema = z.object({
-  action: z.enum(["quote", "reply", "skip"]),
+  action: z.enum(["quote", "reply", "retweet", "skip"]),
   text: z.string(),
   confidence: z.number().min(0).max(1),
   reasoning: z.string(),
 });
 
-const SYSTEM_PROMPT = `
-You are OurNigeria's civic data analyst on Twitter/X.
-You craft on-brand responses to real tweets that surface Nigerian government spending, budgets, corruption cases, and public finance figures.
-
-VOICE: English. Direct, punchy, citizen-journalist tone. Cite specific numbers from your tools.
-
-OUTPUT FORMAT — return ONLY a JSON object with this exact shape:
-{
-  "action": "quote" | "reply" | "skip",
-  "text": string,                  // empty if action is "skip"
-  "confidence": number,            // 0..1, your self-rated confidence
-  "reasoning": string              // one sentence explaining your action choice
+/**
+ * Remove em/en-dashes from a tweet — the single most reliable AI tell. The
+ * prompt forbids them, but the model still leaks them, so we enforce it
+ * deterministically: a dash between two digits is a numeric range (keep a
+ * hyphen); a clause-separating dash becomes a comma. Guarantees zero —/– ship.
+ */
+export function stripDashes(text: string): string {
+  return text
+    // A dash flanked by non-space on both sides is a range/compound
+    // (Jan-Apr, 2024-2025) -> hyphen; a spaced dash is a clause break -> comma.
+    .replace(/(\S)\s*[—–]\s*(\S)/g, (m, a, b) =>
+      /\s/.test(m) ? `${a}, ${b}` : `${a}-${b}`,
+    )
+    .replace(/[—–]/g, ", ") // any straggler (leading/trailing/consecutive)
+    .replace(/\s*,\s*,/g, ",");
 }
 
-Rules:
-1. Cite specific state, year, amount from search results. Use the Naira symbol (e.g., ₦1.3B, ₦47M).
-2. Never make unsourced claims — only use data your tools returned.
-3. Action selection:
-   - "quote": you have a substantive data-backed point to amplify alongside the tweet. Use when author has a meaningful follower count (>= ~10k) or the tweet itself is a strong signal you want to widen.
-   - "reply": you have a direct, conversational data point that fits as a comment thread. Use for lower-follower authors or direct questions/claims you can correct/expand.
-   - "skip": you cannot find supporting data, the tweet is off-topic for your tools, the response would be unsourced or generic, OR responding adds no civic value.
-4. Tweet text MUST be no more than 280 characters.
-5. Prefer skipping over weak/generic responses. Reviewers approve drafts manually — quality over volume.`;
+/** Lowercase, hyphenated slug for a state/LGA name ("Akwa Ibom" -> "akwa-ibom"). */
+export function ognSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const VERIFY_BASE = "https://ournigeria.ng/states";
+
+// UTM tags on every verify-CTA link so analytics (PostHog auto-captures utm_*)
+// can attribute landing-page traffic back to the bot's posts, and segment by
+// which page granularity (national / state / LGA) actually drives clicks. X
+// wraps every link in t.co, so the longer URL costs no tweet characters.
+const UTM_MEDIUM = "social";
+const UTM_CAMPAIGN = "verify_cta";
+
+// Maps an internal platform key to its analytics utm_source value. Add a row
+// here when the bot starts posting the verify CTA on a new network. Keep keys
+// aligned with the `platforms/` adapter dirs ("twitter" → the brand "x").
+const PLATFORM_UTM_SOURCE = {
+  twitter: "x",
+  telegram: "telegram",
+  facebook: "facebook",
+  threads: "threads",
+  bluesky: "bluesky",
+  linkedin: "linkedin",
+} as const satisfies Record<string, string>;
+
+export type SocialPlatform = keyof typeof PLATFORM_UTM_SOURCE;
+
+type VerifyLevel = "national" | "state" | "lga";
+
+/**
+ * Compose the verify URL: base + path, with year (optional) then utm params.
+ * `platform` selects the utm_source so analytics can split traffic by network.
+ */
+function withTracking(
+  platform: SocialPlatform,
+  path: string,
+  year: number | null,
+  level: VerifyLevel,
+): string {
+  const params = new URLSearchParams();
+  if (year) params.set("year", String(year));
+  params.set("utm_source", PLATFORM_UTM_SOURCE[platform]);
+  params.set("utm_medium", UTM_MEDIUM);
+  params.set("utm_campaign", UTM_CAMPAIGN);
+  params.set("utm_content", level);
+  return `${VERIFY_BASE}${path}?${params.toString()}`;
+}
+
+/**
+ * Build the OurNigeria verify-link for the entity + year the agent queried.
+ * LGA-level -> /states/<state>/<lga>; single state -> /states/<state>;
+ * national/multi-state -> /states. `?year=` carries the year it cited, followed
+ * by UTM tags for traffic attribution (`platform` drives utm_source). FAAC only
+ * for now (that's what has public state pages). Returns null otherwise.
+ */
+export function buildVerifyUrl(
+  domain: string,
+  calls: Array<{ name: string; args: Record<string, unknown> }>,
+  platform: SocialPlatform = "twitter",
+): string | null {
+  if (domain !== "faac") return null;
+  const faac = calls.filter((c) => c.name === "faac_search");
+  if (faac.length === 0) return null;
+  const states = new Set<string>();
+  let lga: { state?: string; lga: string } | null = null;
+  const years = new Set<number>();
+  for (const { args } of faac) {
+    if (typeof args.state === "string" && args.state.trim())
+      states.add(args.state.trim());
+    if (typeof args.lga === "string" && args.lga.trim())
+      lga = {
+        state: typeof args.state === "string" ? args.state : undefined,
+        lga: args.lga.trim(),
+      };
+    const y = Number(args.year);
+    if (Number.isInteger(y) && y > 2000) years.add(y);
+  }
+  const year = years.size ? Math.max(...years) : null;
+  if (lga?.state)
+    return withTracking(
+      platform,
+      `/${ognSlug(lga.state)}/${ognSlug(lga.lga)}`,
+      year,
+      "lga",
+    );
+  if (states.size === 1)
+    return withTracking(platform, `/${ognSlug([...states][0])}`, year, "state");
+  return withTracking(platform, "", year, "national");
+}
+
+/** Append the verify CTA as its own paragraph (idempotent, no-op if url null). */
+export function appendVerifyCta(text: string, url: string | null): string {
+  if (!url || text.includes(url)) return text;
+  return `${text.trim()}\n\nVerify on OurNigeria: ${url}`;
+}
+
+/**
+ * When the model returns the tweet as plain prose instead of the JSON envelope,
+ * salvage it as a postable reply. Strips code fences and a leading "json"
+ * marker, scrubs dashes, and rejects refusals / obvious non-tweets. Returns the
+ * cleaned tweet, or null if the body isn't usable as a reply.
+ */
+export function recoverProse(body: string): string | null {
+  const cleaned = stripDashes(
+    body
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/, "")
+      .replace(/^json\s*/i, "")
+      .trim(),
+  );
+  if (cleaned.length < 15 || cleaned.length > 4000) return null;
+  if (cleaned.startsWith("{") || cleaned.startsWith("[")) return null; // malformed JSON, not prose
+  if (/^(i('?m| am| cannot| can't)|sorry|as an ai)\b/i.test(cleaned)) return null; // refusal
+  return cleaned;
+}
+
+/**
+ * Extract the first balanced JSON object `{ ... }` from a string, ignoring any
+ * prose the model prepended/appended despite the "ONLY JSON" instruction.
+ * Brace-aware and string-literal-aware (so braces inside string values don't
+ * confuse the depth count). Returns the object substring, or null.
+ */
+export function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inStr = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
 
 @Injectable()
 export class AgentService {
@@ -101,22 +256,65 @@ export class AgentService {
       discoveredTweet: DiscoveredTweetSnapshot;
       topic: AgentTopicContext;
       classification: AgentClassification;
+      threadContext?: ThreadContextInput;
+      inbound?: { kind: "inbound_reply" | "mention"; ourPostText?: string };
     },
     toolExecutor: (
       name: string,
       args: Record<string, unknown>,
     ) => Promise<unknown>,
   ): Promise<AgentResult | null> {
-    const { discoveredTweet, topic, classification } = input;
+    const { discoveredTweet, topic, classification, threadContext, inbound } =
+      input;
 
-    const userPrompt = `You are responding to this tweet:
+    // Inbound engagement (a reply to us / a mention) is framed differently: we
+    // KNOW they engaged us, so reply in context, and never quote/retweet.
+    const inboundIntro = !inbound
+      ? ""
+      : inbound.kind === "inbound_reply"
+        ? `This is a REPLY to OurNigeria's OWN post — someone engaged us. Reply to them directly and in context.${inbound.ourPostText ? `\n\nOurNigeria's original post:\n"""\n${inbound.ourPostText}\n"""` : ""}\n\n`
+        : `This is a MENTION of OurNigeria — someone tagged the account. Reply only if there's a real, data-backed point to make.\n\n`;
+    const actionLine = inbound
+      ? `2. Decide reply / skip ONLY (never quote or retweet for inbound engagement). Skip is fine if the data isn't there or a reply adds no value.`
+      : `2. Decide quote / reply / skip. Skip is fine if data isn't there or response would be weak.`;
+
+    // When the tweet is a reply / quote, show the surrounding conversation so
+    // the agent grounds its response in the thread instead of the lone tweet.
+    const hasAncestors = !!threadContext?.ancestors?.length;
+    const hasQuoted = !!threadContext?.quoted?.text;
+    let contextBlock = "";
+    if (hasAncestors) {
+      const chain = threadContext!.ancestors
+        .map((a) => `@${a.authorHandle}: ${a.text}`)
+        .join("\n");
+      contextBlock += `Conversation so far (oldest first — you are replying to the LAST tweet, shown under "Tweet text" below):
+"""
+${chain}
+"""
+
+`;
+    }
+    if (hasQuoted) {
+      contextBlock += `The tweet you're responding to QUOTES this tweet:
+"""
+@${threadContext!.quoted!.authorHandle}: ${threadContext!.quoted!.text}
+"""
+
+`;
+    }
+    const contextInstruction =
+      hasAncestors || hasQuoted
+        ? `\n0. Read the conversation/quoted tweet above first. Respond to the tweet IN CONTEXT — answer what the thread is actually asking, don't treat the last tweet as if it stands alone, and don't repeat a point already made above. Never quote-tweet a mid-thread reply.`
+        : "";
+
+    const userPrompt = `${inboundIntro}You are responding to this tweet:
 
 Author: ${discoveredTweet.authorName} (@${discoveredTweet.authorScreenName})
 Followers: ${discoveredTweet.authorFollowers}
 Engagement: ${discoveredTweet.likeCount} likes, ${discoveredTweet.replyCount} replies, ${discoveredTweet.quoteCount} quotes
 Posted: ${discoveredTweet.tweetCreatedAt.toISOString()}
 
-Tweet text:
+${contextBlock}Tweet text:
 """
 ${discoveredTweet.text}
 """
@@ -126,12 +324,14 @@ Topic description: ${topic.description}
 
 Classifier said: relevance ${classification.score.toFixed(2)}, intent="${classification.intent}", reason="${classification.reason}"
 
-Your job:
+Your job:${contextInstruction}
 1. Search OurNigeria's data tools for facts that meaningfully respond to this tweet. Prefer the ${topic.domain}_search tool first, but use others if relevant.
-2. Decide quote / reply / skip. Skip is fine if data isn't there or response would be weak.
+${actionLine}
 3. Return the JSON object only.`;
 
     const collectedToolResults: unknown[] = [];
+    const searchCalls: Array<{ name: string; args: Record<string, unknown> }> =
+      [];
     let lastDataQuery = "";
 
     const buildSearchTool = (
@@ -144,6 +344,7 @@ Your job:
         inputSchema: schema,
         execute: async (args: Record<string, unknown>) => {
           lastDataQuery = `${name}: ${JSON.stringify(args)}`;
+          searchCalls.push({ name, args });
           this.logger.log(`Tool call: ${name}`);
           const result = await toolExecutor(name, args);
           collectedToolResults.push(result);
@@ -198,10 +399,10 @@ Your job:
     try {
       result = await generateText({
         model: this.model,
-        system: SYSTEM_PROMPT,
+        system: getSystemPrompt(topic.domain),
         prompt: userPrompt,
         tools,
-        stopWhen: stepCountIs(5),
+        stopWhen: stepCountIs(10),
         temperature: this.temperature,
         abortSignal: AbortSignal.timeout(90_000),
       });
@@ -215,8 +416,17 @@ Your job:
     const parsed = this.parseFinalJson(result.text);
     if (!parsed) return null;
 
+    // Append a verify CTA driving to the OurNigeria page for the state/LGA +
+    // year the agent actually queried (doubles as source-anchoring, the
+    // strongest credibility lever). Only for reply/quote.
+    const text =
+      parsed.action === "reply" || parsed.action === "quote"
+        ? appendVerifyCta(parsed.text, buildVerifyUrl(topic.domain, searchCalls))
+        : parsed.text;
+
     return {
       ...parsed,
+      text,
       toolResults: collectedToolResults,
       dataQuery: lastDataQuery,
       costUsd: this.estimateCostUsd(
@@ -237,8 +447,35 @@ Your job:
     try {
       parsed = JSON.parse(body);
     } catch {
-      this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
-      return null;
+      // Flash models sometimes wrap the JSON in prose ("Based on the data,
+      // here's my context… { … }") despite the ONLY-JSON instruction.
+      // Recover the first balanced object rather than dropping the draft.
+      const extracted = extractFirstJsonObject(body);
+      if (extracted) {
+        try {
+          parsed = JSON.parse(extracted);
+        } catch {
+          /* fall through to the non-JSON warning below */
+        }
+      }
+      if (parsed === undefined) {
+        // The human, multi-paragraph voice makes flash drop the JSON wrapper
+        // and just write the tweet ~half the time. The body IS a usable reply,
+        // so recover it instead of dropping the draft. Low confidence so it is
+        // never auto-published (recommended needs >= 0.8) and always reviewed.
+        const prose = recoverProse(body);
+        if (prose) {
+          this.logger.warn("agent returned prose, not JSON; recovering as reply");
+          return {
+            action: "reply",
+            text: prose,
+            confidence: 0.6,
+            reasoning: "recovered from a non-JSON (prose) response",
+          };
+        }
+        this.logger.warn(`agent returned non-JSON: ${text.slice(0, 200)}`);
+        return null;
+      }
     }
 
     const safe = AgentResultJsonSchema.safeParse(parsed);
@@ -249,14 +486,24 @@ Your job:
       return null;
     }
 
-    if (safe.data.action !== "skip" && safe.data.text.length === 0) {
+    // Deterministic dash scrub: the prompt bans em/en-dashes, but the model
+    // still leaks them ~2/3 of the time. Strip them in code so none ever ship
+    // (numeric ranges keep a hyphen; clause dashes become commas).
+    const cleaned = { ...safe.data, text: stripDashes(safe.data.text) };
+
+    // retweet carries no text (pure amplification); only reply/quote require it.
+    if (
+      cleaned.action !== "skip" &&
+      cleaned.action !== "retweet" &&
+      cleaned.text.length === 0
+    ) {
       this.logger.warn(
-        `agent returned ${safe.data.action} but empty text; treating as skip`,
+        `agent returned ${cleaned.action} but empty text; treating as skip`,
       );
-      return { ...safe.data, action: "skip", text: "" };
+      return { ...cleaned, action: "skip", text: "" };
     }
 
-    return safe.data;
+    return cleaned;
   }
 
   private estimateCostUsd(inputTokens: number, outputTokens: number): number {

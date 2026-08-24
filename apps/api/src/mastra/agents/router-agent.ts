@@ -1,7 +1,9 @@
 import { Agent } from "@mastra/core/agent";
 import { chatModel } from "../rag/config";
+import { getCurrentYear } from "../../lib/constants";
+import { TEMPORAL_CONTEXT } from "./shared-instructions";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = getCurrentYear();
 
 export const routerAgent = new Agent({
   id: "router-agent",
@@ -150,6 +152,7 @@ Respond with valid JSON only. No markdown fencing, no explanation, no extra text
 - entities.officials: Names of officials mentioned, e.g. ["James Ibori", "Yahaya Bello"]
 - entities.sectors: Budget sectors mentioned, e.g. ["education", "health", "infrastructure"]
 - entities.mdas: Government MDAs mentioned, e.g. ["Federal Ministry of Works"]
-- entities.lgas: LGA names mentioned, e.g. ["Ikwo", "Obio/Akpor"]`,
+- entities.lgas: LGA names mentioned, e.g. ["Ikwo", "Obio/Akpor"]` +
+    TEMPORAL_CONTEXT,
   model: chatModel,
 });
