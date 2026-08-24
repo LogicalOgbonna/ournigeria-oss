@@ -19,6 +19,6 @@ export const contentType = OG_CONTENT_TYPE;
 export default async function Image() {
   return new ImageResponse(<OgCardMap {...OG_CARD_ROADMAP} />, {
     ...size,
-    fonts: await ogFonts(),
+    fonts: ogFonts(),
   });
 }

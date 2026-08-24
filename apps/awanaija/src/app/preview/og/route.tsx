@@ -38,8 +38,14 @@ export async function GET(req: Request) {
 
   return new ImageResponse(<OgCardMap {...card} />, {
     ...OG_SIZE,
-    fonts: await ogFonts(),
-    // Route handlers can't export `metadata`, so the noindex signal has to be a header.
-    headers: { "X-Robots-Tag": "noindex, nofollow" },
+    fonts: ogFonts(),
+    headers: {
+      // Route handlers can't export `metadata`, so noindex has to be a header.
+      "X-Robots-Tag": "noindex, nofollow",
+      // ImageResponse defaults to `immutable, max-age=31536000` outside development.
+      // On a staging host reached via ENABLE_OG_PREVIEW that would pin the preview
+      // for a year — freezing the one tool whose job is showing current card copy.
+      "cache-control": "no-store",
+    },
   });
 }

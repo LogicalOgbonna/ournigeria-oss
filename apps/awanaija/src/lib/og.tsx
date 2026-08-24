@@ -28,61 +28,68 @@ const GRADIENT = "linear-gradient(135deg, #052e26 0%, #064e3b 46%, #066f4d 100%)
 /* fonts                                                               */
 /* ------------------------------------------------------------------ */
 
-// Satori needs TTF/WOFF (never WOFF2), and Google only serves WOFF2 to modern
-// user agents — hence the deliberately ancient UA string.
-const LEGACY_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.71 Safari/537.36";
+/**
+ * Brand faces are vendored into the repo rather than fetched from Google at build.
+ *
+ * They used to be fetched, which was wrong in two ways. `ImageResponse` does
+ * `options.fonts || defaultFonts`, and an empty array is truthy — so if every fetch
+ * failed, satori got zero fonts and threw "No fonts are loaded", failing the whole
+ * build. One 429 on a shared CI egress IP was enough to do that to all three at once.
+ * And a *partial* failure was worse than a loud one: satori silently falls back to
+ * whichever face did load, so the serif headline would render in DM Sans and get
+ * baked into a static PNG that ships to every share until someone noticed.
+ *
+ * Three static font binaries have no business being a build-time network dependency.
+ * Reading them off disk makes the build hermetic and the output deterministic.
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-// Google serves font binaries from exactly one host. Pinning it means a tampered or
-// MITM'd CSS response can't redirect the second fetch somewhere else.
-const FONT_BINARY_ORIGIN = "https://fonts.gstatic.com";
-const FONT_FETCH_TIMEOUT_MS = 5_000;
-const MAX_FONT_BYTES = 2_000_000;
+type LoadedFont = {
+  name: string;
+  data: Buffer;
+  weight: 400 | 500 | 600;
+  style: "normal";
+};
 
-type LoadedFont = { name: string; data: ArrayBuffer; weight: 400 | 500 | 600; style: "normal" };
+const FONT_FILES: { file: string; name: string; weight: 400 | 500 | 600 }[] = [
+  { file: "instrument-serif-400.woff", name: "Instrument Serif", weight: 400 },
+  { file: "dm-sans-600.woff", name: "DM Sans", weight: 600 },
+  { file: "ibm-plex-mono-500.woff", name: "IBM Plex Mono", weight: 500 },
+];
 
-async function fetchGoogleFont(
-  family: string,
-  name: string,
-  weight: 400 | 500 | 600
-): Promise<LoadedFont | null> {
-  try {
-    const css = await fetch(`https://fonts.googleapis.com/css2?family=${family}`, {
-      headers: { "User-Agent": LEGACY_UA },
-      // Fonts never change; let the platform cache hold them between renders.
-      cache: "force-cache",
-      signal: AbortSignal.timeout(FONT_FETCH_TIMEOUT_MS),
-    }).then((r) => (r.ok ? r.text() : ""));
-    const url = css.match(/src:\s*url\((https:[^)]+)\)/)?.[1];
-    if (!url) return null;
-    if (new URL(url).origin !== FONT_BINARY_ORIGIN) return null;
-    const res = await fetch(url, {
-      cache: "force-cache",
-      signal: AbortSignal.timeout(FONT_FETCH_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    // Don't buffer an unbounded body into memory — a font this big is a bug upstream.
-    if (Number(res.headers.get("content-length")) > MAX_FONT_BYTES) return null;
-    return { name, data: await res.arrayBuffer(), weight, style: "normal" };
-  } catch {
-    return null;
+// Nx may invoke the build from the workspace root or from the app directory.
+const FONT_DIRS = [
+  join(process.cwd(), "src/assets/fonts"),
+  join(process.cwd(), "apps/awanaija/src/assets/fonts"),
+];
+
+function readFont(file: string): Buffer {
+  for (const dir of FONT_DIRS) {
+    try {
+      return readFileSync(join(dir, file));
+    } catch {
+      // try the next candidate
+    }
   }
+  // Fail loudly: a card rendered without its brand face is a silent visual regression
+  // baked into a static asset, which is worse than a build that stops here.
+  throw new Error(
+    `[og] font not found: ${file}. Looked in: ${FONT_DIRS.join(", ")}`
+  );
 }
 
-let fontsPromise: Promise<LoadedFont[]> | null = null;
+let fonts: LoadedFont[] | null = null;
 
-/**
- * Brand fonts for the card. Any that fail to load are simply dropped — Satori falls
- * back to its bundled face, so a Google Fonts hiccup degrades the card's typography
- * instead of failing the request and leaving the link with no preview at all.
- */
-export function ogFonts(): Promise<LoadedFont[]> {
-  fontsPromise ??= Promise.all([
-    fetchGoogleFont("Instrument+Serif", "Instrument Serif", 400),
-    fetchGoogleFont("DM+Sans:wght@600", "DM Sans", 600),
-    fetchGoogleFont("IBM+Plex+Mono:wght@500", "IBM Plex Mono", 500),
-  ]).then((f) => f.filter((x): x is LoadedFont => x !== null));
-  return fontsPromise;
+/** Brand fonts for the card. Read once per process, from disk. */
+export function ogFonts(): LoadedFont[] {
+  fonts ??= FONT_FILES.map(({ file, name, weight }) => ({
+    name,
+    data: readFont(file),
+    weight,
+    style: "normal" as const,
+  }));
+  return fonts;
 }
 
 const SERIF = "Instrument Serif, serif";
