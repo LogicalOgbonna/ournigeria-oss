@@ -2,14 +2,21 @@ import { Injectable } from "@nestjs/common";
 import {
   PrismaService,
   COMPLETENESS_FLAT_FIELDS,
+  COMPLETENESS_SQL,
   computeOfficialCompleteness,
 } from "@ournigeria/database";
 
 /**
  * The ONE place official completeness is computed (Plan 45c, Fix #4).
- * Definition lives in @ournigeria/shared-types. recompute() persists the
- * score to nigerian_officials.completeness_score; the ranking queries read
- * that stored column (AVG) instead of re-deriving their own formula.
+ * Definition lives in @ournigeria/database. recompute() persists the score to
+ * nigerian_officials.completeness_score for single-official reads.
+ *
+ * The ranking queries do NOT average that stored column. recompute() only fires
+ * on the proposal-approval and enrichment-apply paths, so every bulk-imported
+ * official still has completeness_score = NULL — and COALESCE(AVG(NULL), 0)
+ * reported 20 of 37 fully-populated states as a hard 0. They instead evaluate
+ * COMPLETENESS_SQL, the SQL twin of computeOfficialCompleteness() generated
+ * from the same constants, so a leaderboard can never be silently stale.
  */
 @Injectable()
 export class CompletenessService {
@@ -69,12 +76,12 @@ export class CompletenessService {
     // Derive each position's state: directly from state_code (governors),
     // via constituency (senators/reps), or via LGA (chairmen).
     // Rankings average the STORED completeness_score (kept fresh by recompute()).
-    const rows: { state_code: string; state_name: string; avg_completeness: number; official_count: bigint }[] =
+    const rows: { state_code: string; state_name: string; avg_completeness: string; official_count: bigint }[] =
       await this.prisma.$queryRawUnsafe(`
         SELECT
           s.code   AS state_code,
           s.name   AS state_name,
-          COALESCE(AVG(o.completeness_score), 0) AS avg_completeness,
+          COALESCE(AVG(${COMPLETENESS_SQL}), 0) AS avg_completeness,
           COUNT(DISTINCT o.id) AS official_count
         FROM nigerian_states s
         LEFT JOIN (
@@ -104,12 +111,12 @@ export class CompletenessService {
   }
 
   async getLgaRankings(stateCode: string) {
-    const rows: { lga_code: string; lga_name: string; avg_completeness: number; official_count: bigint }[] =
+    const rows: { lga_code: string; lga_name: string; avg_completeness: string; official_count: bigint }[] =
       await this.prisma.$queryRawUnsafe(`
         SELECT
           l.code   AS lga_code,
           l.name   AS lga_name,
-          COALESCE(AVG(o.completeness_score), 0) AS avg_completeness,
+          COALESCE(AVG(${COMPLETENESS_SQL}), 0) AS avg_completeness,
           COUNT(DISTINCT o.id) AS official_count
         FROM nigerian_lgas l
         LEFT JOIN official_positions p
