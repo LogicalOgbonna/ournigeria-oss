@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { invalidateUserAuthCache } from "../auth/auth.guard";
+import { invalidateSessionResolutionCache } from "../auth/session.service";
 
 @Injectable()
 export class AdminUsersService {
@@ -175,6 +176,13 @@ export class AdminUsersService {
       },
       select: { id: true, banned: true, bannedAt: true, banReason: true },
     });
+    // Kill every active session immediately (the ban cache alone lags up to 60s)
+    // and purge cached token resolutions so they can't outlive the ban.
+    await this.prisma.userSession.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await invalidateSessionResolutionCache();
     await invalidateUserAuthCache(id);
     return result;
   }

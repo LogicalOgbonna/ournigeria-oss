@@ -129,10 +129,32 @@ model AdminUser {
   lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz()
   createdById  String?   @map("created_by_id") @db.Uuid
 
-  createdBy    AdminUser?  @relation("AdminCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdUsers AdminUser[] @relation("AdminCreatedBy")
+  createdBy    AdminUser?     @relation("AdminCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdUsers AdminUser[]    @relation("AdminCreatedBy")
+  sessions     AdminSession[]
 
   @@map("admin_users")
+}
+
+/// Opaque, server-stored admin session. The cookie carries a random token
+/// (prefix `ons_`); only its SHA-256 hash is stored here. Distinct from
+/// admin.id so it can be expired and revoked per-session.
+model AdminSession {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId    String    @map("admin_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz()
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz()
+  userAgent  String?   @map("user_agent") @db.VarChar(400)
+  ip         String?   @db.VarChar(64)
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId], map: "idx_admin_sessions_admin")
+  @@index([expiresAt], map: "idx_admin_sessions_expires")
+  @@map("admin_sessions")
 }
 
 model GeopoliticalZone {
@@ -1136,8 +1158,48 @@ model User {
   dismissedBanners BannerDismissal[]
   feedbacks        Feedback[]
   donations        Donation[]
+  sessions         UserSession[]
+  authHandoffs     AuthHandoff[]
 
   @@map("users")
+}
+
+/// Opaque, server-stored user session. The cookie carries a random token
+/// (prefix `nbs_`); only its SHA-256 hash is stored here. Distinct from user.id
+/// so it can be rotated, expired, and revoked independently.
+model UserSession {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz()
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz()
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz()
+  userAgent  String?   @map("user_agent") @db.VarChar(400)
+  ip         String?   @db.VarChar(64)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_user_sessions_user")
+  @@index([expiresAt], map: "idx_user_sessions_expires")
+  @@map("user_sessions")
+}
+
+/// One-time, short-lived cross-origin login handoff code (prefix `nbh_`).
+/// Carries no userId in the value; only its SHA-256 hash is stored. The web
+/// app POSTs the code to /auth/handoff, which exchanges it for a UserSession.
+model AuthHandoff {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @unique @map("code_hash") @db.VarChar(64)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz()
+  usedAt    DateTime? @map("used_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt], map: "idx_auth_handoffs_expires")
+  @@map("auth_handoffs")
 }
 
 model UserMemory {
