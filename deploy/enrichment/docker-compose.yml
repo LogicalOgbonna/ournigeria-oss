@@ -40,6 +40,9 @@ services:
       TELEGRAM_ALLOWED_USERS: "${ENRICHMENT_TELEGRAM_ALLOWED_USERS:?set-via-infisical-run}"
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
       ENRICHMENT_AGENT_DATABASE_URL: "${ENRICHMENT_AGENT_DATABASE_URL:?set-via-infisical-run}"
+      # Optional: CourtListener API token (plan 59) — lifts the 50/hr search cap for
+      # the courtlistener-lookup CLI. Absent = keyless single lookups still work.
+      COURTLISTENER_TOKEN: "${COURTLISTENER_TOKEN:-}"
       CAMOFOX_URL: "http://camofox:9377"
       HERMES_UID: "10000"
       HERMES_GID: "10000"
@@ -68,6 +71,9 @@ services:
       OPENAI_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
       DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:?set-via-infisical-run}"
       ENRICHMENT_AGENT_DATABASE_URL: "${ENRICHMENT_AGENT_DATABASE_URL:?set-via-infisical-run}"
+      # Optional: CourtListener API token (plan 59) — lifts the 50/hr search cap for
+      # the courtlistener-lookup CLI. Absent = keyless single lookups still work.
+      COURTLISTENER_TOKEN: "${COURTLISTENER_TOKEN:-}"
       CAMOFOX_URL: "http://camofox:9377"
       # Conservative defaults — override per environment.
       SWEEPER_BATCH: "${SWEEPER_BATCH:-5}"

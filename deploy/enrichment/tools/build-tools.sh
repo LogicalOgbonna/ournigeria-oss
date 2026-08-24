@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../../.."   # repo root
 
-for cli in find-candidates submit-proposal parse-located find-councilor-gaps submit-create-proposal find-structured-gaps submit-structured-create corruption-lookup; do
+for cli in find-candidates submit-proposal parse-located find-councilor-gaps submit-create-proposal find-structured-gaps submit-structured-create corruption-lookup courtlistener-lookup; do
   npx esbuild "apps/api/src/enrichment/agent/${cli}.cli.ts" \
     --bundle --platform=node --target=node22 --format=cjs --packages=external \
     --outfile="deploy/enrichment/tools/${cli}.cjs"
@@ -16,4 +16,4 @@ npx esbuild "apps/api/src/enrichment/sweeper/sweeper.cli.ts" \
   --bundle --platform=node --target=node22 --format=cjs --packages=external \
   --outfile="deploy/enrichment/tools/sweeper.cjs"
 
-echo "Bundled: find-candidates submit-proposal parse-located find-councilor-gaps submit-create-proposal find-structured-gaps submit-structured-create corruption-lookup sweeper (.cjs)"
+echo "Bundled: find-candidates submit-proposal parse-located find-councilor-gaps submit-create-proposal find-structured-gaps submit-structured-create corruption-lookup courtlistener-lookup sweeper (.cjs)"

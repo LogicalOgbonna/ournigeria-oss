@@ -1,78 +1,7 @@
 "use strict";
 
-// apps/api/src/enrichment/sweeper/sweeper.cli.ts
-var import_fs = require("fs");
+// apps/api/src/enrichment/agent/courtlistener-lookup.cli.ts
 var import_pg = require("pg");
-
-// apps/api/src/enrichment/agent/categories.ts
-var CATEGORIES = [
-  { category: "education", domain: "education", table: "official_education", kind: "fillable", electedOnly: false, label: "Education" },
-  { category: "career", domain: "careers", table: "official_careers", kind: "fillable", electedOnly: false, label: "Career before politics" },
-  { category: "party_affiliation", domain: "party_affiliations", table: "official_party_affiliations", kind: "fillable", electedOnly: true, label: "Party affiliations" },
-  { category: "committee", domain: "committees", table: "official_committees", kind: "fillable", electedOnly: true, label: "Committees" },
-  { category: "bill", domain: "bills", table: "official_sponsored_bills", kind: "fillable", electedOnly: true, label: "Sponsored bills" },
-  { category: "election", domain: "elections", table: "official_elections", kind: "fillable", electedOnly: true, label: "Elections contested" },
-  { category: "asset", domain: "assets", table: "official_asset_declarations", kind: "fillable", electedOnly: false, label: "Asset declarations" },
-  { category: "award", domain: "awards", table: "official_awards", kind: "fillable", electedOnly: false, label: "Awards & honours" },
-  { category: "publication", domain: "publications", table: "official_publications", kind: "fillable", electedOnly: false, label: "Publications" },
-  // Investigative — gap is "never checked / due for re-check", never a zero-row inference.
-  { category: "family", domain: "family", table: "official_family_members", kind: "investigative", electedOnly: false, label: "Family" },
-  { category: "legal_case", domain: "legal_cases", table: "official_legal_cases", kind: "investigative", electedOnly: false, label: "Legal cases" },
-  { category: "corruption", domain: "corruption", table: "corruption_cases", kind: "investigative", electedOnly: false, label: "Corruption involvement" }
-];
-var CATEGORY_BY_KEY = Object.fromEntries(
-  CATEGORIES.map((c) => [c.category, c])
-);
-
-// apps/api/src/enrichment/agent/find-structured-gaps.ts
-async function findStructuredGaps(client, limit = 20) {
-  const all = [];
-  for (const cat of CATEGORIES) {
-    const rows = await queryCategory(client, cat, limit);
-    all.push(...rows);
-  }
-  all.sort((a, b) => {
-    const ca = a.completeness ?? -1;
-    const cb = b.completeness ?? -1;
-    if (ca !== cb) return ca - cb;
-    return a.officialId < b.officialId ? -1 : a.officialId > b.officialId ? 1 : 0;
-  });
-  return all.slice(0, limit);
-}
-async function queryCategory(client, cat, limit) {
-  const electedClause = cat.electedOnly ? `AND (o.official_type IS NULL OR o.official_type = 'elected')` : "";
-  const zeroRowClause = cat.kind === "fillable" ? `AND NOT EXISTS (SELECT 1 FROM "${cat.table}" t WHERE t.official_id = o.id)` : "";
-  const sql = `
-    SELECT o.id, o.name, o.slug, o.official_type, o.completeness_score
-    FROM nigerian_officials o
-    LEFT JOIN enrichment_attempts ea
-      ON ea.official_id = o.id AND ea.category = $1
-    WHERE TRUE
-      ${electedClause}
-      AND (ea.id IS NULL OR (ea.status <> 'pending' AND ea.next_eligible_at <= now()))
-      AND NOT EXISTS (
-        SELECT 1 FROM change_proposals cp
-        WHERE cp.target_table = $2
-          AND cp.status IN ('pending', 'needs_human')
-          AND (cp.proposed_value->>'officialId') = o.id::text
-      )
-      ${zeroRowClause}
-    ORDER BY o.completeness_score ASC NULLS FIRST, o.created_at ASC
-    LIMIT $3`;
-  const res = await client.query(sql, [cat.category, cat.table, limit]);
-  return res.rows.map((r) => ({
-    officialId: r.id,
-    name: r.name,
-    slug: r.slug,
-    officialType: r.official_type,
-    category: cat.category,
-    domain: cat.domain,
-    completeness: r.completeness_score === null ? null : Number(r.completeness_score)
-  }));
-}
-
-// apps/api/src/enrichment/agent/corruption-lookup.ts
-var import_database2 = require("@ournigeria/database");
 
 // apps/api/src/enrichment/agent/profiles.ts
 var OFFICIALS = {
@@ -1361,169 +1290,8 @@ async function submitStructuredCreate(client, input, profile = getProfile(input.
   }
 }
 
-// apps/api/src/enrichment/agent/corruption-lookup.ts
-var SEARCH_URL = "https://v1.corruptioncases.ng/api/cases/search";
-var PUBLIC_CASE_BASE = "https://corruptioncases.ng/cases/";
-var MONTHS = {
-  jan: "01",
-  feb: "02",
-  mar: "03",
-  apr: "04",
-  may: "05",
-  jun: "06",
-  jul: "07",
-  aug: "08",
-  sep: "09",
-  oct: "10",
-  nov: "11",
-  dec: "12"
-};
-var CASE_TYPES = /* @__PURE__ */ new Set([
-  "fraud",
-  "embezzlement",
-  "bribery",
-  "money_laundering",
-  "abuse_of_office",
-  "procurement_fraud",
-  "diversion",
-  "other"
-]);
-var STATUS_MAP = {
-  "alleged": "alleged",
-  "under investigation": "under_investigation",
-  "investigation": "under_investigation",
-  "charged": "charged",
-  "on trial": "on_trial",
-  "trial": "on_trial",
-  "convicted": "convicted",
-  "conviction": "convicted",
-  "acquitted": "acquitted",
-  "discharged": "acquitted",
-  "dismissed": "dismissed",
-  "struck out": "dismissed",
-  "settled": "settled",
-  "on appeal": "appeal",
-  "appeal": "appeal"
-};
-function normalizeName(s) {
-  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-}
-function defendantMatchesOfficial(officialName, defendantName) {
-  const off = normalizeName(officialName).split(" ").filter(Boolean);
-  if (off.length === 0) return false;
-  const def = new Set(normalizeName(defendantName).split(" ").filter(Boolean));
-  return off.every((t) => def.has(t));
-}
-function parseAmount(raw) {
-  if (typeof raw !== "string") return void 0;
-  const cleaned = raw.replace(/[^0-9.]/g, "");
-  if (!cleaned) return void 0;
-  const n = Number.parseFloat(cleaned);
-  return Number.isFinite(n) ? n : void 0;
-}
-function parseArraignmentDate(raw) {
-  if (typeof raw !== "string") return void 0;
-  const m = raw.trim().match(/^([A-Za-z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})$/);
-  if (!m) return void 0;
-  const mm = MONTHS[m[1].slice(0, 3).toLowerCase()];
-  if (!mm) return void 0;
-  return `${m[3]}-${mm}-${m[2].padStart(2, "0")}`;
-}
-function mapCaseType(raw) {
-  const norm = String(raw ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return CASE_TYPES.has(norm) ? norm : "other";
-}
-function mapStatus(status, stage) {
-  const sg = String(stage ?? "").trim().toLowerCase();
-  if (sg) {
-    if (sg.includes("convict")) return "convicted";
-    if (sg.includes("acquit") || sg.includes("discharg")) return "acquitted";
-    if (sg.includes("dismiss") || sg.includes("struck")) return "dismissed";
-    if (sg.includes("settl")) return "settled";
-    if (sg.includes("appeal")) return "appeal";
-    if (sg.includes("prosecut") || sg.includes("trial")) return "on_trial";
-    if (sg.includes("charg")) return "charged";
-    if (sg.includes("investigat")) return "under_investigation";
-  }
-  return STATUS_MAP[String(status ?? "").trim().toLowerCase()] ?? "on_trial";
-}
-async function fetchJsonDefault(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`corruptioncases.ng responded ${res.status}`);
-  return res.json();
-}
-async function lookupCorruptionCases(client, official, deps) {
-  const url = `${SEARCH_URL}?q=${encodeURIComponent(official.name)}`;
-  const body = await deps.fetchJson(url);
-  const cases = Array.isArray(body?.cases) ? body.cases : [];
-  const result = { filed: 0, skipped: [] };
-  for (const c of cases) {
-    const key = typeof c.slug === "string" && c.slug || String(c.title ?? "unknown");
-    try {
-      const defendants = Array.isArray(c.defendants) ? c.defendants : [];
-      const matched = defendants.find(
-        (d) => typeof d?.name === "string" && defendantMatchesOfficial(official.name, d.name)
-      );
-      if (!matched || typeof matched.name !== "string") {
-        result.skipped.push({ key, reason: "no defendant match for the official" });
-        continue;
-      }
-      const subjectName = matched.name;
-      const title = typeof c.title === "string" ? c.title : "";
-      if (!title) {
-        result.skipped.push({ key, reason: "case has no title" });
-        continue;
-      }
-      const dedupSlug = (0, import_database2.slugifyName)(`${subjectName} ${title}`).slice(0, 140) || "corruption-case";
-      const dup = await client.query("SELECT 1 FROM corruption_cases WHERE slug = $1", [dedupSlug]);
-      if ((dup.rows?.length ?? 0) > 0) {
-        result.skipped.push({ key, reason: `slug already exists: ${dedupSlug}` });
-        continue;
-      }
-      const agencyShort = typeof c.agency?.shortname === "string" && c.agency.shortname || typeof c.agency?.name === "string" && c.agency.name || void 0;
-      const payload = {
-        officialId: official.id,
-        subjectName,
-        title,
-        caseType: mapCaseType(c.type),
-        status: mapStatus(c.status, c.stage),
-        role: "defendant",
-        currency: "NGN"
-      };
-      if (typeof c.description === "string" && c.description) payload.summary = c.description;
-      if (agencyShort) payload.forum = agencyShort;
-      const amount = parseAmount(c.amount);
-      if (amount !== void 0) payload.amountInvolved = amount;
-      const chargeDate = parseArraignmentDate(c.date_of_arraignment);
-      if (chargeDate) payload.chargeDate = chargeDate;
-      const apiSlug = typeof c.slug === "string" && c.slug ? c.slug : dedupSlug;
-      const backlink = {
-        url: `${PUBLIC_CASE_BASE}${apiSlug}`,
-        publisher: "corruptioncases.ng",
-        snippet: `${title} \u2014 ${agencyShort ?? ""}`.trim(),
-        format: "html",
-        locator: apiSlug,
-        retrievedAt: deps.now().toISOString()
-      };
-      await submitStructuredCreate(client, {
-        domain: "corruption",
-        payload,
-        confidence: "medium",
-        needsHuman: false,
-        reasoning: "Sourced from corruptioncases.ng (TransparencIT)",
-        agentRunId: deps.agentRunId,
-        sources: [backlink]
-      });
-      result.filed += 1;
-    } catch (e) {
-      result.skipped.push({ key, reason: e instanceof Error ? e.message : String(e) });
-    }
-  }
-  return result;
-}
-
 // apps/api/src/enrichment/agent/courtlistener-lookup.ts
-var SEARCH_URL2 = "https://www.courtlistener.com/api/rest/v4/search/";
+var SEARCH_URL = "https://www.courtlistener.com/api/rest/v4/search/";
 var SITE = "https://www.courtlistener.com";
 var MAX_PAGES = 3;
 var NOTE_LEADS_CAP = 20;
@@ -1694,11 +1462,11 @@ var COMMON_TOKENS = /* @__PURE__ */ new Set([
   "asuquo",
   "mahmud"
 ]);
-function normalizeName2(s) {
+function normalizeName(s) {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
 function nameTokens(s) {
-  const toks = normalizeName2(s).split(" ").filter((t) => t && !CAPTION_STOP.has(t));
+  const toks = normalizeName(s).split(" ").filter((t) => t && !CAPTION_STOP.has(t));
   let start = 0;
   while (start < toks.length && HONORIFICS.has(toks[start]) && toks.length - start - 1 >= 2) start++;
   return toks.slice(start);
@@ -1717,14 +1485,14 @@ var PROPERTY = /(real property|\bm\/?y\b|\$|\bfunds\b|\bassets\b|located|vehicle
 var CRIMINAL_PREFIXES = ["united states v", "united states of america v", "usa v", "u s a v", "u s v"];
 function classifyCaseType(caseName, courtId) {
   if (/^[a-z]{2,4}b$/.test(String(courtId || ""))) return "civil";
-  const cn = normalizeName2(caseName);
+  const cn = normalizeName(caseName);
   if (CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
     return PROPERTY.test(caseName) ? "civil" : "criminal";
   }
   return "civil";
 }
 function roleFromCaption(caseName, caseType, matchedParty) {
-  const cn = normalizeName2(caseName);
+  const cn = normalizeName(caseName);
   if (caseType === "criminal" && CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
     return "defendant";
   }
@@ -1753,7 +1521,7 @@ var ROLE_MAP = {
   petitioner: "plaintiff",
   "counter-claimant": "claimant"
 };
-async function fetchJsonDefault2(url, headers) {
+async function fetchJsonDefault(url, headers) {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, headers ? { headers } : void 0);
     if (res.ok) return res.json();
@@ -1780,8 +1548,8 @@ function countOf(body) {
   return 0;
 }
 function phraseUrl(name) {
-  const cleaned = nameTokens(name).join(" ") || normalizeName2(name);
-  return `${SEARCH_URL2}?type=r&q=${encodeURIComponent(`"${cleaned}"`)}`;
+  const cleaned = nameTokens(name).join(" ") || normalizeName(name);
+  return `${SEARCH_URL}?type=r&q=${encodeURIComponent(`"${cleaned}"`)}`;
 }
 function docketIdOf(docketPath) {
   const m = /\/docket\/(\d+)\//.exec(docketPath);
@@ -1845,7 +1613,7 @@ async function lookupCourtRecords(client, official, deps) {
         out.skipped.push({ key, reason: "result has no caseName" });
         continue;
       }
-      const runKey = `${docketNumber}|${normalizeName2(caseName)}`;
+      const runKey = `${docketNumber}|${normalizeName(caseName)}`;
       if (seen.has(runKey)) {
         out.skipped.push({ key, reason: "duplicate docket in this result set" });
         continue;
@@ -1991,7 +1759,7 @@ async function lookupCourtRecords(client, official, deps) {
       if (!id) continue;
       try {
         const body = await deps.fetchJson(
-          `${SEARCH_URL2}?type=rd&q=${encodeURIComponent(`"${cleaned}"`)}&docket_id=${id}`,
+          `${SEARCH_URL}?type=rd&q=${encodeURIComponent(`"${cleaned}"`)}&docket_id=${id}`,
           headers
         );
         out.apiRequests += 1;
@@ -2061,240 +1829,33 @@ async function lookupCourtRecords(client, official, deps) {
   return out;
 }
 
-// apps/api/src/enrichment/sweeper/run-hermes.ts
-var import_child_process = require("child_process");
-var HERMES_BIN = process.env.HERMES_BIN || "hermes";
-var HERMES_SKILL = process.env.HERMES_STRUCTURED_SKILL || "enrichment-structured";
-var HERMES_TIMEOUT_MS = Number(process.env.HERMES_TIMEOUT_MS ?? 8 * 60 * 1e3);
-var EXEC_PREFIX = (process.env.HERMES_EXEC_PREFIX || "").trim();
-function gapPrompt(gap) {
-  const cat = CATEGORY_BY_KEY[gap.category];
-  const label = cat?.label ?? gap.category;
-  return [
-    `Enrich exactly ONE category for ONE Nigerian official, then stop.`,
-    `Official: ${gap.name} (id ${gap.officialId}${gap.slug ? `, slug ${gap.slug}` : ""}).`,
-    `Category: ${label} [key: ${gap.category}, profile domain: ${gap.domain}].`,
-    `Follow the ${HERMES_SKILL} skill: research with the browser, corroborate against the`,
-    `'${gap.domain}' profile's source bar, and ONLY if the bar is met call`,
-    `submit-structured-create for this official + category. If you cannot corroborate,`,
-    `do nothing and report "nothing found". Never touch any other official or category,`,
-    `never fabricate, always cite sources.`
-  ].join(" ");
-}
-function runHermes(gap) {
-  const hermesArgs = ["-z", gapPrompt(gap), "--skills", HERMES_SKILL, "-t", "browser,terminal,file"];
-  const prefix = EXEC_PREFIX ? EXEC_PREFIX.split(/\s+/) : [];
-  const argv = [...prefix, HERMES_BIN, ...hermesArgs];
-  const [cmd, ...args] = argv;
-  return new Promise((resolve) => {
-    (0, import_child_process.execFile)(
-      cmd,
-      args,
-      { timeout: HERMES_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 },
-      (err) => resolve({ ok: !err })
-    );
-  });
-}
-
-// apps/api/src/enrichment/sweeper/sweeper.ts
-function recheckFor(outcome, cfg) {
-  return outcome === "filled" ? cfg.recheckDays.filled : outcome === "nothing_found" ? cfg.recheckDays.nothingFound : cfg.recheckDays.error;
-}
-async function processGap(gap, deps, cfg) {
-  const since = deps.now().toISOString();
-  await deps.markPending(gap);
-  let run;
-  try {
-    run = await deps.runHermes(gap);
-  } catch (e) {
-    run = { ok: false };
-    deps.log("hermes threw", { official: gap.officialId, category: gap.category, error: String(e) });
-  }
-  let outcome;
-  let proposalCount = 0;
-  if (!run.ok) {
-    outcome = "error";
-  } else {
-    proposalCount = await deps.countNewProposals(gap, since);
-    outcome = proposalCount > 0 ? "filled" : "nothing_found";
-  }
-  await deps.recordOutcome(gap, outcome, proposalCount, recheckFor(outcome, cfg));
-  await deps.bumpBudget(run.costUsd ?? 0);
-  deps.log("gap processed", { official: gap.officialId, category: gap.category, outcome, proposalCount });
-  return outcome;
-}
-async function runSweepLoop(deps, cfg, maxLoops = Infinity) {
-  let loops = 0;
-  while (loops < maxLoops) {
-    loops++;
-    if (deps.killed()) {
-      deps.log("kill switch active \u2014 stopping");
-      return;
-    }
-    const spent = await deps.invocationsToday();
-    if (spent >= cfg.dailyCap) {
-      deps.log("daily budget exhausted \u2014 idling", { spent, cap: cfg.dailyCap });
-      await deps.sleep(cfg.idlePollMs);
-      continue;
-    }
-    const gaps = await deps.findGaps(cfg.batch);
-    if (gaps.length === 0) {
-      deps.log("no eligible gaps \u2014 idling");
-      await deps.sleep(cfg.idlePollMs);
-      continue;
-    }
-    for (const gap of gaps) {
-      if (deps.killed()) {
-        deps.log("kill switch active mid-batch \u2014 stopping");
-        return;
-      }
-      if (await deps.invocationsToday() >= cfg.dailyCap) {
-        deps.log("daily budget hit mid-batch \u2014 idling", { cap: cfg.dailyCap });
-        break;
-      }
-      await processGap(gap, deps, cfg);
-      await deps.sleep(cfg.paceMs);
-    }
-  }
-}
-
-// apps/api/src/enrichment/sweeper/sweeper.cli.ts
-var num = (v, d) => v && !Number.isNaN(Number(v)) ? Number(v) : d;
-var config = {
-  batch: num(process.env.SWEEPER_BATCH, 5),
-  paceMs: num(process.env.SWEEPER_PACE_MS, 9e4),
-  // 90s between officials
-  idlePollMs: num(process.env.SWEEPER_IDLE_MS, 15 * 60 * 1e3),
-  // 15m
-  dailyCap: num(process.env.SWEEPER_DAILY_CAP, 100),
-  recheckDays: {
-    filled: num(process.env.SWEEPER_RECHECK_FILLED_DAYS, 180),
-    nothingFound: num(process.env.SWEEPER_RECHECK_NOTHING_DAYS, 90),
-    error: num(process.env.SWEEPER_RECHECK_ERROR_DAYS, 1)
-  }
-};
-var KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
-var CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
-var CL_RESERVE = 6;
-var clWindowStart = Date.now();
-var clUsed = 0;
-function clSpend(n) {
-  const now = Date.now();
-  if (now - clWindowStart >= 60 * 60 * 1e3) {
-    clWindowStart = now;
-    clUsed = 0;
-  }
-  clUsed += n;
-  return clUsed + CL_RESERVE <= CL_HOURLY_BUDGET;
-}
-function tableFor(gap) {
-  return CATEGORY_BY_KEY[gap.category]?.table ?? gap.category;
+// apps/api/src/enrichment/agent/courtlistener-lookup.cli.ts
+async function readStdin() {
+  const chunks = [];
+  for await (const c of process.stdin) chunks.push(c);
+  return Buffer.concat(chunks).toString("utf8");
 }
 async function main() {
   const url = process.env.ENRICHMENT_AGENT_DATABASE_URL;
   if (!url) throw new Error("ENRICHMENT_AGENT_DATABASE_URL not set");
+  const input = JSON.parse(await readStdin());
+  if (!input.officialId || !input.name) throw new Error("stdin must be { officialId, name }");
   const client = new import_pg.Client({ connectionString: url });
   await client.connect();
-  const runHermesOrLookup = async (gap) => {
-    if (gap.category === "corruption") {
-      await lookupCorruptionCases(
-        client,
-        { id: gap.officialId, name: gap.name },
-        { fetchJson: fetchJsonDefault, now: () => /* @__PURE__ */ new Date() }
-      );
-      return { ok: true, costUsd: 0 };
-    }
-    if (gap.category === "legal_case" && process.env.COURTLISTENER_TOKEN) {
-      const log = (msg, meta) => process.stdout.write(JSON.stringify({ t: (/* @__PURE__ */ new Date()).toISOString(), sweeper: msg, official: gap.officialId, ...meta }) + "\n");
-      if (!clSpend(0)) {
-        log("courtlistener pre-step skipped (hourly budget exhausted)", { budgetLeft: 0 });
-        return runHermes(gap);
-      }
-      try {
-        const res = await lookupCourtRecords(
-          client,
-          { id: gap.officialId, name: gap.name },
-          { fetchJson: fetchJsonDefault2, now: () => /* @__PURE__ */ new Date(), token: process.env.COURTLISTENER_TOKEN }
-        );
-        clSpend(res.apiRequests);
-        log("courtlistener pre-step done", {
-          filed: res.filed,
-          skipped: res.skipped.length,
-          leads: res.leads.length,
-          totalCount: res.totalCount,
-          truncated: res.truncated,
-          apiRequests: res.apiRequests,
-          attemptRecorded: res.attemptRecorded,
-          warnings: res.warnings
-        });
-      } catch (e) {
-        clSpend(2);
-        log("courtlistener pre-step failed (continuing to browse)", {
-          error: e instanceof Error ? e.message : String(e)
-        });
-      }
-      return runHermes(gap);
-    }
-    return runHermes(gap);
-  };
-  const deps = {
-    findGaps: (limit) => findStructuredGaps(client, limit),
-    runHermes: runHermesOrLookup,
-    async countNewProposals(gap, sinceIso) {
-      const res = await client.query(
-        `SELECT count(*)::int AS n FROM change_proposals
-         WHERE target_table = $1
-           AND status IN ('pending', 'needs_human', 'approved')
-           AND (proposed_value->>'officialId') = $2
-           AND created_at >= $3`,
-        [tableFor(gap), gap.officialId, sinceIso]
-      );
-      return res.rows[0]?.n ?? 0;
-    },
-    async markPending(gap) {
-      await client.query(
-        `INSERT INTO enrichment_attempts (official_id, category, status, last_attempted_at, next_eligible_at)
-         VALUES ($1::uuid, $2, 'pending', now(), now())
-         ON CONFLICT (official_id, category)
-         DO UPDATE SET status = 'pending', last_attempted_at = now(), updated_at = now()`,
-        [gap.officialId, gap.category]
-      );
-    },
-    async recordOutcome(gap, outcome, proposalCount, recheckDays) {
-      await client.query(
-        `INSERT INTO enrichment_attempts
-           (official_id, category, status, proposal_count, last_attempted_at, next_eligible_at)
-         VALUES ($1::uuid, $2, $3, $4, now(), now() + ($5 || ' days')::interval)
-         ON CONFLICT (official_id, category)
-         DO UPDATE SET status = $3, proposal_count = $4, last_attempted_at = now(),
-                       next_eligible_at = now() + ($5 || ' days')::interval, updated_at = now()`,
-        [gap.officialId, gap.category, outcome, proposalCount, String(recheckDays)]
-      );
-    },
-    async invocationsToday() {
-      const res = await client.query(
-        `SELECT invocations FROM enrichment_budget WHERE day = current_date`
-      );
-      return res.rows[0]?.invocations ?? 0;
-    },
-    async bumpBudget(costUsd) {
-      await client.query(
-        `INSERT INTO enrichment_budget (day, invocations, est_cost_usd)
-         VALUES (current_date, 1, $1)
-         ON CONFLICT (day)
-         DO UPDATE SET invocations = enrichment_budget.invocations + 1,
-                       est_cost_usd = enrichment_budget.est_cost_usd + $1, updated_at = now()`,
-        [costUsd]
-      );
-    },
-    killed: () => process.env.SWEEPER_KILL === "1" || (0, import_fs.existsSync)(KILL_FILE),
-    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-    now: () => /* @__PURE__ */ new Date(),
-    log: (msg, meta) => process.stdout.write(JSON.stringify({ t: (/* @__PURE__ */ new Date()).toISOString(), sweeper: msg, ...meta }) + "\n")
-  };
-  deps.log("sweeper starting", { config: { ...config, killFile: KILL_FILE } });
   try {
-    await runSweepLoop(deps, config);
+    const result = await lookupCourtRecords(
+      client,
+      { id: input.officialId, name: input.name },
+      {
+        fetchJson: fetchJsonDefault,
+        now: () => /* @__PURE__ */ new Date(),
+        token: process.env.COURTLISTENER_TOKEN,
+        // opt-in: one extra request per lead (first 3) to locate WHERE the name
+        // appears in the docket — for targeted human investigations.
+        deepLeads: process.env.COURTLISTENER_DEEP_LEADS === "1"
+      }
+    );
+    process.stdout.write(JSON.stringify(result) + "\n");
   } finally {
     await client.end();
   }
