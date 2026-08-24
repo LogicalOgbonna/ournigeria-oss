@@ -71,10 +71,13 @@ const STATUS_DOT: Record<Status, string> = {
   ongoing: MUTED_DOT,
 };
 
+// All structural. A drifting count (officials tracked) deliberately does NOT appear
+// here — undated, in the first viewport, it reads as live. It lives in "The honest
+// part" instead, next to its as-of date.
 const HERO_STATS = [
   { label: "Wards mapped", value: COVERAGE.wards },
   { label: "Local governments", value: COVERAGE.lgas },
-  { label: "Officials tracked", value: OFFICIALS_SNAPSHOT.tracked },
+  { label: "Constituencies", value: COVERAGE.constituencies },
   { label: "States", value: COVERAGE.states },
 ];
 
@@ -414,8 +417,8 @@ export default function RoadmapPage() {
           <HelpCard title="This one needs you">
             <p>
               There is no government file listing every community in Nigeria.
-              There are 8,807 wards, and the people who know what is inside them
-              are the people who live there.
+              There are {COVERAGE.wards} wards, and the people who know what is
+              inside them are the people who live there.
             </p>
             <p>
               When this opens, you will be able to add your own community, your
@@ -536,17 +539,19 @@ export default function RoadmapPage() {
             {TODAY_STATS.map((s) => (
               <div
                 key={s.label}
-                className="bg-white p-5 dark:bg-slate-800/40"
+                className="flex flex-col-reverse bg-white p-5 dark:bg-slate-800/40"
               >
+                {/* Source order is dt→dd so assistive tech pairs term with value;
+                    column-reverse keeps the number visually on top. */}
                 <dd className="font-[family-name:var(--font-serif)] text-3xl leading-none tabular-nums text-emerald-600 dark:text-emerald-400">
                   {s.value}
                 </dd>
-                <dt className="mt-3 min-h-[2.4em] font-[family-name:var(--font-mono)] text-[10px] uppercase leading-[1.2] tracking-[0.1em] text-slate-600 dark:text-slate-400 sm:min-h-0">
-                  {s.label}
+                <dt className="mt-1 font-[family-name:var(--font-mono)] text-[10px] uppercase leading-[1.2] tracking-[0.1em] text-slate-600 dark:text-slate-400">
+                  <span className="block min-h-[2.4em] sm:min-h-0">{s.label}</span>
+                  <span className="mt-1 block text-xs normal-case tracking-normal text-slate-500 dark:text-slate-500">
+                    {s.sub}
+                  </span>
                 </dt>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
-                  {s.sub}
-                </p>
               </div>
             ))}
           </dl>
@@ -576,8 +581,8 @@ export default function RoadmapPage() {
                 profile.
               </p>
               <p className="max-w-[68ch] leading-relaxed">
-                We cannot fix that from a laptop in one city. There are 774 local
-                governments and four of us.
+                We cannot fix that from a laptop in one city. There are{" "}
+                {COVERAGE.lgas} local governments and four of us.
               </p>
               <p className="max-w-[68ch] leading-relaxed">
                 So the fastest way any of this gets finished is you. Right now
