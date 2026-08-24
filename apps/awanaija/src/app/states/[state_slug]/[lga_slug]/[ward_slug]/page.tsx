@@ -81,7 +81,11 @@ export default async function WardPage({
         lgaSlug={resolvedParams.lga_slug}
       />
       <WhoIsResponsible ward={ward} />
-      <WardConstituencies constituencies={ward.constituencies} wardName={wardName} />
+      <WardConstituencies
+        constituencies={ward.constituencies}
+        wardName={wardName}
+        stateCode={ward.stateCode}
+      />
       <WardProjects wardName={wardName} />
       <CommunityUpdates updates={ward.civicUpdates ?? []} />
       <RelatedLinks title={`Other wards in ${lgaName}`} items={siblingWardLinks} />
