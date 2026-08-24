@@ -21,7 +21,7 @@ import openpyxl
 from . import apply as apply_mod
 from . import db
 from .fetch import BASE, fetch_state
-from .match import match_one, resolve_constituency_lgas
+from .match import apply_seat_synonym, match_one, resolve_constituency_lgas
 from .parse import parse_lga_rows, parse_sc_rows
 from .report import ConstituencyResult, WardResult, build_report, write_report
 
@@ -122,7 +122,7 @@ def reconcile_state(workbook: str) -> tuple:
 
     for pc in parsed_sc:
         # match SC name -> DB state-constituency code
-        cm = match_one(pc.name, state_consts)
+        cm = match_one(apply_seat_synonym(state, pc.name), state_consts)
         constituency_code = cm.code
         # Resolve the FULL set of LGAs this constituency spans. `lga_codes[0]` is
         # the primary LGA; any trailing entries are sibling LGAs discovered by

@@ -154,3 +154,31 @@ def test_standard_layout_still_parses():
     assert parsed[0].name == "Aba North"
     assert parsed[0].code_label == "SC/01/AB"
     assert parsed[0].wards == ["Ariaria Market", "Eziama"]
+
+
+# --- seat synonyms and code typos ------------------------------------------
+
+
+def test_seat_synonym_resolves_the_former_lga_name():
+    """INEC's Ekiti worksheet still calls the Gbonyin seat by the LGA's former
+    name, Aiyekire. Without the synonym every ward of the seat surfaced as a
+    phantom conflict against rows that are the same seat."""
+    from reconcile_wards.match import apply_seat_synonym
+
+    assert apply_seat_synonym("ekiti", "Aiyekire") == "Gbonyin"
+    assert apply_seat_synonym("ekiti", "Ise/Orun") == "Ise/Orun"  # untouched
+    assert apply_seat_synonym("oyo", "Ibarapa Central/ Ibarapa North") == "Ibarapa Central/North"
+
+
+def test_code_with_digit_typo_is_stripped_from_the_seat_name():
+    """Sokoto's worksheet writes "SC/895/S0" — O typed as zero. The strict
+    letter-only pattern left the code glued to the name, so 'Dange Shuni'
+    never matched its register seat."""
+    rows = [
+        ["S/N", "NAME OF STATE CONSTITUENCY & CODE", "RA COMPOSITION", "NO OF RAs",
+         "NO OF PUs", "COLLATION"],
+        ["1", "Dange Shuni SC/895/S0", "Wababe, Salau", "2", "100", "INEC Office"],
+    ]
+    parsed = parse_sc_rows(rows)
+    assert parsed[0].name == "Dange Shuni"
+    assert parsed[0].code_label == "SC/895/S0"

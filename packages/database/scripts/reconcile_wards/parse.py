@@ -19,7 +19,11 @@ class ParsedDistrict:
     collation: str | None = None
 
 
-_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z]{2})")
+# State suffix allows a digit because INEC typos O as 0: Sokoto's worksheet
+# writes "SC/895/S0". With the strict [A-Z]{2} the code never stripped from the
+# seat name, so "Dange Shuni SC/895/S0" failed to match its register seat and
+# every one of its wards surfaced as a phantom conflict.
+_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z][A-Z0-9])")
 
 # Header-label matchers (normalized: lowercased, whitespace-collapsed). INEC
 # workbooks vary the exact spelling/spacing per state, so match fuzzily.
