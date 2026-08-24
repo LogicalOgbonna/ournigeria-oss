@@ -118,7 +118,7 @@ export class AdminAuthService {
     const overCap = await this.prisma.adminSession.findMany({
       where: { adminId, revokedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: "desc" },
-      select: { id: true },
+      select: { id: true, tokenHash: true },
       skip: MAX_LIVE_SESSIONS_PER_ADMIN,
     });
     if (overCap.length > 0) {
@@ -126,6 +126,8 @@ export class AdminAuthService {
         where: { id: { in: overCap.map((s) => s.id) } },
         data: { revokedAt: new Date() },
       });
+      // Purge cached resolutions so cap-revoked tokens die now, not at cache TTL.
+      await Promise.all(overCap.map((s) => adminSessionCache.del(s.tokenHash)));
     }
   }
 

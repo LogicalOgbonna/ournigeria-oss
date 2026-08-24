@@ -32,6 +32,16 @@ export interface SessionMeta {
 }
 
 /**
+ * Purge every cached session resolution. Call after bulk revocation done
+ * outside SessionService (e.g. the ban flow in AdminUsersService revokes with
+ * an inline query) so revoked tokens die immediately, not at cache TTL.
+ * Mirrors the invalidateUserAuthCache pattern in auth.guard.ts.
+ */
+export async function invalidateSessionResolutionCache(): Promise<void> {
+  await sessionCache.clear();
+}
+
+/**
  * Issues and validates opaque, server-stored user sessions plus one-time login
  * handoff codes. The raw token/code lives only in the cookie (or POST body);
  * the DB stores only its SHA-256 hash, so a DB read never yields a live token.
@@ -102,7 +112,7 @@ export class SessionService {
     const overCap = await this.prisma.userSession.findMany({
       where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: "desc" },
-      select: { id: true },
+      select: { id: true, tokenHash: true },
       skip: MAX_LIVE_SESSIONS_PER_USER,
     });
     if (overCap.length > 0) {
@@ -110,6 +120,8 @@ export class SessionService {
         where: { id: { in: overCap.map((s) => s.id) } },
         data: { revokedAt: new Date() },
       });
+      // Purge cached resolutions so cap-revoked tokens die now, not at cache TTL.
+      await Promise.all(overCap.map((s) => sessionCache.del(s.tokenHash)));
     }
   }
 
