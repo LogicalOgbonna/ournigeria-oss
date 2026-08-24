@@ -536,14 +536,20 @@ function electionEntity(): CreatableEntity {
           stateCode,
         );
         if (alreadyExists.length === 0) {
+          // start_date is NOT NULL; a 'contesting' seat has no real start yet, so
+          // stamp the prospective term start (May 29 of the election year — the
+          // inauguration convention). Reads filter status='active', so this
+          // placeholder never surfaces as a sitting term.
+          const electionYear = Number(payload.year) || new Date().getFullYear();
           await tx.$queryRawUnsafe(
             `INSERT INTO official_positions
-               (official_id, role, state_code, status, appointment_type,
+               (official_id, role, state_code, status, appointment_type, start_date,
                 confidence, source_type, review_status, reviewed_by, last_verified_at)
-             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
-                     $3, 'manual', 'reviewed', $4, now())`,
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected', make_date($3::int, 5, 29),
+                     $4, 'manual', 'reviewed', $5, now())`,
             officialId,
             stateCode,
+            electionYear,
             ctx.confidence,
             ctx.adminId,
           );
