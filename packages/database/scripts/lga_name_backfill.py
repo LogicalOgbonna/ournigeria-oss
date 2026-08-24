@@ -87,6 +87,18 @@ def aliased(state_code: str, lga_name: str) -> str:
     return SEAT_NAME_ALIASES.get((state_code, norm(lga_name)), norm(lga_name))
 
 
+# LGAs where INEC's SC worksheet has DISPROVEN the whole-LGA premise: a sibling
+# seat whose name has no lexical relation to the LGA carves it, so no name rule
+# can see the split. Gombe's Shongom is the proof case — the seat "Shongom"
+# takes 4 of the LGA's 10 wards and "Pero/Chonge" takes the other 6. The first
+# version of this pass blanket-mapped all 10 to Shongom; the worksheet caught
+# it before the rows shipped. These LGAs are refused outright and their wards
+# wait for the gated worksheet apply, which knows the real composition.
+WORKSHEET_SPLIT_LGAS: dict[tuple[str, str], str] = {
+    ("gombe", "shongom"): "Shongom seat holds 4/10 wards; Pero/Chonge holds 6/10",
+}
+
+
 def norm(value: str) -> str:
     """Strict name key. Case, hyphen/space and repeated whitespace only.
 
@@ -222,6 +234,14 @@ def plan_backfill(
             plan.refused.append(
                 {"lga_code": lga_code, "lga": lga_name.get(lga_code, lga_code), "reason": reason, **extra}
             )
+
+        key = (
+            next((l["state_code"] for l in lgas if l["code"] == lga_code), ""),
+            norm(lga_name.get(lga_code, "")),
+        )
+        if key in WORKSHEET_SPLIT_LGAS:
+            refuse("worksheet_contradicts_whole_lga", detail=WORKSHEET_SPLIT_LGAS[key])
+            continue
 
         if any(c.split for c in claims):
             refuse(

@@ -300,3 +300,21 @@ def test_malformed_seat_name_claims_nothing():
         [],
     )
     assert plan.additions == []
+
+
+# --- worksheet contradictions -------------------------------------------
+
+
+def test_worksheet_contradicted_lga_is_refused_even_on_exact_name():
+    """Gombe's Shongom: seat named exactly after the LGA, but INEC says it holds
+    only 4 of the 10 wards — Pero/Chonge holds the rest, and nothing in that
+    name says "Shongom". The whole-LGA premise is unfalsifiable from names, so
+    a worksheet contradiction must beat an exact name match."""
+    plan = bf.plan_backfill(
+        [sc("state_gombe_shongom", "Shongom", "gombe")],
+        [lga("gombe_shongom", "Shongom", "gombe")],
+        [ward("gombe_shomgom_burak", "gombe_shongom")],
+        [],
+    )
+    assert plan.additions == []
+    assert plan.refused[0]["reason"] == "worksheet_contradicts_whole_lga"
