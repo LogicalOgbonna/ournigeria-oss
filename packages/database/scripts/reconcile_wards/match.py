@@ -107,6 +107,26 @@ def _norm(s: str) -> str:
     return _canonicalize_numerals(normalize_name(s))
 
 
+# Worksheet seat name -> register seat name, keyed by (state, _norm(worksheet name)).
+# Curated identities, each with its reason — NOT fuzzy repair. Without these the
+# matcher reports a phantom conflict on every ward of the seat: the worksheet
+# appears to dispute rows that are in fact the same seat under another name.
+SEAT_NAME_SYNONYMS: dict[tuple[str, str], str] = {
+    # Gbonyin LGA was formerly named Aiyekire; INEC's Ekiti worksheet still uses
+    # the old name for the seat. Same seat, 10/10 wards.
+    ("ekiti", "aiyekire"): "Gbonyin",
+    # Ampersand long form of the register's slash form. Same merged seat.
+    ("osun", "atakunmosa east and atakunmosa west"): "Atakumosa East/West",
+    # Fully-spelled second half of the register's prefixed form. Same seat.
+    ("oyo", "ibarapa central ibarapa north"): "Ibarapa Central/North",
+}
+
+
+def apply_seat_synonym(state: str, name: str) -> str:
+    """The register spelling of a worksheet seat name, or the name unchanged."""
+    return SEAT_NAME_SYNONYMS.get((state, _norm(name)), name)
+
+
 def match_one(name: str, candidates: list[tuple[str, str]]) -> Match:
     """Resolve ``name`` against ``[(code, candidate_name), ...]``.
 

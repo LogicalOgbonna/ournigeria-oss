@@ -1,91 +1,89 @@
-"""Read-only DB snapshots for matching.
+"""Read-only snapshots of the administrative hierarchy, for matching.
 
-Shells to the local docker Postgres (``ournigeria_db``) via ``psql`` and
-returns plain Python structures. No ORM / driver dependency — the pipeline
-only ever reads, and the deploy-run ``sync-admin-hierarchy.mjs`` is the sole
-writer of the seed tables.
+Sourced from the structure seed, NOT a live database. Three reasons:
+
+1. **The seed is what this pipeline writes.** Proposals are merged into
+   `constituency-wards.json`; matching against anything else means proposing
+   against one world and applying to another.
+2. **The live registry is not authoritative.** `audit_seat_registry.py` finds
+   156 seats present live but not in the seed, 33 the other way, and 5 sharing
+   a code under two different names (`state_plateau_kanam` is `Kanam I` in the
+   seed and `Kantana` live). Matching against that is matching against noise.
+3. **It runs anywhere.** The previous version shelled to `docker exec
+   ournigeria_db psql`, so the pipeline needed a specific local container to be
+   up. That single line is why this work kept stalling, and why none of it could
+   run in CI.
+
+Set `RECONCILE_SEED_DIR` to point at a different seed tree (used by tests).
 """
 
 from __future__ import annotations
 
-import subprocess
+import json
+import os
+from functools import lru_cache
+from pathlib import Path
 
-_CONTAINER = "ournigeria_db"
-_USER = "spending"
-_DB = "spending"
+from .paths import SEED_DIR
 
 
-def _psql(sql: str) -> list[list[str]]:
-    """Run a read-only query, return tab-split rows (no header, no padding)."""
-    out = subprocess.run(
-        [
-            "docker",
-            "exec",
-            _CONTAINER,
-            "psql",
-            "-U",
-            _USER,
-            "-d",
-            _DB,
-            "-At",
-            "-F",
-            "\t",
-            "-c",
-            sql,
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    return [line.split("\t") for line in out.splitlines() if line]
+def _seed_dir() -> Path:
+    override = os.environ.get("RECONCILE_SEED_DIR")
+    return Path(override) if override else SEED_DIR
+
+
+@lru_cache(maxsize=None)
+def _load(name: str, seed_dir: str) -> tuple:
+    return tuple(json.loads((Path(seed_dir) / name).read_text()))
+
+
+def _rows(name: str) -> tuple:
+    return _load(name, str(_seed_dir()))
+
+
+def _lga_codes(state: str) -> set[str]:
+    return {l["code"] for l in _rows("lgas.json") if l["state_code"] == state}
 
 
 def wards_by_lga(state: str) -> dict[str, list[tuple[str, str]]]:
     """{ lga_code: [(ward_code, ward_name), ...] } for a state."""
-    rows = _psql(
-        "SELECT l.code, w.code, w.name FROM nigerian_wards w "
-        "JOIN nigerian_lgas l ON l.code=w.lga_code "
-        f"WHERE l.state_code='{state}'"
-    )
-    d: dict[str, list[tuple[str, str]]] = {}
-    for lga_code, w_code, w_name in rows:
-        d.setdefault(lga_code, []).append((w_code, w_name))
-    return d
+    in_state = _lga_codes(state)
+    out: dict[str, list[tuple[str, str]]] = {}
+    for w in _rows("wards.json"):
+        if w["lga_code"] in in_state:
+            out.setdefault(w["lga_code"], []).append((w["code"], w["name"]))
+    return out
 
 
 def constituencies(state: str) -> list[tuple[str, str, str]]:
     """[(code, name, type), ...] for a state."""
     return [
-        (r[0], r[1], r[2])
-        for r in _psql(
-            "SELECT code, name, type FROM nigerian_constituencies "
-            f"WHERE state_code='{state}'"
-        )
+        (c["code"], c["name"], c["type"])
+        for c in _rows("constituencies.json")
+        if c["state_code"] == state
     ]
 
 
 def lgas(state: str) -> list[tuple[str, str]]:
     """[(code, name), ...] for a state."""
     return [
-        (r[0], r[1])
-        for r in _psql(
-            f"SELECT code, name FROM nigerian_lgas WHERE state_code='{state}'"
-        )
+        (l["code"], l["name"]) for l in _rows("lgas.json") if l["state_code"] == state
     ]
 
 
 def constituency_wards(state: str) -> list[tuple[str, str, str]]:
     """Existing (constituency_code, ward_code, constituency_type) rows for a state.
 
-    Used by the report's conflict check: a proposed (tier, ward) already mapped
-    to a *different* constituency is a conflict.
+    Feeds the report's conflict check: a proposed (tier, ward) already mapped to
+    a *different* constituency of the same tier is a conflict, not an addition.
     """
+    types = {
+        c["code"]: c["type"]
+        for c in _rows("constituencies.json")
+        if c["state_code"] == state
+    }
     return [
-        (r[0], r[1], r[2])
-        for r in _psql(
-            "SELECT cw.constituency_code, cw.ward_code, c.type "
-            "FROM constituency_wards cw "
-            "JOIN nigerian_constituencies c ON c.code=cw.constituency_code "
-            f"WHERE c.state_code='{state}'"
-        )
+        (m["constituency_code"], m["ward_code"], types[m["constituency_code"]])
+        for m in _rows("constituency-wards.json")
+        if m["constituency_code"] in types
     ]

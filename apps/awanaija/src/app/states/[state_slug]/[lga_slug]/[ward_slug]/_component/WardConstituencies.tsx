@@ -18,8 +18,40 @@ const TIERS: Tier[] = [
   { key: "state", label: "State Constituency", seat: "State Assembly member", icon: Scale },
 ];
 
-function TierCard({ tier, constituency, wardName }: { tier: Tier; constituency: WardConstituency | null; wardName: string }) {
+function TierCard({
+  tier,
+  constituency,
+  wardName,
+  isFct,
+}: {
+  tier: Tier;
+  constituency: WardConstituency | null;
+  wardName: string;
+  isFct: boolean;
+}) {
   const Icon = tier.icon;
+
+  // The FCT has no State House of Assembly, so its wards will never have a
+  // state constituency. Telling those citizens we are "still compiling" one is
+  // a promise that can never be kept — state the constitutional fact instead.
+  if (!constituency && isFct && tier.key === "state") {
+    return (
+      <div className="bg-muted/30 border border-border rounded-[10px] p-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+          <Icon className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div className="space-y-1 min-w-0">
+          <p className="font-heading text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            {tier.label}
+          </p>
+          <p className="font-sans text-sm text-muted-foreground">
+            The FCT has no State House of Assembly, so {wardName} Ward has no state
+            constituency. Its area council and the National Assembly cover this ground.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Unreconciled INEC mapping — say so plainly rather than dropping the tier,
   // otherwise the page silently implies the ward has no state constituency.
@@ -91,11 +123,14 @@ function TierCard({ tier, constituency, wardName }: { tier: Tier; constituency: 
 export function WardConstituencies({
   constituencies,
   wardName,
+  stateCode,
 }: {
   constituencies: WardConstituenciesData | null | undefined;
   wardName: string;
+  stateCode?: string | null;
 }) {
   if (!constituencies) return null;
+  const isFct = stateCode === "fct";
 
   return (
     <section className="space-y-6">
@@ -104,8 +139,9 @@ export function WardConstituencies({
         <p className="font-sans text-sm text-muted-foreground flex items-start gap-2">
           <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            {wardName} Ward votes in these three constituencies. Each one elects a different
-            representative.
+            {isFct
+              ? `${wardName} Ward votes in these constituencies. Each one elects a different representative.`
+              : `${wardName} Ward votes in these three constituencies. Each one elects a different representative.`}
           </span>
         </p>
       </div>
@@ -116,6 +152,7 @@ export function WardConstituencies({
             tier={tier}
             constituency={constituencies[tier.key]}
             wardName={wardName}
+            isFct={isFct}
           />
         ))}
       </div>
