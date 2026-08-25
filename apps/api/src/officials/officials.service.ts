@@ -49,6 +49,16 @@ export class OfficialsService {
 
     if (stateCode || lgaCode || role || party) {
       where.positions = { some: positionWhere };
+    } else {
+      // Office-holder guard (plan 60 §5): election CANDIDATES are officials rows
+      // (official_type NULL, at most `contesting` positions) so the ballot can
+      // link to them — but contesting an office is not holding one. The bare
+      // list and name search must only surface people who hold/held office.
+      // Their profile page (by slug) stays reachable via ballot links.
+      where.OR = [
+        { officialType: { not: null } },
+        { positions: { some: { status: { not: "contesting" } } } },
+      ];
     }
 
     if (search) {

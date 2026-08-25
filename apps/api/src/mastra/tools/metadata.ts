@@ -58,6 +58,7 @@ export async function getOfficials(
          JOIN nigerian_officials o ON o.id = p.official_id
          LEFT JOIN political_parties pp ON pp.acronym = p.party_acronym
          WHERE p.state_code = $1
+           AND p.status <> 'contesting'
            AND p.start_date <= $2
            AND (p.end_date IS NULL OR p.end_date >= $3)
          ORDER BY p.role`;
