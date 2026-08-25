@@ -38,11 +38,11 @@ const PARTY_KEY_MAP: Record<string, string> = {
  * swallow its candidates ("ZZZX" stays a loud no-op).
  */
 const PARTY_CREATE_ALLOWLIST: Record<string, string> = {
-  NDC: "NDC",
+  NDC: "NDC", // 2026-registered coalition — full display name pending party-profiles enrichment
   APM: "Allied Peoples Movement",
-  NDP: "NDP",
-  NRM: "NRM",
-  DLA: "DLA",
+  NDP: "National Democratic Party",
+  NRM: "National Rescue Movement",
+  DLA: "DLA", // full display name pending party-profiles enrichment
 };
 
 function hashStr(s: string): number {
@@ -103,6 +103,7 @@ function isSubset(a: Set<string>, b: Set<string>): boolean {
  */
 export function resolveIncumbent(
   c: CanonicalCandidate,
+  acr: string,
   byLowerName: Map<string, OfficialIndexEntry[]>,
   all: OfficialIndexEntry[],
 ): OfficialIndexEntry | null {
@@ -121,8 +122,11 @@ export function resolveIncumbent(
   const m = matches[0];
   const corroborated =
     (c.stateCode !== null && m.activeStates.has(c.stateCode)) ||
-    m.activeParties.has(c.party) ||
-    (c.electionType === "presidential" && ct.size >= 3);
+    m.activeParties.has(acr) ||
+    // Presidential (national figures): EQUAL token sets only (plan §4.1) — a
+    // 3-token presidential name subset-matching a 2-token local official must
+    // not link ("Adamu Musa Ibrahim" ≠ councillor "Musa Ibrahim").
+    (c.electionType === "presidential" && ct.size >= 3 && m.tokens.size === ct.size);
   return corroborated ? m : null;
 }
 
@@ -196,7 +200,7 @@ export const partyCandidatesImporter: DatasetImporter = {
       partyCreates.push({
         targetTable: "political_parties",
         changeKind: "create",
-        proposedValue: { acronym: acr, name: PARTY_CREATE_ALLOWLIST[acr] },
+        proposedValue: { acronym: acr, name: PARTY_CREATE_ALLOWLIST[acr], inecStatus: "registered" },
         confidence: "medium",
         reasoning: "Party contested the 2027 primaries but is absent from political_parties",
         sources: [
@@ -233,7 +237,13 @@ export const partyCandidatesImporter: DatasetImporter = {
         id: true,
         name: true,
         officialType: true,
-        positions: { where: { status: "active" }, select: { stateCode: true, partyAcronym: true } },
+        positions: {
+          where: { status: "active" },
+          // senators/reps/mha carry constituency_code only (chk_role_scope) —
+          // derive their state through the constituency so sitting legislators
+          // can corroborate a same-state candidacy (review I2).
+          select: { stateCode: true, partyAcronym: true, constituency: { select: { stateCode: true } } },
+        },
       },
     });
     const index: OfficialIndexEntry[] = officials.map((o) => ({
@@ -241,7 +251,9 @@ export const partyCandidatesImporter: DatasetImporter = {
       name: o.name,
       tokens: new Set(nameTokens(o.name)),
       officialType: o.officialType,
-      activeStates: new Set(o.positions.map((p) => p.stateCode).filter((s): s is string => !!s)),
+      activeStates: new Set(
+        o.positions.flatMap((p) => [p.stateCode, p.constituency?.stateCode]).filter((s): s is string => !!s),
+      ),
       activeParties: new Set(o.positions.map((p) => p.partyAcronym).filter((p): p is string => !!p)),
     }));
     const byLowerName = new Map<string, OfficialIndexEntry[]>();
@@ -253,9 +265,12 @@ export const partyCandidatesImporter: DatasetImporter = {
     }
 
     // ---- Existing-row dedup sets (canonical-name key + officialId key).
-    const existingRows = await prisma.$queryRawUnsafe<{ namekey: string; idkey: string }[]>(
+    const existingRows = await prisma.$queryRawUnsafe<{ namekey: string; idkey: string; seatkey: string | null }[]>(
       `SELECT lower(o.name) || '|' || e.election_type || '|' || e.year || '|' || coalesce(e.party_acronym, '') AS namekey,
-              e.official_id || '|' || e.election_type || '|' || e.year || '|' || e.is_primary || '|' || coalesce(e.party_acronym, '') AS idkey
+              e.official_id || '|' || e.election_type || '|' || e.year || '|' || e.is_primary || '|' || coalesce(e.party_acronym, '') AS idkey,
+              CASE WHEN e.is_primary AND e.result = 'won' AND e.election_type IN ('presidential','gubernatorial')
+                   THEN coalesce(e.party_acronym,'') || '|' || e.election_type || '|' || e.year || '|' || coalesce(e.state_code, 'ng')
+              END AS seatkey
        FROM official_elections e
        JOIN nigerian_officials o ON o.id = e.official_id
        WHERE e.party_acronym = ANY($1)`,
@@ -263,6 +278,7 @@ export const partyCandidatesImporter: DatasetImporter = {
     );
     const existingNameKeys = new Set(existingRows.map((r) => r.namekey));
     const existingIdKeys = new Set(existingRows.map((r) => r.idkey));
+    const existingSeatWinners = new Set(existingRows.map((r) => r.seatkey).filter((s): s is string => !!s));
 
     // ---- Build election creates.
     const electionCreates: ProposalSpec[] = [];
@@ -272,11 +288,15 @@ export const partyCandidatesImporter: DatasetImporter = {
     const winnerSeatByOfficial = new Map<string, Set<string>>();
     let unchangedCount = 0;
 
+    // Review I3: when the same person appears under a known seat AND a
+    // null-constituency pseudo-seat, the known-seat variant must win the
+    // in-batch dedup (it carries state_code / the constituency note).
+    canon.candidates.sort((a, b) => Number(b.seatKnown) - Number(a.seatKnown) || Number(b.stateCode !== null) - Number(a.stateCode !== null));
     const resolved: { c: CanonicalCandidate; acr: string; incumbent: OfficialIndexEntry | null }[] = [];
     for (const c of canon.candidates) {
       const acr = keyToAcronym.get(c.party);
       if (!acr) continue; // unmappable party — already warned
-      const incumbent = resolveIncumbent(c, byLowerName, index);
+      const incumbent = resolveIncumbent(c, acr, byLowerName, index);
       resolved.push({ c, acr, incumbent });
       if (incumbent && c.result === "won") {
         const seat = `${incumbent.id}|${c.seatKey.slice(c.party.length + 1)}`;
@@ -296,6 +316,28 @@ export const partyCandidatesImporter: DatasetImporter = {
         if (conflictedOfficialSeats.has(seat)) {
           warnings.push(
             `CONFLICT (skipped): "${c.name}" resolves to existing official "${incumbent.name}" as winner for multiple parties on one seat`,
+          );
+          continue;
+        }
+      }
+
+      // C1 rename-guard: if this party+seat+year already has an imported winner
+      // under a DIFFERENT name (source-file rename between runs), do not mint a
+      // second winner — report for manual resolution instead.
+      if (
+        c.result === "won" &&
+        (c.electionType === "presidential" || c.electionType === "gubernatorial")
+      ) {
+        const seatGuardKey = `${acr}|${c.electionType}|${c.year}|${c.electionType === "presidential" ? "ng" : c.stateCode ?? "ng"}`;
+        const nameKeyProbe = `${c.name.toLowerCase()}|${c.electionType}|${c.year}|${acr}`;
+        const idKeyProbe = incumbent ? `${incumbent.id}|${c.electionType}|${c.year}|${c.isPrimary}|${acr}` : null;
+        if (
+          existingSeatWinners.has(seatGuardKey) &&
+          !existingNameKeys.has(nameKeyProbe) &&
+          !(idKeyProbe && existingIdKeys.has(idKeyProbe))
+        ) {
+          warnings.push(
+            `SEAT GUARD (skipped): "${c.name}" — ${acr} ${c.electionType} ${c.year} already has an imported winner under another name (source rename?); resolve manually`,
           );
           continue;
         }
@@ -345,7 +387,10 @@ export const partyCandidatesImporter: DatasetImporter = {
         // Deterministic per-person slug (plan 60 F1): same person re-imports
         // idempotently; same-name different-seat people get distinct officials.
         const base = slugifyName(c.name) || "candidate";
-        proposedValue.officialSlugHint = `${base}-${Math.abs(hashStr(`${acr}|${c.seatKey}`)).toString(36).slice(0, 6)}`;
+        // Hash on the MAPPED acronym + party-stripped seat: normalizing a source
+        // party key ("Action Alliance"→"AA") must not re-mint every official.
+        const seatSansParty = c.seatKey.slice(c.party.length + 1);
+        proposedValue.officialSlugHint = `${base}-${Math.abs(hashStr(`${acr}|${seatSansParty}`)).toString(36).slice(0, 6)}`;
       }
 
       electionCreates.push({

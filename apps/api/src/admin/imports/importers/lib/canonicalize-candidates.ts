@@ -168,6 +168,20 @@ interface WorkRow {
   rows: RawCandidateRow[];
 }
 
+/**
+ * seatKnown derived from a full group key (`party|<seatKey>|year`) — every row
+ * in a group shares it, since the seat key is built from the same fields.
+ */
+function seatKnownFromKey(groupKey: string): boolean {
+  const first = groupKey.indexOf("|");
+  const last = groupKey.lastIndexOf("|");
+  const seat = groupKey.slice(first + 1, last); // e.g. "presidential|ng", "gubernatorial|oyo", "senatorial|imo|imo_west"
+  const parts = seat.split("|");
+  if (parts[0] === "presidential") return true;
+  if (parts[0] === "gubernatorial") return (parts[1] ?? "") !== "";
+  return (parts[2] ?? "") !== "";
+}
+
 function isSubset(a: Set<string>, b: Set<string>): boolean {
   if (a.size === 0 || b.size === 0) return false;
   for (const t of a) if (!b.has(t)) return false;
@@ -203,31 +217,36 @@ export function canonicalizeCandidates(json: Record<string, unknown>): Canonical
       }
       usableRows++;
       const key = `${party}|${seatKeyOf(type, raw.stateCode, raw.constituency)}|${raw.year}`;
-      const known = seatKnownOf(type, raw.stateCode, raw.constituency);
       const bucket = groups.get(key) ?? [];
-      // Merge into an existing person when one token set subsumes the other
-      // (conservative: same party + same seat + subset names only). When the
-      // SEAT is unknown (whole-state pseudo-key), subset merging would collapse
-      // different constituencies' candidates — require exact token equality.
-      const tokSet = new Set(toks);
-      const hit = bucket.find((w) =>
-        known
-          ? isSubset(w.tokens, tokSet) || isSubset(tokSet, w.tokens)
-          : w.tokens.size === tokSet.size && isSubset(tokSet, w.tokens),
-      );
-      if (hit) {
-        hit.rows.push(raw);
-        // canonical name = the longer variant; union the tokens so a later
-        // middle-ground variant still merges (A ⊆ B ⊆ C chains).
-        if (toks.length > nameTokens(hit.name).length || (toks.length === nameTokens(hit.name).length && name.length > hit.name.length)) {
-          hit.name = name;
-        }
-        for (const t of toks) hit.tokens.add(t);
-      } else {
-        bucket.push({ name, tokens: tokSet, rows: [raw] });
-      }
+      bucket.push({ name, tokens: new Set(toks), rows: [raw] });
       groups.set(key, bucket);
     }
+  }
+
+  // Merge phase — ORDER-INDEPENDENT (review I1): within each group, process
+  // names longest-token-count first so short variants always meet the fullest
+  // name ("Bola Tinubu" and "Ahmed Tinubu" both fold into "Bola Ahmed Tinubu"
+  // regardless of scrape order). When the SEAT is unknown (whole-state
+  // pseudo-key), subset merging would collapse different constituencies'
+  // candidates — require exact token equality there.
+  for (const [key, bucket] of groups) {
+    const known = seatKnownFromKey(key);
+    bucket.sort((a, b) => b.tokens.size - a.tokens.size || b.name.length - a.name.length);
+    const merged: WorkRow[] = [];
+    for (const w of bucket) {
+      const hit = merged.find((m) =>
+        known
+          ? isSubset(w.tokens, m.tokens) || isSubset(m.tokens, w.tokens)
+          : m.tokens.size === w.tokens.size && isSubset(w.tokens, m.tokens),
+      );
+      if (hit) {
+        hit.rows.push(...w.rows);
+        for (const t of w.tokens) hit.tokens.add(t);
+      } else {
+        merged.push(w);
+      }
+    }
+    groups.set(key, merged);
   }
 
   const candidates: CanonicalCandidate[] = [];
@@ -240,6 +259,8 @@ export function canonicalizeCandidates(json: Record<string, unknown>): Canonical
 
       let result = "pending";
       let bestResultRank = 0;
+      let sawWon = false;
+      let sawTerminal: string | null = null; // withdrawn|disqualified|annulled
       let confidence: "high" | "medium" | "low" = "low";
       let bestConfRank = 0;
       let votes: number | null = null;
@@ -251,6 +272,8 @@ export function canonicalizeCandidates(json: Record<string, unknown>): Canonical
         if (nr.unknown) {
           skipped.push({ reason: `unknown result "${r.result}" → pending`, label: `${party} · ${person.name}` });
         }
+        if (nr.result === "won") sawWon = true;
+        if (["withdrawn", "disqualified", "annulled"].includes(nr.result)) sawTerminal = nr.result;
         if ((RESULT_RANK[nr.result] ?? 0) > bestResultRank) {
           bestResultRank = RESULT_RANK[nr.result] ?? 0;
           result = nr.result;
@@ -266,6 +289,17 @@ export function canonicalizeCandidates(json: Record<string, unknown>): Canonical
         if (!electionDate && r.electionDate && /^\d{4}-\d{2}-\d{2}$/.test(r.electionDate)) electionDate = r.electionDate;
         if (!notes && r.notes) notes = r.notes;
         if (r.isPrimary !== false) isPrimary = true; // default true
+      }
+
+      // Review I6: a person recorded both as winner AND withdrawn/disqualified/
+      // annulled is a data contradiction — silent upward resolution to 'won'
+      // could ship a withdrawn candidate as the flagbearer. Flag, don't guess.
+      if (sawWon && sawTerminal) {
+        conflicts.push({
+          key,
+          detail: `"${person.name}" recorded both as winner and ${sawTerminal} — resolve in the source data`,
+        });
+        continue;
       }
 
       const first = person.rows[0];

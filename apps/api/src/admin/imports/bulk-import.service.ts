@@ -75,6 +75,17 @@ export class BulkImportService {
     const run = await this.prisma.importRun.create({
       data: { dataset: name, adminId, status: "running" },
     });
+    // Double-check after claiming: if another running row (created before or
+    // concurrently with ours) exists, back out — closes the check-then-create
+    // race from two admin tabs (review I5).
+    const racer = await this.prisma.importRun.findFirst({
+      where: { dataset: name, status: "running", id: { not: run.id }, startedAt: { gte: staleCutoff } },
+      select: { id: true },
+    });
+    if (racer) {
+      await this.prisma.importRun.update({ where: { id: run.id }, data: { status: "failed", notes: "concurrent apply detected — backed out", finishedAt: new Date() } });
+      throw new BadRequestException(`an apply for "${name}" is already running — wait, then re-preview before applying again`);
+    }
 
     let created = 0;
     let updated = 0;
@@ -118,21 +129,27 @@ export class BulkImportService {
       }
     };
 
-    for (const spec of diff.creates) await applyOne(spec, "create");
-    for (const spec of diff.updates) await applyOne(spec, "update");
-
-    await this.prisma.importRun.update({
-      where: { id: run.id },
-      data: {
-        status: errors.length ? "failed" : "done",
-        createdCount: created,
-        updatedCount: updated,
-        skippedCount: diff.unchangedCount,
-        errorCount: errors.length,
-        finishedAt: new Date(),
-        notes: errors.length ? errors.slice(0, 5).map((e) => `${e.label}: ${e.error}`).join(" | ") : null,
-      },
-    });
+    try {
+      for (const spec of diff.creates) await applyOne(spec, "create");
+      for (const spec of diff.updates) await applyOne(spec, "update");
+    } finally {
+      // The run row must never stay 'running' (it gates future applies for
+      // 30 min) — finish it even if the loop throws unexpectedly.
+      await this.prisma.importRun
+        .update({
+          where: { id: run.id },
+          data: {
+            status: errors.length ? "failed" : "done",
+            createdCount: created,
+            updatedCount: updated,
+            skippedCount: diff.unchangedCount,
+            errorCount: errors.length,
+            finishedAt: new Date(),
+            notes: errors.length ? errors.slice(0, 5).map((e) => `${e.label}: ${e.error}`).join(" | ") : null,
+          },
+        })
+        .catch(() => {});
+    }
 
     return { runId: run.id, created, updated, skipped: diff.unchangedCount, errors };
   }
