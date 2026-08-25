@@ -32,6 +32,17 @@ function makeFakePrisma() {
         Object.assign(r, data);
         return { ...r };
       },
+      // Conditional-claim shape used by pollByKey's single-use consume: match on
+      // pollKey AND current status, report how many rows actually flipped.
+      updateMany: async ({ where, data }: any) => {
+        const hits = requests.filter(
+          (x) =>
+            (where.pollKey === undefined || x.pollKey === where.pollKey) &&
+            (where.status === undefined || x.status === where.status),
+        );
+        for (const r of hits) Object.assign(r, data);
+        return { count: hits.length };
+      },
       deleteMany: async () => ({ count: 0 }),
     },
     user: {

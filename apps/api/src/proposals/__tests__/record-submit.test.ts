@@ -100,9 +100,13 @@ describe("createRecordBatch", () => {
   });
 
   it("counts the batch as ONE limiter unit (distinct batchIds)", async () => {
+    // Ceiling mirrors MAX_ANON_PROPOSALS_PER_HOUR (30) in proposals.service.ts —
+    // distinct batchIds are the limiter unit, rows within a batch are not.
+    const MAX_ANON = 30;
     const priorBatch = (n: number) =>
       Array.from({ length: 3 }, () => ({ proposedValue: { type: "record", batchId: `batch-${n}` } }));
-    prisma.dataProposal.findMany.mockResolvedValue([1, 2, 3, 4].flatMap(priorBatch));
+    const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+    prisma.dataProposal.findMany.mockResolvedValue(range(MAX_ANON - 1).flatMap(priorBatch));
     await expect(
       svc.createRecordBatch({
         officialId: OID,
@@ -110,7 +114,7 @@ describe("createRecordBatch", () => {
         proposerPhone: null, proposerIp: "1.2.3.4", trust: "anonymous",
       }),
     ).resolves.toBeTruthy();
-    prisma.dataProposal.findMany.mockResolvedValue([1, 2, 3, 4, 5].flatMap(priorBatch));
+    prisma.dataProposal.findMany.mockResolvedValue(range(MAX_ANON).flatMap(priorBatch));
     await expect(
       svc.createRecordBatch({
         officialId: OID,

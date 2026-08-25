@@ -70,6 +70,14 @@ async function queryCategory(
       ON ea.official_id = o.id AND ea.category = $1
     WHERE TRUE
       ${electedClause}
+      -- Office-holder guard (plan 60 §5.3): election candidates (type NULL, at
+      -- most 'contesting' positions) are NOT swept — autonomous enrichment of
+      -- ~1.8k unknowns would burn the LLM budget on people who may never hold
+      -- office. They re-enter naturally when a position flips to 'active'.
+      AND (o.official_type IS NOT NULL OR EXISTS (
+        SELECT 1 FROM official_positions op
+        WHERE op.official_id = o.id AND op.status <> 'contesting'
+      ))
       AND (ea.id IS NULL OR (ea.status <> 'pending' AND ea.next_eligible_at <= now()))
       AND NOT EXISTS (
         SELECT 1 FROM change_proposals cp
