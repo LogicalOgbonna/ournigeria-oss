@@ -208,9 +208,13 @@ Next.js v16 with React 19, Tailwind CSS v4, Radix UI (shadcn/ui). Charts use Rec
 
 ## Authentication
 
-- Phone OTP: 6-digit codes, session cookies (5-year expiry)
-- Telegram OAuth as alternative
-- Admin: separate password-based auth with `ADMIN_SESSION_SECRET`
+Opaque, server-stored session tokens (OWASP A07 remediation — see `.agent/plans/49.opaque-session-tokens.md`):
+
+- **User sessions**: the `nb_uid` cookie holds an opaque `nbs_` token resolved against the `user_sessions` table (SHA-256 hash at rest, 30-day expiry via `USER_SESSION_TTL_DAYS`, per-session revocation, 60s resolution cache). Login via phone OTP (6-digit WhatsApp codes) or Telegram deep-link (`/auth/telegram/start` + `poll`).
+- **Cross-origin login handoff**: awanaija hands the web app a one-time `nbh_` code via an auto-submitting **POST** to the web app's `/auth/handoff` (never a URL query param); the web route exchanges it at `POST /api/auth/exchange` for a session cookie.
+- **Admin sessions**: `on_admin_session` holds an opaque `ons_` token resolved against `admin_sessions` (7-day expiry via `ADMIN_SESSION_TTL_DAYS`, per-session revocation). Password login; the same cookie is honoured by the api, ingest, and socials admin guards.
+- **Migration window**: legacy raw-UUID user cookies and stateless-HMAC admin tokens are accepted only while `LEGACY_UID_SESSIONS` / `LEGACY_ADMIN_SESSIONS` are not `"false"`. Flip both to `false` after rollout to force re-login; the API logs a startup warning while either is enabled.
+- Post-deploy check: `packages/scripts/security/verify-session-security.sh` asserts opaque cookies, single-use handoff codes, and logout revocation against a live API.
 
 ## Dev Testing
 

@@ -1,0 +1,407 @@
+<!--
+  OurNigeria roadmap brief — audience: contributors.
+  SNAPSHOT, not a live document. Figures were accurate on 2026-08-24.
+  Standalone pitch collateral: it does NOT track apps/awanaija/src/app/roadmap/page.tsx,
+  so the two WILL drift. Update deliberately or retire this file.
+  Published copy: https://claude.ai/code/artifact/0f2ea101-112a-4f8b-bc92-c7c83986eec3
+  (Republishing from this path creates a NEW artifact — pass the URL above to update in place.)
+-->
+<title>Where to Plug In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#0a0e0c; --panel:#111815; --panel-2:#0d1210;
+    --ink:#e9f1eb; --body:#cddcd3; --muted:#8fa298; --soft:#5f6f66;
+    --rule:rgba(233,241,235,0.09); --rule-solid:rgba(233,241,235,0.16);
+    --accent:#34d399; --accent-deep:#059669; --accent-tint:rgba(52,211,153,0.10);
+    --gold:#fbbf24; --gold-tint:rgba(251,191,36,0.10);
+    --danger:#f87171; --danger-tint:rgba(248,113,113,0.10);
+    --violet:#a78bfa; --violet-tint:rgba(167,139,250,0.10);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:'Geist',system-ui,-apple-system,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(1100px 560px at 15% -12%, rgba(5,150,105,0.10), transparent 62%);}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  @media(max-width:600px){.wrap{padding:0 20px}}
+
+  h1,h2,h3{font-weight:400;margin:0;text-wrap:balance}
+  h1{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(2.4rem,5.2vw,4rem);line-height:1.04;letter-spacing:-0.012em}
+  h2{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(1.8rem,3.1vw,2.5rem);line-height:1.1;letter-spacing:-0.01em}
+  h3{font-family:'Geist',sans-serif;font-weight:600;font-size:1rem}
+  p{margin:0 0 1rem;max-width:68ch}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(52,211,153,0.32)}
+  a:hover{border-bottom-color:var(--accent)}
+  a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+  em.acc{color:var(--accent);font-style:italic;font-family:'Instrument Serif',Georgia,serif}
+  .lead{font-size:1.13rem;color:var(--body);max-width:64ch}
+  .muted{color:var(--muted)} .soft{color:var(--soft)}
+  code{font-family:'Geist Mono',ui-monospace,monospace;font-size:.87em;color:var(--accent);
+    background:var(--accent-tint);border:1px solid rgba(52,211,153,0.2);border-radius:3px;padding:1px 6px}
+  .eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.22em;
+    text-transform:uppercase;color:var(--accent);margin:0}
+
+  header.hero{padding:80px 0 44px;border-bottom:1px solid var(--rule)}
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:34px;flex-wrap:wrap}
+  .brandline .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-tint)}
+  .brandline .name{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink)}
+  .brandline .rght{margin-left:auto;font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;color:var(--soft)}
+  header.hero h1{margin:16px 0 22px;max-width:21ch}
+
+  section{padding:58px 0;border-bottom:1px solid var(--rule)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:26px;flex-wrap:wrap}
+  .sec-head .num{font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;color:var(--accent);letter-spacing:0.14em}
+  .sec-head h2{max-width:26ch}
+
+  /* ---- engine blocks ---- */
+  .engine{border:1px solid var(--rule-solid);border-radius:9px;background:var(--panel);overflow:hidden;margin-bottom:18px}
+  .engine-head{display:flex;align-items:center;gap:14px;padding:18px 22px;background:var(--panel-2);
+    border-bottom:1px solid var(--rule-solid);flex-wrap:wrap}
+  .engine-head .eid{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:0.14em;color:var(--soft)}
+  .engine-head h3{flex:1 1 auto;font-size:1.05rem}
+  .engine-body{padding:20px 22px;display:grid;grid-template-columns:1.15fr 0.85fr;gap:28px;align-items:start}
+  @media(max-width:880px){.engine-body{grid-template-columns:1fr;gap:20px}}
+  .engine-body p{font-size:.95rem;color:var(--body);margin-bottom:.7rem}
+  .engine-body p:last-child{margin-bottom:0}
+  .powers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .powers li{font-size:.88rem;color:var(--body);display:flex;gap:10px;align-items:baseline}
+  .powers .lb{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.1em;
+    text-transform:uppercase;color:var(--soft);flex:0 0 76px}
+  .routes{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule);
+    font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;color:var(--muted);line-height:2}
+
+  .pill{display:inline-block;font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.07em;
+    padding:3px 9px;border-radius:3px;border:1px solid;white-space:nowrap;text-transform:uppercase}
+  .pill.live{color:var(--accent);border-color:rgba(52,211,153,0.4);background:var(--accent-tint)}
+  .pill.build{color:var(--gold);border-color:rgba(251,191,36,0.4);background:var(--gold-tint)}
+  .pill.gap{color:var(--danger);border-color:rgba(248,113,113,0.4);background:var(--danger-tint)}
+  .pill.easy{color:var(--accent);border-color:rgba(52,211,153,0.4);background:var(--accent-tint)}
+  .pill.med{color:var(--gold);border-color:rgba(251,191,36,0.4);background:var(--gold-tint)}
+  .pill.hard{color:var(--violet);border-color:rgba(167,139,250,0.4);background:var(--violet-tint)}
+
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--rule-solid);border-radius:8px}
+  table{width:100%;border-collapse:collapse;min-width:800px;font-size:.91rem}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--rule);vertical-align:top}
+  thead th{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;letter-spacing:0.12em;
+    text-transform:uppercase;color:var(--muted);background:var(--panel-2);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody td{color:var(--body)}
+  tbody td b{color:var(--ink);font-weight:600}
+  td.eng{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--accent);white-space:nowrap}
+  td.skill{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--muted)}
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media(max-width:900px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--rule-solid);border-radius:8px;padding:22px}
+  .card .ch{display:flex;align-items:center;gap:9px;margin:0 0 12px}
+  .card .cdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .cdot.acc{background:var(--accent)} .cdot.gold{background:var(--gold)} .cdot.vio{background:var(--violet)}
+  .card p{font-size:.94rem;color:var(--body)}
+  .card ul{margin:0;padding-left:18px}
+  .card li{margin:8px 0;color:var(--body);font-size:.93rem}
+  .card li b{color:var(--ink);font-weight:600}
+
+  .callout{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:1.3rem;line-height:1.42;color:#d9e6de;
+    border-left:2px solid var(--accent);padding:6px 0 6px 22px;margin:20px 0 6px;max-width:58ch}
+
+  footer{padding:44px 0 76px}
+  .colophon{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;color:var(--soft);letter-spacing:0.05em;
+    border-top:1px solid var(--rule);padding-top:20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  @media(max-width:600px){
+    section{padding:40px 0}
+    header.hero{padding:60px 0 34px}
+    .wrap{padding:0 20px}
+  }
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="brandline">
+    <span class="dot"></span>
+    <span class="name">OurNigeria</span>
+    <span class="rght">Roadmap &middot; contributors &middot; 2026</span>
+  </div>
+  <p class="eyebrow">Open source &middot; open gaps</p>
+  <h1>Eight things left to build. <em class="acc">Five engines</em> to build them on.</h1>
+  <p class="lead">The geography is done &mdash; 37 states, 774 local governments, 8,807 wards, 1,468 constituencies, 2,317 elective seats, all resolvable from a location. What is left is not eight separate products. It is five engines, three of which already exist and need extending rather than inventing. This page is the map of what is missing and where a contributor actually plugs in.</p>
+  <div class="callout">If you are looking for the shortest useful contribution: two in every three tracked officials are a name and nothing else. That gap needs no code at all.</div>
+</header>
+
+<!-- ============ 01 ENGINES ============ -->
+<section id="engines">
+  <div class="sec-head"><span class="num">01</span><h2>Five engines, not eight features</h2></div>
+  <p class="lead" style="margin-bottom:26px">The eight roadmap items collapse hard once you look at their shape. Three of them are the same registry problem; three more are the same places problem. Building them as one engine each is the difference between a year of work and three.</p>
+
+  <div class="engine">
+    <div class="engine-head">
+      <span class="eid">ENGINE 01</span>
+      <h3>Registry &mdash; a person, holding a role, in a jurisdiction, for a term</h3>
+      <span class="pill live">Exists &middot; extend it</span>
+    </div>
+    <div class="engine-body">
+      <div>
+        <p>This already runs the whole elected-officials surface. A person record, a position record binding them to a scope, a term, a party, and a full provenance trail &mdash; source, source URL, confidence, last verified.</p>
+        <p>The important thing for contributors: <em class="acc">the police hierarchy and the ministries layer are the same shape.</em> A Commissioner of Police is a person holding a role scoped to a state. A DPO is a person holding a role scoped to a division. A minister is a person holding a role scoped to a ministry. None of that needs a new engine &mdash; it needs new roles, a new scope type, and the data to fill it.</p>
+      </div>
+      <div>
+        <ul class="powers">
+          <li><span class="lb">Powers</span><span>Elected officials &middot; police command &middot; ministries</span></li>
+          <li><span class="lb">Live now</span><span>2,847 officials across 37 states</span></li>
+          <li><span class="lb">Missing</span><span>Appointed security roles, ministry leadership, division-level scope</span></li>
+        </ul>
+        <div class="routes">
+          /representatives<br>
+          /officials &middot; /officials/[id]
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="engine">
+    <div class="engine-head">
+      <span class="eid">ENGINE 02</span>
+      <h3>Places &mdash; the hierarchy, and what physically sits inside it</h3>
+      <span class="pill build">Exists to ward &middot; needs a floor below</span>
+    </div>
+    <div class="engine-body">
+      <div>
+        <p>State, local government and ward are all live and addressable. The ward is currently the floor, and that is the blocker for three roadmap items at once.</p>
+        <p>Communities, public hospitals and public schools are one engine wearing three hats: a settlement layer beneath the ward, then facilities attached to settlements and rolled up to the LGA. Communities must land first &mdash; the other two are cheap once it exists, and impossible before.</p>
+        <p class="muted">Note for anyone reaching for maps: there is no geometry in the database today. Boundaries are GeoJSON files loaded at runtime, state and LGA only, and ward-level reverse geocoding is not implemented.</p>
+      </div>
+      <div>
+        <ul class="powers">
+          <li><span class="lb">Powers</span><span>Communities &middot; health facilities &middot; schools</span></li>
+          <li><span class="lb">Live now</span><span>774 LGAs, 8,807 wards, addressable by slug</span></li>
+          <li><span class="lb">Missing</span><span>Community layer, facility records, ward geometry</span></li>
+        </ul>
+        <div class="routes">
+          /states/[state]<br>
+          /states/[state]/[lga]<br>
+          /states/[state]/[lga]/[ward]
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="engine">
+    <div class="engine-head">
+      <span class="eid">ENGINE 03</span>
+      <h3>Elections &mdash; contests, parties, candidates, slates</h3>
+      <span class="pill build">Built &middot; needs filling</span>
+    </div>
+    <div class="engine-body">
+      <div>
+        <p>This engine exists and runs. There is a public party directory and a profile page per party, a ballot API that resolves races from a location, and a working personaliser that fetches senate, reps, state assembly, chairman and councillor races for a given ward.</p>
+        <p>What it lacks is candidates and a front door. Seven candidates are on record for the 2027 presidential race and none for governor in any state sampled. There is no Election or Candidate table &mdash; a candidate is an <code>official_elections</code> row marked as a won primary. The whole surface sits behind a feature flag that fails closed, is reachable only through a geo rewrite, and the state page is deliberately de-indexed.</p>
+      </div>
+      <div>
+        <ul class="powers">
+          <li><span class="lb">Powers</span><span>Party directory &middot; party profiles &middot; personalised ballot</span></li>
+          <li><span class="lb">Live now</span><span>16 parties, ballot API, 2,317 seats to attach to</span></li>
+          <li><span class="lb">Missing</span><span>Candidate coverage, the public year-scoped routes, a switched-on front door</span></li>
+        </ul>
+        <div class="routes">
+          /parties &middot; /parties/[acronym] <span class="soft">&mdash; live</span><br>
+          /election/[state] <span class="soft">&mdash; gated, de-indexed</span><br>
+          /elections/[year] <span class="soft">&mdash; planned</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="engine">
+    <div class="engine-head">
+      <span class="eid">ENGINE 04</span>
+      <h3>Legislation &mdash; bills, sponsors, hearings, local impact</h3>
+      <span class="pill gap">New</span>
+    </div>
+    <div class="engine-body">
+      <div>
+        <p>Nothing exists here yet. A bill needs a record, a sponsor and backers linked to existing official profiles, a status history, and &mdash; the interesting part &mdash; a link to the places it actually affects, so it can surface on the right LGA pages.</p>
+        <p>National Assembly hearings stream publicly. Pulling transcripts, summarising them, and attaching them to the right bill is a self-contained piece of work that touches almost nothing else in the codebase, which makes it unusually good for a contributor working alone.</p>
+      </div>
+      <div>
+        <ul class="powers">
+          <li><span class="lb">Powers</span><span>Bill tracker &middot; hearing summaries &middot; follow-a-bill alerts</span></li>
+          <li><span class="lb">Live now</span><span>Official profiles to link sponsors to</span></li>
+          <li><span class="lb">Missing</span><span>Everything &mdash; records, transcript pipeline, impact routing, subscriptions</span></li>
+        </ul>
+        <div class="routes">
+          /bills <span class="soft">&mdash; planned</span><br>
+          /bills/[id] <span class="soft">&mdash; planned</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="engine">
+    <div class="engine-head">
+      <span class="eid">ENGINE 05</span>
+      <h3>Money &mdash; allocation traced federal to local</h3>
+      <span class="pill live">Live &middot; deepening</span>
+    </div>
+    <div class="engine-body">
+      <div>
+        <p>The oldest engine in the project and the most built-out. Hundreds of budget documents and hundreds of thousands of payment records are ingested, embedded and queryable in plain English or Pidgin.</p>
+        <p>The remaining work is depth rather than existence: tracing an allocation cleanly from the federal purse through the state to a specific local government, and linking budgeted capital projects to the places they were supposed to be built.</p>
+      </div>
+      <div>
+        <ul class="powers">
+          <li><span class="lb">Powers</span><span>Budget search &middot; allocations &middot; spending records &middot; project tracking</span></li>
+          <li><span class="lb">Live now</span><span>700+ documents, 891K+ payment records</span></li>
+          <li><span class="lb">Missing</span><span>Clean federal &rarr; state &rarr; LGA trace; project-to-place links</span></li>
+        </ul>
+        <div class="routes">
+          plain-language chat<br>
+          state &amp; LGA fiscal panels
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 OPEN GAPS ============ -->
+<section id="gaps">
+  <div class="sec-head"><span class="num">02</span><h2>Open gaps, by what it takes to close them</h2></div>
+  <p class="lead" style="margin-bottom:24px">Difficulty here is about how much context you need before your first commit is useful &mdash; not about how clever the work is.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Gap</th><th>Engine</th><th>What it takes</th><th>Difficulty</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Official profiles are near-empty</b><br><span class="muted">1,874 of 2,847 are a name and nothing else. 88% have no contact route; 1 profile is complete.</span></td>
+          <td class="eng">Registry</td>
+          <td class="skill">No code &mdash; local knowledge</td>
+          <td><span class="pill easy">Open now</span></td>
+        </tr>
+        <tr>
+          <td><b>Import the collected primary winners</b><br><span class="muted">~1,995 records sitting in a file, needing normalisation and mapping onto existing seats.</span></td>
+          <td class="eng">Elections</td>
+          <td class="skill">TypeScript &middot; data cleaning</td>
+          <td><span class="pill med">Medium</span></td>
+        </tr>
+        <tr>
+          <td><b>The public election routes</b><br><span class="muted">An index of tracked elections, a page per year, a page per party &mdash; browsable by anyone, unlike the gated per-state ballot.</span></td>
+          <td class="eng">Elections</td>
+          <td class="skill">Next.js &middot; NestJS</td>
+          <td><span class="pill med">Medium</span></td>
+        </tr>
+        <tr>
+          <td><b>Police command hierarchy</b><br><span class="muted">New roles and a division-level scope on the existing registry. No public dataset exists &mdash; sourcing is the hard half.</span></td>
+          <td class="eng">Registry</td>
+          <td class="skill">Schema &middot; sourcing</td>
+          <td><span class="pill hard">Heavy</span></td>
+        </tr>
+        <tr>
+          <td><b>Police station locations</b><br><span class="muted">Coordinates and working contact numbers, attached to wards. Citizen submissions open once the places engine lands.</span></td>
+          <td class="eng">Places</td>
+          <td class="skill">No code &mdash; local knowledge</td>
+          <td><span class="pill build">Opens next</span></td>
+        </tr>
+        <tr>
+          <td><b>The community layer</b><br><span class="muted">A settlement tier beneath the ward. Blocks health and education entirely.</span></td>
+          <td class="eng">Places</td>
+          <td class="skill">Schema &middot; ingestion &middot; crowd tooling</td>
+          <td><span class="pill hard">Heavy</span></td>
+        </tr>
+        <tr>
+          <td><b>Public health facility ingest</b><br><span class="muted">Public facilities only, matched to communities and rolled up per LGA.</span></td>
+          <td class="eng">Places</td>
+          <td class="skill">Data pipeline &middot; geocoding</td>
+          <td><span class="pill med">Medium</span></td>
+        </tr>
+        <tr>
+          <td><b>Public school ingest</b><br><span class="muted">Primary, secondary and tertiary. Same pipeline shape as health &mdash; largely a repeat once health lands.</span></td>
+          <td class="eng">Places</td>
+          <td class="skill">Data pipeline &middot; geocoding</td>
+          <td><span class="pill med">Medium</span></td>
+        </tr>
+        <tr>
+          <td><b>Hearing transcript pipeline</b><br><span class="muted">Pull public National Assembly streams, transcribe, summarise, attach to the right bill.</span></td>
+          <td class="eng">Legislation</td>
+          <td class="skill">Transcripts &middot; LLM summarisation</td>
+          <td><span class="pill med">Medium &middot; self-contained</span></td>
+        </tr>
+        <tr>
+          <td><b>Bill-to-LGA impact routing</b><br><span class="muted">Decide which local governments a bill actually touches, and surface it there.</span></td>
+          <td class="eng">Legislation</td>
+          <td class="skill">Modelling &middot; judgement</td>
+          <td><span class="pill hard">Heavy</span></td>
+        </tr>
+        <tr>
+          <td><b>Ward-level geometry</b><br><span class="muted">No geometry in the database at all today; boundaries are files, state and LGA only.</span></td>
+          <td class="eng">Places</td>
+          <td class="skill">PostGIS &middot; GeoJSON</td>
+          <td><span class="pill hard">Heavy</span></td>
+        </tr>
+        <tr>
+          <td><b>Ministry profiles</b><br><span class="muted">Mandate, leadership, contact routes and active projects for the ministries that shape daily life.</span></td>
+          <td class="eng">Registry</td>
+          <td class="skill">Sourcing &middot; light schema</td>
+          <td><span class="pill easy">Approachable</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ 03 HOW TO HELP ============ -->
+<section id="help">
+  <div class="sec-head"><span class="num">03</span><h2>Three ways in</h2></div>
+  <div class="cards">
+    <div class="card">
+      <div class="ch"><span class="cdot acc"></span><h3>Without writing code</h3></div>
+      <p>The largest gap on the whole roadmap is filled this way, and today it means exactly one thing: <b>identifying public officials.</b> Submit a photograph, a phone number, an office address for an official in your area.</p>
+      <p>Submissions are voted on and moderated before anything goes live. This is already open at <code>/proposals/new</code>.</p>
+      <p class="muted" style="margin-bottom:0"><b>Next to open:</b> identifying and mapping infrastructure &mdash; stations, clinics, schools, and the communities they serve. Same submit-and-vote flow, but it needs the places engine underneath it first.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot gold"></span><h3>Verifying what is already there</h3></div>
+      <p>Every record carries a source and a confidence level. Plenty are marked low, or were verified long enough ago to be stale &mdash; officials die, get sacked, cross-carpet, and the database does not find out on its own.</p>
+      <p class="muted" style="margin-bottom:0">Checking a claim against a real source and flagging what is wrong is worth more than adding new unverified rows.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot vio"></span><h3>Writing code</h3></div>
+      <ul>
+        <li><b>Frontend:</b> Next.js and React &mdash; the public civic app and its state, LGA and ward pages.</li>
+        <li><b>Backend:</b> NestJS and Prisma over PostgreSQL &mdash; the geography, registry and proposal APIs.</li>
+        <li><b>Pipelines:</b> document and structured-data ingestion, the area with the most self-contained work available.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 GROUND RULES ============ -->
+<section id="rules">
+  <div class="sec-head"><span class="num">04</span><h2>Ground rules, because this data is about real people</h2></div>
+  <div class="cards">
+    <div class="card">
+      <div class="ch"><span class="cdot acc"></span><h3>Provenance is not optional</h3></div>
+      <p style="margin-bottom:0">Every claim about a person carries a source, a source URL, a date and a confidence level. A contribution without a source is not a contribution &mdash; it is a rumour with better formatting.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot gold"></span><h3>Records, not accusations</h3></div>
+      <p style="margin-bottom:0">We publish what documents say and link to them. We do not editorialise about individuals, and the legal register stays strictly read-only. This is the difference between accountability work and a defamation suit.</p>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="cdot vio"></span><h3>Public provision only</h3></div>
+      <p style="margin-bottom:0">Hospitals and schools mean public hospitals and public schools. Private provision is a market and is somebody else&rsquo;s subject. What is being audited here is what the state promised its citizens for free.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="colophon">
+    <span>OurNigeria &mdash; roadmap for contributors</span>
+    <span>Figures live from production, 2026-08-24</span>
+    <span>Open source &middot; ournigeria.ng</span>
+  </div>
+</footer>
+
+</div>

@@ -111,10 +111,15 @@ export class TelegramLoginService {
     const row = await this.prisma.telegramLoginRequest.findUnique({ where: { pollKey } });
     if (!row) return { status: "expired" };
     if (row.status === "authenticated" && row.userId) {
-      await this.prisma.telegramLoginRequest.update({
-        where: { pollKey },
+      // Atomic claim: two overlapping polls could both read "authenticated"
+      // before either writes "consumed" (the client polls every 2s, so a slow
+      // response overlaps the next tick). The conditional updateMany guarantees
+      // exactly one poll wins — the caller mints one session, not one per racer.
+      const claimed = await this.prisma.telegramLoginRequest.updateMany({
+        where: { pollKey, status: "authenticated" },
         data: { status: "consumed" },
       });
+      if (claimed.count !== 1) return { status: "expired" };
       return { status: "authenticated", userId: row.userId };
     }
     if (row.status === "consumed") return { status: "expired" };

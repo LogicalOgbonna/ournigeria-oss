@@ -51,5 +51,15 @@ function extractTokenFromResponse(res: Response): string | null {
 
 export async function logoutAction() {
   const cookieStore = await cookies();
+  // Revoke the session server-side (not just clear the cookie) so a leaked
+  // opaque token can't be replayed until it expires.
+  const token = cookieStore.get(ADMIN_COOKIE)?.value;
+  if (token) {
+    await fetch(`${API_URL}/api/admin/auth/logout`, {
+      method: "POST",
+      headers: { cookie: `${ADMIN_COOKIE}=${token}` },
+      cache: "no-store",
+    }).catch(() => {});
+  }
   cookieStore.delete(ADMIN_COOKIE);
 }

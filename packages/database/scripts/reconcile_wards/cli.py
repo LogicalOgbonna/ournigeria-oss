@@ -21,7 +21,7 @@ import openpyxl
 from . import apply as apply_mod
 from . import db
 from .fetch import BASE, fetch_state
-from .match import match_one, resolve_constituency_lgas
+from .match import apply_seat_synonym, match_one, resolve_constituency_lgas
 from .parse import parse_lga_rows, parse_sc_rows
 from .report import ConstituencyResult, WardResult, build_report, write_report
 
@@ -30,24 +30,44 @@ sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.dirname(_
 from ward_utils import WORKBOOK_TO_STATE, normalize_name  # noqa: E402
 
 
-def _sheet(wb, workbook: str, kind: str):
-    """Resolve a worksheet by kind ('SD'/'FC'/'SC').
+# INEC names the three worksheets inconsistently across states. Observed forms:
+#   ABIA      -> "ABIA SC"        (state-prefixed)
+#   BAYELSA   -> "SC"             (bare)
+#   ONDO      -> "SC ONDO"        (state-SUFFIXED — the reason ONDO failed)
+#   BENUE     -> "STATE CONSTITUENCY"   (full words, and pluralised in places:
+#   KWARA        BENUE writes "FEDERAL CONSTITUENCIES", KWARA the singular)
+_SHEET_WORDS = {
+    "SD": ("senatorial",),
+    "FC": ("federal constituenc",),
+    "SC": ("state constituenc",),
+}
 
-    INEC workbooks are inconsistent: some name sheets ``<STATE> SC`` (e.g. ABIA),
-    others use the bare ``SC`` (e.g. EBONYI, BAYELSA). Try the prefixed name
-    first, then the bare kind, then any sheet whose name ends with the kind
-    (case-insensitive) before giving up.
+
+def _sheet(wb, workbook: str, kind: str):
+    """Resolve a worksheet by kind ('SD'/'FC'/'SC') across INEC's naming variants.
+
+    Tried in order, most specific first: exact prefixed/bare/suffixed names, then
+    the abbreviation as a leading or trailing token, then the full-word form.
+    Token-boundary checks matter — a bare `endswith("SC")` also matches a sheet
+    ending in "...WSC", and matching "SC" anywhere inside a name would let
+    "FC" hit "FCT".
     """
-    candidates = [f"{workbook} {kind}", kind]
-    for name in candidates:
-        if name in wb.sheetnames:
+    names = list(wb.sheetnames)
+    for candidate in (f"{workbook} {kind}", kind, f"{kind} {workbook}"):
+        if candidate in names:
+            return wb[candidate]
+
+    for name in names:
+        tokens = name.strip().upper().split()
+        if tokens and (tokens[0] == kind or tokens[-1] == kind):
             return wb[name]
-    for name in wb.sheetnames:
-        if name.strip().upper().endswith(kind):
+
+    for name in names:
+        lowered = name.strip().lower()
+        if any(lowered.startswith(word) for word in _SHEET_WORDS[kind]):
             return wb[name]
-    raise KeyError(
-        f"{workbook}: no '{kind}' worksheet (sheets: {wb.sheetnames})"
-    )
+
+    raise KeyError(f"{workbook}: no '{kind}' worksheet (sheets: {names})")
 
 
 def _confidence(score: float) -> str:
@@ -70,6 +90,14 @@ def reconcile_state(workbook: str) -> tuple:
 
     path = fetch_state(workbook)
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    # The FCT has no State House of Assembly, so its workbook ships SD and FC
+    # only. That is correct data, not a parse failure — say so instead of
+    # raising, or it reads as a bug every time the batch runs.
+    if workbook == "FCT":
+        raise SystemExit(
+            "FCT has no State House of Assembly — its workbook carries no state "
+            "constituency sheet. Nothing to reconcile."
+        )
     sc_rows = [list(r) for r in _sheet(wb, workbook, "SC").iter_rows(values_only=True)]
     sd_rows = [list(r) for r in _sheet(wb, workbook, "SD").iter_rows(values_only=True)]
     parsed_sc = parse_sc_rows(sc_rows)
@@ -94,7 +122,7 @@ def reconcile_state(workbook: str) -> tuple:
 
     for pc in parsed_sc:
         # match SC name -> DB state-constituency code
-        cm = match_one(pc.name, state_consts)
+        cm = match_one(apply_seat_synonym(state, pc.name), state_consts)
         constituency_code = cm.code
         # Resolve the FULL set of LGAs this constituency spans. `lga_codes[0]` is
         # the primary LGA; any trailing entries are sibling LGAs discovered by
@@ -161,6 +189,36 @@ def reconcile_state(workbook: str) -> tuple:
 
     # senatorial -> LGA additions from SD composition
     sen_consts = [(c, n) for c, n, t in all_consts if t == "senatorial"]
+    # ---- intra-run collision resolution -------------------------------------
+    # Two constituencies can claim the same ward: an in-LGA exact match on one
+    # side and a cross-LGA fall-through (sibling pool or tier-3 state-wide
+    # exact) on the other. Homonym ward names — Tudun Wada, Hausari, Ndiagu —
+    # make the fall-through look decisive when it is not. Per-constituency
+    # matching cannot see the collision, so it is resolved here: the claim
+    # whose resolved primary LGA is the ward's own LGA wins; every other claim
+    # becomes an abstention (needs_review), never a competing mapping. If no
+    # claimant — or more than one — is in-LGA, all abstain.
+    ward_lga = {wc: lc for lc, lst in wards_index.items() for wc, _ in lst}
+    claims: dict[str, list] = {}
+    for cr in results:
+        for w in cr.wards:
+            if w.ward_code is not None:
+                claims.setdefault(w.ward_code, []).append((cr, w))
+    for wc, claimants in claims.items():
+        if len(claimants) < 2:
+            continue
+        in_lga = [c for c in claimants if c[0].lga_code == ward_lga.get(wc)]
+        keep = in_lga[0][1] if len(in_lga) == 1 else None
+        for cr, w in claimants:
+            if w is not keep:
+                w.ward_code = None
+                w.needs_review = True
+    additions = [
+        (c, wc, cf) for c, wc, cf in additions
+        if any(w.ward_code == wc for cr in results for w in cr.wards
+               if cr.constituency_code == c)
+    ]
+
     senatorial_additions: list[tuple[str, str, str]] = []
     for d in districts:
         sm = match_one(d.name, sen_consts)

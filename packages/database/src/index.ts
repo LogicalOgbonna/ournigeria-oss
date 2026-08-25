@@ -11,6 +11,9 @@ export {
   COMPLETENESS_FLAT_FIELDS,
   COMPLETENESS_BASE_CATEGORIES,
   COMPLETENESS_ELECTED_CATEGORIES,
+  COMPLETENESS_FLAT_COLUMNS,
+  COMPLETENESS_SQL,
+  completenessSql,
   computeOfficialCompleteness,
   electedApplies,
 } from './completeness';

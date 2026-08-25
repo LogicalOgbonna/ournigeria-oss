@@ -6,6 +6,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { StructuredData } from "./_seo/structured-data";
 import {
   WardHero,
+  WardConstituencies,
   WhoIsResponsible,
   WardProjects,
   CommunityUpdates,
@@ -80,6 +81,11 @@ export default async function WardPage({
         lgaSlug={resolvedParams.lga_slug}
       />
       <WhoIsResponsible ward={ward} />
+      <WardConstituencies
+        constituencies={ward.constituencies}
+        wardName={wardName}
+        stateCode={ward.stateCode}
+      />
       <WardProjects wardName={wardName} />
       <CommunityUpdates updates={ward.civicUpdates ?? []} />
       <RelatedLinks title={`Other wards in ${lgaName}`} items={siblingWardLinks} />
