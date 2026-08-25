@@ -418,6 +418,9 @@ function partyOfficerEntity(): CreatableEntity {
   };
 }
 
+/** Per-process cache: do official_legal_cases.role/record_kind columns exist yet? */
+let legalCaseNewColsPresent: boolean | null = null;
+
 /** official_elections columns (same set the generic officialFactEntity used). */
 const ELECTION_COLUMNS: ColumnSpec[] = [
   { key: "electionType", column: "election_type", type: "string", required: true },
@@ -992,11 +995,43 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "filedDate", column: "filed_date", type: "date" },
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
+    { key: "role", column: "role", type: "string" },
+    { key: "recordKind", column: "record_kind", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" },
-  ], async (_tx, payload) => {
+  ], async (tx, payload) => {
     // Soften raw agent enums onto chk_legal_case_type / chk_legal_status.
     payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
     payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+    // role / record_kind are NULLABLE — soften anything off-list to null
+    // (plan 59: never assert a role the record doesn't prove).
+    const ROLES = ["defendant", "plaintiff", "claimant", "respondent", "named_in"];
+    const KINDS = ["adjudicated", "allegation", "listing", "appearance"];
+    const norm = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    payload.role = ROLES.includes(norm(payload.role)) ? norm(payload.role) : null;
+    payload.recordKind = KINDS.includes(norm(payload.recordKind)) ? norm(payload.recordKind) : null;
+    // DEPLOY-ORDER GUARD: the enrichment agent (which files role/recordKind) can
+    // deploy before the API applies migration 20260824021900. Approving such a
+    // proposal pre-migration would 500 on a nonexistent column — the exact bug
+    // class PR #193 fixed. Soften to null (insert skips null columns) when the
+    // columns aren't there yet; the values remain visible in proposed_value.
+    // Cache only the POSITIVE result: once the columns exist they never vanish,
+    // but a skipped-then-applied migration must be picked up without an API
+    // restart, so a missing-columns answer is re-probed on every apply.
+    if (legalCaseNewColsPresent !== true) {
+      const cols = await tx.$queryRawUnsafe<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`,
+      );
+      legalCaseNewColsPresent = cols.length === 2;
+    }
+    if (!legalCaseNewColsPresent) {
+      // eslint-disable-next-line no-console -- deliberate: softening must be visible in API logs
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) — softening both to null",
+      );
+      payload.role = null;
+      payload.recordKind = null;
+    }
   }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').

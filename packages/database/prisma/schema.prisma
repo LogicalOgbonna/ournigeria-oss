@@ -819,6 +819,10 @@ model OfficialLegalCase {
   filedDate              DateTime? @map("filed_date") @db.Date
   resolvedDate           DateTime? @map("resolved_date") @db.Date
   outcome                String?   @db.Text
+  /// Official's role in the matter: defendant|plaintiff|claimant|respondent|named_in. Null = unknown.
+  role                   String?   @db.VarChar(20)
+  /// Plan 58 §3.8 record kind: adjudicated|allegation|listing|appearance. Null = legacy/unclassified.
+  recordKind             String?   @map("record_kind") @db.VarChar(20)
   relatedCorruptionCaseId String?  @map("related_corruption_case_id") @db.Uuid
   confidence             String    @default("medium") @db.VarChar(10)
   sourceType             String    @default("manual") @map("source_type") @db.VarChar(20)

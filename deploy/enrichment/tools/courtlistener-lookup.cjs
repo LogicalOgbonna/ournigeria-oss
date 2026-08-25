@@ -1,6 +1,6 @@
 "use strict";
 
-// apps/api/src/enrichment/agent/submit-structured-create.cli.ts
+// apps/api/src/enrichment/agent/courtlistener-lookup.cli.ts
 var import_pg = require("pg");
 
 // apps/api/src/enrichment/agent/profiles.ts
@@ -1295,7 +1295,549 @@ async function submitStructuredCreate(client, input, profile = getProfile(input.
   }
 }
 
-// apps/api/src/enrichment/agent/submit-structured-create.cli.ts
+// apps/api/src/enrichment/agent/courtlistener-lookup.ts
+var SEARCH_URL = "https://www.courtlistener.com/api/rest/v4/search/";
+var SITE = "https://www.courtlistener.com";
+var MAX_PAGES = 3;
+var NOTE_LEADS_CAP = 20;
+var PARTIES_FETCH_CAP = 5;
+var RECHECK_DAYS = 90;
+var CAPTION_STOP = /* @__PURE__ */ new Set(["united", "states", "america", "usa", "us", "of", "the", "v", "vs", "et", "al"]);
+var HONORIFICS = /* @__PURE__ */ new Set([
+  "chief",
+  "alhaji",
+  "alhaja",
+  "hon",
+  "honourable",
+  "honorable",
+  "sen",
+  "senator",
+  "dr",
+  "barr",
+  "barrister",
+  "engr",
+  "engineer",
+  "prof",
+  "professor",
+  "arc",
+  "mr",
+  "mrs",
+  "ms",
+  "miss",
+  "sir",
+  "dame",
+  "otunba",
+  "oba",
+  "hrh",
+  "hrm",
+  "gen",
+  "general",
+  "col",
+  "colonel",
+  "capt",
+  "captain",
+  "major",
+  "air",
+  "cdre",
+  "comrade",
+  "pastor",
+  "rev",
+  "reverend",
+  "elder",
+  "deacon",
+  "evang",
+  "evangelist",
+  "prince",
+  "princess",
+  "amb",
+  "ambassador",
+  "chf",
+  "rtd",
+  "jp",
+  "mni",
+  "san",
+  "phd"
+]);
+var COMMON_TOKENS = /* @__PURE__ */ new Set([
+  // ubiquitous Muslim/Northern given names + variants
+  "mohammed",
+  "muhammed",
+  "muhammad",
+  "mohammad",
+  "ahmed",
+  "ahmad",
+  "ali",
+  "ibrahim",
+  "musa",
+  "sani",
+  "umar",
+  "usman",
+  "abubakar",
+  "hassan",
+  "hussain",
+  "hussein",
+  "khalid",
+  "bello",
+  "abdullahi",
+  "abdullah",
+  "abdulla",
+  "adamu",
+  "bala",
+  "garba",
+  "yakubu",
+  "suleiman",
+  "sulaiman",
+  "yusuf",
+  "aliyu",
+  "abdul",
+  "lateef",
+  "ismail",
+  "isah",
+  "isa",
+  "idris",
+  "shehu",
+  "salisu",
+  "kabiru",
+  "kabir",
+  "tanko",
+  "danjuma",
+  "aminu",
+  "nasir",
+  "mustapha",
+  "yahaya",
+  "lawal",
+  "baba",
+  "abba",
+  // ubiquitous Christian/Southern + Western given names
+  "emmanuel",
+  "john",
+  "joseph",
+  "james",
+  "peter",
+  "paul",
+  "samuel",
+  "david",
+  "daniel",
+  "michael",
+  "anthony",
+  "sunday",
+  "monday",
+  "victor",
+  "victoria",
+  "mary",
+  "grace",
+  "blessing",
+  "donald",
+  "philip",
+  "phillip",
+  "francis",
+  "patrick",
+  "christopher",
+  "stephen",
+  "steven",
+  "george",
+  "charles",
+  "richard",
+  "robert",
+  "william",
+  "thomas",
+  "solomon",
+  "felix",
+  "ifeanyi",
+  "adekunle",
+  "adebayo",
+  "olanrewaju",
+  "adeleke",
+  // very common surnames (US-collision-prone)
+  "smith",
+  "brown",
+  "johnson",
+  "williams",
+  "jones",
+  "duke",
+  "obi",
+  "eze",
+  "okafor",
+  "okeke",
+  "okoro",
+  "edet",
+  "effiong",
+  "okon",
+  "bassey",
+  "etim",
+  "asuquo",
+  "mahmud"
+]);
+function normalizeName(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+function nameTokens(s) {
+  const toks = normalizeName(s).split(" ").filter((t) => t && !CAPTION_STOP.has(t));
+  let start = 0;
+  while (start < toks.length && HONORIFICS.has(toks[start]) && toks.length - start - 1 >= 2) start++;
+  return toks.slice(start);
+}
+function partyMatchesOfficial(officialName, partyName) {
+  const off = nameTokens(officialName);
+  if (off.length === 0) return false;
+  const party = new Set(nameTokens(partyName));
+  return off.every((t) => party.has(t));
+}
+function isDistinctiveName(name) {
+  const toks = nameTokens(name);
+  return toks.length >= 2 && toks.some((t) => !COMMON_TOKENS.has(t));
+}
+var PROPERTY = /(real property|\bm\/?y\b|\$|\bfunds\b|\bassets\b|located|vehicle|premises|parcel|proceeds|vessel|aircraft|one\s+\d|approximately)/i;
+var CRIMINAL_PREFIXES = ["united states v", "united states of america v", "usa v", "u s a v", "u s v"];
+function classifyCaseType(caseName, courtId) {
+  if (/^[a-z]{2,4}b$/.test(String(courtId || ""))) return "civil";
+  const cn = normalizeName(caseName);
+  if (CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
+    return PROPERTY.test(caseName) ? "civil" : "criminal";
+  }
+  return "civil";
+}
+function roleFromCaption(caseName, caseType, matchedParty) {
+  const cn = normalizeName(caseName);
+  if (caseType === "criminal" && CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
+    return "defendant";
+  }
+  const sides = cn.split(/\bv\b/);
+  if (sides.length === 2) {
+    const party = nameTokens(matchedParty);
+    if (party.length) {
+      const pset = new Set(party);
+      const inSide = (side) => {
+        const st = nameTokens(side);
+        if (!st.length) return false;
+        const sset = new Set(st);
+        return st.every((t) => pset.has(t)) || party.every((t) => sset.has(t));
+      };
+      if (inSide(sides[0]) && !inSide(sides[1])) return "plaintiff";
+      if (inSide(sides[1]) && !inSide(sides[0])) return "defendant";
+    }
+  }
+  return null;
+}
+var ROLE_MAP = {
+  defendant: "defendant",
+  plaintiff: "plaintiff",
+  claimant: "claimant",
+  respondent: "respondent",
+  petitioner: "plaintiff",
+  "counter-claimant": "claimant"
+};
+async function fetchJsonDefault(url, headers) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { ...headers ? { headers } : {}, signal: AbortSignal.timeout(45e3) });
+    if (res.ok) return res.json();
+    if ((res.status === 429 || res.status === 503) && attempt < 2) {
+      const after = Number.parseInt(res.headers.get("retry-after") ?? "", 10);
+      if (Number.isFinite(after) && after > 0 && after <= 20) {
+        await new Promise((r) => setTimeout(r, after * 1e3));
+        continue;
+      }
+      throw new Error(`courtlistener throttled (429), retry-after ${after || "unknown"}s`);
+    }
+    throw new Error(`courtlistener responded ${res.status}`);
+  }
+}
+function str(v) {
+  return typeof v === "string" ? v : "";
+}
+function countOf(body) {
+  const c = body?.count;
+  if (typeof c === "number") return c;
+  if (c && typeof c === "object" && typeof c.value === "number") {
+    return c.value;
+  }
+  return 0;
+}
+function phraseUrl(name) {
+  const cleaned = nameTokens(name).join(" ") || normalizeName(name);
+  return `${SEARCH_URL}?type=r&q=${encodeURIComponent(`"${cleaned}"`)}`;
+}
+function docketIdOf(docketPath) {
+  const m = /\/docket\/(\d+)\//.exec(docketPath);
+  return m ? m[1] : "";
+}
+async function fetchPages(url, deps, headers) {
+  const results = [];
+  let total = 0;
+  let requests = 0;
+  let next = url;
+  for (let page = 0; next && page < MAX_PAGES; page++) {
+    const body = await deps.fetchJson(next, headers);
+    requests++;
+    const rows = Array.isArray(body?.results) ? body.results : [];
+    results.push(...rows);
+    total = Math.max(total, countOf(body));
+    const n = typeof body?.next === "string" ? body.next : "";
+    next = n.startsWith(`${SITE}/`) ? n : null;
+  }
+  return { results, total, truncated: Boolean(next), requests };
+}
+async function lookupCourtRecords(client, official, deps) {
+  const headers = deps.token ? { Authorization: `Token ${deps.token}` } : void 0;
+  const primary = await fetchPages(phraseUrl(official.name), deps, headers);
+  let { results, total, truncated } = primary;
+  let apiRequests = primary.requests;
+  const toks = nameTokens(official.name);
+  if (results.length === 0 && toks.length >= 3) {
+    const variant = `${toks[0]} ${toks[toks.length - 1]}`;
+    try {
+      const v = await fetchPages(phraseUrl(variant), deps, headers);
+      apiRequests += v.requests;
+      results = v.results;
+      total = Math.max(total, v.total);
+      truncated = truncated || v.truncated;
+    } catch {
+      apiRequests += 1;
+    }
+  }
+  const out = {
+    filed: 0,
+    skipped: [],
+    leads: [],
+    totalCount: total,
+    truncated,
+    attemptRecorded: false,
+    apiRequests,
+    warnings: []
+  };
+  const warnOnce = (w) => {
+    if (!out.warnings.includes(w)) out.warnings.push(w);
+  };
+  const distinctive = isDistinctiveName(official.name);
+  const seen = /* @__PURE__ */ new Set();
+  let partiesFetches = 0;
+  for (const r of results) {
+    const caseName = str(r.caseName);
+    const docketNumber = str(r.docketNumber);
+    const key = docketNumber || caseName || "unknown";
+    try {
+      if (!caseName) {
+        out.skipped.push({ key, reason: "result has no caseName" });
+        continue;
+      }
+      const runKey = `${docketNumber}|${normalizeName(caseName)}`;
+      if (seen.has(runKey)) {
+        out.skipped.push({ key, reason: "duplicate docket in this result set" });
+        continue;
+      }
+      seen.add(runKey);
+      const parties = Array.isArray(r.party) ? r.party.map(str).filter(Boolean) : [];
+      const court = str(r.court);
+      const courtId = str(r.court_id);
+      const caseType = classifyCaseType(caseName, courtId);
+      const docketPath = str(r.docket_absolute_url);
+      const backlinkUrl = docketPath ? SITE + docketPath : "";
+      const judge = str(r.assignedTo);
+      const cause = str(r.cause);
+      const suitNature = str(r.suitNature);
+      const pacerCaseId = str(r.pacer_case_id);
+      const leadExtra = {
+        ...judge ? { judge } : {},
+        ...cause ? { cause } : {},
+        ...suitNature ? { suitNature } : {},
+        ...str(r.dateFiled) ? { dateFiled: str(r.dateFiled) } : {},
+        ...pacerCaseId ? { pacerCaseId } : {}
+      };
+      const discoveredAt = deps.now().toISOString();
+      const matched = parties.find((p) => partyMatchesOfficial(official.name, p));
+      if (!matched || !distinctive) {
+        out.leads.push({
+          caseName,
+          court,
+          docketNumber,
+          url: backlinkUrl || SITE,
+          caseType,
+          discoveredAt,
+          ...leadExtra,
+          reason: !matched ? parties.length ? "named-in only (not a party name-match)" : "full-text hit, no party list" : "party match on an all-common name \u2014 likely namesake, needs human"
+        });
+        continue;
+      }
+      if (!backlinkUrl) {
+        out.leads.push({
+          caseName,
+          court,
+          docketNumber,
+          url: SITE,
+          caseType,
+          discoveredAt,
+          ...leadExtra,
+          reason: "party match but no docket URL \u2014 backlink required to file"
+        });
+        continue;
+      }
+      try {
+        const dupLive = await client.query(
+          "SELECT 1 FROM official_legal_cases WHERE official_id = $1 AND case_number = $2",
+          [official.id, docketNumber]
+        );
+        if ((dupLive.rows?.length ?? 0) > 0) {
+          out.skipped.push({ key, reason: `case_number already exists: ${docketNumber}` });
+          continue;
+        }
+        const dupPending = await client.query(
+          `SELECT 1 FROM change_proposals
+            WHERE target_table = 'official_legal_cases'
+              AND status IN ('pending','needs_human','approved')
+              AND proposed_value->>'officialId' = $1
+              AND proposed_value->>'caseNumber' = $2`,
+          [official.id, docketNumber]
+        );
+        if ((dupPending.rows?.length ?? 0) > 0) {
+          out.skipped.push({ key, reason: `pending proposal already exists: ${docketNumber}` });
+          continue;
+        }
+      } catch (e) {
+        warnOnce(`dedup unavailable (${e instanceof Error ? e.message : String(e)}) \u2014 filing without dedup`);
+      }
+      let role = null;
+      const docketId = docketIdOf(docketPath);
+      if (docketId && partiesFetches < PARTIES_FETCH_CAP) {
+        partiesFetches++;
+        try {
+          const pbody = await deps.fetchJson(
+            `${SITE}/api/rest/v4/parties/?docket=${docketId}`,
+            headers
+          );
+          out.apiRequests += 1;
+          const prow = (pbody?.results ?? []).find(
+            (p) => typeof p?.name === "string" && partyMatchesOfficial(official.name, p.name)
+          );
+          const ptype = str(prow?.party_types?.[0]?.name).toLowerCase();
+          role = ROLE_MAP[ptype] ?? null;
+        } catch {
+          out.apiRequests += 1;
+        }
+      }
+      if (!role) role = roleFromCaption(caseName, caseType, matched);
+      const payload = {
+        officialId: official.id,
+        title: caseName,
+        caseType,
+        // Conservative: RECAP metadata has NO disposition. A criminal defendant
+        // is at least "charged"; a civil matter is pending ("on_trial"). Never
+        // "convicted". The human reviewer sets the real outcome from the docket.
+        status: caseType === "criminal" ? "charged" : "on_trial",
+        // A docket party listing is an APPEARANCE (plan 58 §3.8) — not adjudicated.
+        recordKind: "appearance"
+      };
+      if (role) payload.role = role;
+      if (court) payload.forum = court;
+      if (docketNumber) payload.caseNumber = docketNumber;
+      const filedDate = str(r.dateFiled);
+      if (filedDate) payload.filedDate = filedDate;
+      const resolvedDate = str(r.dateTerminated);
+      if (resolvedDate) {
+        payload.resolvedDate = resolvedDate;
+        payload.outcome = `Docket terminated ${resolvedDate} \u2014 disposition not in RECAP metadata; verify from the docket.`;
+      }
+      const snippetBits = [caseName, court, judge && `Judge ${judge}`, suitNature, cause].filter(Boolean).join(" \u2014 ");
+      const backlink = {
+        url: backlinkUrl,
+        publisher: "courtlistener.com",
+        snippet: snippetBits,
+        format: "html",
+        locator: docketNumber || void 0,
+        retrievedAt: deps.now().toISOString()
+      };
+      await submitStructuredCreate(client, {
+        domain: "legal_cases",
+        payload,
+        confidence: "medium",
+        needsHuman: true,
+        // always — outcome + relevance need a human to read the docket
+        reasoning: `Sourced from CourtListener/RECAP (Free Law Project); official matched party "${matched}"` + (pacerCaseId ? ` (PACER case id ${pacerCaseId})` : ""),
+        agentRunId: deps.agentRunId,
+        sources: [backlink]
+      });
+      out.filed += 1;
+    } catch (e) {
+      out.skipped.push({ key, reason: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  if (deps.deepLeads) {
+    const cleaned = nameTokens(official.name).join(" ");
+    for (const lead of out.leads.slice(0, 3)) {
+      const id = docketIdOf(lead.url);
+      if (!id) continue;
+      try {
+        const body = await deps.fetchJson(
+          `${SEARCH_URL}?type=rd&q=${encodeURIComponent(`"${cleaned}"`)}&docket_id=${id}`,
+          headers
+        );
+        out.apiRequests += 1;
+        const doc = body?.results?.[0];
+        if (doc) {
+          const desc = str(doc.description);
+          const durl = str(doc.absolute_url);
+          lead.documentHint = `${desc}${durl ? ` (${SITE}${durl})` : ""}`.trim() || void 0;
+        }
+      } catch {
+        out.apiRequests += 1;
+      }
+    }
+  }
+  try {
+    await client.query("BEGIN");
+    try {
+      const prev = await client.query(
+        "SELECT note FROM enrichment_attempts WHERE official_id = $1 AND category = 'legal_case' FOR UPDATE",
+        [official.id]
+      );
+      const prevNote = prev.rows?.[0]?.note;
+      let oldLeads = [];
+      if (prevNote) {
+        try {
+          oldLeads = JSON.parse(prevNote).leads ?? [];
+        } catch {
+        }
+      }
+      const have = new Set(oldLeads.map((l) => `${l.url}|${l.docketNumber}`));
+      const mergedLeads = [
+        ...oldLeads,
+        ...out.leads.filter((l) => !have.has(`${l.url}|${l.docketNumber}`))
+      ].slice(0, NOTE_LEADS_CAP);
+      const note = JSON.stringify({
+        source: "courtlistener",
+        usChecked: true,
+        totalCount: out.totalCount,
+        truncated: out.truncated,
+        filed: out.filed,
+        apiRequests: out.apiRequests,
+        warnings: out.warnings,
+        leads: mergedLeads,
+        leadsThisRun: out.leads.length,
+        leadsStored: mergedLeads.length,
+        at: deps.now().toISOString()
+      });
+      await client.query(
+        `INSERT INTO enrichment_attempts (official_id, category, status, proposal_count, note, last_attempted_at, next_eligible_at, updated_at)
+         VALUES ($1, 'legal_case', $2, $3, $4, now(), now() + interval '${RECHECK_DAYS} days', now())
+         ON CONFLICT (official_id, category) DO UPDATE
+           SET status = EXCLUDED.status, proposal_count = EXCLUDED.proposal_count,
+               note = EXCLUDED.note, last_attempted_at = now(),
+               next_eligible_at = now() + interval '${RECHECK_DAYS} days', updated_at = now()`,
+        [official.id, out.filed > 0 ? "filled" : "nothing_found", out.filed, note]
+      );
+      await client.query("COMMIT");
+      out.attemptRecorded = true;
+    } catch (e) {
+      await client.query("ROLLBACK").catch(() => {
+      });
+      throw e;
+    }
+  } catch {
+    out.attemptRecorded = false;
+  }
+  return out;
+}
+
+// apps/api/src/enrichment/agent/courtlistener-lookup.cli.ts
 async function readStdin() {
   const chunks = [];
   for await (const c of process.stdin) chunks.push(c);
@@ -1305,11 +1847,23 @@ async function main() {
   const url = process.env.ENRICHMENT_AGENT_DATABASE_URL;
   if (!url) throw new Error("ENRICHMENT_AGENT_DATABASE_URL not set");
   const input = JSON.parse(await readStdin());
+  if (!input.officialId || !input.name) throw new Error("stdin must be { officialId, name }");
   const client = new import_pg.Client({ connectionString: url });
   await client.connect();
   try {
-    const { id } = await submitStructuredCreate(client, input);
-    process.stdout.write(JSON.stringify({ id }) + "\n");
+    const result = await lookupCourtRecords(
+      client,
+      { id: input.officialId, name: input.name },
+      {
+        fetchJson: fetchJsonDefault,
+        now: () => /* @__PURE__ */ new Date(),
+        token: process.env.COURTLISTENER_TOKEN,
+        // opt-in: one extra request per lead (first 3) to locate WHERE the name
+        // appears in the docket — for targeted human investigations.
+        deepLeads: process.env.COURTLISTENER_DEEP_LEADS === "1"
+      }
+    );
+    process.stdout.write(JSON.stringify(result) + "\n");
   } finally {
     await client.end();
   }

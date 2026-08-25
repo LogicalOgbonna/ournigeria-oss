@@ -3,6 +3,7 @@ import { Client } from "pg";
 import { findStructuredGaps, type StructuredGap } from "../agent/find-structured-gaps";
 import { CATEGORY_BY_KEY } from "../agent/categories";
 import { lookupCorruptionCases, fetchJsonDefault } from "../agent/corruption-lookup";
+import { lookupCourtRecords, fetchJsonDefault as clFetchJson } from "../agent/courtlistener-lookup";
 import { runHermes } from "./run-hermes";
 import { runSweepLoop, type SweeperConfig, type SweeperDeps, type AttemptOutcome, type HermesRun } from "./sweeper";
 
@@ -21,6 +22,39 @@ const config: SweeperConfig = {
 };
 
 const KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
+
+/**
+ * CourtListener hourly request budget (the search API hard-caps at 50/hour even
+ * authenticated). A lookup spends 1–6 requests (pages + variant + party-roles),
+ * so we reserve headroom and skip the pre-step when the window is spent.
+ * clSpend(0) = "is there budget left?"; clSpend(n) records n spent.
+ */
+// Free-tier CourtListener limits are 5/min, 50/hr, 125/day (free.law/membership)
+// — the DAILY cap is the binding one for a rolling sweep, so both windows are
+// enforced. Defaults leave headroom under each (44 < 50, 110 < 125); a paid
+// membership tier just raises these two env vars.
+const CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
+const CL_DAILY_BUDGET = Number(process.env.SWEEPER_CL_DAILY_BUDGET || 110);
+// Max requests one lookup can plausibly spend: 3 pages + 1 variant fallback +
+// PARTIES_FETCH_CAP(5) authoritative-role fetches.
+const CL_RESERVE = 9;
+// SLIDING windows (CourtListener's limits are rolling, not calendar-aligned): a
+// fixed window would let ~2× the cap through at the boundary. Per-spend timestamps.
+const clSpends: { at: number; n: number }[] = [];
+function clSpend(n: number): boolean {
+  const now = Date.now();
+  const dayCutoff = now - 24 * 60 * 60 * 1000;
+  while (clSpends.length && clSpends[0].at < dayCutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: now, n });
+  const hourCutoff = now - 60 * 60 * 1000;
+  let usedHour = 0;
+  let usedDay = 0;
+  for (const e of clSpends) {
+    usedDay += e.n;
+    if (e.at >= hourCutoff) usedHour += e.n;
+  }
+  return usedHour + CL_RESERVE <= CL_HOURLY_BUDGET && usedDay + CL_RESERVE <= CL_DAILY_BUDGET;
+}
 
 function tableFor(gap: StructuredGap): string {
   return CATEGORY_BY_KEY[gap.category]?.table ?? gap.category;
@@ -44,6 +78,45 @@ async function main() {
         { fetchJson: fetchJsonDefault, now: () => new Date() },
       );
       return { ok: true, costUsd: 0 };
+    }
+    if (gap.category === "legal_case" && process.env.COURTLISTENER_TOKEN) {
+      // Plan 59: free deterministic US-courts pre-step (CourtListener/RECAP)
+      // BEFORE the Hermes browse — the browse still covers Nigerian sources.
+      // Best-effort: the CL search API is hard-capped at 50 req/hour, so a 429
+      // must not sink the whole gap. Note: recordOutcome runs after this and
+      // overwrites the lookup's own attempt row with sweeper cadence policy;
+      // the lookup's note (usChecked/leads) survives (recordOutcome doesn't
+      // touch note) — note.usChecked is the "US side actually checked" signal.
+      const log = (msg: string, meta?: Record<string, unknown>) =>
+        process.stdout.write(JSON.stringify({ t: new Date().toISOString(), sweeper: msg, official: gap.officialId, ...meta }) + "\n");
+      if (!clSpend(0)) {
+        // Budget exhausted this hour: skip WITHOUT pretending the US side was
+        // checked (no courtlistener note is written → usChecked stays absent).
+        log("courtlistener pre-step skipped (hourly budget exhausted)", { budgetLeft: 0 });
+        return runHermes(gap);
+      }
+      try {
+        const res = await lookupCourtRecords(
+          client,
+          { id: gap.officialId, name: gap.name },
+          { fetchJson: clFetchJson, now: () => new Date(), token: process.env.COURTLISTENER_TOKEN },
+        );
+        clSpend(res.apiRequests);
+        // Surface the result — a silent no-op (e.g. dedup grant missing) must
+        // be visible in the sweep logs, not discarded.
+        log("courtlistener pre-step done", {
+          filed: res.filed, skipped: res.skipped.length, leads: res.leads.length,
+          totalCount: res.totalCount, truncated: res.truncated,
+          apiRequests: res.apiRequests, attemptRecorded: res.attemptRecorded,
+          warnings: res.warnings,
+        });
+      } catch (e) {
+        clSpend(2); // assume the failed run burned a couple of requests
+        log("courtlistener pre-step failed (continuing to browse)", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+      return runHermes(gap);
     }
     return runHermes(gap);
   };
