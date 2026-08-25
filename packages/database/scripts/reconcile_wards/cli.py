@@ -189,6 +189,36 @@ def reconcile_state(workbook: str) -> tuple:
 
     # senatorial -> LGA additions from SD composition
     sen_consts = [(c, n) for c, n, t in all_consts if t == "senatorial"]
+    # ---- intra-run collision resolution -------------------------------------
+    # Two constituencies can claim the same ward: an in-LGA exact match on one
+    # side and a cross-LGA fall-through (sibling pool or tier-3 state-wide
+    # exact) on the other. Homonym ward names — Tudun Wada, Hausari, Ndiagu —
+    # make the fall-through look decisive when it is not. Per-constituency
+    # matching cannot see the collision, so it is resolved here: the claim
+    # whose resolved primary LGA is the ward's own LGA wins; every other claim
+    # becomes an abstention (needs_review), never a competing mapping. If no
+    # claimant — or more than one — is in-LGA, all abstain.
+    ward_lga = {wc: lc for lc, lst in wards_index.items() for wc, _ in lst}
+    claims: dict[str, list] = {}
+    for cr in results:
+        for w in cr.wards:
+            if w.ward_code is not None:
+                claims.setdefault(w.ward_code, []).append((cr, w))
+    for wc, claimants in claims.items():
+        if len(claimants) < 2:
+            continue
+        in_lga = [c for c in claimants if c[0].lga_code == ward_lga.get(wc)]
+        keep = in_lga[0][1] if len(in_lga) == 1 else None
+        for cr, w in claimants:
+            if w is not keep:
+                w.ward_code = None
+                w.needs_review = True
+    additions = [
+        (c, wc, cf) for c, wc, cf in additions
+        if any(w.ward_code == wc for cr in results for w in cr.wards
+               if cr.constituency_code == c)
+    ]
+
     senatorial_additions: list[tuple[str, str, str]] = []
     for d in districts:
         sm = match_one(d.name, sen_consts)

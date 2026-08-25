@@ -7,7 +7,8 @@
     "build": "pnpm --filter @ournigeria/official-records run build && next build",
     "start": "next start",
     "lint": "eslint",
-    "lighthouse": "lhci autorun"
+    "lighthouse": "lhci autorun",
+    "gen:og-map": "node scripts/gen-og-map.mjs"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "0.13.5",

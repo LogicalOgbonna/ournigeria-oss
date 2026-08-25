@@ -39,16 +39,40 @@ export async function loginViaOTP(page: Page, phoneNumber: string) {
 
 /**
  * Inject a session cookie for automated/CI tests (no OTP needed).
- * Requires TEST_SESSION_COOKIE env var with a valid nb_uid value.
+ *
+ * Prefers minting a fresh opaque session token (nbs_…) via the dev-only
+ * /auth/dev-login endpoint — raw-UUID TEST_SESSION_COOKIE values stop
+ * authenticating once LEGACY_UID_SESSIONS=false closes the migration window.
+ * Falls back to TEST_SESSION_COOKIE when dev-login is unreachable (e.g. a
+ * production-mode API where the endpoint isn't registered).
  */
 export async function loginViaCookie(
   context: BrowserContext,
   webUrl: string,
 ) {
-  const cookie = process.env.TEST_SESSION_COOKIE;
-  if (!cookie) {
-    throw new Error('TEST_SESSION_COOKIE env var is required for automated auth');
+  let cookie: string | undefined;
+
+  try {
+    const res = await fetch(`${API_URL}/api/auth/dev-login`, { method: 'POST' });
+    if (res.ok) {
+      const setCookie = res.headers.get('set-cookie') || '';
+      const match = setCookie.match(/nb_uid=([^;]+)/);
+      if (match) cookie = decodeURIComponent(match[1]);
+    }
+  } catch {
+    // dev-login unavailable — fall through to the env var
   }
+
+  if (!cookie) cookie = process.env.TEST_SESSION_COOKIE;
+  if (!cookie) {
+    throw new Error(
+      'Could not obtain a session: dev-login failed and TEST_SESSION_COOKIE is unset',
+    );
+  }
+
+  // Expose the minted token to helpers/api.ts (same process) so API-direct
+  // requests use the same session.
+  process.env.TEST_SESSION_COOKIE = cookie;
 
   const url = new URL(webUrl);
   await context.addCookies([

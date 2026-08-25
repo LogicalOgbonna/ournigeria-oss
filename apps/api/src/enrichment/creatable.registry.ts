@@ -470,6 +470,10 @@ function electionEntity(): CreatableEntity {
         officialName: hasName
           ? coerce({ key: "officialName", column: "name", type: "string", required: true }, p.officialName)
           : null,
+        // Optional deterministic slug for the CREATE path (plan 60 F1): bare-name
+        // find-or-create collapses same-name different-seat people; a caller-supplied
+        // slug keys the person on the unique slug column instead. Ignored with officialId.
+        officialSlugHint: coerce({ key: "officialSlugHint", column: "slug", type: "string" }, p.officialSlugHint),
         imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
         bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio),
       };
@@ -500,7 +504,11 @@ function electionEntity(): CreatableEntity {
           dateOfBirth: null,
           twitterHandle: null,
           facebookUrl: null,
-          officialType: "elected",
+          // A primary CANDIDATE is not an office-holder (plan 60 §4.3): created
+          // untyped (null, the party-officer precedent) so office-holder read
+          // filters exclude them. Non-primary paths keep the legacy 'elected'.
+          officialType: payload.isPrimary === true ? null : "elected",
+          slug: (payload.officialSlugHint as string | null) ?? undefined,
         }));
 
       const cols = ["official_id"];
@@ -652,9 +660,17 @@ function hashStr(s: string): number {
 }
 
 /**
- * Find (by case-insensitive exact name) or create a nigerian_officials row.
- * On create, generates a unique slug (slugifyName + hash fallback/disambiguation)
- * and stamps official_type + optional bio/image/gender/dob/social fields.
+ * Find or create a nigerian_officials row.
+ *
+ * Two keying modes:
+ * - `slug` provided (plan 60): key on the UNIQUE slug column — deterministic and
+ *   safe for same-name different-person candidates ("Mohammed Abubakar" the
+ *   Bauchi gubernatorial candidate vs the Niger house_of_reps candidate get
+ *   distinct slugs from their seat context). The caller has already decided
+ *   create-vs-link, so no name matching happens in this mode.
+ * - no `slug` (legacy): case-insensitive exact-name match, then create with a
+ *   generated slug (slugifyName + hash disambiguation).
+ *
  * Returns the official's id. Runs inside the apply tx (enrichment_apply has
  * SELECT + INSERT on nigerian_officials).
  */
@@ -669,18 +685,29 @@ async function findOrCreateOfficial(
     twitterHandle?: string | null;
     facebookUrl?: string | null;
     officialType: string | null;
+    slug?: string;
   },
 ): Promise<string> {
-  const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
-    `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
-    o.name,
-  );
-  if (existing.length > 0) return existing[0].id;
+  let slug: string;
+  if (o.slug) {
+    const bySlug = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM nigerian_officials WHERE slug = $1 LIMIT 1`,
+      o.slug,
+    );
+    if (bySlug.length > 0) return bySlug[0].id;
+    slug = o.slug;
+  } else {
+    const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
+      o.name,
+    );
+    if (existing.length > 0) return existing[0].id;
 
-  let slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
-  const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
-  if (clash.length > 0) {
-    slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+    slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
+    const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
+    if (clash.length > 0) {
+      slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+    }
   }
 
   const rows = await tx.$queryRawUnsafe<{ id: string }[]>(

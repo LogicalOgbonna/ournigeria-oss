@@ -6,30 +6,38 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { PrismaService } from "@ournigeria/database";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { Request } from "express";
 import type { SocialsEnvConfig } from "../../../config/env.validation.js";
 
 const ADMIN_COOKIE = "on_admin_session";
+// New opaque admin session token prefix — see apps/api admin-auth.service.ts.
+const ADMIN_SESSION_PREFIX = "ons_";
 
 export type AuthedRequest = Request & { adminId: string };
 
 /**
- * Verifies the same HMAC-cookie scheme used by apps/dashboard. Token format is
- * `adminId:nonce:sig` where sig = HMAC-SHA256(`${adminId}:${nonce}`, ADMIN_SESSION_SECRET).
- * On success, attaches `request.adminId` so controllers can audit the actor
- * without trusting client-supplied bodies.
+ * Authorises admin requests using the shared `on_admin_session` cookie.
+ * Primary scheme is an opaque, server-stored session token (prefix `ons_`)
+ * looked up in `admin_sessions` with expiry + revocation. The legacy stateless
+ * HMAC scheme (`adminId:nonce:sig`) is accepted only during the migration
+ * window (LEGACY_ADMIN_SESSIONS !== "false"). On success, attaches
+ * `request.adminId` so controllers can audit the actor.
  */
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
   private readonly logger = new Logger(AdminAuthGuard.name);
   private readonly secret: string;
 
-  constructor(config: ConfigService<SocialsEnvConfig>) {
+  constructor(
+    config: ConfigService<SocialsEnvConfig>,
+    private readonly prisma: PrismaService,
+  ) {
     this.secret = config.get("ADMIN_SESSION_SECRET")!;
   }
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
     const token =
       this.tokenFromCookies(req) ??
@@ -37,11 +45,36 @@ export class AdminAuthGuard implements CanActivate {
       null;
     if (!token) throw new UnauthorizedException("admin session required");
 
-    const verified = this.verify(token);
-    if (!verified) throw new UnauthorizedException("invalid admin session");
+    let adminId: string | null = null;
 
-    (req as AuthedRequest).adminId = verified.adminId;
+    if (token.startsWith(ADMIN_SESSION_PREFIX)) {
+      const tokenHash = createHash("sha256").update(token).digest("hex");
+      const session = await this.prisma.adminSession.findUnique({
+        where: { tokenHash },
+        select: { id: true, adminId: true, expiresAt: true, revokedAt: true },
+      });
+      if (
+        session &&
+        !session.revokedAt &&
+        session.expiresAt.getTime() > Date.now()
+      ) {
+        adminId = session.adminId;
+        this.prisma.adminSession
+          .update({ where: { id: session.id }, data: { lastUsedAt: new Date() } })
+          .catch(() => {});
+      }
+    } else if (this.legacyEnabled()) {
+      adminId = this.verify(token)?.adminId ?? null;
+    }
+
+    if (!adminId) throw new UnauthorizedException("invalid admin session");
+
+    (req as AuthedRequest).adminId = adminId;
     return true;
+  }
+
+  private legacyEnabled(): boolean {
+    return process.env.LEGACY_ADMIN_SESSIONS !== "false";
   }
 
   private tokenFromCookies(req: Request): string | null {

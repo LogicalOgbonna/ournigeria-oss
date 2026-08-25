@@ -1,0 +1,67 @@
+# API unit/integration tests (vitest) against a throwaway pgvector database.
+#
+# Scoped to the completeness suite for now: these tests guard the public
+# leaderboard (/api/completeness) and the parity between the TypeScript and SQL
+# implementations of the official-completeness definition. They previously ran
+# only on dev machines with a live local DB — which is exactly how the
+# "20 of 37 states report 0" bug shipped unnoticed.
+#
+# The database is schema-only (`prisma db push` on a fresh container, no
+# migration history, no Mastra chunk tables) — sufficient because the suite
+# seeds every row it reads, including the geopolitical_zones FK target.
+name: api-tests
+
+on:
+  pull_request:
+    branches: [main, prod]
+    paths:
+      - "apps/api/**"
+      - "packages/database/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/api-tests.yml"
+
+jobs:
+  completeness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: spending
+          POSTGRES_USER: spending
+          POSTGRES_PASSWORD: spending
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spending -d spending"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://spending:spending@localhost:5432/spending
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093  # v6
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Push schema into the throwaway database
+        working-directory: packages/database
+        run: npx prisma db push --accept-data-loss
+
+      - name: Generate Prisma client
+        working-directory: packages/database
+        run: npx prisma generate
+
+      - name: Run completeness suite
+        working-directory: apps/api
+        run: npx vitest run src/completeness/ src/proposals/__tests__/succession-recompute.test.ts

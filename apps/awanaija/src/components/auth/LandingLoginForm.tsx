@@ -28,12 +28,37 @@ function getSafeRedirectTarget(value: string | null): string {
   return APP_URL;
 }
 
-function buildAppRedirectUrl(target: string, authToken?: string): string {
-  if (!authToken) return target;
+/**
+ * Hand the one-time login code to the web app via an auto-submitting POST form.
+ * The code travels in the request body — never a URL query param, browser
+ * history, or Referer header. Falls back to a plain redirect if no code exists.
+ */
+function submitHandoff(target: string, authToken?: string) {
+  if (!authToken) {
+    globalThis.location.replace(target);
+    return;
+  }
 
-  const url = new URL(target);
-  url.searchParams.set("nb_auth", authToken);
-  return url.toString();
+  const action = `${new URL(APP_URL).origin}/auth/handoff`;
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = action;
+  form.style.display = "none";
+
+  const codeField = document.createElement("input");
+  codeField.type = "hidden";
+  codeField.name = "code";
+  codeField.value = authToken;
+  form.appendChild(codeField);
+
+  const returnField = document.createElement("input");
+  returnField.type = "hidden";
+  returnField.name = "returnTo";
+  returnField.value = target;
+  form.appendChild(returnField);
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 function normalizePhoneNumber(raw: string) {
@@ -78,7 +103,7 @@ export function LandingLoginForm() {
           });
           if (!cancelled && tokenRes.ok) {
             const { authToken } = await tokenRes.json();
-            globalThis.location.replace(buildAppRedirectUrl(redirectTarget, authToken));
+            submitHandoff(redirectTarget, authToken);
             return;
           }
           globalThis.location.replace(redirectTarget);
@@ -174,7 +199,7 @@ export function LandingLoginForm() {
       const userId = data.user?.id ?? data.userId;
       if (userId) posthog.identify(String(userId));
       posthog.capture("login_completed", { method: "whatsapp" });
-      globalThis.location.replace(buildAppRedirectUrl(redirectTarget, data.authToken));
+      submitHandoff(redirectTarget, data.authToken);
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -249,9 +274,7 @@ export function LandingLoginForm() {
                           credentials: "include",
                         });
                         const { authToken } = await tokenRes.json();
-                        globalThis.location.replace(
-                          buildAppRedirectUrl(redirectTarget, authToken),
-                        );
+                        submitHandoff(redirectTarget, authToken);
                       } catch {
                         globalThis.location.replace(redirectTarget);
                       }

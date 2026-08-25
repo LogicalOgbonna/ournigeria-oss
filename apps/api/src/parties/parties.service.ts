@@ -446,6 +446,11 @@ export class PartiesService {
       LEFT JOIN nigerian_constituencies con ON con.code = e.constituency_code
       WHERE e.is_primary = true AND lower(e.result) = 'won'
         AND e.party_acronym = ${acronym}
+        -- Dark-import guard (plan 60 F2): future-cycle candidates stay off the
+        -- public party pages until their election year (ballots are separately
+        -- gated by the PostHog election-gate); low-confidence rows never show.
+        AND e.confidence <> 'low'
+        AND e.year <= extract(year FROM now())
       ORDER BY e.year DESC, e.election_type
     `;
     return rows.map((r) => ({

@@ -31,6 +31,11 @@ export interface ImportDiff {
   unchangedCount: number;
   /** First ~20 changes, for the preview UI. */
   sample: { kind: "create" | "update"; label: string; detail: string }[];
+  /**
+   * Human-review notices the preview must surface (skipped parties, data
+   * conflicts, incumbent matches…). Optional — older importers don't set it.
+   */
+  warnings?: string[];
 }
 
 export interface DatasetImporter {
