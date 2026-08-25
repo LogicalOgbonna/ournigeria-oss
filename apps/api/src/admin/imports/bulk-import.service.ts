@@ -54,6 +54,22 @@ export class BulkImportService {
   async apply(name: string, json: unknown, adminId: string): Promise<ImportResult> {
     const importer = this.resolve(name);
     this.runValidate(importer, json);
+
+    // Concurrency guard (plan 60 F7): a proxy timeout + admin retry must not
+    // start a second overlapping apply whose diff was computed against
+    // pre-first-run state (duplicate rows, split-brain creates). Runs older
+    // than 30 minutes are treated as crashed and don't block.
+    const staleCutoff = new Date(Date.now() - 30 * 60 * 1000);
+    const inFlight = await this.prisma.importRun.findFirst({
+      where: { dataset: name, status: "running", startedAt: { gte: staleCutoff } },
+      select: { id: true, startedAt: true },
+    });
+    if (inFlight) {
+      throw new BadRequestException(
+        `an apply for "${name}" is already running (started ${inFlight.startedAt.toISOString()}) — wait for it to finish, then re-preview before applying again`,
+      );
+    }
+
     const diff = await importer.diff(json, this.prisma);
 
     const run = await this.prisma.importRun.create({
