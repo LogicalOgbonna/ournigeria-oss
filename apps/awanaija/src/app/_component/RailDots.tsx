@@ -30,10 +30,8 @@ export function RailDots({
           aria-label={`Candidate ${i + 1} of ${count}`}
           onClick={() => onSelect(i)}
           className={cn(
-            // The active dot stretches into a pill. CSS, not GSAP, so the
-            // global prefers-reduced-motion rule still switches it off.
-            "h-[10px] rounded-full transition-all duration-300 ease-out",
-            i === active ? "w-[26px] bg-emerald-500" : "w-[10px] bg-emerald-500/25 hover:bg-emerald-500/50",
+            "size-[10px] rounded-full transition-colors",
+            i === active ? "bg-emerald-500" : "bg-emerald-500/25 hover:bg-emerald-500/50",
           )}
         />
       ))}

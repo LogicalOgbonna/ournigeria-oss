@@ -8,6 +8,7 @@ import { HeroHeading } from "./HeroHeading";
 import { LocationChip } from "./LocationChip";
 import { OfficeSelect } from "./OfficeSelect";
 import { RailDots } from "./RailDots";
+import { useRailAutoplay } from "./useRailAutoplay";
 import { YearSelect } from "./YearSelect";
 
 /**
@@ -34,8 +35,19 @@ export function CandidatesHero({
 
   const race = races.find((r) => r.office === office) ?? races[0];
 
+  // Advances the rail on its own. Pauses on hover/focus anywhere in the hero;
+  // any deliberate interaction below stops it for good.
+  const autoplay = useRailAutoplay({
+    count: race?.candidates.length ?? 0,
+    page,
+    onAdvance: setPage,
+  });
+
   return (
-    <section className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-40">
+    <section
+      {...autoplay.handlers}
+      className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-40"
+    >
       <LocationChip label={location} onChange={onLocationChange} />
 
       <HeroHeading
@@ -61,7 +73,10 @@ export function CandidatesHero({
         <RailDots
           count={race?.candidates.length ?? 0}
           active={page}
-          onSelect={setPage}
+          onSelect={(i) => {
+            autoplay.stop();
+            setPage(i);
+          }}
         />
       </div>
 
@@ -70,7 +85,10 @@ export function CandidatesHero({
           className="mt-6 lg:mt-8"
           items={race?.candidates ?? []}
           page={page}
-          onPageChange={setPage}
+          onPageChange={(next) => {
+            autoplay.stop();
+            setPage(next);
+          }}
           partyHref={(acronym) => `/?parties=true&party=${acronym}`}
         />
       </Show>
