@@ -49,6 +49,14 @@ async function queryCategory(client, cat, limit) {
       ON ea.official_id = o.id AND ea.category = $1
     WHERE TRUE
       ${electedClause}
+      -- Office-holder guard (plan 60 \xA75.3): election candidates (type NULL, at
+      -- most 'contesting' positions) are NOT swept \u2014 autonomous enrichment of
+      -- ~1.8k unknowns would burn the LLM budget on people who may never hold
+      -- office. They re-enter naturally when a position flips to 'active'.
+      AND (o.official_type IS NOT NULL OR EXISTS (
+        SELECT 1 FROM official_positions op
+        WHERE op.official_id = o.id AND op.status <> 'contesting'
+      ))
       AND (ea.id IS NULL OR (ea.status <> 'pending' AND ea.next_eligible_at <= now()))
       AND NOT EXISTS (
         SELECT 1 FROM change_proposals cp
@@ -71,8 +79,10 @@ async function queryCategory(client, cat, limit) {
   }));
 }
 
-// apps/api/src/enrichment/agent/corruption-lookup.ts
-var import_database2 = require("@ournigeria/database");
+// packages/database/src/slug.ts
+function slugifyName(input) {
+  return input.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/&/g, " and ").toLowerCase().replace(/['’.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120).replace(/-+$/g, "");
+}
 
 // apps/api/src/enrichment/agent/profiles.ts
 var OFFICIALS = {
@@ -342,9 +352,19 @@ function validateCorroboration(input, profile) {
   };
 }
 
-// apps/api/src/enrichment/creatable.registry.ts
-var import_common = require("@nestjs/common");
-var import_database = require("@ournigeria/database");
+// deploy/enrichment/tools/shims/nestjs-common.ts
+var BadRequestException = class extends Error {
+  constructor(message) {
+    super(typeof message === "string" ? message : JSON.stringify(message));
+    this.name = "BadRequestException";
+  }
+  getStatus() {
+    return 400;
+  }
+  getResponse() {
+    return { statusCode: 400, message: this.message, error: "Bad Request" };
+  }
+};
 
 // apps/api/src/enrichment/state-codes.ts
 var STATE_SLUGS = [
@@ -554,34 +574,34 @@ var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function coerce(spec, value) {
   if (value === void 0 || value === null) {
-    if (spec.required) throw new import_common.BadRequestException(`missing required field: ${spec.key}`);
+    if (spec.required) throw new BadRequestException(`missing required field: ${spec.key}`);
     return null;
   }
   switch (spec.type) {
     case "string":
       if (typeof value !== "string" || value.length === 0) {
-        throw new import_common.BadRequestException(`field ${spec.key} must be a non-empty string`);
+        throw new BadRequestException(`field ${spec.key} must be a non-empty string`);
       }
       return value;
     case "int":
-      if (!Number.isInteger(value)) throw new import_common.BadRequestException(`field ${spec.key} must be an integer`);
+      if (!Number.isInteger(value)) throw new BadRequestException(`field ${spec.key} must be an integer`);
       return value;
     case "number":
       if (typeof value !== "number" || !Number.isFinite(value)) {
-        throw new import_common.BadRequestException(`field ${spec.key} must be a number`);
+        throw new BadRequestException(`field ${spec.key} must be a number`);
       }
       return value;
     case "boolean":
-      if (typeof value !== "boolean") throw new import_common.BadRequestException(`field ${spec.key} must be a boolean`);
+      if (typeof value !== "boolean") throw new BadRequestException(`field ${spec.key} must be a boolean`);
       return value;
     case "date":
       if (typeof value !== "string" || !DATE_RE.test(value)) {
-        throw new import_common.BadRequestException(`field ${spec.key} must be yyyy-mm-dd`);
+        throw new BadRequestException(`field ${spec.key} must be yyyy-mm-dd`);
       }
       return value;
     case "uuid":
       if (typeof value !== "string" || !UUID_RE.test(value)) {
-        throw new import_common.BadRequestException(`field ${spec.key} must be a uuid`);
+        throw new BadRequestException(`field ${spec.key} must be a uuid`);
       }
       return value;
   }
@@ -592,7 +612,7 @@ function officialFactEntity(targetTable, evidenceEntryType, columns, preflight) 
     evidenceEntryType,
     validate(raw) {
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new import_common.BadRequestException("malformed create payload");
+        throw new BadRequestException("malformed create payload");
       }
       const payload = raw;
       const out = {
@@ -607,7 +627,7 @@ function officialFactEntity(targetTable, evidenceEntryType, columns, preflight) 
         payload.officialId
       );
       if (exists.length === 0) {
-        throw new import_common.BadRequestException(`official ${payload.officialId} does not exist`);
+        throw new BadRequestException(`official ${payload.officialId} does not exist`);
       }
       if (preflight) await preflight(tx, payload);
     },
@@ -686,7 +706,7 @@ function corruptionInvolvementEntity() {
     evidenceEntryType: "corruption_case",
     validate(raw) {
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new import_common.BadRequestException("malformed create payload");
+        throw new BadRequestException("malformed create payload");
       }
       const p = raw;
       const out = {
@@ -710,11 +730,11 @@ function corruptionInvolvementEntity() {
         payload.officialId
       );
       if (exists.length === 0) {
-        throw new import_common.BadRequestException(`official ${payload.officialId} does not exist`);
+        throw new BadRequestException(`official ${payload.officialId} does not exist`);
       }
     },
     async insert(tx, payload, ctx) {
-      const base = (0, import_database.slugifyName)(`${payload.subjectName} ${payload.title}`).slice(0, 140) || "corruption-case";
+      const base = slugifyName(`${payload.subjectName} ${payload.title}`).slice(0, 140) || "corruption-case";
       const clash = await tx.$queryRawUnsafe(`SELECT 1 FROM corruption_cases WHERE slug = $1`, base);
       const slug = clash.length > 0 ? `${base}-${Math.abs(hashStr(String(payload.title) + String(payload.officialId))).toString(36).slice(0, 6)}` : base;
       const caseCols = ["slug", "title", "case_type", "status"];
@@ -768,12 +788,12 @@ function partyOfficerEntity() {
     evidenceEntryType: "party_officer",
     validate(raw) {
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new import_common.BadRequestException("malformed create payload");
+        throw new BadRequestException("malformed create payload");
       }
       const p = raw;
       const role = coerce({ key: "role", column: "role", type: "string", required: true }, p.role);
       if (!PARTY_OFFICER_ROLES.has(role)) {
-        throw new import_common.BadRequestException(`unknown party officer role: ${role}`);
+        throw new BadRequestException(`unknown party officer role: ${role}`);
       }
       return {
         partyAcronym: coerce({ key: "partyAcronym", column: "party_acronym", type: "string", required: true }, p.partyAcronym),
@@ -794,7 +814,7 @@ function partyOfficerEntity() {
         payload.partyAcronym
       );
       if (party.length === 0) {
-        throw new import_common.BadRequestException(`party ${payload.partyAcronym} does not exist`);
+        throw new BadRequestException(`party ${payload.partyAcronym} does not exist`);
       }
       const dup = await tx.$queryRawUnsafe(
         `SELECT 1 FROM party_officers WHERE party_acronym = $1 AND role = $2`,
@@ -802,7 +822,7 @@ function partyOfficerEntity() {
         payload.role
       );
       if (dup.length > 0) {
-        throw new import_common.BadRequestException(`${payload.partyAcronym} already has a ${payload.role}`);
+        throw new BadRequestException(`${payload.partyAcronym} already has a ${payload.role}`);
       }
     },
     async insert(tx, payload, ctx) {
@@ -859,17 +879,21 @@ function electionEntity() {
     evidenceEntryType: "election",
     validate(raw) {
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new import_common.BadRequestException("malformed create payload");
+        throw new BadRequestException("malformed create payload");
       }
       const p = raw;
       const hasId = p.officialId !== void 0 && p.officialId !== null;
       const hasName = p.officialName !== void 0 && p.officialName !== null;
       if (hasId === hasName) {
-        throw new import_common.BadRequestException("exactly one of officialId or officialName is required");
+        throw new BadRequestException("exactly one of officialId or officialName is required");
       }
       const out = {
         officialId: hasId ? coerce({ key: "officialId", column: "official_id", type: "uuid", required: true }, p.officialId) : null,
         officialName: hasName ? coerce({ key: "officialName", column: "name", type: "string", required: true }, p.officialName) : null,
+        // Optional deterministic slug for the CREATE path (plan 60 F1): bare-name
+        // find-or-create collapses same-name different-seat people; a caller-supplied
+        // slug keys the person on the unique slug column instead. Ignored with officialId.
+        officialSlugHint: coerce({ key: "officialSlugHint", column: "slug", type: "string" }, p.officialSlugHint),
         imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
         bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio)
       };
@@ -885,7 +909,7 @@ function electionEntity() {
           payload.officialId
         );
         if (exists.length === 0) {
-          throw new import_common.BadRequestException(`official ${payload.officialId} does not exist`);
+          throw new BadRequestException(`official ${payload.officialId} does not exist`);
         }
       }
     },
@@ -898,7 +922,11 @@ function electionEntity() {
         dateOfBirth: null,
         twitterHandle: null,
         facebookUrl: null,
-        officialType: "elected"
+        // A primary CANDIDATE is not an office-holder (plan 60 §4.3): created
+        // untyped (null, the party-officer precedent) so office-holder read
+        // filters exclude them. Non-primary paths keep the legacy 'elected'.
+        officialType: payload.isPrimary === true ? null : "elected",
+        slug: payload.officialSlugHint ?? void 0
       });
       const cols = ["official_id"];
       const values = [officialId];
@@ -973,7 +1001,7 @@ function politicalPartyEntity() {
     // non-uuid PK → no evidence copy (see apply service guard)
     validate(raw) {
       if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-        throw new import_common.BadRequestException("malformed create payload");
+        throw new BadRequestException("malformed create payload");
       }
       const p = raw;
       const out = {
@@ -989,7 +1017,7 @@ function politicalPartyEntity() {
         payload.acronym
       );
       if (dup.length > 0) {
-        throw new import_common.BadRequestException(`party ${payload.acronym} already exists`);
+        throw new BadRequestException(`party ${payload.acronym} already exists`);
       }
     },
     async insert(tx, payload) {
@@ -1023,15 +1051,25 @@ function hashStr(s) {
   return h;
 }
 async function findOrCreateOfficial(tx, o) {
-  const existing = await tx.$queryRawUnsafe(
-    `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
-    o.name
-  );
-  if (existing.length > 0) return existing[0].id;
-  let slug = (0, import_database.slugifyName)(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
-  const clash = await tx.$queryRawUnsafe(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
-  if (clash.length > 0) {
-    slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+  let slug;
+  if (o.slug) {
+    const bySlug = await tx.$queryRawUnsafe(
+      `SELECT id FROM nigerian_officials WHERE slug = $1 LIMIT 1`,
+      o.slug
+    );
+    if (bySlug.length > 0) return bySlug[0].id;
+    slug = o.slug;
+  } else {
+    const existing = await tx.$queryRawUnsafe(
+      `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
+      o.name
+    );
+    if (existing.length > 0) return existing[0].id;
+    slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
+    const clash = await tx.$queryRawUnsafe(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
+    if (clash.length > 0) {
+      slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+    }
   }
   const rows = await tx.$queryRawUnsafe(
     `INSERT INTO nigerian_officials
@@ -1069,11 +1107,11 @@ var assemblyMemberEntity = {
   targetTable: "assembly_member",
   evidenceEntryType: "position",
   validate(raw) {
-    if (!raw || typeof raw !== "object") throw new import_common.BadRequestException("malformed assembly_member payload");
+    if (!raw || typeof raw !== "object") throw new BadRequestException("malformed assembly_member payload");
     const p = raw;
-    if (typeof p.name !== "string" || !p.name) throw new import_common.BadRequestException("name required");
+    if (typeof p.name !== "string" || !p.name) throw new BadRequestException("name required");
     if (typeof p.constituencyCode !== "string" || !p.constituencyCode) {
-      throw new import_common.BadRequestException("constituencyCode required");
+      throw new BadRequestException("constituencyCode required");
     }
     return p;
   },
@@ -1082,7 +1120,7 @@ var assemblyMemberEntity = {
       `SELECT 1 FROM nigerian_constituencies WHERE code = $1`,
       p.constituencyCode
     );
-    if (c.length === 0) throw new import_common.BadRequestException(`constituency ${p.constituencyCode} does not exist`);
+    if (c.length === 0) throw new BadRequestException(`constituency ${p.constituencyCode} does not exist`);
   },
   async insert(tx, p, ctx) {
     const cc = await tx.$queryRawUnsafe(
@@ -1090,7 +1128,7 @@ var assemblyMemberEntity = {
       p.constituencyCode
     );
     if (!cc.length || !cc[0].state_code) {
-      throw new import_common.BadRequestException(`constituency ${p.constituencyCode} has no state_code`);
+      throw new BadRequestException(`constituency ${p.constituencyCode} has no state_code`);
     }
     const officialId = await findOrCreateOfficial(tx, {
       name: p.name,
@@ -1212,7 +1250,7 @@ var CREATABLE_ENTITIES = {
         payload.partyAcronym
       );
       if (p.length === 0) {
-        throw new import_common.BadRequestException(`party ${payload.partyAcronym} does not exist`);
+        throw new BadRequestException(`party ${payload.partyAcronym} does not exist`);
       }
     }
   ),
@@ -1479,7 +1517,7 @@ async function lookupCorruptionCases(client, official, deps) {
         result.skipped.push({ key, reason: "case has no title" });
         continue;
       }
-      const dedupSlug = (0, import_database2.slugifyName)(`${subjectName} ${title}`).slice(0, 140) || "corruption-case";
+      const dedupSlug = slugifyName(`${subjectName} ${title}`).slice(0, 140) || "corruption-case";
       const dup = await client.query("SELECT 1 FROM corruption_cases WHERE slug = $1", [dedupSlug]);
       if ((dup.rows?.length ?? 0) > 0) {
         result.skipped.push({ key, reason: `slug already exists: ${dedupSlug}` });
