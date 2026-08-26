@@ -618,13 +618,50 @@ export function ProfileV10({
     : official.officialType
       ? (TYPE_LABELS[official.officialType] ?? "Public Official")
       : "Official";
-  const stateLabel = current?.state ? `${current.state} State`.toUpperCase().replace(/ STATE STATE$/, " STATE") : null;
-  const stateHref = current?.stateCode
-    ? `/states/${current.stateCode}`
-    : current?.state
-      ? `/states/${current.state.toLowerCase().replace(/\s+/g, "-")}`
-      : null;
-  const jurisdiction = current ? positionScope(current) : null;
+  // Pin line: the office's own jurisdiction at the right granularity, linked to
+  // its page — senators/reps/MHAs → /constituencies/<code>, councilors → their
+  // ward page, LGA chairmen → their LGA page, governors → their state page.
+  // Slug conventions mirror OfficialProfile's serveLinks (V9).
+  const slugify = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+  const pin = (() => {
+    if (!current) return null;
+    // Slash-named jurisdictions ("Birnin Magaji/Kiyaw") resolve by their first
+    // segment — same convention the ward links already use.
+    const lgaSlug = current.lga ? current.lga.toLowerCase().split("/")[0].replace(/\s+/g, "-") : null;
+    let stateSlug = current.stateCode ?? (current.state ? slugify(current.state) : null);
+    // LGA-scoped positions (chairmen) sometimes carry no state fields, but the
+    // lgaCode is "<state>_<lga>" — recover the state slug from it.
+    if (!stateSlug && current.lgaCode && lgaSlug) {
+      const suffix = `_${lgaSlug.replace(/-/g, "_")}`;
+      if (current.lgaCode.endsWith(suffix)) stateSlug = current.lgaCode.slice(0, -suffix.length);
+    }
+    if (current.constituency) {
+      return {
+        label: `${current.constituency} Constituency`.replace(/\s+constituency\s+constituency$/i, " Constituency"),
+        href: current.constituencyCode ? `/constituencies/${current.constituencyCode}` : null,
+      };
+    }
+    if (current.ward) {
+      const wardSlug = current.ward.toLowerCase().split("/")[0].replace(/\s+/g, "-");
+      return {
+        label: `${current.ward} Ward`.replace(/\s+ward\s+ward$/i, " Ward"),
+        href: stateSlug && lgaSlug ? `/states/${stateSlug}/${lgaSlug}/${wardSlug}` : null,
+      };
+    }
+    if (current.lga) {
+      return {
+        label: `${current.lga} LGA`.replace(/\s+lga\s+lga$/i, " LGA"),
+        href: stateSlug && lgaSlug ? `/states/${stateSlug}/${lgaSlug}` : null,
+      };
+    }
+    if (current.state) {
+      return {
+        label: `${current.state} State`.replace(/\s+state\s+state$/i, " State"),
+        href: stateSlug ? `/states/${stateSlug}` : null,
+      };
+    }
+    return null;
+  })();
   const completeness = Math.round((official.completenessScore ?? 0) * 100);
   const bio = official.biography;
   const latestAsset = assets.map((a) => a.amount).find((a) => a != null) ?? null;
@@ -673,21 +710,19 @@ export function ProfileV10({
                   </>
                 ) : null}
               </div>
-              <Show when={!!(stateLabel || jurisdiction)}>
-                {stateHref && stateLabel ? (
+              <Show when={!!pin}>
+                {pin?.href ? (
                   <Link
-                    href={stateHref}
+                    href={pin.href}
                     className="flex items-center gap-1.5 justify-center md:justify-start mt-1.5 text-[#bbcbbc] transition-colors hover:text-[#43ee94]"
                   >
                     {PIN_ICON}
-                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">{stateLabel}</span>
+                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">{pin.label}</span>
                   </Link>
                 ) : (
                   <div className="flex items-center gap-1.5 justify-center md:justify-start mt-1.5 text-[#bbcbbc]">
                     {PIN_ICON}
-                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">
-                      {stateLabel ?? jurisdiction}
-                    </span>
+                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">{pin?.label}</span>
                   </div>
                 )}
               </Show>
