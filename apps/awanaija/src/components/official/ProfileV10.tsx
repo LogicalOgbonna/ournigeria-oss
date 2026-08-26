@@ -29,6 +29,10 @@ import type {
 
 /* ---------- palette (Figma tokens) ---------- */
 
+// The branded CV PDF (cv-pdf.tsx) works end-to-end but its design is not yet
+// concluded — flip to true to bring the Download CV button back.
+const SHOW_DOWNLOAD_CV = false;
+
 const CARD = "bg-[#060a08] border border-[#3c4a3f] rounded-lg";
 const DIVIDER = "border-b border-[rgba(60,74,63,0.3)] last:border-0";
 const ACCENT = "#43ee94";
@@ -633,10 +637,13 @@ export function ProfileV10({
         {/* bordered profile container (border on desktop only, per Figma) */}
         <div className="md:border md:border-[rgba(224,224,224,0.21)] md:rounded-[25px] md:p-8 lg:p-10">
           {/* Download CV — desktop, top-right per Figma. Generates the branded
-              OurNigeria PDF (cv-pdf.tsx), lazy-loading react-pdf on click. */}
-          <div className="hidden md:flex justify-end mb-2">
-            <DownloadCvButton official={official} />
-          </div>
+              OurNigeria PDF (cv-pdf.tsx), lazy-loading react-pdf on click.
+              Hidden behind the flag until the CV design is concluded. */}
+          <Show when={SHOW_DOWNLOAD_CV}>
+            <div className="hidden md:flex justify-end mb-2">
+              <DownloadCvButton official={official} />
+            </div>
+          </Show>
           {/* hero */}
           <div className="flex flex-col items-center text-center md:flex-row md:items-start md:text-left gap-6 md:gap-10">
             <div className="shrink-0">
