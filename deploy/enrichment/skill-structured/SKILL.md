@@ -44,7 +44,12 @@ Prefer the source tiers for that category:
 - committee / bill → nass.gov.ng, placng.org
 - asset → ccb.gov.ng
 - award / publication → official sources, major press
-- legal_case → court records, efcc.gov.ng, icpc.gov.ng
+- legal_case → court records, efcc.gov.ng, icpc.gov.ng. **FIRST run the deterministic US-courts
+  lookup** (no browsing needed for the US side):
+  `echo '{"officialId":"<uuid>","name":"<full name>"}' | node /opt/enrichment-tools/courtlistener-lookup.cjs`
+  It files US federal docket matches itself (human-reviewed) and prints `leads` — named-in/namesake
+  hits you may investigate in the browser. Then continue browsing NIGERIAN sources as usual.
+  (Rate-limited 50/hour — if it errors with 429, skip it and just browse.)
 - corruption → efcc.gov.ng, icpc.gov.ng, court records
 
 Find pages via a search engine in the browser (`https://duckduckgo.com/?q=...`) and open
@@ -86,7 +91,7 @@ Input shape:
 - **awards**: title*, awardedBy, year, category, description
 - **publications**: title*, type (book|article|paper|column), publisher, year
 - **family**: relationship* (father|mother|spouse|child|sibling|...), name, isPublicFigure, notes
-- **legal_cases**: title*, caseType* (criminal|civil|electoral|tribunal|investigation), status* (alleged|under_investigation|charged|on_trial|convicted|acquitted|dismissed|settled), forum, caseNumber, filedDate, resolvedDate, outcome
+- **legal_cases**: title*, caseType* (criminal|civil|electoral|tribunal|investigation), status* (alleged|under_investigation|charged|on_trial|convicted|acquitted|dismissed|settled), forum, caseNumber, filedDate, resolvedDate, outcome, role (defendant|plaintiff|claimant|respondent|named_in — only when the record proves it), recordKind (adjudicated|allegation|listing|appearance)
 - **corruption** (domain `corruption`): officialId*, subjectName*, title*, caseType* (fraud|embezzlement|bribery|money_laundering|abuse_of_office|procurement_fraud|diversion|other), status* (alleged|under_investigation|charged|on_trial|convicted|acquitted|dismissed|settled|appeal), role* (accused|defendant|co_defendant|convicted|witness|whistleblower|prosecutor|complainant), summary, forum, amountInvolved, currency, openedDate, chargeDate, verdictDate, outcome, sentence
 
 (`*` = required. `officialId` is always required.)

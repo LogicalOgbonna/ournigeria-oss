@@ -127,9 +127,12 @@ const FAMILY: EnrichmentProfile = {
 const LEGAL_CASES: EnrichmentProfile = {
   domain: "legal_cases",
   targetTable: "official_legal_cases",
-  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
-  sensitiveFields: ["status", "outcome", "case_type"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org"],
+  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome", "role", "record_kind"],
+  sensitiveFields: ["status", "outcome", "case_type", "role"],
+  // courtlistener.com (Free Law Project / RECAP) = US federal court dockets, tiered
+  // `official` (RECAP is crowd-sourced from PACER, so not a canonical single-doc);
+  // a docket backlink satisfies the create bar and every proposal stays human-reviewed.
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com"],
   sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }],
 };
 

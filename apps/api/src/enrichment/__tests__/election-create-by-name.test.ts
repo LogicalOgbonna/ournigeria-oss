@@ -81,4 +81,47 @@ describe("official_elections create by officialName", () => {
     expect(row.result).toBe("won");
     expect(row.name).toBe("Zzz Importtest Flagbearer");
   });
+
+  it("plan 60: officialSlugHint keys the person on the slug — same name, two seats, two officials; primaries create untyped candidates", async () => {
+    const entity = getCreatableEntity("official_elections")!;
+    const tx = {
+      $queryRawUnsafe: async (sql: string, ...p: unknown[]) => (await owner.query(sql, p)).rows,
+      $executeRawUnsafe: async (sql: string, ...p: unknown[]) => (await owner.query(sql, p)).rowCount ?? 0,
+    };
+    const mk = (slugHint: string, stateCode: string) =>
+      entity.validate({
+        officialName: "Zzz Samename Candidate",
+        officialSlugHint: slugHint,
+        electionType: "gubernatorial",
+        isPrimary: true,
+        year: 2098,
+        result: "won",
+        partyAcronym: "AAC",
+        stateCode,
+      });
+
+    await owner.query("BEGIN");
+    await owner.query("SET LOCAL ROLE enrichment_apply");
+    const p1 = mk("zzz-samename-candidate-aaa111", "lagos");
+    await entity.preflight?.(tx as any, p1);
+    const r1 = await entity.insert(tx as any, p1, { adminId: null as any, confidence: "medium" });
+    const p2 = mk("zzz-samename-candidate-bbb222", "kano");
+    await entity.preflight?.(tx as any, p2);
+    const r2 = await entity.insert(tx as any, p2, { adminId: null as any, confidence: "medium" });
+    // Re-import of seat 1 must reuse the same official (idempotent on the slug).
+    const p3 = mk("zzz-samename-candidate-aaa111", "lagos");
+    await entity.preflight?.(tx as any, p3);
+    const r3 = await entity.insert(tx as any, p3, { adminId: null as any, confidence: "medium" });
+    await owner.query("COMMIT");
+    elIds.push(r1.id, r2.id, r3.id);
+    for (const id of [r1.officialId, r2.officialId]) if (id) offIds.push(id);
+
+    expect(r1.officialId).not.toBe(r2.officialId); // same name, different seats → distinct people
+    expect(r3.officialId).toBe(r1.officialId); // deterministic slug → idempotent
+
+    const typed = (
+      await owner.query(`SELECT official_type FROM nigerian_officials WHERE id = $1`, [r1.officialId])
+    ).rows[0];
+    expect(typed.official_type).toBeNull(); // a primary CANDIDATE is not an office-holder
+  });
 });

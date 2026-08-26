@@ -195,9 +195,12 @@ var FAMILY = {
 var LEGAL_CASES = {
   domain: "legal_cases",
   targetTable: "official_legal_cases",
-  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
-  sensitiveFields: ["status", "outcome", "case_type"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org"],
+  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome", "role", "record_kind"],
+  sensitiveFields: ["status", "outcome", "case_type", "role"],
+  // courtlistener.com (Free Law Project / RECAP) = US federal court dockets, tiered
+  // `official` (RECAP is crowd-sourced from PACER, so not a canonical single-doc);
+  // a docket backlink satisfies the create bar and every proposal stays human-reviewed.
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com"],
   sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }]
 };
 var CORRUPTION_CASES = {
@@ -342,6 +345,211 @@ function validateCorroboration(input, profile) {
 // apps/api/src/enrichment/creatable.registry.ts
 var import_common = require("@nestjs/common");
 var import_database = require("@ournigeria/database");
+
+// apps/api/src/enrichment/state-codes.ts
+var STATE_SLUGS = [
+  "abia",
+  "adamawa",
+  "akwa_ibom",
+  "anambra",
+  "bauchi",
+  "bayelsa",
+  "benue",
+  "borno",
+  "cross_river",
+  "delta",
+  "ebonyi",
+  "edo",
+  "ekiti",
+  "enugu",
+  "fct",
+  "gombe",
+  "imo",
+  "jigawa",
+  "kaduna",
+  "kano",
+  "katsina",
+  "kebbi",
+  "kogi",
+  "kwara",
+  "lagos",
+  "nasarawa",
+  "niger",
+  "ogun",
+  "ondo",
+  "osun",
+  "oyo",
+  "plateau",
+  "rivers",
+  "sokoto",
+  "taraba",
+  "yobe",
+  "zamfara"
+];
+var STATE_SLUG_SET = new Set(STATE_SLUGS);
+var STATE_ISO2 = {
+  AB: "abia",
+  AD: "adamawa",
+  AK: "akwa_ibom",
+  AN: "anambra",
+  BA: "bauchi",
+  BY: "bayelsa",
+  BE: "benue",
+  BO: "borno",
+  CR: "cross_river",
+  DE: "delta",
+  EB: "ebonyi",
+  ED: "edo",
+  EK: "ekiti",
+  EN: "enugu",
+  FC: "fct",
+  GO: "gombe",
+  IM: "imo",
+  JI: "jigawa",
+  KD: "kaduna",
+  KN: "kano",
+  KT: "katsina",
+  KE: "kebbi",
+  KO: "kogi",
+  KW: "kwara",
+  LA: "lagos",
+  NA: "nasarawa",
+  NI: "niger",
+  OG: "ogun",
+  ON: "ondo",
+  OS: "osun",
+  OY: "oyo",
+  PL: "plateau",
+  RI: "rivers",
+  SO: "sokoto",
+  TA: "taraba",
+  YO: "yobe",
+  ZA: "zamfara"
+};
+function resolveStateSlug(raw) {
+  if (raw === null || raw === void 0) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (STATE_SLUG_SET.has(lower)) return lower;
+  const iso = STATE_ISO2[s.toUpperCase()];
+  if (iso) return iso;
+  const named = lower.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (STATE_SLUG_SET.has(named)) return named;
+  return null;
+}
+
+// apps/api/src/enrichment/enum-coerce.ts
+function normalize(raw) {
+  return String(raw ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+function coerceEnum(raw, spec) {
+  const n = normalize(raw);
+  if (spec.allowed.includes(n)) return n;
+  return spec.synonyms[n] ?? spec.fallback;
+}
+var CORRUPTION_CASE_TYPE = {
+  field: "case_type",
+  allowed: [
+    "fraud",
+    "embezzlement",
+    "bribery",
+    "money_laundering",
+    "abuse_of_office",
+    "procurement_fraud",
+    "diversion",
+    "other"
+  ],
+  synonyms: {
+    lawsuit: "other",
+    suit: "other",
+    litigation: "other",
+    civil: "other",
+    criminal: "other",
+    corruption: "other",
+    financial_crime: "fraud",
+    misappropriation: "embezzlement",
+    misappropriation_of_funds: "embezzlement",
+    graft: "bribery",
+    kickback: "bribery",
+    kickbacks: "bribery"
+  },
+  fallback: "other"
+};
+var CORRUPTION_STATUS = {
+  field: "status",
+  allowed: [
+    "alleged",
+    "under_investigation",
+    "charged",
+    "on_trial",
+    "convicted",
+    "acquitted",
+    "dismissed",
+    "settled",
+    "appeal"
+  ],
+  synonyms: {
+    pending: "alleged",
+    filed: "alleged",
+    investigation: "under_investigation",
+    trial: "on_trial",
+    conviction: "convicted",
+    discharged: "acquitted",
+    struck_out: "dismissed",
+    on_appeal: "appeal",
+    appealed: "appeal"
+  },
+  fallback: "alleged"
+};
+var LEGAL_CASE_TYPE = {
+  field: "case_type",
+  allowed: ["criminal", "civil", "electoral", "tribunal", "investigation"],
+  synonyms: {
+    lawsuit: "civil",
+    suit: "civil",
+    litigation: "civil",
+    civil_suit: "civil",
+    civil_case: "civil",
+    criminal_case: "criminal",
+    prosecution: "criminal",
+    election_petition: "electoral",
+    petition: "electoral",
+    probe: "investigation",
+    inquiry: "investigation",
+    tribunal_case: "tribunal"
+  },
+  fallback: "civil"
+};
+var LEGAL_STATUS = {
+  field: "status",
+  // chk_legal_status has NO 'appeal' (unlike corruption); an appeal is still active → on_trial.
+  allowed: [
+    "alleged",
+    "under_investigation",
+    "charged",
+    "on_trial",
+    "convicted",
+    "acquitted",
+    "dismissed",
+    "settled"
+  ],
+  synonyms: {
+    pending: "on_trial",
+    filed: "on_trial",
+    investigation: "under_investigation",
+    trial: "on_trial",
+    conviction: "convicted",
+    discharged: "acquitted",
+    struck_out: "dismissed",
+    on_appeal: "on_trial",
+    appeal: "on_trial",
+    appealed: "on_trial"
+  },
+  fallback: "alleged"
+};
+
+// apps/api/src/enrichment/creatable.registry.ts
 var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function coerce(spec, value) {
@@ -430,11 +638,33 @@ function officialFactEntity(targetTable, evidenceEntryType, columns, preflight) 
 }
 async function softenUnknownParty(tx, payload) {
   if (!payload.partyAcronym) return;
-  const p = await tx.$queryRawUnsafe(
-    `SELECT 1 FROM political_parties WHERE acronym = $1`,
-    payload.partyAcronym
+  const raw = String(payload.partyAcronym).trim();
+  const rows = await tx.$queryRawUnsafe(
+    `SELECT acronym FROM political_parties
+     WHERE acronym = $1 OR upper(acronym) = upper($1) OR lower(name) = lower($1)
+     ORDER BY (acronym = $1) DESC, (upper(acronym) = upper($1)) DESC
+     LIMIT 1`,
+    raw
   );
-  if (p.length === 0) payload.partyAcronym = null;
+  payload.partyAcronym = rows[0]?.acronym ?? null;
+}
+async function normalizeGeoRefs(tx, payload) {
+  if ("stateCode" in payload) {
+    payload.stateCode = resolveStateSlug(payload.stateCode);
+  }
+  const refs = [
+    ["lgaCode", "nigerian_lgas"],
+    ["wardCode", "nigerian_wards"],
+    ["constituencyCode", "nigerian_constituencies"]
+  ];
+  for (const [key, table] of refs) {
+    if (!payload[key]) continue;
+    const rows = await tx.$queryRawUnsafe(
+      `SELECT 1 FROM ${table} WHERE code = $1`,
+      payload[key]
+    );
+    if (rows.length === 0) payload[key] = null;
+  }
 }
 function corruptionInvolvementEntity() {
   const CASE_OPTIONAL = [
@@ -472,6 +702,9 @@ function corruptionInvolvementEntity() {
       return out;
     },
     async preflight(tx, payload) {
+      await normalizeGeoRefs(tx, payload);
+      payload.caseType = coerceEnum(payload.caseType, CORRUPTION_CASE_TYPE);
+      payload.status = coerceEnum(payload.status, CORRUPTION_STATUS);
       const exists = await tx.$queryRawUnsafe(
         `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
         payload.officialId
@@ -602,6 +835,7 @@ function partyOfficerEntity() {
     }
   };
 }
+var legalCaseNewColsPresent = null;
 var ELECTION_COLUMNS = [
   { key: "electionType", column: "election_type", type: "string", required: true },
   { key: "isPrimary", column: "is_primary", type: "boolean" },
@@ -644,6 +878,7 @@ function electionEntity() {
     },
     async preflight(tx, payload) {
       await softenUnknownParty(tx, payload);
+      await normalizeGeoRefs(tx, payload);
       if (payload.officialId) {
         const exists = await tx.$queryRawUnsafe(
           `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
@@ -695,14 +930,16 @@ function electionEntity() {
           stateCode
         );
         if (alreadyExists.length === 0) {
+          const electionYear = Number(payload.year) || (/* @__PURE__ */ new Date()).getFullYear();
           await tx.$queryRawUnsafe(
             `INSERT INTO official_positions
-               (official_id, role, state_code, status, appointment_type,
+               (official_id, role, state_code, status, appointment_type, start_date,
                 confidence, source_type, review_status, reviewed_by, last_verified_at)
-             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
-                     $3, 'manual', 'reviewed', $4, now())`,
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected', make_date($3::int, 5, 29),
+                     $4, 'manual', 'reviewed', $5, now())`,
             officialId,
             stateCode,
+            electionYear,
             ctx.confidence,
             ctx.adminId
           );
@@ -1038,8 +1275,32 @@ var CREATABLE_ENTITIES = {
     { key: "filedDate", column: "filed_date", type: "date" },
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
+    { key: "role", column: "role", type: "string" },
+    { key: "recordKind", column: "record_kind", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" }
-  ]),
+  ], async (tx, payload) => {
+    payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
+    payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+    const ROLES = ["defendant", "plaintiff", "claimant", "respondent", "named_in"];
+    const KINDS = ["adjudicated", "allegation", "listing", "appearance"];
+    const norm = (v) => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    payload.role = ROLES.includes(norm(payload.role)) ? norm(payload.role) : null;
+    payload.recordKind = KINDS.includes(norm(payload.recordKind)) ? norm(payload.recordKind) : null;
+    if (legalCaseNewColsPresent !== true) {
+      const cols = await tx.$queryRawUnsafe(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`
+      );
+      legalCaseNewColsPresent = cols.length === 2;
+    }
+    if (!legalCaseNewColsPresent) {
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) \u2014 softening both to null"
+      );
+      payload.role = null;
+      payload.recordKind = null;
+    }
+  }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.
@@ -1266,6 +1527,548 @@ async function lookupCorruptionCases(client, official, deps) {
   return result;
 }
 
+// apps/api/src/enrichment/agent/courtlistener-lookup.ts
+var SEARCH_URL2 = "https://www.courtlistener.com/api/rest/v4/search/";
+var SITE = "https://www.courtlistener.com";
+var MAX_PAGES = 3;
+var NOTE_LEADS_CAP = 20;
+var PARTIES_FETCH_CAP = 5;
+var RECHECK_DAYS = 90;
+var CAPTION_STOP = /* @__PURE__ */ new Set(["united", "states", "america", "usa", "us", "of", "the", "v", "vs", "et", "al"]);
+var HONORIFICS = /* @__PURE__ */ new Set([
+  "chief",
+  "alhaji",
+  "alhaja",
+  "hon",
+  "honourable",
+  "honorable",
+  "sen",
+  "senator",
+  "dr",
+  "barr",
+  "barrister",
+  "engr",
+  "engineer",
+  "prof",
+  "professor",
+  "arc",
+  "mr",
+  "mrs",
+  "ms",
+  "miss",
+  "sir",
+  "dame",
+  "otunba",
+  "oba",
+  "hrh",
+  "hrm",
+  "gen",
+  "general",
+  "col",
+  "colonel",
+  "capt",
+  "captain",
+  "major",
+  "air",
+  "cdre",
+  "comrade",
+  "pastor",
+  "rev",
+  "reverend",
+  "elder",
+  "deacon",
+  "evang",
+  "evangelist",
+  "prince",
+  "princess",
+  "amb",
+  "ambassador",
+  "chf",
+  "rtd",
+  "jp",
+  "mni",
+  "san",
+  "phd"
+]);
+var COMMON_TOKENS = /* @__PURE__ */ new Set([
+  // ubiquitous Muslim/Northern given names + variants
+  "mohammed",
+  "muhammed",
+  "muhammad",
+  "mohammad",
+  "ahmed",
+  "ahmad",
+  "ali",
+  "ibrahim",
+  "musa",
+  "sani",
+  "umar",
+  "usman",
+  "abubakar",
+  "hassan",
+  "hussain",
+  "hussein",
+  "khalid",
+  "bello",
+  "abdullahi",
+  "abdullah",
+  "abdulla",
+  "adamu",
+  "bala",
+  "garba",
+  "yakubu",
+  "suleiman",
+  "sulaiman",
+  "yusuf",
+  "aliyu",
+  "abdul",
+  "lateef",
+  "ismail",
+  "isah",
+  "isa",
+  "idris",
+  "shehu",
+  "salisu",
+  "kabiru",
+  "kabir",
+  "tanko",
+  "danjuma",
+  "aminu",
+  "nasir",
+  "mustapha",
+  "yahaya",
+  "lawal",
+  "baba",
+  "abba",
+  // ubiquitous Christian/Southern + Western given names
+  "emmanuel",
+  "john",
+  "joseph",
+  "james",
+  "peter",
+  "paul",
+  "samuel",
+  "david",
+  "daniel",
+  "michael",
+  "anthony",
+  "sunday",
+  "monday",
+  "victor",
+  "victoria",
+  "mary",
+  "grace",
+  "blessing",
+  "donald",
+  "philip",
+  "phillip",
+  "francis",
+  "patrick",
+  "christopher",
+  "stephen",
+  "steven",
+  "george",
+  "charles",
+  "richard",
+  "robert",
+  "william",
+  "thomas",
+  "solomon",
+  "felix",
+  "ifeanyi",
+  "adekunle",
+  "adebayo",
+  "olanrewaju",
+  "adeleke",
+  // very common surnames (US-collision-prone)
+  "smith",
+  "brown",
+  "johnson",
+  "williams",
+  "jones",
+  "duke",
+  "obi",
+  "eze",
+  "okafor",
+  "okeke",
+  "okoro",
+  "edet",
+  "effiong",
+  "okon",
+  "bassey",
+  "etim",
+  "asuquo",
+  "mahmud"
+]);
+function normalizeName2(s) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+function nameTokens(s) {
+  const toks = normalizeName2(s).split(" ").filter((t) => t && !CAPTION_STOP.has(t));
+  let start = 0;
+  while (start < toks.length && HONORIFICS.has(toks[start]) && toks.length - start - 1 >= 2) start++;
+  return toks.slice(start);
+}
+function partyMatchesOfficial(officialName, partyName) {
+  const off = nameTokens(officialName);
+  if (off.length === 0) return false;
+  const party = new Set(nameTokens(partyName));
+  return off.every((t) => party.has(t));
+}
+function isDistinctiveName(name) {
+  const toks = nameTokens(name);
+  return toks.length >= 2 && toks.some((t) => !COMMON_TOKENS.has(t));
+}
+var PROPERTY = /(real property|\bm\/?y\b|\$|\bfunds\b|\bassets\b|located|vehicle|premises|parcel|proceeds|vessel|aircraft|one\s+\d|approximately)/i;
+var CRIMINAL_PREFIXES = ["united states v", "united states of america v", "usa v", "u s a v", "u s v"];
+function classifyCaseType(caseName, courtId) {
+  if (/^[a-z]{2,4}b$/.test(String(courtId || ""))) return "civil";
+  const cn = normalizeName2(caseName);
+  if (CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
+    return PROPERTY.test(caseName) ? "civil" : "criminal";
+  }
+  return "civil";
+}
+function roleFromCaption(caseName, caseType, matchedParty) {
+  const cn = normalizeName2(caseName);
+  if (caseType === "criminal" && CRIMINAL_PREFIXES.some((p) => cn.startsWith(p))) {
+    return "defendant";
+  }
+  const sides = cn.split(/\bv\b/);
+  if (sides.length === 2) {
+    const party = nameTokens(matchedParty);
+    if (party.length) {
+      const pset = new Set(party);
+      const inSide = (side) => {
+        const st = nameTokens(side);
+        if (!st.length) return false;
+        const sset = new Set(st);
+        return st.every((t) => pset.has(t)) || party.every((t) => sset.has(t));
+      };
+      if (inSide(sides[0]) && !inSide(sides[1])) return "plaintiff";
+      if (inSide(sides[1]) && !inSide(sides[0])) return "defendant";
+    }
+  }
+  return null;
+}
+var ROLE_MAP = {
+  defendant: "defendant",
+  plaintiff: "plaintiff",
+  claimant: "claimant",
+  respondent: "respondent",
+  petitioner: "plaintiff",
+  "counter-claimant": "claimant"
+};
+async function fetchJsonDefault2(url, headers) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { ...headers ? { headers } : {}, signal: AbortSignal.timeout(45e3) });
+    if (res.ok) return res.json();
+    if ((res.status === 429 || res.status === 503) && attempt < 2) {
+      const after = Number.parseInt(res.headers.get("retry-after") ?? "", 10);
+      if (Number.isFinite(after) && after > 0 && after <= 20) {
+        await new Promise((r) => setTimeout(r, after * 1e3));
+        continue;
+      }
+      throw new Error(`courtlistener throttled (429), retry-after ${after || "unknown"}s`);
+    }
+    throw new Error(`courtlistener responded ${res.status}`);
+  }
+}
+function str(v) {
+  return typeof v === "string" ? v : "";
+}
+function countOf(body) {
+  const c = body?.count;
+  if (typeof c === "number") return c;
+  if (c && typeof c === "object" && typeof c.value === "number") {
+    return c.value;
+  }
+  return 0;
+}
+function phraseUrl(name) {
+  const cleaned = nameTokens(name).join(" ") || normalizeName2(name);
+  return `${SEARCH_URL2}?type=r&q=${encodeURIComponent(`"${cleaned}"`)}`;
+}
+function docketIdOf(docketPath) {
+  const m = /\/docket\/(\d+)\//.exec(docketPath);
+  return m ? m[1] : "";
+}
+async function fetchPages(url, deps, headers) {
+  const results = [];
+  let total = 0;
+  let requests = 0;
+  let next = url;
+  for (let page = 0; next && page < MAX_PAGES; page++) {
+    const body = await deps.fetchJson(next, headers);
+    requests++;
+    const rows = Array.isArray(body?.results) ? body.results : [];
+    results.push(...rows);
+    total = Math.max(total, countOf(body));
+    const n = typeof body?.next === "string" ? body.next : "";
+    next = n.startsWith(`${SITE}/`) ? n : null;
+  }
+  return { results, total, truncated: Boolean(next), requests };
+}
+async function lookupCourtRecords(client, official, deps) {
+  const headers = deps.token ? { Authorization: `Token ${deps.token}` } : void 0;
+  const primary = await fetchPages(phraseUrl(official.name), deps, headers);
+  let { results, total, truncated } = primary;
+  let apiRequests = primary.requests;
+  const toks = nameTokens(official.name);
+  if (results.length === 0 && toks.length >= 3) {
+    const variant = `${toks[0]} ${toks[toks.length - 1]}`;
+    try {
+      const v = await fetchPages(phraseUrl(variant), deps, headers);
+      apiRequests += v.requests;
+      results = v.results;
+      total = Math.max(total, v.total);
+      truncated = truncated || v.truncated;
+    } catch {
+      apiRequests += 1;
+    }
+  }
+  const out = {
+    filed: 0,
+    skipped: [],
+    leads: [],
+    totalCount: total,
+    truncated,
+    attemptRecorded: false,
+    apiRequests,
+    warnings: []
+  };
+  const warnOnce = (w) => {
+    if (!out.warnings.includes(w)) out.warnings.push(w);
+  };
+  const distinctive = isDistinctiveName(official.name);
+  const seen = /* @__PURE__ */ new Set();
+  let partiesFetches = 0;
+  for (const r of results) {
+    const caseName = str(r.caseName);
+    const docketNumber = str(r.docketNumber);
+    const key = docketNumber || caseName || "unknown";
+    try {
+      if (!caseName) {
+        out.skipped.push({ key, reason: "result has no caseName" });
+        continue;
+      }
+      const runKey = `${docketNumber}|${normalizeName2(caseName)}`;
+      if (seen.has(runKey)) {
+        out.skipped.push({ key, reason: "duplicate docket in this result set" });
+        continue;
+      }
+      seen.add(runKey);
+      const parties = Array.isArray(r.party) ? r.party.map(str).filter(Boolean) : [];
+      const court = str(r.court);
+      const courtId = str(r.court_id);
+      const caseType = classifyCaseType(caseName, courtId);
+      const docketPath = str(r.docket_absolute_url);
+      const backlinkUrl = docketPath ? SITE + docketPath : "";
+      const judge = str(r.assignedTo);
+      const cause = str(r.cause);
+      const suitNature = str(r.suitNature);
+      const pacerCaseId = str(r.pacer_case_id);
+      const leadExtra = {
+        ...judge ? { judge } : {},
+        ...cause ? { cause } : {},
+        ...suitNature ? { suitNature } : {},
+        ...str(r.dateFiled) ? { dateFiled: str(r.dateFiled) } : {},
+        ...pacerCaseId ? { pacerCaseId } : {}
+      };
+      const discoveredAt = deps.now().toISOString();
+      const matched = parties.find((p) => partyMatchesOfficial(official.name, p));
+      if (!matched || !distinctive) {
+        out.leads.push({
+          caseName,
+          court,
+          docketNumber,
+          url: backlinkUrl || SITE,
+          caseType,
+          discoveredAt,
+          ...leadExtra,
+          reason: !matched ? parties.length ? "named-in only (not a party name-match)" : "full-text hit, no party list" : "party match on an all-common name \u2014 likely namesake, needs human"
+        });
+        continue;
+      }
+      if (!backlinkUrl) {
+        out.leads.push({
+          caseName,
+          court,
+          docketNumber,
+          url: SITE,
+          caseType,
+          discoveredAt,
+          ...leadExtra,
+          reason: "party match but no docket URL \u2014 backlink required to file"
+        });
+        continue;
+      }
+      try {
+        const dupLive = await client.query(
+          "SELECT 1 FROM official_legal_cases WHERE official_id = $1 AND case_number = $2",
+          [official.id, docketNumber]
+        );
+        if ((dupLive.rows?.length ?? 0) > 0) {
+          out.skipped.push({ key, reason: `case_number already exists: ${docketNumber}` });
+          continue;
+        }
+        const dupPending = await client.query(
+          `SELECT 1 FROM change_proposals
+            WHERE target_table = 'official_legal_cases'
+              AND status IN ('pending','needs_human','approved')
+              AND proposed_value->>'officialId' = $1
+              AND proposed_value->>'caseNumber' = $2`,
+          [official.id, docketNumber]
+        );
+        if ((dupPending.rows?.length ?? 0) > 0) {
+          out.skipped.push({ key, reason: `pending proposal already exists: ${docketNumber}` });
+          continue;
+        }
+      } catch (e) {
+        warnOnce(`dedup unavailable (${e instanceof Error ? e.message : String(e)}) \u2014 filing without dedup`);
+      }
+      let role = null;
+      const docketId = docketIdOf(docketPath);
+      if (docketId && partiesFetches < PARTIES_FETCH_CAP) {
+        partiesFetches++;
+        try {
+          const pbody = await deps.fetchJson(
+            `${SITE}/api/rest/v4/parties/?docket=${docketId}`,
+            headers
+          );
+          out.apiRequests += 1;
+          const prow = (pbody?.results ?? []).find(
+            (p) => typeof p?.name === "string" && partyMatchesOfficial(official.name, p.name)
+          );
+          const ptype = str(prow?.party_types?.[0]?.name).toLowerCase();
+          role = ROLE_MAP[ptype] ?? null;
+        } catch {
+          out.apiRequests += 1;
+        }
+      }
+      if (!role) role = roleFromCaption(caseName, caseType, matched);
+      const payload = {
+        officialId: official.id,
+        title: caseName,
+        caseType,
+        // Conservative: RECAP metadata has NO disposition. A criminal defendant
+        // is at least "charged"; a civil matter is pending ("on_trial"). Never
+        // "convicted". The human reviewer sets the real outcome from the docket.
+        status: caseType === "criminal" ? "charged" : "on_trial",
+        // A docket party listing is an APPEARANCE (plan 58 §3.8) — not adjudicated.
+        recordKind: "appearance"
+      };
+      if (role) payload.role = role;
+      if (court) payload.forum = court;
+      if (docketNumber) payload.caseNumber = docketNumber;
+      const filedDate = str(r.dateFiled);
+      if (filedDate) payload.filedDate = filedDate;
+      const resolvedDate = str(r.dateTerminated);
+      if (resolvedDate) {
+        payload.resolvedDate = resolvedDate;
+        payload.outcome = `Docket terminated ${resolvedDate} \u2014 disposition not in RECAP metadata; verify from the docket.`;
+      }
+      const snippetBits = [caseName, court, judge && `Judge ${judge}`, suitNature, cause].filter(Boolean).join(" \u2014 ");
+      const backlink = {
+        url: backlinkUrl,
+        publisher: "courtlistener.com",
+        snippet: snippetBits,
+        format: "html",
+        locator: docketNumber || void 0,
+        retrievedAt: deps.now().toISOString()
+      };
+      await submitStructuredCreate(client, {
+        domain: "legal_cases",
+        payload,
+        confidence: "medium",
+        needsHuman: true,
+        // always — outcome + relevance need a human to read the docket
+        reasoning: `Sourced from CourtListener/RECAP (Free Law Project); official matched party "${matched}"` + (pacerCaseId ? ` (PACER case id ${pacerCaseId})` : ""),
+        agentRunId: deps.agentRunId,
+        sources: [backlink]
+      });
+      out.filed += 1;
+    } catch (e) {
+      out.skipped.push({ key, reason: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  if (deps.deepLeads) {
+    const cleaned = nameTokens(official.name).join(" ");
+    for (const lead of out.leads.slice(0, 3)) {
+      const id = docketIdOf(lead.url);
+      if (!id) continue;
+      try {
+        const body = await deps.fetchJson(
+          `${SEARCH_URL2}?type=rd&q=${encodeURIComponent(`"${cleaned}"`)}&docket_id=${id}`,
+          headers
+        );
+        out.apiRequests += 1;
+        const doc = body?.results?.[0];
+        if (doc) {
+          const desc = str(doc.description);
+          const durl = str(doc.absolute_url);
+          lead.documentHint = `${desc}${durl ? ` (${SITE}${durl})` : ""}`.trim() || void 0;
+        }
+      } catch {
+        out.apiRequests += 1;
+      }
+    }
+  }
+  try {
+    await client.query("BEGIN");
+    try {
+      const prev = await client.query(
+        "SELECT note FROM enrichment_attempts WHERE official_id = $1 AND category = 'legal_case' FOR UPDATE",
+        [official.id]
+      );
+      const prevNote = prev.rows?.[0]?.note;
+      let oldLeads = [];
+      if (prevNote) {
+        try {
+          oldLeads = JSON.parse(prevNote).leads ?? [];
+        } catch {
+        }
+      }
+      const have = new Set(oldLeads.map((l) => `${l.url}|${l.docketNumber}`));
+      const mergedLeads = [
+        ...oldLeads,
+        ...out.leads.filter((l) => !have.has(`${l.url}|${l.docketNumber}`))
+      ].slice(0, NOTE_LEADS_CAP);
+      const note = JSON.stringify({
+        source: "courtlistener",
+        usChecked: true,
+        totalCount: out.totalCount,
+        truncated: out.truncated,
+        filed: out.filed,
+        apiRequests: out.apiRequests,
+        warnings: out.warnings,
+        leads: mergedLeads,
+        leadsThisRun: out.leads.length,
+        leadsStored: mergedLeads.length,
+        at: deps.now().toISOString()
+      });
+      await client.query(
+        `INSERT INTO enrichment_attempts (official_id, category, status, proposal_count, note, last_attempted_at, next_eligible_at, updated_at)
+         VALUES ($1, 'legal_case', $2, $3, $4, now(), now() + interval '${RECHECK_DAYS} days', now())
+         ON CONFLICT (official_id, category) DO UPDATE
+           SET status = EXCLUDED.status, proposal_count = EXCLUDED.proposal_count,
+               note = EXCLUDED.note, last_attempted_at = now(),
+               next_eligible_at = now() + interval '${RECHECK_DAYS} days', updated_at = now()`,
+        [official.id, out.filed > 0 ? "filled" : "nothing_found", out.filed, note]
+      );
+      await client.query("COMMIT");
+      out.attemptRecorded = true;
+    } catch (e) {
+      await client.query("ROLLBACK").catch(() => {
+      });
+      throw e;
+    }
+  } catch {
+    out.attemptRecorded = false;
+  }
+  return out;
+}
+
 // apps/api/src/enrichment/sweeper/run-hermes.ts
 var import_child_process = require("child_process");
 var HERMES_BIN = process.env.HERMES_BIN || "hermes";
@@ -1379,6 +2182,24 @@ var config = {
   }
 };
 var KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
+var CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
+var CL_DAILY_BUDGET = Number(process.env.SWEEPER_CL_DAILY_BUDGET || 110);
+var CL_RESERVE = 9;
+var clSpends = [];
+function clSpend(n) {
+  const now = Date.now();
+  const dayCutoff = now - 24 * 60 * 60 * 1e3;
+  while (clSpends.length && clSpends[0].at < dayCutoff) clSpends.shift();
+  if (n > 0) clSpends.push({ at: now, n });
+  const hourCutoff = now - 60 * 60 * 1e3;
+  let usedHour = 0;
+  let usedDay = 0;
+  for (const e of clSpends) {
+    usedDay += e.n;
+    if (e.at >= hourCutoff) usedHour += e.n;
+  }
+  return usedHour + CL_RESERVE <= CL_HOURLY_BUDGET && usedDay + CL_RESERVE <= CL_DAILY_BUDGET;
+}
 function tableFor(gap) {
   return CATEGORY_BY_KEY[gap.category]?.table ?? gap.category;
 }
@@ -1395,6 +2216,37 @@ async function main() {
         { fetchJson: fetchJsonDefault, now: () => /* @__PURE__ */ new Date() }
       );
       return { ok: true, costUsd: 0 };
+    }
+    if (gap.category === "legal_case" && process.env.COURTLISTENER_TOKEN) {
+      const log = (msg, meta) => process.stdout.write(JSON.stringify({ t: (/* @__PURE__ */ new Date()).toISOString(), sweeper: msg, official: gap.officialId, ...meta }) + "\n");
+      if (!clSpend(0)) {
+        log("courtlistener pre-step skipped (hourly budget exhausted)", { budgetLeft: 0 });
+        return runHermes(gap);
+      }
+      try {
+        const res = await lookupCourtRecords(
+          client,
+          { id: gap.officialId, name: gap.name },
+          { fetchJson: fetchJsonDefault2, now: () => /* @__PURE__ */ new Date(), token: process.env.COURTLISTENER_TOKEN }
+        );
+        clSpend(res.apiRequests);
+        log("courtlistener pre-step done", {
+          filed: res.filed,
+          skipped: res.skipped.length,
+          leads: res.leads.length,
+          totalCount: res.totalCount,
+          truncated: res.truncated,
+          apiRequests: res.apiRequests,
+          attemptRecorded: res.attemptRecorded,
+          warnings: res.warnings
+        });
+      } catch (e) {
+        clSpend(2);
+        log("courtlistener pre-step failed (continuing to browse)", {
+          error: e instanceof Error ? e.message : String(e)
+        });
+      }
+      return runHermes(gap);
     }
     return runHermes(gap);
   };

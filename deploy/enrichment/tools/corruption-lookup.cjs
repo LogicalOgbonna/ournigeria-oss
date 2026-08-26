@@ -127,9 +127,12 @@ var FAMILY = {
 var LEGAL_CASES = {
   domain: "legal_cases",
   targetTable: "official_legal_cases",
-  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome"],
-  sensitiveFields: ["status", "outcome", "case_type"],
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org"],
+  targetFields: ["title", "case_type", "status", "forum", "case_number", "filed_date", "resolved_date", "outcome", "role", "record_kind"],
+  sensitiveFields: ["status", "outcome", "case_type", "role"],
+  // courtlistener.com (Free Law Project / RECAP) = US federal court dockets, tiered
+  // `official` (RECAP is crowd-sourced from PACER, so not a canonical single-doc);
+  // a docket backlink satisfies the create bar and every proposal stays human-reviewed.
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com"],
   sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }]
 };
 var CORRUPTION_CASES = {
@@ -274,6 +277,211 @@ function validateCorroboration(input, profile) {
 // apps/api/src/enrichment/creatable.registry.ts
 var import_common = require("@nestjs/common");
 var import_database = require("@ournigeria/database");
+
+// apps/api/src/enrichment/state-codes.ts
+var STATE_SLUGS = [
+  "abia",
+  "adamawa",
+  "akwa_ibom",
+  "anambra",
+  "bauchi",
+  "bayelsa",
+  "benue",
+  "borno",
+  "cross_river",
+  "delta",
+  "ebonyi",
+  "edo",
+  "ekiti",
+  "enugu",
+  "fct",
+  "gombe",
+  "imo",
+  "jigawa",
+  "kaduna",
+  "kano",
+  "katsina",
+  "kebbi",
+  "kogi",
+  "kwara",
+  "lagos",
+  "nasarawa",
+  "niger",
+  "ogun",
+  "ondo",
+  "osun",
+  "oyo",
+  "plateau",
+  "rivers",
+  "sokoto",
+  "taraba",
+  "yobe",
+  "zamfara"
+];
+var STATE_SLUG_SET = new Set(STATE_SLUGS);
+var STATE_ISO2 = {
+  AB: "abia",
+  AD: "adamawa",
+  AK: "akwa_ibom",
+  AN: "anambra",
+  BA: "bauchi",
+  BY: "bayelsa",
+  BE: "benue",
+  BO: "borno",
+  CR: "cross_river",
+  DE: "delta",
+  EB: "ebonyi",
+  ED: "edo",
+  EK: "ekiti",
+  EN: "enugu",
+  FC: "fct",
+  GO: "gombe",
+  IM: "imo",
+  JI: "jigawa",
+  KD: "kaduna",
+  KN: "kano",
+  KT: "katsina",
+  KE: "kebbi",
+  KO: "kogi",
+  KW: "kwara",
+  LA: "lagos",
+  NA: "nasarawa",
+  NI: "niger",
+  OG: "ogun",
+  ON: "ondo",
+  OS: "osun",
+  OY: "oyo",
+  PL: "plateau",
+  RI: "rivers",
+  SO: "sokoto",
+  TA: "taraba",
+  YO: "yobe",
+  ZA: "zamfara"
+};
+function resolveStateSlug(raw) {
+  if (raw === null || raw === void 0) return null;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const lower = s.toLowerCase();
+  if (STATE_SLUG_SET.has(lower)) return lower;
+  const iso = STATE_ISO2[s.toUpperCase()];
+  if (iso) return iso;
+  const named = lower.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (STATE_SLUG_SET.has(named)) return named;
+  return null;
+}
+
+// apps/api/src/enrichment/enum-coerce.ts
+function normalize(raw) {
+  return String(raw ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+function coerceEnum(raw, spec) {
+  const n = normalize(raw);
+  if (spec.allowed.includes(n)) return n;
+  return spec.synonyms[n] ?? spec.fallback;
+}
+var CORRUPTION_CASE_TYPE = {
+  field: "case_type",
+  allowed: [
+    "fraud",
+    "embezzlement",
+    "bribery",
+    "money_laundering",
+    "abuse_of_office",
+    "procurement_fraud",
+    "diversion",
+    "other"
+  ],
+  synonyms: {
+    lawsuit: "other",
+    suit: "other",
+    litigation: "other",
+    civil: "other",
+    criminal: "other",
+    corruption: "other",
+    financial_crime: "fraud",
+    misappropriation: "embezzlement",
+    misappropriation_of_funds: "embezzlement",
+    graft: "bribery",
+    kickback: "bribery",
+    kickbacks: "bribery"
+  },
+  fallback: "other"
+};
+var CORRUPTION_STATUS = {
+  field: "status",
+  allowed: [
+    "alleged",
+    "under_investigation",
+    "charged",
+    "on_trial",
+    "convicted",
+    "acquitted",
+    "dismissed",
+    "settled",
+    "appeal"
+  ],
+  synonyms: {
+    pending: "alleged",
+    filed: "alleged",
+    investigation: "under_investigation",
+    trial: "on_trial",
+    conviction: "convicted",
+    discharged: "acquitted",
+    struck_out: "dismissed",
+    on_appeal: "appeal",
+    appealed: "appeal"
+  },
+  fallback: "alleged"
+};
+var LEGAL_CASE_TYPE = {
+  field: "case_type",
+  allowed: ["criminal", "civil", "electoral", "tribunal", "investigation"],
+  synonyms: {
+    lawsuit: "civil",
+    suit: "civil",
+    litigation: "civil",
+    civil_suit: "civil",
+    civil_case: "civil",
+    criminal_case: "criminal",
+    prosecution: "criminal",
+    election_petition: "electoral",
+    petition: "electoral",
+    probe: "investigation",
+    inquiry: "investigation",
+    tribunal_case: "tribunal"
+  },
+  fallback: "civil"
+};
+var LEGAL_STATUS = {
+  field: "status",
+  // chk_legal_status has NO 'appeal' (unlike corruption); an appeal is still active → on_trial.
+  allowed: [
+    "alleged",
+    "under_investigation",
+    "charged",
+    "on_trial",
+    "convicted",
+    "acquitted",
+    "dismissed",
+    "settled"
+  ],
+  synonyms: {
+    pending: "on_trial",
+    filed: "on_trial",
+    investigation: "under_investigation",
+    trial: "on_trial",
+    conviction: "convicted",
+    discharged: "acquitted",
+    struck_out: "dismissed",
+    on_appeal: "on_trial",
+    appeal: "on_trial",
+    appealed: "on_trial"
+  },
+  fallback: "alleged"
+};
+
+// apps/api/src/enrichment/creatable.registry.ts
 var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 function coerce(spec, value) {
@@ -362,11 +570,33 @@ function officialFactEntity(targetTable, evidenceEntryType, columns, preflight) 
 }
 async function softenUnknownParty(tx, payload) {
   if (!payload.partyAcronym) return;
-  const p = await tx.$queryRawUnsafe(
-    `SELECT 1 FROM political_parties WHERE acronym = $1`,
-    payload.partyAcronym
+  const raw = String(payload.partyAcronym).trim();
+  const rows = await tx.$queryRawUnsafe(
+    `SELECT acronym FROM political_parties
+     WHERE acronym = $1 OR upper(acronym) = upper($1) OR lower(name) = lower($1)
+     ORDER BY (acronym = $1) DESC, (upper(acronym) = upper($1)) DESC
+     LIMIT 1`,
+    raw
   );
-  if (p.length === 0) payload.partyAcronym = null;
+  payload.partyAcronym = rows[0]?.acronym ?? null;
+}
+async function normalizeGeoRefs(tx, payload) {
+  if ("stateCode" in payload) {
+    payload.stateCode = resolveStateSlug(payload.stateCode);
+  }
+  const refs = [
+    ["lgaCode", "nigerian_lgas"],
+    ["wardCode", "nigerian_wards"],
+    ["constituencyCode", "nigerian_constituencies"]
+  ];
+  for (const [key, table] of refs) {
+    if (!payload[key]) continue;
+    const rows = await tx.$queryRawUnsafe(
+      `SELECT 1 FROM ${table} WHERE code = $1`,
+      payload[key]
+    );
+    if (rows.length === 0) payload[key] = null;
+  }
 }
 function corruptionInvolvementEntity() {
   const CASE_OPTIONAL = [
@@ -404,6 +634,9 @@ function corruptionInvolvementEntity() {
       return out;
     },
     async preflight(tx, payload) {
+      await normalizeGeoRefs(tx, payload);
+      payload.caseType = coerceEnum(payload.caseType, CORRUPTION_CASE_TYPE);
+      payload.status = coerceEnum(payload.status, CORRUPTION_STATUS);
       const exists = await tx.$queryRawUnsafe(
         `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
         payload.officialId
@@ -534,6 +767,7 @@ function partyOfficerEntity() {
     }
   };
 }
+var legalCaseNewColsPresent = null;
 var ELECTION_COLUMNS = [
   { key: "electionType", column: "election_type", type: "string", required: true },
   { key: "isPrimary", column: "is_primary", type: "boolean" },
@@ -576,6 +810,7 @@ function electionEntity() {
     },
     async preflight(tx, payload) {
       await softenUnknownParty(tx, payload);
+      await normalizeGeoRefs(tx, payload);
       if (payload.officialId) {
         const exists = await tx.$queryRawUnsafe(
           `SELECT 1 FROM nigerian_officials WHERE id = $1::uuid`,
@@ -627,14 +862,16 @@ function electionEntity() {
           stateCode
         );
         if (alreadyExists.length === 0) {
+          const electionYear = Number(payload.year) || (/* @__PURE__ */ new Date()).getFullYear();
           await tx.$queryRawUnsafe(
             `INSERT INTO official_positions
-               (official_id, role, state_code, status, appointment_type,
+               (official_id, role, state_code, status, appointment_type, start_date,
                 confidence, source_type, review_status, reviewed_by, last_verified_at)
-             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
-                     $3, 'manual', 'reviewed', $4, now())`,
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected', make_date($3::int, 5, 29),
+                     $4, 'manual', 'reviewed', $5, now())`,
             officialId,
             stateCode,
+            electionYear,
             ctx.confidence,
             ctx.adminId
           );
@@ -970,8 +1207,32 @@ var CREATABLE_ENTITIES = {
     { key: "filedDate", column: "filed_date", type: "date" },
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
+    { key: "role", column: "role", type: "string" },
+    { key: "recordKind", column: "record_kind", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" }
-  ]),
+  ], async (tx, payload) => {
+    payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
+    payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+    const ROLES = ["defendant", "plaintiff", "claimant", "respondent", "named_in"];
+    const KINDS = ["adjudicated", "allegation", "listing", "appearance"];
+    const norm = (v) => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    payload.role = ROLES.includes(norm(payload.role)) ? norm(payload.role) : null;
+    payload.recordKind = KINDS.includes(norm(payload.recordKind)) ? norm(payload.recordKind) : null;
+    if (legalCaseNewColsPresent !== true) {
+      const cols = await tx.$queryRawUnsafe(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`
+      );
+      legalCaseNewColsPresent = cols.length === 2;
+    }
+    if (!legalCaseNewColsPresent) {
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) \u2014 softening both to null"
+      );
+      payload.role = null;
+      payload.recordKind = null;
+    }
+  }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').
   // Evidence attaches to the case. Bespoke (two-row), like councilors.

@@ -418,6 +418,9 @@ function partyOfficerEntity(): CreatableEntity {
   };
 }
 
+/** Per-process cache: do official_legal_cases.role/record_kind columns exist yet? */
+let legalCaseNewColsPresent: boolean | null = null;
+
 /** official_elections columns (same set the generic officialFactEntity used). */
 const ELECTION_COLUMNS: ColumnSpec[] = [
   { key: "electionType", column: "election_type", type: "string", required: true },
@@ -467,6 +470,10 @@ function electionEntity(): CreatableEntity {
         officialName: hasName
           ? coerce({ key: "officialName", column: "name", type: "string", required: true }, p.officialName)
           : null,
+        // Optional deterministic slug for the CREATE path (plan 60 F1): bare-name
+        // find-or-create collapses same-name different-seat people; a caller-supplied
+        // slug keys the person on the unique slug column instead. Ignored with officialId.
+        officialSlugHint: coerce({ key: "officialSlugHint", column: "slug", type: "string" }, p.officialSlugHint),
         imageUrl: coerce({ key: "imageUrl", column: "image_url", type: "string" }, p.imageUrl),
         bio: coerce({ key: "bio", column: "biography", type: "string" }, p.bio),
       };
@@ -497,7 +504,11 @@ function electionEntity(): CreatableEntity {
           dateOfBirth: null,
           twitterHandle: null,
           facebookUrl: null,
-          officialType: "elected",
+          // A primary CANDIDATE is not an office-holder (plan 60 §4.3): created
+          // untyped (null, the party-officer precedent) so office-holder read
+          // filters exclude them. Non-primary paths keep the legacy 'elected'.
+          officialType: payload.isPrimary === true ? null : "elected",
+          slug: (payload.officialSlugHint as string | null) ?? undefined,
         }));
 
       const cols = ["official_id"];
@@ -536,14 +547,20 @@ function electionEntity(): CreatableEntity {
           stateCode,
         );
         if (alreadyExists.length === 0) {
+          // start_date is NOT NULL; a 'contesting' seat has no real start yet, so
+          // stamp the prospective term start (May 29 of the election year — the
+          // inauguration convention). Reads filter status='active', so this
+          // placeholder never surfaces as a sitting term.
+          const electionYear = Number(payload.year) || new Date().getFullYear();
           await tx.$queryRawUnsafe(
             `INSERT INTO official_positions
-               (official_id, role, state_code, status, appointment_type,
+               (official_id, role, state_code, status, appointment_type, start_date,
                 confidence, source_type, review_status, reviewed_by, last_verified_at)
-             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected',
-                     $3, 'manual', 'reviewed', $4, now())`,
+             VALUES ($1::uuid, 'governor', $2, 'contesting', 'elected', make_date($3::int, 5, 29),
+                     $4, 'manual', 'reviewed', $5, now())`,
             officialId,
             stateCode,
+            electionYear,
             ctx.confidence,
             ctx.adminId,
           );
@@ -643,9 +660,17 @@ function hashStr(s: string): number {
 }
 
 /**
- * Find (by case-insensitive exact name) or create a nigerian_officials row.
- * On create, generates a unique slug (slugifyName + hash fallback/disambiguation)
- * and stamps official_type + optional bio/image/gender/dob/social fields.
+ * Find or create a nigerian_officials row.
+ *
+ * Two keying modes:
+ * - `slug` provided (plan 60): key on the UNIQUE slug column — deterministic and
+ *   safe for same-name different-person candidates ("Mohammed Abubakar" the
+ *   Bauchi gubernatorial candidate vs the Niger house_of_reps candidate get
+ *   distinct slugs from their seat context). The caller has already decided
+ *   create-vs-link, so no name matching happens in this mode.
+ * - no `slug` (legacy): case-insensitive exact-name match, then create with a
+ *   generated slug (slugifyName + hash disambiguation).
+ *
  * Returns the official's id. Runs inside the apply tx (enrichment_apply has
  * SELECT + INSERT on nigerian_officials).
  */
@@ -660,18 +685,29 @@ async function findOrCreateOfficial(
     twitterHandle?: string | null;
     facebookUrl?: string | null;
     officialType: string | null;
+    slug?: string;
   },
 ): Promise<string> {
-  const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
-    `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
-    o.name,
-  );
-  if (existing.length > 0) return existing[0].id;
+  let slug: string;
+  if (o.slug) {
+    const bySlug = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM nigerian_officials WHERE slug = $1 LIMIT 1`,
+      o.slug,
+    );
+    if (bySlug.length > 0) return bySlug[0].id;
+    slug = o.slug;
+  } else {
+    const existing = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM nigerian_officials WHERE lower(name) = lower($1) LIMIT 1`,
+      o.name,
+    );
+    if (existing.length > 0) return existing[0].id;
 
-  let slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
-  const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
-  if (clash.length > 0) {
-    slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+    slug = slugifyName(o.name) || `official-${Math.abs(hashStr(o.name)).toString(36).slice(0, 6)}`;
+    const clash = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM nigerian_officials WHERE slug = $1`, slug);
+    if (clash.length > 0) {
+      slug = `${slug}-${Math.abs(hashStr(o.name + (o.officialType ?? ""))).toString(36).slice(0, 4)}`;
+    }
   }
 
   const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
@@ -959,11 +995,43 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
     { key: "filedDate", column: "filed_date", type: "date" },
     { key: "resolvedDate", column: "resolved_date", type: "date" },
     { key: "outcome", column: "outcome", type: "string" },
+    { key: "role", column: "role", type: "string" },
+    { key: "recordKind", column: "record_kind", type: "string" },
     { key: "relatedCorruptionCaseId", column: "related_corruption_case_id", type: "uuid" },
-  ], async (_tx, payload) => {
+  ], async (tx, payload) => {
     // Soften raw agent enums onto chk_legal_case_type / chk_legal_status.
     payload.caseType = coerceEnum(payload.caseType, LEGAL_CASE_TYPE);
     payload.status = coerceEnum(payload.status, LEGAL_STATUS);
+    // role / record_kind are NULLABLE — soften anything off-list to null
+    // (plan 59: never assert a role the record doesn't prove).
+    const ROLES = ["defendant", "plaintiff", "claimant", "respondent", "named_in"];
+    const KINDS = ["adjudicated", "allegation", "listing", "appearance"];
+    const norm = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    payload.role = ROLES.includes(norm(payload.role)) ? norm(payload.role) : null;
+    payload.recordKind = KINDS.includes(norm(payload.recordKind)) ? norm(payload.recordKind) : null;
+    // DEPLOY-ORDER GUARD: the enrichment agent (which files role/recordKind) can
+    // deploy before the API applies migration 20260824021900. Approving such a
+    // proposal pre-migration would 500 on a nonexistent column — the exact bug
+    // class PR #193 fixed. Soften to null (insert skips null columns) when the
+    // columns aren't there yet; the values remain visible in proposed_value.
+    // Cache only the POSITIVE result: once the columns exist they never vanish,
+    // but a skipped-then-applied migration must be picked up without an API
+    // restart, so a missing-columns answer is re-probed on every apply.
+    if (legalCaseNewColsPresent !== true) {
+      const cols = await tx.$queryRawUnsafe<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'official_legal_cases' AND column_name IN ('role','record_kind')`,
+      );
+      legalCaseNewColsPresent = cols.length === 2;
+    }
+    if (!legalCaseNewColsPresent) {
+      // eslint-disable-next-line no-console -- deliberate: softening must be visible in API logs
+      console.warn(
+        "[enrichment] official_legal_cases.role/record_kind columns missing (migration 20260824021900 not applied) — softening both to null",
+      );
+      payload.role = null;
+      payload.recordKind = null;
+    }
   }),
   // Corruption involvement is a COMPOUND create: a corruption_cases row + a
   // corruption_case_parties row linking the official (subjectType='official').
