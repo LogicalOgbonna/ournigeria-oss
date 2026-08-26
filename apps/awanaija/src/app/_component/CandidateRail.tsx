@@ -32,6 +32,7 @@ export function CandidateRail({
   page = 0,
   onPageChange,
   partyHref,
+  href,
   fade = true,
   className,
 }: {
@@ -41,6 +42,8 @@ export function CandidateRail({
   readonly onPageChange?: (page: number) => void;
   /** Builds the href behind each poster's party logo. */
   readonly partyHref?: (acronym: string) => string;
+  /** Builds the href behind the whole poster. */
+  readonly href?: (item: RailCandidate) => string;
   /** Gradient mask over the right edge — Figma 132:2400. */
   readonly fade?: boolean;
   readonly className?: string;
@@ -104,14 +107,20 @@ export function CandidateRail({
         onScroll={onScroll}
         className="flex snap-x snap-mandatory gap-[6px] overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:gap-[25px] [&::-webkit-scrollbar]:hidden"
       >
-        {items.map((item) => (
+        {items.map((item, i) => (
           <li key={item.id} className="snap-start">
             <CandidateTicket
               size={size}
               candidate={item.candidate}
               mate={item.mate}
               party={item.party}
+              shortName={item.shortName}
+              art={item.art}
               partyHref={partyHref?.(item.party.acronym)}
+              href={href?.(item)}
+              // Only the posters that can be on screen at first paint are
+              // eager; the rest of the rail lazy-loads as it scrolls in.
+              priority={i < 2}
             />
           </li>
         ))}

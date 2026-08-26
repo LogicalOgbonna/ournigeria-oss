@@ -1,6 +1,11 @@
 import type { SlatePerson } from "@/components/civic/SlateCard";
-import type { TicketParty, TicketPerson } from "@/components/civic/CandidateTicket";
+import type {
+  TicketArtwork,
+  TicketParty,
+  TicketPerson,
+} from "@/components/civic/CandidateTicket";
 import type { SlateRow } from "@/app/_component/PartySlatePanel";
+import { PRESIDENTIAL_2027 } from "@/lib/presidential-2027";
 
 /**
  * Placeholder ballot for the homepage hero.
@@ -17,6 +22,10 @@ export interface RailCandidate {
   readonly candidate: TicketPerson;
   readonly mate?: TicketPerson | null;
   readonly party: TicketParty;
+  /** Poster headline override, when the surname alone reads wrong. */
+  readonly shortName?: string;
+  /** This ticket's authored Figma geometry, if it has one. */
+  readonly art?: TicketArtwork;
 }
 
 /** One contest — a rail's worth of candidates, and its dropdown entry. */
@@ -50,32 +59,7 @@ const PDP = party("PDP", "Peoples Democratic Party");
 const LP = party("LP", "Labour Party");
 const NNPP = party("NNPP", "New Nigeria Peoples Party");
 const ADC = party("ADC", "African Democratic Congress");
-const SDP = party("SDP", "Social Democratic Party");
 const APGA = party("APGA", "All Progressives Grand Alliance");
-const AAC = party("AAC", "African Action Congress");
-
-const ticket = (
-  id: string,
-  name: string,
-  mateName: string,
-  p: TicketParty,
-): RailCandidate => ({
-  id,
-  candidate: { name, office: "President", imageUrl: PHOTO_A },
-  mate: { name: mateName, office: "Vice President", imageUrl: PHOTO_B },
-  party: p,
-});
-
-const PRESIDENTIAL: readonly RailCandidate[] = [
-  ticket("p1", "Asiwaju Bola Ahmed Adekunle Tinubu", "Kashim Shettima", APC),
-  ticket("p2", "Peter Gregory Obi", "Yusuf Datti Baba-Ahmed", LP),
-  ticket("p3", "Atiku Abubakar", "Ifeanyi Okowa", PDP),
-  ticket("p4", "Rabiu Musa Kwankwaso", "Isaac Idahosa", NNPP),
-  ticket("p5", "Seyi Makinde", "Bala Mohammed", ADC),
-  ticket("p6", "Omoyele Sowore", "Haruna Magashi", AAC),
-  ticket("p7", "Donald Duke", "Buba Galadima", SDP),
-  ticket("p8", "Chidinma Sandy", "Ibrahim Babangida", APGA),
-];
 
 const governorship = (id: string, name: string, p: TicketParty): RailCandidate => ({
   id,
@@ -88,7 +72,7 @@ export const MOCK_RACES: readonly HomeRace[] = [
     office: "president",
     label: "Presidential",
     seatLabel: "President of the Federal Republic",
-    candidates: PRESIDENTIAL,
+    candidates: PRESIDENTIAL_2027,
   },
   {
     office: "governor",
@@ -139,7 +123,7 @@ const person = (
 
 export const MOCK_PARTY_SLATE: HomePartySlate = {
   party: APC,
-  featured: PRESIDENTIAL[0],
+  featured: PRESIDENTIAL_2027[0],
   rows: [
     {
       id: "state-exec",

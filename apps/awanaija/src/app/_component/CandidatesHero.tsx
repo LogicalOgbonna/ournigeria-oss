@@ -90,6 +90,7 @@ export function CandidatesHero({
             setPage(next);
           }}
           partyHref={(acronym) => `/?parties=true&party=${acronym}`}
+          href={() => "/election"}
         />
       </Show>
     </section>
