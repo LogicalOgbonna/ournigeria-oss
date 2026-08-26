@@ -614,11 +614,16 @@ export function ProfileV10({
   const corruption = official.corruptionCases ?? [];
 
   const subtitle = current
-    ? [roleLabel(current.role), current.party].filter(Boolean).join("  •  ")
+    ? roleLabel(current.role)
     : official.officialType
       ? (TYPE_LABELS[official.officialType] ?? "Public Official")
       : "Official";
   const stateLabel = current?.state ? `${current.state} State`.toUpperCase().replace(/ STATE STATE$/, " STATE") : null;
+  const stateHref = current?.stateCode
+    ? `/states/${current.stateCode}`
+    : current?.state
+      ? `/states/${current.state.toLowerCase().replace(/\s+/g, "-")}`
+      : null;
   const jurisdiction = current ? positionScope(current) : null;
   const completeness = Math.round((official.completenessScore ?? 0) * 100);
   const bio = official.biography;
@@ -653,14 +658,38 @@ export function ProfileV10({
               <h1 className="font-serif font-normal text-4xl md:text-5xl leading-[1.15] tracking-[-0.02em] text-[#43ee94] m-0">
                 {official.name}
               </h1>
-              <div className="font-sans text-lg md:text-xl text-[#bbcbbc] mt-2">{subtitle}</div>
+              <div className="font-sans text-lg md:text-xl text-[#bbcbbc] mt-2">
+                {subtitle}
+                {current?.party ? (
+                  <>
+                    {" • "}
+                    <Link
+                      href={`/parties/${current.party}`}
+                      className="transition-colors hover:text-[#43ee94]"
+                      title={current.partyName ?? current.party}
+                    >
+                      {current.party}
+                    </Link>
+                  </>
+                ) : null}
+              </div>
               <Show when={!!(stateLabel || jurisdiction)}>
-                <div className="flex items-center gap-1.5 justify-center md:justify-start mt-1.5 text-[#bbcbbc]">
-                  {PIN_ICON}
-                  <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">
-                    {stateLabel ?? jurisdiction}
-                  </span>
-                </div>
+                {stateHref && stateLabel ? (
+                  <Link
+                    href={stateHref}
+                    className="flex items-center gap-1.5 justify-center md:justify-start mt-1.5 text-[#bbcbbc] transition-colors hover:text-[#43ee94]"
+                  >
+                    {PIN_ICON}
+                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">{stateLabel}</span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center gap-1.5 justify-center md:justify-start mt-1.5 text-[#bbcbbc]">
+                    {PIN_ICON}
+                    <span className="font-sans text-[10px] font-semibold tracking-[0.05em] uppercase">
+                      {stateLabel ?? jurisdiction}
+                    </span>
+                  </div>
+                )}
               </Show>
               <ContactPills official={official} contribute={contribute} />
               <CompletenessBar pct={completeness} />
