@@ -2,22 +2,30 @@ import { HeroBackdrop } from "@/app/_component/HeroBackdrop";
 import { NotifyTelegram } from "./NotifyTelegram";
 
 /**
- * The `/election` holding page. There is no Figma frame for it — the layout was
- * designed and approved as a canvas mockup: one screen, the words "Coming soon."
- * dominant, one line of copy, one action, one status strip. Nothing else.
+ * The holding page behind every election route that has no content yet. There
+ * is no Figma frame for it — the layout was designed and approved as a canvas
+ * mockup: one screen, the words "Coming soon." dominant, one line of copy, one
+ * action, one status strip. Nothing else.
+ *
+ * Shared by `/election`, `/elections/<year>` and `/elections/<year>/<party>`,
+ * which differ only in wording. The words are props rather than three copies of
+ * the same markup, so the pages can't drift apart while they wait for content.
  *
  * The serif gradient is AskBlock's light/dark pair, not HeroHeading's, because
  * HeroHeading hardcodes the dark ramp (emerald-300/400/200) and it is close to
  * invisible on a light background.
  */
 export function ComingSoon({
-  daysToGo,
-  coverage,
+  eyebrow,
+  lede,
+  status,
 }: {
-  /** Days until the general election — recomputed on every ISR revalidate. */
-  readonly daysToGo: number;
-  /** "36 states + FCT · 774 LGAs · 8,809 wards", from /api/geo/stats. */
-  readonly coverage: string;
+  /** Mono line above the headline — "2027 general election · 180 days to go". */
+  readonly eyebrow: string;
+  /** The one paragraph under the headline. */
+  readonly lede: React.ReactNode;
+  /** Mono strip along the bottom. Empty entries are dropped. */
+  readonly status: readonly string[];
 }) {
   return (
     <div className="relative">
@@ -29,7 +37,7 @@ export function ComingSoon({
         <div className="flex items-center gap-3">
           <span className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
           <span className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground">
-            2027 general election &middot; {daysToGo} days to go
+            {eyebrow}
           </span>
         </div>
 
@@ -40,8 +48,7 @@ export function ComingSoon({
         </h1>
 
         <p className="mt-8 max-w-[640px] text-base leading-relaxed text-muted-foreground sm:text-lg lg:mt-11">
-          Your whole ballot &mdash; president down to ward councillor, for
-          wherever you live. We dey build am seat by seat.
+          {lede}
         </p>
 
         <div className="mt-8 lg:mt-10">
@@ -55,15 +62,14 @@ export function ComingSoon({
         </p>
 
         <div className="mt-14 flex flex-col gap-2 border-t border-border pt-6 lg:mt-14 lg:flex-row lg:gap-8">
-          <span className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground">
-            1 of 7 seats filled
-          </span>
-          <span className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground">
-            presidential race confirmed
-          </span>
-          <span className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground">
-            {coverage}
-          </span>
+          {status.filter(Boolean).map((item) => (
+            <span
+              key={item}
+              className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground"
+            >
+              {item}
+            </span>
+          ))}
         </div>
       </section>
     </div>

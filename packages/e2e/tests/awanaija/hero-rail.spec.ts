@@ -31,6 +31,16 @@ async function railAtRest(page: import('@playwright/test').Page) {
   return railCard(page);
 }
 
+/** Index of the dot currently marked selected, or -1. */
+async function activeDot(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const tabs = Array.from(
+      document.querySelectorAll('[role="tablist"][aria-label="Candidates"] [role="tab"]'),
+    );
+    return tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true');
+  });
+}
+
 /** Homepage with the rail mounted and the dots reachable. */
 async function openHome(page: import('@playwright/test').Page) {
   await page.goto('/');
@@ -81,6 +91,61 @@ test.describe('Homepage candidate rail @awanaija', () => {
     // And it stayed there — the rail used to be dragged back off the first
     // poster by its own in-flight scroll, landing on the third.
     await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
+  });
+
+  // Every poster is a way into that party's campaign for the cycle. The year
+  // comes from the gate's presidential race, falling back to 2027 while the
+  // gate carries no `president` race — so this asserts the shape, not the year.
+  test('each poster links to that party campaign page, and the page exists', async ({
+    page,
+  }) => {
+    await openHome(page);
+    const posters = page.locator('[data-testid="candidate-rail"] li a[href^="/elections/"]');
+    const total = await posters.count();
+    expect(total).toBeGreaterThan(4);
+
+    const hrefs = await posters.evaluateAll((els) =>
+      els.map((el) => el.getAttribute('href') ?? ''),
+    );
+    for (const href of hrefs) {
+      expect(href).toMatch(/^\/elections\/\d{4}\/[A-Za-z][A-Za-z0-9-]{1,15}$/);
+    }
+
+    // Follow one for real — a well-formed href that 404s is still a dead end.
+    const first = posters.first();
+    const target = await first.getAttribute('href');
+    await first.click();
+    await page.waitForURL(`**${target}`);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Coming');
+  });
+
+  // The rail spans the top of the homepage, so on a laptop a cursor is resting
+  // somewhere over it most of the time. Pausing for that read as a broken
+  // carousel. WCAG 2.2.2 is satisfied by the *stop* on a deliberate interaction
+  // — tapping a dot or scrolling by hand — not by hovering.
+  test('keeps sliding with the mouse held over a poster', async ({ page }) => {
+    await openHome(page);
+    const rail = page.locator(RAIL);
+    await rail.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+
+    const box = await rail.locator('li').first().boundingBox();
+    if (!box) throw new Error('no poster to hover');
+    const x = Math.round(box.x + box.width / 2);
+    const y = Math.round(box.y + box.height / 2);
+    await page.mouse.move(x, y);
+
+    // Prove the cursor really is over a poster, or the test proves nothing.
+    const onPoster = await page.evaluate(
+      ([px, py]) => !!document.elementFromPoint(px, py)?.closest('li'),
+      [x, y],
+    );
+    expect(onPoster).toBe(true);
+
+    // Autoplay ticks every 4.5s. Hold still and watch for it to move on.
+    const startedAt = await activeDot(page);
+    await expect
+      .poll(async () => activeDot(page), { timeout: 12_000, intervals: [500] })
+      .not.toBe(startedAt);
   });
 
   test('a neighbouring hop still lands on its own poster', async ({ page }) => {

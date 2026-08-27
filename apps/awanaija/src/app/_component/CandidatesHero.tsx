@@ -22,6 +22,7 @@ export function CandidatesHero({
   years,
   onYearChange,
   onLocationChange,
+  electionYear,
 }: {
   readonly races: readonly HomeRace[];
   readonly location: string;
@@ -29,6 +30,14 @@ export function CandidatesHero({
   readonly years: readonly number[];
   readonly onYearChange?: (year: number) => void;
   readonly onLocationChange?: () => void;
+  /**
+   * The cycle the posters link into. Comes from the gate's presidential race
+   * via `app/page`, falling back to 2027 while the gate carries no `president`
+   * race — see `racesOnOffer()`. Deliberately not the `year` filter above:
+   * that one picks which contest the rail shows, and its options are still
+   * fixture data.
+   */
+  readonly electionYear: number;
 }) {
   const [office, setOffice] = useState(races[0]?.office ?? "");
   const [page, setPage] = useState(0);
@@ -54,8 +63,8 @@ export function CandidatesHero({
     );
   }, []);
 
-  // Advances the rail on its own. Pauses on hover/focus anywhere in the hero;
-  // any deliberate interaction below stops it for good.
+  // Advances the rail on its own. Pauses while focus is anywhere in the hero,
+  // but not on hover; any deliberate interaction below stops it for good.
   const autoplay = useRailAutoplay({
     count: pageCount,
     page,
@@ -110,7 +119,7 @@ export function CandidatesHero({
           }}
           onPageCountChange={handlePageCount}
           partyHref={(acronym) => `/?parties=true&party=${acronym}`}
-          href={() => "/election"}
+          href={(item) => `/elections/${electionYear}/${item.party.acronym}`}
         />
       </Show>
     </section>

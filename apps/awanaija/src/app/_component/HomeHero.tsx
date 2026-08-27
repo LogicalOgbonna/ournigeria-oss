@@ -16,12 +16,15 @@ export function HomeHero({
   slates,
   location,
   years,
+  electionYear,
 }: {
   readonly races: readonly HomeRace[];
   /** One per party; `?party=` picks which. The first is the default. */
   readonly slates: readonly HomePartySlate[];
   readonly location: string;
   readonly years: readonly number[];
+  /** The cycle the posters link into — see `racesOnOffer()` in `app/page`. */
+  readonly electionYear: number;
 }) {
   const filters = useHomeFilters({
     defaultYear: years[0] ?? new Date().getFullYear(),
@@ -41,6 +44,7 @@ export function HomeHero({
           year={filters.year}
           years={years}
           onYearChange={filters.setYear}
+          electionYear={electionYear}
         />
       </Show>
 

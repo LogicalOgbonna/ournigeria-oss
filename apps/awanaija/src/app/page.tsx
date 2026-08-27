@@ -3,7 +3,12 @@ import { StructuredData } from "@/app/_seo/structured-data";
 import { WelcomeModalWrapper } from "@/components/civic/WelcomeModalWrapper";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PersonalizedData } from "@/components/sections/PersonalizedData";
-import { applicableRaces, getElectionGate } from "@/lib/election-gate";
+import {
+  applicableRaces,
+  FALLBACK_PRESIDENTIAL_YEAR,
+  getElectionGate,
+  presidentialYear,
+} from "@/lib/election-gate";
 import {
   MOCK_LOCATION,
   MOCK_PARTY_SLATES,
@@ -47,11 +52,20 @@ async function racesOnOffer() {
   );
   const live = new Set(applicableRaces(gate, {}).map((r) => r.office));
   const gated = MOCK_RACES.filter((r) => live.has(r.office as never));
-  return gated.length > 0 ? gated : MOCK_RACES.filter((r) => r.office === "president");
+  const races =
+    gated.length > 0 ? gated : MOCK_RACES.filter((r) => r.office === "president");
+
+  // The cycle the hero's posters link into. Read off the gate's presidential
+  // race, so activating the flag moves the links with no code change; until
+  // then — the flag carries no `president` race, and local `.env.local` leaves
+  // the PostHog token unset so the gate fails dark — it is the 2027 fallback.
+  const year = presidentialYear(gate) ?? FALLBACK_PRESIDENTIAL_YEAR;
+
+  return { races, year };
 }
 
 export default async function Home() {
-  const races = await racesOnOffer();
+  const { races, year: electionYear } = await racesOnOffer();
 
   return (
     <PageLayout>
@@ -66,6 +80,7 @@ export default async function Home() {
           slates={MOCK_PARTY_SLATES}
           location={MOCK_LOCATION}
           years={MOCK_YEARS}
+          electionYear={electionYear}
         />
       </Suspense>
 

@@ -12,10 +12,19 @@ const INTERVAL_MS = 4500;
  * never writes a style or touches layout — so it cannot shift the rail when the
  * bundle lands. The scroll itself is the rail's own native `scrollTo`.
  *
- * Hover and keyboard focus *pause*. A deliberate interaction — tapping a dot or
- * scrolling the rail by hand — *stops* it for the rest of the session: WCAG
- * 2.2.2 wants a way to stop moving content, and reaching for the rail is that
+ * A deliberate interaction — tapping a dot or scrolling the rail by hand —
+ * *stops* it for the rest of the session. That is the WCAG 2.2.2 mechanism:
+ * moving content needs a way to be stopped, and reaching for the rail is the
  * signal. Off entirely under reduced motion, or with nothing to page through.
+ *
+ * Hovering does *not* pause. The rail sits across the top of the homepage, so
+ * a cursor resting anywhere over it — which is most of the time, on a laptop —
+ * used to hold the rail still and read as broken. Merely being under the mouse
+ * is not an interaction.
+ *
+ * Keyboard focus still pauses. That one is not about intent: a poster is a
+ * link, and scrolling it out from under a focused element strands the
+ * keyboard user somewhere they can no longer see.
  */
 export function useRailAutoplay({
   count,
@@ -55,10 +64,11 @@ export function useRailAutoplay({
 
   return {
     stop,
-    /** Spread onto the element wrapping both the dots and the rail. */
+    /**
+     * Spread onto the element wrapping both the dots and the rail. Focus only —
+     * see above for why hovering deliberately isn't in here.
+     */
     handlers: {
-      onPointerEnter: () => setPaused(true),
-      onPointerLeave: () => setPaused(false),
       onFocusCapture: () => setPaused(true),
       onBlurCapture: () => setPaused(false),
     },
