@@ -82,12 +82,15 @@ export const LEGAL_CASE_TYPE: EnumSpec = {
 export const LEGAL_STATUS: EnumSpec = {
   field: "status",
   // chk_legal_status has NO 'appeal' (unlike corruption); an appeal is still active → on_trial.
+  // 'closed' = concluded with the disposition not (yet) verified — e.g. a
+  // terminated US docket whose RECAP metadata carries no outcome.
   allowed: ["alleged", "under_investigation", "charged", "on_trial", "convicted",
-    "acquitted", "dismissed", "settled"],
+    "acquitted", "dismissed", "settled", "closed"],
   synonyms: {
     pending: "on_trial", filed: "on_trial", investigation: "under_investigation",
     trial: "on_trial", conviction: "convicted", discharged: "acquitted",
     struck_out: "dismissed", on_appeal: "on_trial", appeal: "on_trial", appealed: "on_trial",
+    concluded: "closed", terminated: "closed", ended: "closed", resolved: "closed",
   },
   fallback: "alleged",
 };

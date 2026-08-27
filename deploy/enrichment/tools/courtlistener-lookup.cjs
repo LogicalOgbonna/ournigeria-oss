@@ -468,6 +468,8 @@ var LEGAL_CASE_TYPE = {
 var LEGAL_STATUS = {
   field: "status",
   // chk_legal_status has NO 'appeal' (unlike corruption); an appeal is still active → on_trial.
+  // 'closed' = concluded with the disposition not (yet) verified — e.g. a
+  // terminated US docket whose RECAP metadata carries no outcome.
   allowed: [
     "alleged",
     "under_investigation",
@@ -476,7 +478,8 @@ var LEGAL_STATUS = {
     "convicted",
     "acquitted",
     "dismissed",
-    "settled"
+    "settled",
+    "closed"
   ],
   synonyms: {
     pending: "on_trial",
@@ -488,7 +491,11 @@ var LEGAL_STATUS = {
     struck_out: "dismissed",
     on_appeal: "on_trial",
     appeal: "on_trial",
-    appealed: "on_trial"
+    appealed: "on_trial",
+    concluded: "closed",
+    terminated: "closed",
+    ended: "closed",
+    resolved: "closed"
   },
   fallback: "alleged"
 };
@@ -1748,14 +1755,17 @@ async function lookupCourtRecords(client, official, deps) {
         }
       }
       if (!role) role = roleFromCaption(caseName, caseType, matched);
+      const resolvedDate = str(r.dateTerminated);
       const payload = {
         officialId: official.id,
         title: caseName,
         caseType,
-        // Conservative: RECAP metadata has NO disposition. A criminal defendant
-        // is at least "charged"; a civil matter is pending ("on_trial"). Never
-        // "convicted". The human reviewer sets the real outcome from the docket.
-        status: caseType === "criminal" ? "charged" : "on_trial",
+        // Conservative: RECAP metadata has NO disposition, so never
+        // "convicted"/"acquitted" — the human reviewer sets the real outcome
+        // from the docket. A TERMINATED docket is "closed" (concluded,
+        // disposition unverified); an OPEN criminal docket means the defendant
+        // is at least "charged"; an open civil matter is pending ("on_trial").
+        status: resolvedDate ? "closed" : caseType === "criminal" ? "charged" : "on_trial",
         // A docket party listing is an APPEARANCE (plan 58 §3.8) — not adjudicated.
         recordKind: "appearance"
       };
@@ -1764,7 +1774,6 @@ async function lookupCourtRecords(client, official, deps) {
       if (docketNumber) payload.caseNumber = docketNumber;
       const filedDate = str(r.dateFiled);
       if (filedDate) payload.filedDate = filedDate;
-      const resolvedDate = str(r.dateTerminated);
       if (resolvedDate) {
         payload.resolvedDate = resolvedDate;
         payload.outcome = `Docket terminated ${resolvedDate} \u2014 disposition not in RECAP metadata; verify from the docket.`;

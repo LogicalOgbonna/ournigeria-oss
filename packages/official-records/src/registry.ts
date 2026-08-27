@@ -193,8 +193,10 @@ export const RECORD_SCHEMAS: Record<string, RecordSchemaDef> = {
       T("caseType", "case_type", "Case type", { input: "select", required: true, editable: true,
         options: ["criminal", "civil", "electoral", "tribunal", "investigation"] }),
       T("status", "status", "Status", { input: "select", required: true, editable: true,
+        // "closed" = concluded, disposition unverified (e.g. terminated US
+        // docket with no outcome in RECAP metadata) — mirrors chk_legal_status.
         options: ["alleged", "under_investigation", "charged", "on_trial",
-                  "convicted", "acquitted", "dismissed", "settled"] }),
+                  "convicted", "acquitted", "dismissed", "settled", "closed"] }),
       T("forum", "forum", "Court / forum", { editable: true }),
       T("caseNumber", "case_number", "Case number", { editable: true }),
       T("filedDate", "filed_date", "Filed", { input: "date", editable: true }),
