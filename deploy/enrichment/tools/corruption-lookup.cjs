@@ -468,6 +468,8 @@ var LEGAL_CASE_TYPE = {
 var LEGAL_STATUS = {
   field: "status",
   // chk_legal_status has NO 'appeal' (unlike corruption); an appeal is still active → on_trial.
+  // 'closed' = concluded with the disposition not (yet) verified — e.g. a
+  // terminated US docket whose RECAP metadata carries no outcome.
   allowed: [
     "alleged",
     "under_investigation",
@@ -476,7 +478,8 @@ var LEGAL_STATUS = {
     "convicted",
     "acquitted",
     "dismissed",
-    "settled"
+    "settled",
+    "closed"
   ],
   synonyms: {
     pending: "on_trial",
@@ -488,7 +491,11 @@ var LEGAL_STATUS = {
     struck_out: "dismissed",
     on_appeal: "on_trial",
     appeal: "on_trial",
-    appealed: "on_trial"
+    appealed: "on_trial",
+    concluded: "closed",
+    terminated: "closed",
+    ended: "closed",
+    resolved: "closed"
   },
   fallback: "alleged"
 };
