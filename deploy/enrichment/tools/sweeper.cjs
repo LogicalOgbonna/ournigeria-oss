@@ -53,10 +53,23 @@ async function queryCategory(client, cat, limit) {
       -- most 'contesting' positions) are NOT swept \u2014 autonomous enrichment of
       -- ~1.8k unknowns would burn the LLM budget on people who may never hold
       -- office. They re-enter naturally when a position flips to 'active'.
-      AND (o.official_type IS NOT NULL OR EXISTS (
-        SELECT 1 FROM official_positions op
-        WHERE op.official_id = o.id AND op.status <> 'contesting'
-      ))
+      -- CARVE-OUT: executive-ticket winners (president/VP, governor/deputy \u2014
+      -- ~200 people, prominent and richly sourceable, many are ex-officeholders
+      -- like Kwankwaso/Amaechi whose history predates this dataset) ARE swept:
+      -- their career/legal_case backfill, incl. the CourtListener pre-step, is
+      -- exactly what the accountability mission needs before the election.
+      AND (o.official_type IS NOT NULL
+        OR EXISTS (
+          SELECT 1 FROM official_positions op
+          WHERE op.official_id = o.id AND op.status <> 'contesting'
+        )
+        OR EXISTS (
+          SELECT 1 FROM official_elections oe
+          WHERE oe.official_id = o.id
+            AND oe.election_type IN ('presidential', 'vice_presidential', 'gubernatorial', 'deputy_gubernatorial')
+            AND oe.result = 'won'
+            AND oe.confidence <> 'low'
+        ))
       AND (ea.id IS NULL OR (ea.status <> 'pending' AND ea.next_eligible_at <= now()))
       AND NOT EXISTS (
         SELECT 1 FROM change_proposals cp
