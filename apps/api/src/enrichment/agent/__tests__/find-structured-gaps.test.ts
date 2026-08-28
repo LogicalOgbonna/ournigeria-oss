@@ -124,6 +124,18 @@ describe("findStructuredGaps (integration)", () => {
     expect(cats).toEqual([]);
   });
 
+  it("electionTypes filter restricts the sweep to ticket holders of those types", async () => {
+    // VP candidate is in; an elected official with no such election is out.
+    const vpGaps = await findStructuredGaps(db, 500, { electionTypes: ["vice_presidential"] });
+    const ids = new Set(vpGaps.map((g) => g.officialId));
+    expect(ids.has(execCandidateId)).toBe(true);
+    expect(ids.has(electedId)).toBe(false);
+    // gubernatorial-only filter excludes the VP candidate
+    const gubGaps = await findStructuredGaps(db, 500, { electionTypes: ["gubernatorial"] });
+    const gubIds = new Set(gubGaps.map((g) => g.officialId));
+    expect(gubIds.has(execCandidateId)).toBe(false);
+  });
+
   it("respects the attempts cursor (future nextEligibleAt is skipped)", async () => {
     await db.query(
       `INSERT INTO enrichment_attempts (official_id, category, status, next_eligible_at)
