@@ -191,3 +191,18 @@ describe("deputy_gubernatorial (governorship running-mate slot)", () => {
     expect(bad.conflicts.length).toBe(1);
   });
 });
+
+describe("lga_vice_chairman (LGA chairmanship running-mate slot)", () => {
+  it("is a valid LGA-scoped seat keyed like lga_chairman", () => {
+    expect(seatKeyOf("lga_vice_chairman", "kano", "Nassarawa LGA")).toBe(
+      seatKeyOf("lga_vice_chairman", "kano", "Nassarawa"),
+    );
+    expect(seatKnownOf("lga_vice_chairman", "kano", "Nassarawa")).toBe(true);
+    expect(seatKnownOf("lga_vice_chairman", "kano", null)).toBe(false); // LGA unknown
+    const res = canonicalizeCandidates({
+      APC: [{ candidateName: "Test Vice Chair", electionType: "lga_vice_chairman", stateCode: "kano", constituency: "Nassarawa", year: 2027, isPrimary: true, result: "won" }],
+    });
+    expect(res.skipped).toEqual([]);
+    expect(res.candidates[0].electionType).toBe("lga_vice_chairman");
+  });
+});

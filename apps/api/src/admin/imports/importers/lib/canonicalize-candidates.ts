@@ -67,7 +67,7 @@ export interface CanonicalizeResult {
 
 const VALID_ELECTION_TYPES = new Set([
   "presidential", "vice_presidential", "gubernatorial", "deputy_gubernatorial", "senatorial", "house_of_reps",
-  "state_assembly", "lga_chairman", "councilor", "other",
+  "state_assembly", "lga_chairman", "lga_vice_chairman", "councilor", "other",
 ]);
 
 /** chk_elections_result allowed set. */
@@ -118,7 +118,8 @@ export function normalizeConstituency(raw: string | null | undefined): string {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter((t) => t && !["federal", "constituency", "senatorial", "district", "fc", "state", "zone"].includes(t));
+    .filter((t) => t && !["federal", "constituency", "senatorial", "district", "fc", "state", "zone",
+      "lga", "local", "government", "area"].includes(t));
   return toks.sort().join("_");
 }
 
