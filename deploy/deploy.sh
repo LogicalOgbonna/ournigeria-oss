@@ -95,6 +95,24 @@ check_container_alive() {
   fi
 }
 
+# ─── Enrichment agent image (pull-only; containers stay human-managed) ────
+# The enrichment stack (agent + camofox) is a sibling stack deliberately outside
+# blue-green: restarts are stateful (camofox/playwright pairing, sweeper opt-in,
+# agent DB creds), so deploys only PRE-PULL the fresh image — a human recreates
+# the containers when ready. MUST run AFTER `docker image prune -a`: the freshly
+# pulled image has no container referencing it yet, so pulling before the prune
+# would delete it again immediately.
+pull_enrichment_image() {
+  local tag="latest"
+  [ "$DEPLOY_ENV" = "staging" ] && tag="latest-amd64"   # staging box is x86_64
+  # REGISTRY is defined later in the prod flow — the staging path exits before
+  # reaching it, so carry a local fallback.
+  local reg="${REGISTRY:-ghcr.io/logicalogbonna}"
+  echo "Pre-pulling enrichment agent image (:${tag}) — pull-only, containers untouched..."
+  docker pull "${reg}/ournigeria-enrichment-agent:${tag}" 2>&1 | tail -1 || \
+    echo "WARN: enrichment image pull failed (non-fatal; retry manually)"
+}
+
 # ─── Config ───────────────────────────────────────────────────────
 COMPOSE_DIR="/opt/ournigeria"
 COMPOSE_FILE="$COMPOSE_DIR/docker-compose.yml"
@@ -194,6 +212,8 @@ Duration: $(( DEPLOY_END - DEPLOY_START ))s"
   
   echo "Cleaning up old Docker images..."
   docker image prune -a -f
+
+  pull_enrichment_image
 
   exit 0
 fi
@@ -486,6 +506,8 @@ find "$LOG_DIR" -name "deploy-*.log" -mtime +30 -delete 2>/dev/null || true
 # ─── Clean up old Docker images ───────────────────────────────────
 echo "Cleaning up old Docker images..."
 docker image prune -a -f
+
+pull_enrichment_image
 
 notify "✅ *Deploy complete*
 Active: \`$STANDBY\` | Tag: \`$NEW_IMAGE_TAG\`

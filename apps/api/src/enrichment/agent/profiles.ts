@@ -1,4 +1,51 @@
 import type { EnrichmentProfile } from "./profile.types";
+import { WORLD_UNIVERSITY_DOMAINS } from "./university-domains.gen";
+
+
+// ------------------------------------------------------------------
+// Shared trusted-source sets (2026-08-28 source-broadening review):
+// the original lists were built for officeholder verification against
+// government registries and silently excluded where candidate biography
+// actually lives. Verdicts from that review:
+//  - education must not exclude non-Nigerian schools,
+//  - election coverage must admit international observer missions,
+//  - careers/awards exist outside government and the CAC registry,
+//  - family is not in any government registry,
+//  - publications should roam (book registries + press).
+// Press stays UNTRUSTED for legal/corruption allegations and election
+// RESULTS —  those keep the strict multi-source bar.
+// ------------------------------------------------------------------
+
+/** Vetted national press — biographical facts, not allegations. */
+const NATIONAL_PRESS = [
+  "premiumtimesng.com", "punchng.com", "thecable.ng", "guardian.ng",
+  "vanguardngr.com", "dailytrust.com", "channelstv.com", "thisdaylive.com",
+  "tribuneonlineng.com", "businessday.ng", "leadership.ng",
+];
+
+/**
+ * International ACADEMIC-SPECIFIC domain families. Necessarily partial: countries
+ * whose universities live on general TLDs (Canada .ca, Germany .de, France .fr)
+ * cannot be pattern-trusted without blessing the whole country — schools there
+ * still file via the 2-independent-source web path or a trusted press profile.
+ */
+const INTL_EDUCATION = [
+  "*.edu",     // US institutions
+  "*.edu.*",   // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*",    // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
+  // General-TLD universities (.de/.ca/.fr/...) — pattern-untrustable countries,
+  // covered by the vendored world-universities dataset instead (3,252 domains).
+  ...WORLD_UNIVERSITY_DOMAINS,
+];
+
+/** Election observer missions (AU, ECOWAS, EU, US institutes, Commonwealth, EISA, Yiaga). */
+const ELECTION_OBSERVERS = [
+  "au.int", "ecowas.int", "eeas.europa.eu", "ndi.org", "iri.org",
+  "cartercenter.org", "thecommonwealth.org", "eisa.org", "yiaga.org",
+];
+
+/** Bibliographic registries — authoritative for "this work exists by this author". */
+const BOOK_REGISTRIES = ["worldcat.org", "openlibrary.org", "books.google.com"];
 
 const OFFICIALS: EnrichmentProfile = {
   domain: "officials",
@@ -35,7 +82,7 @@ const EDUCATION: EnrichmentProfile = {
   targetTable: "official_education",
   targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
   sensitiveFields: ["qualification", "institution"],
-  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng"],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng", ...INTL_EDUCATION, ...NATIONAL_PRESS],
   sourceTemplates: [], // no single canonical registry of Nigerian alumni
 };
 
@@ -44,7 +91,7 @@ const ELECTIONS: EnrichmentProfile = {
   targetTable: "official_elections",
   targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
   sensitiveFields: ["result", "votes"],
-  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org", ...ELECTION_OBSERVERS],
   sourceTemplates: [
     // INEC declared-results pages are the canonical election source.
     { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
@@ -57,7 +104,7 @@ const CAREERS: EnrichmentProfile = {
   targetTable: "official_careers",
   targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng", "cac.gov.ng"],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: [],
 };
 
@@ -102,7 +149,7 @@ const AWARDS: EnrichmentProfile = {
   targetTable: "official_awards",
   targetFields: ["title", "awarded_by", "year", "category", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng"],
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: [],
 };
 
@@ -111,7 +158,8 @@ const PUBLICATIONS: EnrichmentProfile = {
   targetTable: "official_publications",
   targetFields: ["title", "type", "publisher", "year"],
   sensitiveFields: [],
-  trustedDomains: [],
+  // "should roam": bibliographic registries + press count as authoritative.
+  trustedDomains: [...BOOK_REGISTRIES, ...NATIONAL_PRESS],
   sourceTemplates: [],
 };
 
@@ -120,7 +168,9 @@ const FAMILY: EnrichmentProfile = {
   targetTable: "official_family_members",
   targetFields: ["relationship", "name", "is_public_figure", "notes"],
   sensitiveFields: ["name", "relationship"],
-  trustedDomains: ["*.gov.ng"],
+  // Families are not in government registries; press is the record. The
+  // sensitive-field bar and the skill's needsHuman bias still apply.
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: [],
 };
 

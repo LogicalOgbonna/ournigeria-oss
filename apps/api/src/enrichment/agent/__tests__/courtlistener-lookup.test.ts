@@ -222,7 +222,10 @@ describe("lookupCourtRecords", () => {
     expect(p.payload.officialId).toBe(UUID);
     expect(p.payload.title).toBe("United States v. ODUNZEH");
     expect(p.payload.caseType).toBe("criminal");
-    expect(p.payload.status).toBe("charged"); // NEVER 'convicted' from metadata
+    // Docket IS terminated (dateTerminated present) → concluded, disposition
+    // unknown. Must NOT claim the case is still live ("charged"/"on_trial"),
+    // and NEVER 'convicted' from metadata.
+    expect(p.payload.status).toBe("closed");
     expect(p.payload.forum).toBe("District Court, District of Columbia");
     expect(p.payload.caseNumber).toBe("1:12-cr-00195");
     expect(p.payload.filedDate).toBe("2012-09-05");
@@ -231,6 +234,47 @@ describe("lookupCourtRecords", () => {
     expect(p.payload.recordKind).toBe("appearance"); // never "adjudicated" from metadata
     // terminated docket + no disposition in metadata → honesty marker in outcome
     expect(String(p.payload.outcome)).toMatch(/terminated 2013-01-31.*verify/i);
+  });
+
+  it("marks an open docket (no dateTerminated) as charged/on_trial, not closed", async () => {
+    const client = makeClient();
+    // Open criminal docket
+    let res = await lookupCourtRecords(
+      client, { id: UUID, name: "Uche Ben Odunzeh" },
+      { fetchJson: onePage([crimResult({ dateTerminated: undefined })]), now },
+    );
+    expect(res.filed).toBe(1);
+    expect(client.proposals[0].payload.status).toBe("charged");
+    expect(client.proposals[0].payload.outcome ?? null).toBeNull();
+
+    // Open civil docket
+    const client2 = makeClient();
+    res = await lookupCourtRecords(
+      client2, { id: UUID, name: "Uche Ben Odunzeh" },
+      { fetchJson: onePage([crimResult({
+        caseName: "Odunzeh v. Acme Corp", docketNumber: "1:20-cv-00001", dateTerminated: undefined,
+      })]), now },
+    );
+    expect(res.filed).toBe(1);
+    expect(client2.proposals[0].payload.caseType).toBe("civil");
+    expect(client2.proposals[0].payload.status).toBe("on_trial");
+  });
+
+  it("marks a terminated civil docket as closed (the on-trial-after-resolution bug)", async () => {
+    const client = makeClient();
+    const res = await lookupCourtRecords(
+      client, { id: UUID, name: "Uche Ben Odunzeh" },
+      { fetchJson: onePage([crimResult({
+        caseName: "Olukoya v. Odunzeh", docketNumber: "8:18-cv-02922",
+        dateFiled: "2018-09-20", dateTerminated: "2022-05-04",
+      })]), now },
+    );
+    expect(res.filed).toBe(1);
+    const p = client.proposals[0];
+    expect(p.payload.caseType).toBe("civil");
+    expect(p.payload.status).toBe("closed"); // NOT "on_trial" — docket terminated 2022
+    expect(p.payload.resolvedDate).toBe("2022-05-04");
+    expect(String(p.payload.outcome)).toMatch(/terminated 2022-05-04/i);
   });
 
   it("strips honorifics from both the query phrase and the party guard", async () => {

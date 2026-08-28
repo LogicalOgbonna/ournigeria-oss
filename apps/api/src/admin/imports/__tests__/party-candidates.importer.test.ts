@@ -209,3 +209,11 @@ describe("partyCandidatesImporter", () => {
     expect(pv.winnerName).toBeNull();
   });
 });
+
+describe("input validation", () => {
+  it("rejects a party key containing the seat-key delimiter", () => {
+    // validate() runs before diff() in the bulk-import service contract.
+    expect(() => partyCandidatesImporter.validate!({ "AP|C": [] }))
+      .toThrow(/reserved as the seat-key delimiter/);
+  });
+});

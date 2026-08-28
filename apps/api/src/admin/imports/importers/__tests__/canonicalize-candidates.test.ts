@@ -4,6 +4,7 @@ import {
   normalizeConstituency,
   normalizeResult,
   seatKeyOf,
+  seatKnownOf,
 } from "../lib/canonicalize-candidates";
 
 const row = (over: Record<string, unknown> = {}) => ({
@@ -128,5 +129,80 @@ describe("canonicalizeCandidates", () => {
       ],
     });
     expect(out.candidates).toHaveLength(1);
+  });
+});
+
+describe("vice_presidential (running-mate slot)", () => {
+  it("is a valid national known seat with its own key", () => {
+    expect(seatKeyOf("vice_presidential", null, null)).toBe("vice_presidential|ng");
+    expect(seatKeyOf("vice_presidential", "nigeria", null)).toBe("vice_presidential|ng");
+    expect(seatKnownOf("vice_presidential", null, null)).toBe(true);
+  });
+
+  it("canonicalizes a running-mate row and never conflicts with the president row", () => {
+    const res = canonicalizeCandidates({
+      NDC: [
+        { candidateName: "Peter Gregory Obi", electionType: "presidential", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Rabiu Musa Kwankwaso", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(res.conflicts).toEqual([]);
+    const types = res.candidates.map((c) => [c.name, c.electionType]);
+    expect(types).toContainEqual(["Peter Gregory Obi", "presidential"]);
+    expect(types).toContainEqual(["Rabiu Musa Kwankwaso", "vice_presidential"]);
+  });
+
+  it("flags two distinct running mates for one party as a conflict", () => {
+    const res = canonicalizeCandidates({
+      ADC: [
+        { candidateName: "Rotimi Amaechi", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Kabiru Yusuf Danlami", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(res.conflicts.length).toBe(1);
+    expect(res.conflicts[0].detail).toMatch(/2 distinct "won"/);
+  });
+});
+
+describe("deputy_gubernatorial (governorship running-mate slot)", () => {
+  it("is a state-scoped seat distinct from the governorship itself", () => {
+    expect(seatKeyOf("deputy_gubernatorial", "Gombe", null)).toBe("deputy_gubernatorial|gombe");
+    expect(seatKeyOf("gubernatorial", "Gombe", null)).toBe("gubernatorial|gombe");
+    expect(seatKnownOf("deputy_gubernatorial", "Gombe", null)).toBe(true);
+    expect(seatKnownOf("deputy_gubernatorial", null, null)).toBe(false); // state unknown
+  });
+
+  it("governor and deputy for one party+state never conflict; two deputies do", () => {
+    const ok = canonicalizeCandidates({
+      PDP: [
+        { candidateName: "Isa Ali Ibrahim Pantami", electionType: "gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Mohammed Yayari", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(ok.conflicts).toEqual([]);
+    expect(ok.candidates.map((c) => c.electionType).sort()).toEqual(["deputy_gubernatorial", "gubernatorial"]);
+
+    const bad = canonicalizeCandidates({
+      PDP: [
+        { candidateName: "Mohammed Yayari", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Aliyu Usman Danladi", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(bad.conflicts.length).toBe(1);
+  });
+});
+
+describe("lga_vice_chairman (LGA chairmanship running-mate slot)", () => {
+  it("is a valid LGA-scoped seat keyed like lga_chairman", () => {
+    expect(seatKeyOf("lga_vice_chairman", "kano", "Nassarawa LGA")).toBe(
+      seatKeyOf("lga_vice_chairman", "kano", "Nassarawa"),
+    );
+    expect(seatKnownOf("lga_vice_chairman", "kano", "Nassarawa")).toBe(true);
+    expect(seatKnownOf("lga_vice_chairman", "kano", null)).toBe(false); // LGA unknown
+    const res = canonicalizeCandidates({
+      APC: [{ candidateName: "Test Vice Chair", electionType: "lga_vice_chairman", stateCode: "kano", constituency: "Nassarawa", year: 2027, isPrimary: true, result: "won" }],
+    });
+    expect(res.skipped).toEqual([]);
+    expect(res.candidates[0].electionType).toBe("lga_vice_chairman");
   });
 });
