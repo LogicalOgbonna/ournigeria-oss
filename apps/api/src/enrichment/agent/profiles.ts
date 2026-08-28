@@ -1,4 +1,5 @@
 import type { EnrichmentProfile } from "./profile.types";
+import { WORLD_UNIVERSITY_DOMAINS } from "./university-domains.gen";
 
 
 // ------------------------------------------------------------------
@@ -32,6 +33,9 @@ const INTL_EDUCATION = [
   "*.edu",     // US institutions
   "*.edu.*",   // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
   "*.ac.*",    // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
+  // General-TLD universities (.de/.ca/.fr/...) — pattern-untrustable countries,
+  // covered by the vendored world-universities dataset instead (3,252 domains).
+  ...WORLD_UNIVERSITY_DOMAINS,
 ];
 
 /** Election observer missions (AU, ECOWAS, EU, US institutes, Commonwealth, EISA, Yiaga). */
