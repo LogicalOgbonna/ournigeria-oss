@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { classifyTier, hostnameOf, domainMatches } from "../tier";
+import { getProfile } from "../profiles";
 import type { EnrichmentProfile } from "../profile.types";
 
 const profile: EnrichmentProfile = {
@@ -56,5 +57,23 @@ describe("academic SLD-family patterns (*.edu.* / *.ac.*)", () => {
     expect(domainMatches("acme.com", "*.ac.*")).toBe(false);
     expect(domainMatches("scam-ac.uk", "*.ac.*")).toBe(false);
     expect(domainMatches("education.ng", "*.edu.*")).toBe(false);
+  });
+});
+
+describe("general-TLD universities (vendored world dataset)", () => {
+  const eduProfile = getProfile("education");
+  it("trusts German/Canadian/French/Finnish university sites for education", () => {
+    for (const url of [
+      "https://www.uni-heidelberg.de/en/newsroom/alumni",
+      "https://www.utoronto.ca/news/convocation-2005",
+      "https://www.sorbonne-universite.fr/actualites",
+      "https://www.aalto.fi/en/news",
+    ]) {
+      expect(classifyTier(url, eduProfile)).toBe("official");
+    }
+  });
+  it("random general-TLD sites stay web tier", () => {
+    expect(classifyTier("https://someblog.de/post", eduProfile)).toBe("web");
+    expect(classifyTier("https://uni-fake-notreal.de/x", eduProfile)).toBe("web");
   });
 });
