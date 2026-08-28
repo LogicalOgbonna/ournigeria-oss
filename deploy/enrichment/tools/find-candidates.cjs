@@ -17,7 +17,14 @@ var NATIONAL_PRESS = [
   "businessday.ng",
   "leadership.ng"
 ];
-var INTL_EDUCATION = ["*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke"];
+var INTL_EDUCATION = [
+  "*.edu",
+  // US institutions
+  "*.edu.*",
+  // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*"
+  // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
+];
 var ELECTION_OBSERVERS = [
   "au.int",
   "ecowas.int",

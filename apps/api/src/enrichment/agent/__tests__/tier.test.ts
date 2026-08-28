@@ -38,3 +38,23 @@ describe("classifyTier", () => {
     expect(classifyTier("https://medium.com/some-blog", profile)).toBe("web");
   });
 });
+
+describe("academic SLD-family patterns (*.edu.* / *.ac.*)", () => {
+  it("matches edu/ac second-level domains under any two-letter country TLD", () => {
+    expect(domainMatches("unn.edu.ng", "*.edu.*")).toBe(true);
+    expect(domainMatches("ug.edu.gh", "*.edu.*")).toBe(true);
+    expect(domainMatches("azhar.edu.eg", "*.edu.*")).toBe(true);
+    expect(domainMatches("edu.ng", "*.edu.*")).toBe(true); // bare SLD host
+    expect(domainMatches("cam.ac.uk", "*.ac.*")).toBe(true);
+    expect(domainMatches("iitb.ac.in", "*.ac.*")).toBe(true);
+    expect(domainMatches("u-tokyo.ac.jp", "*.ac.*")).toBe(true);
+  });
+
+  it("never matches lookalikes or non-country suffixes", () => {
+    expect(domainMatches("myedu.ng", "*.edu.*")).toBe(false);   // label boundary
+    expect(domainMatches("edu.com", "*.edu.*")).toBe(false);    // commercial, 3-letter TLD
+    expect(domainMatches("acme.com", "*.ac.*")).toBe(false);
+    expect(domainMatches("scam-ac.uk", "*.ac.*")).toBe(false);
+    expect(domainMatches("education.ng", "*.edu.*")).toBe(false);
+  });
+});

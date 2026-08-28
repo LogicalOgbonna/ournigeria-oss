@@ -119,7 +119,14 @@ var NATIONAL_PRESS = [
   "businessday.ng",
   "leadership.ng"
 ];
-var INTL_EDUCATION = ["*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke"];
+var INTL_EDUCATION = [
+  "*.edu",
+  // US institutions
+  "*.edu.*",
+  // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*"
+  // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
+];
 var ELECTION_OBSERVERS = [
   "au.int",
   "ecowas.int",
@@ -356,6 +363,10 @@ function hostnameOf(url) {
 }
 function domainMatches(host, pattern) {
   const p = pattern.toLowerCase();
+  const sldFamily = /^\*\.([a-z0-9-]+)\.\*$/.exec(p);
+  if (sldFamily) {
+    return new RegExp(`(^|\\.)${sldFamily[1]}\\.[a-z]{2}$`).test(host);
+  }
   if (p.startsWith("*.")) {
     const base = p.slice(2);
     return host === base || host.endsWith(`.${base}`);
