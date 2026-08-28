@@ -22,7 +22,26 @@ var NATIONAL_PRESS = [
   "businessday.ng",
   "leadership.ng"
 ];
-var INTL_EDUCATION = ["*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke"];
+var INTL_EDUCATION = [
+  "*.edu",
+  "*.ac.uk",
+  "*.edu.au",
+  "*.ac.za",
+  "*.edu.gh",
+  "*.ac.ke",
+  "*.ac.in",
+  "*.edu.eg",
+  "*.edu.sa",
+  "*.edu.sd",
+  "*.edu.my",
+  "*.ac.ae",
+  "*.edu.pk",
+  "*.ac.tz",
+  "*.ac.ug",
+  "*.ac.rw",
+  "*.edu.gm",
+  "*.edu.sl"
+];
 var ELECTION_OBSERVERS = [
   "au.int",
   "ecowas.int",

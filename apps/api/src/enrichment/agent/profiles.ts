@@ -22,8 +22,17 @@ const NATIONAL_PRESS = [
   "tribuneonlineng.com", "businessday.ng", "leadership.ng",
 ];
 
-/** International academic domains — Nigerian politicians study worldwide. */
-const INTL_EDUCATION = ["*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke"];
+/**
+ * International ACADEMIC-SPECIFIC domain families. Necessarily partial: countries
+ * whose universities live on general TLDs (Canada .ca, Germany .de, France .fr)
+ * cannot be pattern-trusted without blessing the whole country — schools there
+ * still file via the 2-independent-source web path or a trusted press profile.
+ */
+const INTL_EDUCATION = [
+  "*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke",
+  "*.ac.in", "*.edu.eg", "*.edu.sa", "*.edu.sd", "*.edu.my", "*.ac.ae",
+  "*.edu.pk", "*.ac.tz", "*.ac.ug", "*.ac.rw", "*.edu.gm", "*.edu.sl",
+];
 
 /** Election observer missions (AU, ECOWAS, EU, US institutes, Commonwealth, EISA, Yiaga). */
 const ELECTION_OBSERVERS = [
