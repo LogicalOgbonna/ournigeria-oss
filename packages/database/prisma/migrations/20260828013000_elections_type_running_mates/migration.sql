@@ -2,7 +2,7 @@
 -- (presidential ticket), 'deputy_gubernatorial' (governorship ticket) and
 -- 'lga_vice_chairman' (LGA chairmanship ticket, SIEC-run).
 -- Needed so 2027 running mates (Kwankwaso, Amaechi, state deputies, ...)
--- import as first-class candidate officials — visible on ticket views and
+-- import as first-class candidate officials — available to future ticket views and
 -- covered by the enrichment/court-records sweeps — without polluting the
 -- races themselves (ballot office-map has neither type, so these rows never
 -- resolve onto a ballot; contesting-position creation stays gubernatorial-only).

@@ -123,8 +123,10 @@ export const RECORD_SCHEMAS: Record<string, RecordSchemaDef> = {
     fields: [
       // only result/votes/vote_percentage/winner_name/election_date/notes are appliable
       T("electionType", "election_type", "Election type", { input: "select", required: true,
-        options: ["presidential", "gubernatorial", "senatorial", "house_of_reps",
-                  "state_assembly", "lga_chairman", "councilor", "other"] }),
+        // Mirrors chk_elections_type — includes the ticket running-mate slots.
+        options: ["presidential", "vice_presidential", "gubernatorial", "deputy_gubernatorial",
+                  "senatorial", "house_of_reps", "state_assembly", "lga_chairman",
+                  "lga_vice_chairman", "councilor", "other"] }),
       T("isPrimary", "is_primary", "Party primary?", { input: "boolean" }),
       T("year", "year", "Year", { input: "year", required: true }),
       T("electionDate", "election_date", "Election date", { input: "date", editable: true }),

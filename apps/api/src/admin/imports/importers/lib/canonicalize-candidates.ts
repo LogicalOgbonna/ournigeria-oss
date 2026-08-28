@@ -119,7 +119,7 @@ export function normalizeConstituency(raw: string | null | undefined): string {
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((t) => t && !["federal", "constituency", "senatorial", "district", "fc", "state", "zone",
-      "lga", "local", "government", "area"].includes(t));
+      "lga", "local", "government", "area", "govt", "council", "municipal"].includes(t));
   return toks.sort().join("_");
 }
 

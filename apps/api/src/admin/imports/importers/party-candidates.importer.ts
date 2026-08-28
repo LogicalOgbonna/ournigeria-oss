@@ -144,6 +144,9 @@ export const partyCandidatesImporter: DatasetImporter = {
     const obj = json as Record<string, unknown>;
     for (const [key, value] of Object.entries(obj)) {
       if (key.startsWith("_")) continue; // skip _meta, _notes, etc.
+      if (key.includes("|")) {
+        throw new Error(`party-candidates JSON: party key "${key}" contains "|" (reserved as the seat-key delimiter)`);
+      }
       if (!Array.isArray(value)) {
         throw new Error(
           `party-candidates JSON: entry "${key}" must be an array of candidates, got ${value === null ? "null" : typeof value}`,
@@ -268,7 +271,7 @@ export const partyCandidatesImporter: DatasetImporter = {
     const existingRows = await prisma.$queryRawUnsafe<{ namekey: string; idkey: string; seatkey: string | null }[]>(
       `SELECT lower(o.name) || '|' || e.election_type || '|' || e.year || '|' || coalesce(e.party_acronym, '') AS namekey,
               e.official_id || '|' || e.election_type || '|' || e.year || '|' || e.is_primary || '|' || coalesce(e.party_acronym, '') AS idkey,
-              CASE WHEN e.is_primary AND e.result = 'won' AND e.election_type IN ('presidential','gubernatorial')
+              CASE WHEN e.is_primary AND e.result = 'won' AND e.election_type IN ('presidential','vice_presidential','gubernatorial','deputy_gubernatorial')
                    THEN coalesce(e.party_acronym,'') || '|' || e.election_type || '|' || e.year || '|' || coalesce(e.state_code, 'ng')
               END AS seatkey
        FROM official_elections e
@@ -283,6 +286,8 @@ export const partyCandidatesImporter: DatasetImporter = {
     // ---- Build election creates.
     const electionCreates: ProposalSpec[] = [];
     const inBatch = new Set<string>();
+    /** nameKey → stateCode of the row that claimed it (cross-state collision warning). */
+    const inBatchState = new Map<string, string | null>();
     const matchedPairs: string[] = [];
     /** officialId|seat(without party)|year → parties, for the F6b conflict check. */
     const winnerSeatByOfficial = new Map<string, Set<string>>();
@@ -355,10 +360,20 @@ export const partyCandidatesImporter: DatasetImporter = {
       // row and a null-constituency row of the same person) can resolve to the
       // SAME incumbent — one election per official+type+year+party per run.
       if (inBatch.has(nameKey) || (idKey && inBatch.has(idKey))) {
+        // Same full name + party + type/year but a DIFFERENT state is likely two
+        // real people (hyper-local offices make this common) — the drop must be
+        // loud, not a silent unchanged++.
+        const prevState = inBatchState.get(nameKey);
+        if (prevState !== undefined && c.stateCode && prevState && prevState !== c.stateCode) {
+          warnings.push(
+            `NAME COLLISION (dropped): "${c.name}" [${acr} ${c.electionType} ${c.year}] appears in both ${prevState} and ${c.stateCode} — likely two different people; disambiguate the source rows`,
+          );
+        }
         unchangedCount++;
         continue;
       }
       inBatch.add(nameKey);
+      inBatchState.set(nameKey, c.stateCode ?? null);
       if (idKey) inBatch.add(idKey);
 
       const noteBits = [
