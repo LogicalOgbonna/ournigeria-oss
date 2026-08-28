@@ -326,9 +326,9 @@ export const partyCandidatesImporter: DatasetImporter = {
       // second winner — report for manual resolution instead.
       if (
         c.result === "won" &&
-        (c.electionType === "presidential" || c.electionType === "vice_presidential" || c.electionType === "gubernatorial")
+        ["presidential", "vice_presidential", "gubernatorial", "deputy_gubernatorial"].includes(c.electionType)
       ) {
-        const seatGuardKey = `${acr}|${c.electionType}|${c.year}|${c.electionType === "gubernatorial" ? (c.stateCode ?? "ng") : "ng"}`;
+        const seatGuardKey = `${acr}|${c.electionType}|${c.year}|${c.electionType === "gubernatorial" || c.electionType === "deputy_gubernatorial" ? (c.stateCode ?? "ng") : "ng"}`;
         const nameKeyProbe = `${c.name.toLowerCase()}|${c.electionType}|${c.year}|${acr}`;
         const idKeyProbe = incumbent ? `${incumbent.id}|${c.electionType}|${c.year}|${c.isPrimary}|${acr}` : null;
         if (

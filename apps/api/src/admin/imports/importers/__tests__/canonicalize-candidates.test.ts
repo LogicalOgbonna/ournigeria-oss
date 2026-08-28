@@ -163,3 +163,31 @@ describe("vice_presidential (running-mate slot)", () => {
     expect(res.conflicts[0].detail).toMatch(/2 distinct "won"/);
   });
 });
+
+describe("deputy_gubernatorial (governorship running-mate slot)", () => {
+  it("is a state-scoped seat distinct from the governorship itself", () => {
+    expect(seatKeyOf("deputy_gubernatorial", "Gombe", null)).toBe("deputy_gubernatorial|gombe");
+    expect(seatKeyOf("gubernatorial", "Gombe", null)).toBe("gubernatorial|gombe");
+    expect(seatKnownOf("deputy_gubernatorial", "Gombe", null)).toBe(true);
+    expect(seatKnownOf("deputy_gubernatorial", null, null)).toBe(false); // state unknown
+  });
+
+  it("governor and deputy for one party+state never conflict; two deputies do", () => {
+    const ok = canonicalizeCandidates({
+      PDP: [
+        { candidateName: "Isa Ali Ibrahim Pantami", electionType: "gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Mohammed Yayari", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(ok.conflicts).toEqual([]);
+    expect(ok.candidates.map((c) => c.electionType).sort()).toEqual(["deputy_gubernatorial", "gubernatorial"]);
+
+    const bad = canonicalizeCandidates({
+      PDP: [
+        { candidateName: "Mohammed Yayari", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Aliyu Usman Danladi", electionType: "deputy_gubernatorial", stateCode: "gombe", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(bad.conflicts.length).toBe(1);
+  });
+});
