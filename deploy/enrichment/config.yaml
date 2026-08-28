@@ -11,8 +11,8 @@ model:
 toolsets: '["browser", "terminal", "file"]'
 
 agent:
-  max_turns: 60
-  reasoning_effort: medium
+  max_turns: 90
+  reasoning_effort: high
 
 browser:
   inactivity_timeout: 180

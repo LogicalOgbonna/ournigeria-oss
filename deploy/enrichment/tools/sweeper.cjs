@@ -106,6 +106,32 @@ function slugifyName(input) {
 }
 
 // apps/api/src/enrichment/agent/profiles.ts
+var NATIONAL_PRESS = [
+  "premiumtimesng.com",
+  "punchng.com",
+  "thecable.ng",
+  "guardian.ng",
+  "vanguardngr.com",
+  "dailytrust.com",
+  "channelstv.com",
+  "thisdaylive.com",
+  "tribuneonlineng.com",
+  "businessday.ng",
+  "leadership.ng"
+];
+var INTL_EDUCATION = ["*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke"];
+var ELECTION_OBSERVERS = [
+  "au.int",
+  "ecowas.int",
+  "eeas.europa.eu",
+  "ndi.org",
+  "iri.org",
+  "cartercenter.org",
+  "thecommonwealth.org",
+  "eisa.org",
+  "yiaga.org"
+];
+var BOOK_REGISTRIES = ["worldcat.org", "openlibrary.org", "books.google.com"];
 var OFFICIALS = {
   domain: "officials",
   targetTable: "nigerian_officials",
@@ -143,7 +169,7 @@ var EDUCATION = {
   targetTable: "official_education",
   targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
   sensitiveFields: ["qualification", "institution"],
-  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng"],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng", ...INTL_EDUCATION, ...NATIONAL_PRESS],
   sourceTemplates: []
   // no single canonical registry of Nigerian alumni
 };
@@ -152,7 +178,7 @@ var ELECTIONS = {
   targetTable: "official_elections",
   targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
   sensitiveFields: ["result", "votes"],
-  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org", ...ELECTION_OBSERVERS],
   sourceTemplates: [
     // INEC declared-results pages are the canonical election source.
     { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
@@ -164,7 +190,7 @@ var CAREERS = {
   targetTable: "official_careers",
   targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng", "cac.gov.ng"],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: []
 };
 var PARTY_AFFILIATIONS = {
@@ -204,7 +230,7 @@ var AWARDS = {
   targetTable: "official_awards",
   targetFields: ["title", "awarded_by", "year", "category", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng"],
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: []
 };
 var PUBLICATIONS = {
@@ -212,7 +238,8 @@ var PUBLICATIONS = {
   targetTable: "official_publications",
   targetFields: ["title", "type", "publisher", "year"],
   sensitiveFields: [],
-  trustedDomains: [],
+  // "should roam": bibliographic registries + press count as authoritative.
+  trustedDomains: [...BOOK_REGISTRIES, ...NATIONAL_PRESS],
   sourceTemplates: []
 };
 var FAMILY = {
@@ -220,7 +247,9 @@ var FAMILY = {
   targetTable: "official_family_members",
   targetFields: ["relationship", "name", "is_public_figure", "notes"],
   sensitiveFields: ["name", "relationship"],
-  trustedDomains: ["*.gov.ng"],
+  // Families are not in government registries; press is the record. The
+  // sensitive-field bar and the skill's needsHuman bias still apply.
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
   sourceTemplates: []
 };
 var LEGAL_CASES = {
