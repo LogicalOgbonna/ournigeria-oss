@@ -23,6 +23,20 @@ const config: SweeperConfig = {
 
 const KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
 
+// Optional population filter: comma-separated election types — the sweep only
+// touches officials holding a won election of these types (e.g.
+// SWEEPER_ELECTION_TYPES=presidential,vice_presidential for the tickets only).
+const VALID_SWEEP_TYPES = new Set([
+  "presidential", "vice_presidential", "gubernatorial", "deputy_gubernatorial",
+  "senatorial", "house_of_reps", "state_assembly", "lga_chairman",
+  "lga_vice_chairman", "councilor", "other",
+]);
+const SWEEP_ELECTION_TYPES = (process.env.SWEEPER_ELECTION_TYPES ?? "")
+  .split(",").map((t) => t.trim()).filter(Boolean);
+for (const t of SWEEP_ELECTION_TYPES) {
+  if (!VALID_SWEEP_TYPES.has(t)) throw new Error(`SWEEPER_ELECTION_TYPES: unknown election type "${t}"`);
+}
+
 /**
  * CourtListener hourly request budget (the search API hard-caps at 50/hour even
  * authenticated). A lookup spends 1–6 requests (pages + variant + party-roles),
@@ -122,7 +136,8 @@ async function main() {
   };
 
   const deps: SweeperDeps = {
-    findGaps: (limit) => findStructuredGaps(client, limit),
+    findGaps: (limit) =>
+      findStructuredGaps(client, limit, SWEEP_ELECTION_TYPES.length ? { electionTypes: SWEEP_ELECTION_TYPES } : {}),
     runHermes: runHermesOrLookup,
     async countNewProposals(gap, sinceIso) {
       const res = await client.query(

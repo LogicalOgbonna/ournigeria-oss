@@ -25,10 +25,10 @@ var CATEGORY_BY_KEY = Object.fromEntries(
 );
 
 // apps/api/src/enrichment/agent/find-structured-gaps.ts
-async function findStructuredGaps(client, limit = 20) {
+async function findStructuredGaps(client, limit = 20, opts = {}) {
   const all = [];
   for (const cat of CATEGORIES) {
-    const rows = await queryCategory(client, cat, limit);
+    const rows = await queryCategory(client, cat, limit, opts.electionTypes);
     all.push(...rows);
   }
   all.sort((a, b) => {
@@ -39,8 +39,13 @@ async function findStructuredGaps(client, limit = 20) {
   });
   return all.slice(0, limit);
 }
-async function queryCategory(client, cat, limit) {
+async function queryCategory(client, cat, limit, electionTypes) {
   const electedClause = cat.electedOnly ? `AND (o.official_type IS NULL OR o.official_type = 'elected')` : "";
+  const typeClause = electionTypes && electionTypes.length > 0 ? `AND EXISTS (
+        SELECT 1 FROM official_elections te
+        WHERE te.official_id = o.id AND te.result = 'won'
+          AND te.election_type = ANY($4)
+      )` : "";
   const zeroRowClause = cat.kind === "fillable" ? `AND NOT EXISTS (SELECT 1 FROM "${cat.table}" t WHERE t.official_id = o.id)` : "";
   const sql = `
     SELECT o.id, o.name, o.slug, o.official_type, o.completeness_score
@@ -78,9 +83,12 @@ async function queryCategory(client, cat, limit) {
           AND (cp.proposed_value->>'officialId') = o.id::text
       )
       ${zeroRowClause}
+      ${typeClause}
     ORDER BY o.completeness_score ASC NULLS FIRST, o.created_at ASC
     LIMIT $3`;
-  const res = await client.query(sql, [cat.category, cat.table, limit]);
+  const params = [cat.category, cat.table, limit];
+  if (electionTypes && electionTypes.length > 0) params.push(electionTypes);
+  const res = await client.query(sql, params);
   return res.rows.map((r) => ({
     officialId: r.id,
     name: r.name,
@@ -2242,6 +2250,23 @@ var config = {
   }
 };
 var KILL_FILE = process.env.SWEEPER_KILL_FILE || "/tmp/enrichment-sweeper.kill";
+var VALID_SWEEP_TYPES = /* @__PURE__ */ new Set([
+  "presidential",
+  "vice_presidential",
+  "gubernatorial",
+  "deputy_gubernatorial",
+  "senatorial",
+  "house_of_reps",
+  "state_assembly",
+  "lga_chairman",
+  "lga_vice_chairman",
+  "councilor",
+  "other"
+]);
+var SWEEP_ELECTION_TYPES = (process.env.SWEEPER_ELECTION_TYPES ?? "").split(",").map((t) => t.trim()).filter(Boolean);
+for (const t of SWEEP_ELECTION_TYPES) {
+  if (!VALID_SWEEP_TYPES.has(t)) throw new Error(`SWEEPER_ELECTION_TYPES: unknown election type "${t}"`);
+}
 var CL_HOURLY_BUDGET = Number(process.env.SWEEPER_CL_HOURLY_BUDGET || 44);
 var CL_DAILY_BUDGET = Number(process.env.SWEEPER_CL_DAILY_BUDGET || 110);
 var CL_RESERVE = 9;
@@ -2311,7 +2336,7 @@ async function main() {
     return runHermes(gap);
   };
   const deps = {
-    findGaps: (limit) => findStructuredGaps(client, limit),
+    findGaps: (limit) => findStructuredGaps(client, limit, SWEEP_ELECTION_TYPES.length ? { electionTypes: SWEEP_ELECTION_TYPES } : {}),
     runHermes: runHermesOrLookup,
     async countNewProposals(gap, sinceIso) {
       const res = await client.query(

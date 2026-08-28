@@ -29,11 +29,19 @@ export interface StructuredGap {
 export async function findStructuredGaps(
   client: ClientBase,
   limit = 20,
+  opts: {
+    /**
+     * Restrict the swept population to officials holding a won election of one
+     * of these types (e.g. ["presidential","vice_presidential"] to sweep only
+     * the presidential tickets). Undefined/empty = no restriction.
+     */
+    electionTypes?: string[];
+  } = {},
 ): Promise<StructuredGap[]> {
   const all: StructuredGap[] = [];
 
   for (const cat of CATEGORIES) {
-    const rows = await queryCategory(client, cat, limit);
+    const rows = await queryCategory(client, cat, limit, opts.electionTypes);
     all.push(...rows);
   }
 
@@ -52,9 +60,20 @@ async function queryCategory(
   client: ClientBase,
   cat: CategorySpec,
   limit: number,
+  electionTypes?: string[],
 ): Promise<StructuredGap[]> {
   const electedClause = cat.electedOnly
     ? `AND (o.official_type IS NULL OR o.official_type = 'elected')`
+    : "";
+
+  // Optional population filter (SWEEPER_ELECTION_TYPES): only officials on a
+  // won ticket of the given election types are swept.
+  const typeClause = electionTypes && electionTypes.length > 0
+    ? `AND EXISTS (
+        SELECT 1 FROM official_elections te
+        WHERE te.official_id = o.id AND te.result = 'won'
+          AND te.election_type = ANY($4)
+      )`
     : "";
 
   // FILLABLE: only officials with zero rows in the target table.
@@ -99,10 +118,13 @@ async function queryCategory(
           AND (cp.proposed_value->>'officialId') = o.id::text
       )
       ${zeroRowClause}
+      ${typeClause}
     ORDER BY o.completeness_score ASC NULLS FIRST, o.created_at ASC
     LIMIT $3`;
 
-  const res = await client.query(sql, [cat.category, cat.table, limit]);
+  const params: unknown[] = [cat.category, cat.table, limit];
+  if (electionTypes && electionTypes.length > 0) params.push(electionTypes);
+  const res = await client.query(sql, params);
   return res.rows.map((r) => ({
     officialId: r.id,
     name: r.name,
