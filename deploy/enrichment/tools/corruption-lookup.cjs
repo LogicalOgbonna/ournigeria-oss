@@ -24,23 +24,11 @@ var NATIONAL_PRESS = [
 ];
 var INTL_EDUCATION = [
   "*.edu",
-  "*.ac.uk",
-  "*.edu.au",
-  "*.ac.za",
-  "*.edu.gh",
-  "*.ac.ke",
-  "*.ac.in",
-  "*.edu.eg",
-  "*.edu.sa",
-  "*.edu.sd",
-  "*.edu.my",
-  "*.ac.ae",
-  "*.edu.pk",
-  "*.ac.tz",
-  "*.ac.ug",
-  "*.ac.rw",
-  "*.edu.gm",
-  "*.edu.sl"
+  // US institutions
+  "*.edu.*",
+  // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*"
+  // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
 ];
 var ELECTION_OBSERVERS = [
   "au.int",
@@ -278,6 +266,10 @@ function hostnameOf(url) {
 }
 function domainMatches(host, pattern) {
   const p = pattern.toLowerCase();
+  const sldFamily = /^\*\.([a-z0-9-]+)\.\*$/.exec(p);
+  if (sldFamily) {
+    return new RegExp(`(^|\\.)${sldFamily[1]}\\.[a-z]{2}$`).test(host);
+  }
   if (p.startsWith("*.")) {
     const base = p.slice(2);
     return host === base || host.endsWith(`.${base}`);

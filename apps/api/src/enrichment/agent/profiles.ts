@@ -29,9 +29,9 @@ const NATIONAL_PRESS = [
  * still file via the 2-independent-source web path or a trusted press profile.
  */
 const INTL_EDUCATION = [
-  "*.edu", "*.ac.uk", "*.edu.au", "*.ac.za", "*.edu.gh", "*.ac.ke",
-  "*.ac.in", "*.edu.eg", "*.edu.sa", "*.edu.sd", "*.edu.my", "*.ac.ae",
-  "*.edu.pk", "*.ac.tz", "*.ac.ug", "*.ac.rw", "*.edu.gm", "*.edu.sl",
+  "*.edu",     // US institutions
+  "*.edu.*",   // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*",    // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
 ];
 
 /** Election observer missions (AU, ECOWAS, EU, US institutes, Commonwealth, EISA, Yiaga). */

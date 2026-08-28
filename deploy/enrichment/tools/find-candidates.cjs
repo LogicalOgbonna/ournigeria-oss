@@ -19,23 +19,11 @@ var NATIONAL_PRESS = [
 ];
 var INTL_EDUCATION = [
   "*.edu",
-  "*.ac.uk",
-  "*.edu.au",
-  "*.ac.za",
-  "*.edu.gh",
-  "*.ac.ke",
-  "*.ac.in",
-  "*.edu.eg",
-  "*.edu.sa",
-  "*.edu.sd",
-  "*.edu.my",
-  "*.ac.ae",
-  "*.edu.pk",
-  "*.ac.tz",
-  "*.ac.ug",
-  "*.ac.rw",
-  "*.edu.gm",
-  "*.edu.sl"
+  // US institutions
+  "*.edu.*",
+  // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*"
+  // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
 ];
 var ELECTION_OBSERVERS = [
   "au.int",
