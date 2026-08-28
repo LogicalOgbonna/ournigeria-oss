@@ -55,6 +55,14 @@ Prefer the source tiers for that category:
   (Rate-limited 50/hour — if it errors with 429, skip it and just browse.)
 - corruption → efcc.gov.ng, icpc.gov.ng, court records
 
+**Historical facts (pre-2010 careers, past appointments, forgotten officials):** the live
+web won't have them — search the archives: **archivi.ng** (OCR'd Nigerian newspapers
+1960–2010, topic-tagged incl. Government officials/Corruption/Elections),
+**gazettes.africa** (the Official Gazette — THE primary record of appointments,
+commissions, dissolutions), **allafrica.com** (wire archive to ~1997), and
+**nigerialii.org** (Nigerian court judgments) for legal/corruption history. Dates from a
+gazette or contemporaneous newspaper beat a modern retrospective.
+
 Find pages via a search engine in the browser (`https://duckduckgo.com/?q=...`) and open
 the results. Capture per source: url, exact quoted snippet, publisher, retrieval time.
 

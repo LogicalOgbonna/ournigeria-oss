@@ -3260,6 +3260,8 @@ var WORLD_UNIVERSITY_DOMAINS = [
 ];
 
 // apps/api/src/enrichment/agent/profiles.ts
+var HISTORICAL_ARCHIVES = ["archivi.ng", "allafrica.com", "gazettes.africa", "laws.africa"];
+var COURT_ARCHIVES = ["nigerialii.org"];
 var NATIONAL_PRESS = [
   "premiumtimesng.com",
   "punchng.com",
@@ -3333,7 +3335,7 @@ var EDUCATION = {
   targetTable: "official_education",
   targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
   sensitiveFields: ["qualification", "institution"],
-  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng", ...INTL_EDUCATION, ...NATIONAL_PRESS],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng", ...INTL_EDUCATION, ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: []
   // no single canonical registry of Nigerian alumni
 };
@@ -3342,7 +3344,7 @@ var ELECTIONS = {
   targetTable: "official_elections",
   targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
   sensitiveFields: ["result", "votes"],
-  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org", ...ELECTION_OBSERVERS],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org", ...ELECTION_OBSERVERS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [
     // INEC declared-results pages are the canonical election source.
     { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
@@ -3354,7 +3356,7 @@ var CAREERS = {
   targetTable: "official_careers",
   targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng", "cac.gov.ng", ...NATIONAL_PRESS],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: []
 };
 var PARTY_AFFILIATIONS = {
@@ -3394,7 +3396,7 @@ var AWARDS = {
   targetTable: "official_awards",
   targetFields: ["title", "awarded_by", "year", "category", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: []
 };
 var PUBLICATIONS = {
@@ -3403,7 +3405,7 @@ var PUBLICATIONS = {
   targetFields: ["title", "type", "publisher", "year"],
   sensitiveFields: [],
   // "should roam": bibliographic registries + press count as authoritative.
-  trustedDomains: [...BOOK_REGISTRIES, ...NATIONAL_PRESS],
+  trustedDomains: [...BOOK_REGISTRIES, ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: []
 };
 var FAMILY = {
@@ -3413,7 +3415,7 @@ var FAMILY = {
   sensitiveFields: ["name", "relationship"],
   // Families are not in government registries; press is the record. The
   // sensitive-field bar and the skill's needsHuman bias still apply.
-  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS],
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: []
 };
 var LEGAL_CASES = {
@@ -3424,7 +3426,7 @@ var LEGAL_CASES = {
   // courtlistener.com (Free Law Project / RECAP) = US federal court dockets, tiered
   // `official` (RECAP is crowd-sourced from PACER, so not a canonical single-doc);
   // a docket backlink satisfies the create bar and every proposal stays human-reviewed.
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com", ...COURT_ARCHIVES],
   sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }]
 };
 var CORRUPTION_CASES = {
@@ -3435,7 +3437,7 @@ var CORRUPTION_CASES = {
   // corruptioncases.ng (TransparencIT) is a structured, curated DB citing EFCC/court
   // records — registered as canonical so a single case-page backlink satisfies the
   // create bar (still human-reviewed before any live write).
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng", ...COURT_ARCHIVES],
   sourceTemplates: [
     { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
     { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },
