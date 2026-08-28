@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { MagazineProfile } from "@/components/official/MagazineProfile";
+import { ProfileV10 } from "@/components/official/ProfileV10";
 import type { Official } from "@/lib/api";
 
 /**
  * INTERNAL PREVIEW ROUTE — not linked anywhere, not in the sitemap, noindex.
  *
- * Renders the candidate "Magazine Profile" (V9) layout for any official using
+ * Renders the candidate profile layout (V10, the Figma card redesign — see
+ * .agent/plans/61.officials-profile-v10-figma.md) for any official using
  * LIVE data straight from the backend (no cache), so we can eyeball whether a
- * given official has enough structured data to justify promoting V9 to the real
+ * given official has enough structured data to justify promoting it to the real
  * /officials/[slug] route. Visit directly: /preview/officials/<slug>.
  */
 
@@ -27,6 +28,20 @@ async function getOfficial(idOrSlug: string): Promise<Official | null> {
   }
 }
 
+/** acronym → logoUrl map so Party Affiliations rows can show the party flag. */
+async function getPartyLogos(): Promise<Record<string, string>> {
+  try {
+    const res = await fetch(`${API_URL}/api/parties`, { next: { revalidate: 3600 } });
+    if (!res.ok) return {};
+    const parties = (await res.json()) as { acronym: string; logoUrl: string | null }[];
+    return Object.fromEntries(
+      parties.filter((p) => p.logoUrl).map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
+    );
+  } catch {
+    return {};
+  }
+}
+
 // Keep this route out of search indexes regardless of how it's reached.
 export const metadata: Metadata = {
   title: "Profile preview (internal)",
@@ -39,16 +54,16 @@ export default async function OfficialPreviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const official = await getOfficial(slug);
+  const [official, partyLogos] = await Promise.all([getOfficial(slug), getPartyLogos()]);
   if (!official) notFound();
 
   return (
-    <PageLayout className="bg-[oklch(0.10_0.005_160)]" mainClassName="pt-24">
+    <PageLayout className="bg-[#030403]" mainClassName="pt-24">
       {/* internal preview banner so it's never mistaken for the live page */}
       <div className="fixed top-0 inset-x-0 z-[60] bg-amber-500/90 text-amber-950 text-center font-mono text-[11px] tracking-[0.1em] uppercase py-1 pointer-events-none">
-        Internal preview · V9 candidate · live data · not indexed
+        Internal preview · V10 candidate · live data · not indexed
       </div>
-      <MagazineProfile official={official} />
+      <ProfileV10 official={official} partyLogos={partyLogos} />
     </PageLayout>
   );
 }
