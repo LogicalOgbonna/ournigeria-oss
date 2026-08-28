@@ -126,7 +126,7 @@ export function resolveIncumbent(
     // Presidential (national figures): EQUAL token sets only (plan §4.1) — a
     // 3-token presidential name subset-matching a 2-token local official must
     // not link ("Adamu Musa Ibrahim" ≠ councillor "Musa Ibrahim").
-    (c.electionType === "presidential" && ct.size >= 3 && m.tokens.size === ct.size);
+    ((c.electionType === "presidential" || c.electionType === "vice_presidential") && ct.size >= 3 && m.tokens.size === ct.size);
   return corroborated ? m : null;
 }
 
@@ -326,9 +326,9 @@ export const partyCandidatesImporter: DatasetImporter = {
       // second winner — report for manual resolution instead.
       if (
         c.result === "won" &&
-        (c.electionType === "presidential" || c.electionType === "gubernatorial")
+        (c.electionType === "presidential" || c.electionType === "vice_presidential" || c.electionType === "gubernatorial")
       ) {
-        const seatGuardKey = `${acr}|${c.electionType}|${c.year}|${c.electionType === "presidential" ? "ng" : c.stateCode ?? "ng"}`;
+        const seatGuardKey = `${acr}|${c.electionType}|${c.year}|${c.electionType === "gubernatorial" ? (c.stateCode ?? "ng") : "ng"}`;
         const nameKeyProbe = `${c.name.toLowerCase()}|${c.electionType}|${c.year}|${acr}`;
         const idKeyProbe = incumbent ? `${incumbent.id}|${c.electionType}|${c.year}|${c.isPrimary}|${acr}` : null;
         if (

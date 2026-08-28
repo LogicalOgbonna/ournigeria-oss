@@ -4,6 +4,7 @@ import {
   normalizeConstituency,
   normalizeResult,
   seatKeyOf,
+  seatKnownOf,
 } from "../lib/canonicalize-candidates";
 
 const row = (over: Record<string, unknown> = {}) => ({
@@ -128,5 +129,37 @@ describe("canonicalizeCandidates", () => {
       ],
     });
     expect(out.candidates).toHaveLength(1);
+  });
+});
+
+describe("vice_presidential (running-mate slot)", () => {
+  it("is a valid national known seat with its own key", () => {
+    expect(seatKeyOf("vice_presidential", null, null)).toBe("vice_presidential|ng");
+    expect(seatKeyOf("vice_presidential", "nigeria", null)).toBe("vice_presidential|ng");
+    expect(seatKnownOf("vice_presidential", null, null)).toBe(true);
+  });
+
+  it("canonicalizes a running-mate row and never conflicts with the president row", () => {
+    const res = canonicalizeCandidates({
+      NDC: [
+        { candidateName: "Peter Gregory Obi", electionType: "presidential", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Rabiu Musa Kwankwaso", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(res.conflicts).toEqual([]);
+    const types = res.candidates.map((c) => [c.name, c.electionType]);
+    expect(types).toContainEqual(["Peter Gregory Obi", "presidential"]);
+    expect(types).toContainEqual(["Rabiu Musa Kwankwaso", "vice_presidential"]);
+  });
+
+  it("flags two distinct running mates for one party as a conflict", () => {
+    const res = canonicalizeCandidates({
+      ADC: [
+        { candidateName: "Rotimi Amaechi", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+        { candidateName: "Kabiru Yusuf Danlami", electionType: "vice_presidential", year: 2027, isPrimary: true, result: "won" },
+      ],
+    });
+    expect(res.conflicts.length).toBe(1);
+    expect(res.conflicts[0].detail).toMatch(/2 distinct "won"/);
   });
 });

@@ -66,7 +66,7 @@ export interface CanonicalizeResult {
 }
 
 const VALID_ELECTION_TYPES = new Set([
-  "presidential", "gubernatorial", "senatorial", "house_of_reps",
+  "presidential", "vice_presidential", "gubernatorial", "senatorial", "house_of_reps",
   "state_assembly", "lga_chairman", "councilor", "other",
 ]);
 
@@ -137,6 +137,9 @@ export function seatKeyOf(electionType: string, stateCode: string | null | undef
   switch (electionType) {
     case "presidential":
       return "presidential|ng";
+    case "vice_presidential":
+      // National ticket slot — one running mate per party, like the presidency.
+      return "vice_presidential|ng";
     case "gubernatorial":
       // constituency on gubernatorial rows is noise (null vs state-name variants)
       return `gubernatorial|${st ?? normalizeConstituency(constituency) ?? ""}`;
@@ -154,6 +157,7 @@ export function seatKeyOf(electionType: string, stateCode: string | null | undef
 export function seatKnownOf(electionType: string, stateCode: string | null | undefined, constituency: string | null | undefined): boolean {
   switch (electionType) {
     case "presidential":
+    case "vice_presidential":
       return true;
     case "gubernatorial":
       return normState(stateCode) !== null || normalizeConstituency(constituency) !== "";
@@ -177,7 +181,7 @@ function seatKnownFromKey(groupKey: string): boolean {
   const last = groupKey.lastIndexOf("|");
   const seat = groupKey.slice(first + 1, last); // e.g. "presidential|ng", "gubernatorial|oyo", "senatorial|imo|imo_west"
   const parts = seat.split("|");
-  if (parts[0] === "presidential") return true;
+  if (parts[0] === "presidential" || parts[0] === "vice_presidential") return true;
   if (parts[0] === "gubernatorial") return (parts[1] ?? "") !== "";
   return (parts[2] ?? "") !== "";
 }
