@@ -2,7 +2,7 @@ import { HeroBackdrop } from "@/app/_component/HeroBackdrop";
 import { NotifyTelegram } from "./NotifyTelegram";
 
 /**
- * The `/election` holding page. There is no Figma frame for it — the layout was
+ * The `/elections/<year>` holding page. There is no Figma frame for it — the layout was
  * designed and approved as a canvas mockup: one screen, the words "Coming soon."
  * dominant, one line of copy, one action, one status strip. Nothing else.
  *
@@ -11,9 +11,12 @@ import { NotifyTelegram } from "./NotifyTelegram";
  * invisible on a light background.
  */
 export function ComingSoon({
+  year,
   daysToGo,
   coverage,
 }: {
+  /** The cycle this page stands in for — see `ELECTION_CYCLES` in `_lib`. */
+  readonly year: number;
   /** Days until the general election — recomputed on every ISR revalidate. */
   readonly daysToGo: number;
   /** "36 states + FCT · 774 LGAs · 8,809 wards", from /api/geo/stats. */
@@ -29,7 +32,7 @@ export function ComingSoon({
         <div className="flex items-center gap-3">
           <span className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
           <span className="font-mono text-[10px] uppercase leading-[15px] tracking-[1px] text-muted-foreground">
-            2027 general election &middot; {daysToGo} days to go
+            {year} general election &middot; {daysToGo} days to go
           </span>
         </div>
 

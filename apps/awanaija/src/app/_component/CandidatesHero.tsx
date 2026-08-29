@@ -90,7 +90,10 @@ export function CandidatesHero({
             setPage(next);
           }}
           partyHref={(acronym) => `/?parties=true&party=${acronym}`}
-          href={() => "/election"}
+          // Each poster opens that party's ticket page. A cycle the section
+          // doesn't cover (the picker still offers 2023 and 2019) redirects to
+          // /elections rather than 404ing — see `(election)/_lib`.
+          href={(item) => `/elections/${year}/${item.party.acronym.toLowerCase()}`}
         />
       </Show>
     </section>

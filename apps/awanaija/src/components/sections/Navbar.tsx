@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X, Landmark, Menu, Heart, Route } from "lucide-react";
+import { ChevronDown, Map, Trophy, Users, Search, Activity, Globe, Send, MessageCircle, X, Landmark, Menu, Heart, Route, Vote } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LOGIN_URL } from "@/lib/constants";
 import { Show } from "@/components/ui/Show";
@@ -157,6 +157,13 @@ export function Navbar() {
             </div> */}
 
             <Link
+              href="/elections"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover-lift py-2"
+            >
+              Elections
+            </Link>
+
+            <Link
               href="/roadmap"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover-lift py-2"
             >
@@ -281,6 +288,9 @@ export function Navbar() {
             </Link>
 
             <div className="my-2 border-t border-border/50" />
+            <Link href="/elections" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+              <Vote className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Elections
+            </Link>
             <Link href="/roadmap" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
               <Route className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Roadmap
             </Link>
