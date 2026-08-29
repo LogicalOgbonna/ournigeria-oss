@@ -4,7 +4,7 @@
   "sourceRoot": "apps/socials/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --path /socials --watch -- nest start --watch",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials --watch -- nest start --watch",
       "options": {
         "cwd": "apps/socials"
       }
