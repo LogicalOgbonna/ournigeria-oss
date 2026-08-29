@@ -1,0 +1,55 @@
+name: SEO health
+
+# Daily Google Search Console + sitemap health check for ournigeria.ng.
+# Catches (within a day, not 8 weeks like the July 2026 incident):
+#   - the live sitemap silently shrinking to its static-routes fallback
+#   - Googlebot being 403'd by a WAF/bot-protection change (URL Inspection verdicts)
+#   - Cloudflare custom rules on SEO paths losing the verified-bot exemption
+# It also resubmits the sitemap to GSC when it drifts or goes stale, so Google
+# never misses a sitemap update.
+#
+# Secrets: GOOGLE_SA_JSON (required — service account with GSC access, same value
+# as Infisical /analytics), CLOUDFLARE_API_TOKEN (optional, zone read),
+# TELEGRAM_BOT_TOKEN + TELEGRAM_DEPLOY_CHAT_ID (optional alerting, already set).
+
+on:
+  schedule:
+    - cron: '30 5 * * *'   # daily 05:30 UTC (06:30 WAT)
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: packages/scripts/seo
+
+      - name: Run SEO health checks
+        id: seo
+        env:
+          GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -uo pipefail
+          if [ -z "${GOOGLE_SA_JSON}" ]; then
+            echo "GOOGLE_SA_JSON not set — skipping SEO health check."
+            echo "To enable: copy the GOOGLE_SA_JSON value from Infisical /analytics into a repo secret."
+            exit 0
+          fi
+          node packages/scripts/seo/gsc-seo-health.mjs 2>&1 | tee seo-health.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Telegram alert on failure
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}
+        run: |
+          [ -z "${TG_TOKEN}" ] || [ -z "${TG_CHAT}" ] && exit 0
+          summary=$(grep '^FAIL:' seo-health.log | head -5 || echo "see workflow log")
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d text="⚠️ SEO health check failed for ournigeria.ng:
+          ${summary}
+          ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null || true
