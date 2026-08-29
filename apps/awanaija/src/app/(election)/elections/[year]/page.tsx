@@ -1,90 +1,57 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { ELECTION_CYCLES, parseYear } from "../../_lib";
-import { ComingSoon } from "./_component/ComingSoon";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL
-  ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-  : "http://localhost:3000/api";
-
-/**
- * Polling day per cycle, keyed by year so adding a cycle to `ELECTION_CYCLES`
- * has one obvious place to add its date.
- *
- * TODO(election-date): confirm against INEC before the 2027 cycle. PROGRESS.md
- * records 2027-02-20 for the presidential/NASS poll, but a live PostHog gate
- * payload carries 2027-02-27. The countdown on this page is only as right as
- * this constant.
- */
-const POLLING_DAY: Record<number, number> = {
-  2027: Date.UTC(2027, 1, 20),
-};
+import { ComingSoon } from "../../_component/ComingSoon";
+import { daysToGoFor, ELECTION_CYCLES, getCoverage, parseYear } from "../../_lib";
 
 // Hourly, so the day counter stays honest without re-rendering per request.
 export const revalidate = 3600;
+
+type Props = { params: Promise<{ year: string }> };
 
 export function generateStaticParams() {
   return ELECTION_CYCLES.map((year) => ({ year: String(year) }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ year: string }>;
-}): Promise<Metadata> {
-  const { year: raw } = await params;
-  const year = parseYear(raw);
+/**
+ * The hub for one election cycle. Still a holding page: the ticket pages below
+ * it carry the content, and this level has nothing of its own yet.
+ *
+ * Kept out of search while it says "coming soon" — a page per cycle with no
+ * content of its own is exactly the thin content that earns a manual action.
+ * Drop `robots` when there is something here.
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const year = parseYear((await params).year);
   // An uncovered cycle never renders — the page redirects — but generateMetadata
-  // runs first, so it needs an answer that doesn't throw.
+  // runs first and still needs an answer that doesn't throw.
   if (year === null) return { robots: { index: false, follow: true } };
 
   return {
     title: `${year} Elections — Coming Soon | OurNigeria`,
-    description:
-      "Your whole ballot — president down to ward councillor, for wherever you live. We're building it seat by seat from primary results and public records.",
+    description: `Every candidate and every party contesting the ${year} Nigerian general election, built seat by seat from primary results and public records.`,
     alternates: { canonical: `/elections/${year}` },
-    // Still a holding page: one screen of copy behind a real URL. Drop this key
-    // when the cycle page renders its actual contests.
     robots: { index: false, follow: true },
   };
 }
 
-/** Same shape and fallback the homepage's coverage tiles use. */
-async function getCoverage(): Promise<string> {
-  const fallback = { states: 36, lgas: 774, wards: 8809 };
-  const stats = await fetch(`${API_BASE}/geo/stats`, {
-    next: { revalidate },
-  } as RequestInit)
-    .then((res) => (res.ok ? res.json() : fallback))
-    .catch(() => fallback);
-
-  const n = (v: number) => v.toLocaleString("en-NG");
-  return `${stats.states ?? 36} states + FCT · ${n(stats.lgas ?? 774)} LGAs · ${n(stats.wards ?? 8809)} wards`;
-}
-
-function daysUntil(target: number): number {
-  const now = new Date();
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  return Math.max(0, Math.round((target - today) / 86_400_000));
-}
-
-export default async function ElectionCyclePage({
-  params,
-}: {
-  params: Promise<{ year: string }>;
-}) {
-  const { year: raw } = await params;
-
+export default async function ElectionYearPage({ params }: Props) {
   // A cycle we don't cover, a non-year, an out-of-range year — one answer.
-  const year = parseYear(raw);
+  // Previously this 404'd for `/elections/99999` but rendered a holding page for
+  // `/elections/2043`; both are now the same question with the same answer.
+  const year = parseYear((await params).year);
   if (year === null) redirect("/elections");
 
-  const coverage = await getCoverage();
+  const coverage = await getCoverage(revalidate);
+  const daysToGo = daysToGoFor(year);
 
   return (
-    <PageLayout navLabel={`${year} Election`}>
-      <ComingSoon year={year} daysToGo={daysUntil(POLLING_DAY[year])} coverage={coverage} />
+    <PageLayout navLabel={`${year} Elections`}>
+      <ComingSoon
+        eyebrow={`${year} general election${daysToGo === null ? "" : ` · ${daysToGo} days to go`}`}
+        lede={`Every party contesting ${year}, and every candidate they are running — president down to ward councillor. We dey build am seat by seat.`}
+        status={["1 of 7 seats filled", "presidential race confirmed", coverage]}
+      />
     </PageLayout>
   );
 }

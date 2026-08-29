@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   parseGate, applicableRaces, isElectionEnabledFor, resolveBallot,
-  getElectionGate, __resetGateCache, isRaceUpcoming,
+  getElectionGate, __resetGateCache, isRaceUpcoming, presidentialYear,
 } from "./election-gate";
 
 function flagsBody(payload: unknown) {
@@ -152,4 +152,32 @@ test("getElectionGate: negative cache expires after 10s and recovers", async (t)
   const ok = async () => { calls++; return resp({ flags: { "election-gate": { enabled: true, metadata: { payload: { races: [] } } } } }); };
   const g = await getElectionGate(ok);
   assert.equal(g.enabled, true); assert.equal(calls, 2);
+});
+
+test("presidentialYear: reads the year off the presidential race", () => {
+  const gate = parseGate(flagsBody({
+    races: [
+      { office: "governor", date: "2028-03-11" },
+      { office: "president", date: "2031-02-14" },
+    ],
+  }));
+  assert.equal(presidentialYear(gate), 2031);
+});
+
+test("presidentialYear: day-optional dates still yield a year", () => {
+  const gate = parseGate(flagsBody({ races: [{ office: "president", date: "2031-02" }] }));
+  assert.equal(presidentialYear(gate), 2031);
+});
+
+test("presidentialYear: null when the gate is off, or carries no presidential race", () => {
+  assert.equal(presidentialYear({ enabled: false, races: [] }), null);
+  assert.equal(presidentialYear(parseGate(flagsBody({ races: [] }))), null);
+  const noPrez = parseGate(flagsBody({ races: [{ office: "senate", date: "2031-02-14" }] }));
+  assert.equal(presidentialYear(noPrez), null);
+});
+
+test("presidentialYear: a past presidential race still names the cycle", () => {
+  // The year addresses the campaign pages, which outlive the election.
+  const gate = parseGate(flagsBody({ races: [{ office: "president", date: "1999-02-27" }] }));
+  assert.equal(presidentialYear(gate), 1999);
 });

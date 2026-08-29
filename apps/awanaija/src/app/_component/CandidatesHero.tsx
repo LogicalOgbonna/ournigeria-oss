@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Show } from "@/components/ui/Show";
 import type { HomeRace } from "@/lib/mock-home-ballot";
 import { CandidateRail } from "./CandidateRail";
@@ -22,6 +22,7 @@ export function CandidatesHero({
   years,
   onYearChange,
   onLocationChange,
+  electionYear,
 }: {
   readonly races: readonly HomeRace[];
   readonly location: string;
@@ -29,16 +30,43 @@ export function CandidatesHero({
   readonly years: readonly number[];
   readonly onYearChange?: (year: number) => void;
   readonly onLocationChange?: () => void;
+  /**
+   * The cycle the posters link into. Comes from the gate's presidential race
+   * via `app/page`, falling back to 2027 while the gate carries no `president`
+   * race — see `racesOnOffer()`. Deliberately not the `year` filter above:
+   * that one picks which contest the rail shows, and its options are still
+   * fixture data.
+   */
+  readonly electionYear: number;
 }) {
   const [office, setOffice] = useState(races[0]?.office ?? "");
   const [page, setPage] = useState(0);
 
   const race = races.find((r) => r.office === office) ?? races[0];
 
-  // Advances the rail on its own. Pauses on hover/focus anywhere in the hero;
-  // any deliberate interaction below stops it for good.
+  // A page is a position the rail can reach, not a poster. The trailing posters
+  // are already on screen when the rail runs out of travel, so they don't get
+  // pages of their own — counting posters here would advance the dots twice
+  // over a rail that cannot move. Only the rail can measure this, and only
+  // after layout, so it reports upward. Poster count is the ceiling and the
+  // right answer for a rail that doesn't overflow.
+  const [pageCount, setPageCount] = useState(race?.candidates.length ?? 0);
+
+  // A wider viewport fits more posters and so needs fewer pages. Clamp as the
+  // new count arrives rather than reacting to it afterwards, so the rail is
+  // never asked for a page that stopped existing. Stable identity: the rail
+  // holds this in an effect and a ResizeObserver.
+  const handlePageCount = useCallback((count: number) => {
+    setPageCount(count);
+    setPage((current) =>
+      count > 0 && current > count - 1 ? count - 1 : current,
+    );
+  }, []);
+
+  // Advances the rail on its own. Pauses while focus is anywhere in the hero,
+  // but not on hover; any deliberate interaction below stops it for good.
   const autoplay = useRailAutoplay({
-    count: race?.candidates.length ?? 0,
+    count: pageCount,
     page,
     onAdvance: setPage,
   });
@@ -71,7 +99,7 @@ export function CandidatesHero({
         </div>
 
         <RailDots
-          count={race?.candidates.length ?? 0}
+          count={pageCount}
           active={page}
           onSelect={(i) => {
             autoplay.stop();
@@ -89,11 +117,12 @@ export function CandidatesHero({
             autoplay.stop();
             setPage(next);
           }}
+          onPageCountChange={handlePageCount}
           partyHref={(acronym) => `/?parties=true&party=${acronym}`}
-          // Each poster opens that party's ticket page. A cycle the section
-          // doesn't cover (the picker still offers 2023 and 2019) redirects to
-          // /elections rather than 404ing — see `(election)/_lib`.
-          href={(item) => `/elections/${year}/${item.party.acronym.toLowerCase()}`}
+          // Each poster opens that party's ticket page for the cycle the gate
+          // says is live — not the `year` filter above, which the picker can set
+          // to a cycle we have no content for. Upper case matches /parties/APC.
+          href={(item) => `/elections/${electionYear}/${item.party.acronym}`}
         />
       </Show>
     </section>

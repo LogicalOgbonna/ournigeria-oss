@@ -9,12 +9,14 @@ import { TicketProfile } from "./_component/TicketProfile";
 // except the computed ages, which only move once a year.
 export const revalidate = 3600;
 
+type Props = { params: Promise<{ year: string; party: string }> };
+
 export function generateStaticParams() {
+  // Upper case, matching `/parties/APC` — the shape the rest of the app uses for
+  // party URLs, and what the hero rail now links to. `parseParty` still resolves
+  // a lower-case link.
   return ELECTION_CYCLES.flatMap((year) =>
-    partiesIn(year).map((acronym) => ({
-      year: String(year),
-      party: acronym.toLowerCase(),
-    })),
+    partiesIn(year).map((party) => ({ year: String(year), party })),
   );
 }
 
@@ -31,11 +33,7 @@ function resolve(rawYear: string, rawParty: string) {
   return { year, acronym, ticket, profile: PROFILES_2027[acronym] ?? null };
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ year: string; party: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { year: rawYear, party: rawParty } = await params;
   const hit = resolve(rawYear, rawParty);
 
@@ -54,7 +52,7 @@ export async function generateMetadata({
     description:
       profile?.visionLine ??
       `${names} are standing for ${partyName} in the ${year} Nigerian presidential election.`,
-    alternates: { canonical: `/elections/${year}/${acronym.toLowerCase()}` },
+    alternates: { canonical: `/elections/${year}/${acronym}` },
     openGraph: {
       title: `${names} — ${acronym}`,
       images: ticket.candidate.imageUrl ? [ticket.candidate.imageUrl] : undefined,
@@ -67,11 +65,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function TicketPage({
-  params,
-}: {
-  params: Promise<{ year: string; party: string }>;
-}) {
+export default async function PartyTicketPage({ params }: Props) {
   const { year: rawYear, party: rawParty } = await params;
   const hit = resolve(rawYear, rawParty);
 

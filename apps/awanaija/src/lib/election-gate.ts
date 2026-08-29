@@ -87,6 +87,33 @@ export interface EntityTarget {
   constituency?: string;
 }
 
+/**
+ * The cycle every `/elections/<year>/...` URL is keyed on, used until the gate
+ * carries the presidential race.
+ *
+ * The gate is off in every environment today, so `presidentialYear()` has
+ * nothing to read and this is what ships. It stops being load-bearing the
+ * moment a `president` race is added to the flag payload — no code change,
+ * just a different answer from the same call.
+ */
+export const FALLBACK_PRESIDENTIAL_YEAR = 2027;
+
+/**
+ * The year the presidential race is held in, straight off the gate. Null when
+ * the gate is off or carries no presidential race, which is every environment
+ * right now — callers pair this with `FALLBACK_PRESIDENTIAL_YEAR`.
+ *
+ * Deliberately ignores whether the race is still upcoming: the year is what
+ * addresses the campaign pages, and those outlive the election itself.
+ */
+export function presidentialYear(gate: ElectionGate): number | null {
+  if (!gate.enabled) return null;
+  const race = gate.races.find((r) => r.office === "president");
+  if (!race) return null;
+  const year = Number(race.date.slice(0, 4));
+  return Number.isInteger(year) && year > 0 ? year : null;
+}
+
 /** True if the election date is today or later. Day-optional dates stay active through their month. */
 export function isRaceUpcoming(date: string, now: Date): boolean {
   const [y, m, d] = date.split("-").map(Number);

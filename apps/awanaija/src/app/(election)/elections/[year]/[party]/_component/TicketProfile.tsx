@@ -40,8 +40,18 @@ export function TicketProfile({
 }) {
   const accent = "text-emerald-600 dark:text-emerald-400";
 
+  const names = [ticket.candidate.name, ticket.mate?.name].filter(Boolean).join(" & ");
+
   return (
     <div className="overflow-x-clip pb-24">
+      {/* The design has no page title — the ticket pair reads as the heading, but
+          those are two names, not one, and neither is marked up as one. Give the
+          page a real h1 for assistive tech and for the document outline without
+          changing what is drawn. */}
+      <h1 className="sr-only">
+        {names} — {ticket.party.name ?? ticket.party.acronym} ({ticket.party.acronym}),{" "}
+        {year} presidential ticket
+      </h1>
       {/* 1 — Crest band (Figma 1:1096). A rule either side of the party
           medallion, each ending in a dot. The logo is the one already committed
           for the homepage rail, not a fresh export. */}
