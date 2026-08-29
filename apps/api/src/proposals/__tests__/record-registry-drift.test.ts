@@ -36,3 +36,16 @@ describe("official-records registry ↔ CREATABLE_ENTITIES drift", () => {
     });
   }
 });
+
+describe("registry election-type options ↔ chk_elections_type drift", () => {
+  it("citizen election records accept every DB-constraint value (incl. running-mate slots)", () => {
+    // Mirror of migration 20260828013000_elections_type_running_mates.
+    const CHK_ELECTIONS_TYPE = [
+      "presidential", "vice_presidential", "gubernatorial", "deputy_gubernatorial",
+      "senatorial", "house_of_reps", "state_assembly", "lga_chairman",
+      "lga_vice_chairman", "councilor", "other",
+    ];
+    const field = RECORD_SCHEMAS.election.fields.find((f) => f.key === "electionType");
+    expect(field?.options).toEqual(CHK_ELECTIONS_TYPE);
+  });
+});

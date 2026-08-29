@@ -37,13 +37,16 @@ You are given `officialId`, `name`, and a `category` (+ profile `domain`). Work 
 
 ## 2. Research with the BROWSER (camofox, not web search)
 Prefer the source tiers for that category:
-- elections → **inecnigeria.org** (canonical), `*.gov.ng`, placng.org
-- education → `*.edu.ng`, nuc.edu.ng, jamb.gov.ng
-- careers → `*.gov.ng`, cac.gov.ng, reputable press
+- elections → **inecnigeria.org** (canonical), `*.gov.ng`, placng.org, and international
+  observer missions (AU, ECOWAS, EU EOM, NDI/IRI, Carter Center, Commonwealth, EISA, Yiaga)
+- education → `*.edu.ng`, nuc.edu.ng, jamb.gov.ng, international universities
+  (`*.edu`, `*.ac.uk`, ...) — candidates study worldwide, do NOT skip foreign schools
+- careers → `*.gov.ng`, cac.gov.ng, national press (many careers are private-sector)
 - party_affiliation → inecnigeria.org, party sites, `*.gov.ng`
 - committee / bill → nass.gov.ng, placng.org
 - asset → ccb.gov.ng
-- award / publication → official sources, major press
+- award / publication → awarding bodies, national press, book registries
+  (WorldCat/OpenLibrary/Google Books) — publications ROAM: any credible trail counts
 - legal_case → court records, efcc.gov.ng, icpc.gov.ng. **FIRST run the deterministic US-courts
   lookup** (no browsing needed for the US side):
   `echo '{"officialId":"<uuid>","name":"<full name>"}' | node /opt/enrichment-tools/courtlistener-lookup.cjs`
@@ -51,6 +54,14 @@ Prefer the source tiers for that category:
   hits you may investigate in the browser. Then continue browsing NIGERIAN sources as usual.
   (Rate-limited 50/hour — if it errors with 429, skip it and just browse.)
 - corruption → efcc.gov.ng, icpc.gov.ng, court records
+
+**Historical facts (pre-2010 careers, past appointments, forgotten officials):** the live
+web won't have them — search the archives: **archivi.ng** (OCR'd Nigerian newspapers
+1960–2010, topic-tagged incl. Government officials/Corruption/Elections),
+**gazettes.africa** (the Official Gazette — THE primary record of appointments,
+commissions, dissolutions), **allafrica.com** (wire archive to ~1997), and
+**nigerialii.org** (Nigerian court judgments) for legal/corruption history. Dates from a
+gazette or contemporaneous newspaper beat a modern retrospective.
 
 Find pages via a search engine in the browser (`https://duckduckgo.com/?q=...`) and open
 the results. Capture per source: url, exact quoted snippet, publisher, retrieval time.

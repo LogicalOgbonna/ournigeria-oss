@@ -451,6 +451,9 @@ export class PartiesService {
         -- gated by the PostHog election-gate); low-confidence rows never show.
         AND e.confidence <> 'low'
         AND e.year <= extract(year FROM now())
+        -- Running-mate slots are nominations, not primary wins — excluded from
+        -- the flag-bearer grid until a dedicated ticket view renders them.
+        AND e.election_type NOT IN ('vice_presidential', 'deputy_gubernatorial', 'lga_vice_chairman')
       ORDER BY e.year DESC, e.election_type
     `;
     return rows.map((r) => ({

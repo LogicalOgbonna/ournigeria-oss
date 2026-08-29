@@ -29,11 +29,19 @@ export interface StructuredGap {
 export async function findStructuredGaps(
   client: ClientBase,
   limit = 20,
+  opts: {
+    /**
+     * Restrict the swept population to officials holding a won election of one
+     * of these types (e.g. ["presidential","vice_presidential"] to sweep only
+     * the presidential tickets). Undefined/empty = no restriction.
+     */
+    electionTypes?: string[];
+  } = {},
 ): Promise<StructuredGap[]> {
   const all: StructuredGap[] = [];
 
   for (const cat of CATEGORIES) {
-    const rows = await queryCategory(client, cat, limit);
+    const rows = await queryCategory(client, cat, limit, opts.electionTypes);
     all.push(...rows);
   }
 
@@ -52,9 +60,20 @@ async function queryCategory(
   client: ClientBase,
   cat: CategorySpec,
   limit: number,
+  electionTypes?: string[],
 ): Promise<StructuredGap[]> {
   const electedClause = cat.electedOnly
     ? `AND (o.official_type IS NULL OR o.official_type = 'elected')`
+    : "";
+
+  // Optional population filter (SWEEPER_ELECTION_TYPES): only officials on a
+  // won ticket of the given election types are swept.
+  const typeClause = electionTypes && electionTypes.length > 0
+    ? `AND EXISTS (
+        SELECT 1 FROM official_elections te
+        WHERE te.official_id = o.id AND te.result = 'won'
+          AND te.election_type = ANY($4)
+      )`
     : "";
 
   // FILLABLE: only officials with zero rows in the target table.
@@ -74,10 +93,23 @@ async function queryCategory(
       -- most 'contesting' positions) are NOT swept — autonomous enrichment of
       -- ~1.8k unknowns would burn the LLM budget on people who may never hold
       -- office. They re-enter naturally when a position flips to 'active'.
-      AND (o.official_type IS NOT NULL OR EXISTS (
-        SELECT 1 FROM official_positions op
-        WHERE op.official_id = o.id AND op.status <> 'contesting'
-      ))
+      -- CARVE-OUT: executive-ticket winners (president/VP, governor/deputy —
+      -- ~200 people, prominent and richly sourceable, many are ex-officeholders
+      -- like Kwankwaso/Amaechi whose history predates this dataset) ARE swept:
+      -- their career/legal_case backfill, incl. the CourtListener pre-step, is
+      -- exactly what the accountability mission needs before the election.
+      AND (o.official_type IS NOT NULL
+        OR EXISTS (
+          SELECT 1 FROM official_positions op
+          WHERE op.official_id = o.id AND op.status <> 'contesting'
+        )
+        OR EXISTS (
+          SELECT 1 FROM official_elections oe
+          WHERE oe.official_id = o.id
+            AND oe.election_type IN ('presidential', 'vice_presidential', 'gubernatorial', 'deputy_gubernatorial')
+            AND oe.result = 'won'
+            AND oe.confidence <> 'low'
+        ))
       AND (ea.id IS NULL OR (ea.status <> 'pending' AND ea.next_eligible_at <= now()))
       AND NOT EXISTS (
         SELECT 1 FROM change_proposals cp
@@ -86,10 +118,13 @@ async function queryCategory(
           AND (cp.proposed_value->>'officialId') = o.id::text
       )
       ${zeroRowClause}
+      ${typeClause}
     ORDER BY o.completeness_score ASC NULLS FIRST, o.created_at ASC
     LIMIT $3`;
 
-  const res = await client.query(sql, [cat.category, cat.table, limit]);
+  const params: unknown[] = [cat.category, cat.table, limit];
+  if (electionTypes && electionTypes.length > 0) params.push(electionTypes);
+  const res = await client.query(sql, params);
   return res.rows.map((r) => ({
     officialId: r.id,
     name: r.name,
