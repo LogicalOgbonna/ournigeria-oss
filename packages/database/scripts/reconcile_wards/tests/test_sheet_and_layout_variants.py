@@ -182,3 +182,16 @@ def test_code_with_digit_typo_is_stripped_from_the_seat_name():
     parsed = parse_sc_rows(rows)
     assert parsed[0].name == "Dange Shuni"
     assert parsed[0].code_label == "SC/895/S0"
+
+
+# --- parenthetical seat aliases -------------------------------------------
+
+
+def test_parenthetical_name_yields_both_halves():
+    """Adamawa writes `Verre ( FUFORE II)`; Kwara `Omupo/Igbaja (Ifelodun I)`.
+    393 residual wards traced to the combined string matching nothing while
+    either half alone resolves."""
+    from reconcile_wards.match import seat_name_variants
+
+    assert seat_name_variants("Verre ( FUFORE II)") == ["Verre ( FUFORE II)", "Verre", "FUFORE II"]
+    assert seat_name_variants("Aba North") == ["Aba North"]  # no quirk, no change
