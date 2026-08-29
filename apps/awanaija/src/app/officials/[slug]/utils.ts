@@ -2,7 +2,8 @@ import type { ChainEntry, Official, Position } from "@/lib/api";
 
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
-export const SITE_URL = "https://ournigeria.ng";
+import { SITE_URL } from "@/lib/constants";
+export { SITE_URL };
 
 // Humanized role labels for titles/descriptions/JSON-LD.
 const ROLE_LABELS: Record<string, string> = {

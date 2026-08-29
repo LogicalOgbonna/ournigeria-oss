@@ -173,6 +173,8 @@ Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/
 
 Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_vectors` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
 
+**Slug-alias invariant:** deleting or merging a `NigerianOfficial` that has a `slug` MUST first write an `official_slug_aliases` row pointing the dying slug (and re-point its existing aliases — the FK is `ON DELETE CASCADE` and will silently destroy them) at the surviving official. This applies to ad-hoc SQL dedup scripts too — an Aug 2026 dedup that skipped this orphaned 795 indexed URLs into 404s. The daily `seo-health` workflow samples sitemap URLs for 404s as the backstop.
+
 ### Migration Workflow
 
 `prisma migrate dev` does NOT work in this project (Mastra chunk tables cause drift detection). Use these commands instead:

@@ -10,15 +10,30 @@
 //   3. Googlebot isn't being blocked (URL Inspection sample — real crawl verdicts,
 //      NOT a curl UA test, which always 403s regardless of what Googlebot sees).
 //   4. Cloudflare custom WAF rules on public paths keep the verified-bot exemption.
+//   5. Sitemap URLs actually resolve (404 sample against the Vercel origin —
+//      catches the next "dedup deleted officials without slug aliases" event,
+//      which orphaned 795 URLs in Aug 2026, within a day instead of months).
+//   6. Canonical tags render on representative pages (regression guard for the
+//      /proposals/new duplicate-canonical fix).
 //
 // Env: GOOGLE_SA_JSON (required, service-account JSON string)
 //      CLOUDFLARE_API_TOKEN (optional, zone-read — enables check 4)
 //      MIN_SITEMAP_URLS (default 12000), INSPECT_SAMPLE (default 25)
+//      HEAD_SAMPLE (default 25)
 
 import { createSign } from 'node:crypto';
 
 const SITE = 'sc-domain:ournigeria.ng';
 const SITEMAP_URL = 'https://ournigeria.ng/sitemap.xml';
+// Vercel prod origin: bypasses the Cloudflare bot challenge (which 403s every
+// non-browser client regardless of what real Googlebot sees) and the edge cache.
+const ORIGIN = process.env.SEO_HEALTH_ORIGIN
+  || 'https://ournigeria-awanaija-logical-ogbonnas-projects.vercel.app';
+// 100-URL sample: a 6% orphaning event (the Aug 2026 one was 795/13k) trips the
+// >=3 threshold with ~94% probability per run; 25 would only catch it ~19%.
+const HEAD_SAMPLE = Number(process.env.HEAD_SAMPLE || 100);
+const DEAD_URL_LIMIT = 3; // 404s in the sample before we fail
+const FETCH_TIMEOUT_MS = 15000;
 const CF_ZONE_ID = process.env.CF_ZONE_ID || 'CLOUDFLARE_ZONE_ID';
 const MIN_SITEMAP_URLS = Number(process.env.MIN_SITEMAP_URLS || 12000);
 const INSPECT_SAMPLE = Number(process.env.INSPECT_SAMPLE || 25);
@@ -158,6 +173,68 @@ async function checkWafExemption() {
   info('ok: Cloudflare custom rules on SEO paths keep the verified-bot exemption');
 }
 
+// --- 5. Sitemap URLs resolve (dead-URL / missing-alias detector) ----------
+async function checkDeadUrls(sitemapUrls) {
+  if (!sitemapUrls.length) return;
+  // Canary first: if the origin itself is broken (protection enabled, renamed
+  // project, DNS), fail loudly instead of letting every sample fetch error out
+  // and the check silently degrade into a permanent pass.
+  try {
+    const canary = await fetch(`${ORIGIN}/`, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!canary.ok) {
+      fail(`origin canary ${ORIGIN}/ returned ${canary.status} — dead-URL check cannot run (deployment protection? renamed project?)`);
+      return;
+    }
+  } catch (e) {
+    fail(`origin canary ${ORIGIN}/ unreachable (${String(e).slice(0, 80)}) — dead-URL check cannot run`);
+    return;
+  }
+  const sample = [...sitemapUrls].sort(() => Math.random() - 0.5).slice(0, HEAD_SAMPLE);
+  const dead = [];
+  let errors = 0;
+  await Promise.all(sample.map(async (url) => {
+    const path = new URL(url).pathname;
+    try {
+      const res = await fetch(`${ORIGIN}${path}`, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      if (res.status === 404 || res.status === 410) dead.push(path);
+      else if (!res.ok) errors++;
+    } catch { errors++; }
+  }));
+  info(`dead-URL sample (n=${sample.length}): ${dead.length} 404s, ${errors} errors`);
+  if (errors > sample.length / 2) {
+    fail(`${errors}/${sample.length} sample fetches errored — dead-URL check has no signal, investigate the origin`);
+  }
+  if (dead.length >= DEAD_URL_LIMIT) {
+    fail(`${dead.length}/${sample.length} sampled sitemap URLs 404 — likely officials deleted/renamed without official_slug_aliases rows (Aug 2026 orphaned 795 URLs this way). e.g. ${dead.slice(0, 3).join(' ')}`);
+  }
+}
+
+// --- 6. Canonical tags render (duplicate-canonical regression guard) ------
+async function checkCanonicals() {
+  const expectations = [
+    ['/proposals/new?mode=identify&role=councilor&stateCode=kogi', 'https://ournigeria.ng/proposals/new'],
+    ['/states/kano', 'https://ournigeria.ng/states/kano'],
+    ['/activity', 'https://ournigeria.ng/activity'],
+  ];
+  let bad = false;
+  for (const [path, expected] of expectations) {
+    try {
+      const html = await (await fetch(`${ORIGIN}${path}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })).text();
+      // Attribute-order-insensitive; collect ALL canonical tags so a regression
+      // that adds a second, conflicting one is caught too.
+      const tags = [...html.matchAll(/<link\b[^>]*rel="canonical"[^>]*>/g)];
+      const hrefs = tags.map((t) => t[0].match(/href="([^"]+)"/)?.[1]).filter(Boolean);
+      if (hrefs.length === 0) { bad = true; fail(`${path} renders no canonical tag (expected ${expected})`); }
+      else if (hrefs.length > 1) { bad = true; fail(`${path} renders ${hrefs.length} canonical tags: ${hrefs.join(', ')}`); }
+      else if (hrefs[0] !== expected) { bad = true; fail(`${path} canonical is ${hrefs[0]}, expected ${expected}`); }
+    } catch (e) {
+      bad = true;
+      fail(`canonical check fetch failed for ${path}: ${String(e).slice(0, 100)}`);
+    }
+  }
+  if (!bad) info('ok: canonical tags render on representative pages');
+}
+
 // --------------------------------------------------------------------------
 try {
   if (!process.env.GOOGLE_SA_JSON) throw new Error('GOOGLE_SA_JSON env var is required');
@@ -166,6 +243,8 @@ try {
   await checkResubmit(token, liveUrls.length);
   await checkGooglebotBlocked(token, liveUrls);
   await checkWafExemption();
+  await checkDeadUrls(liveUrls);
+  await checkCanonicals();
 } catch (e) {
   fail(`unhandled: ${e.message || e}`);
 }
