@@ -94792,40 +94792,8 @@
     "confidence": "medium"
   },
   {
-    "constituency_code": "state_lagos_ajeromi_ifelodun_i",
-    "ward_code": "lagos_ajeromi_ifelodun_temidire_i",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ajeromi_ifelodun_i",
-    "ward_code": "lagos_ajeromi_ifelodun_temidire_ii",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ajeromi_ifelodun_i",
-    "ward_code": "lagos_ajeromi_ifelodun_tolu",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
     "constituency_code": "state_lagos_ajeromi_ifelodun_ii",
     "ward_code": "lagos_ajeromi_ifelodun_ago_hausa",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://kapmercifulgodproject.com/reelection-2027-2/",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ajeromi_ifelodun_ii",
-    "ward_code": "lagos_ajeromi_ifelodun_awodi_ora",
     "source": "manual_lagos_pilot",
     "source_url": "https://kapmercifulgodproject.com/reelection-2027-2/",
     "source_date": "2026-04-03",
@@ -94985,14 +94953,6 @@
   },
   {
     "constituency_code": "state_lagos_apapa_ii",
-    "ward_code": "lagos_apapa_ijora_oloye",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_apapa_ii",
     "ward_code": "lagos_apapa_malu_road_and_environs",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
@@ -95088,14 +95048,6 @@
     "confidence": "medium"
   },
   {
-    "constituency_code": "state_lagos_eti_osa_ii",
-    "ward_code": "lagos_eti_osa_victoria_island_ii",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://lasiec.gov.ng/electoral-wards/",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
     "constituency_code": "state_lagos_ifako_ijaiye_i",
     "ward_code": "lagos_ifako_ijaye_ijaye",
     "source": "inec_reconcile",
@@ -95153,14 +95105,6 @@
   },
   {
     "constituency_code": "state_lagos_ifako_ijaiye_ii",
-    "ward_code": "lagos_ifako_ijaye_fagba_akute_road",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ifako_ijaiye_ii",
     "ward_code": "lagos_ifako_ijaye_ijaiye_ojokoro",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
@@ -95169,26 +95113,10 @@
   },
   {
     "constituency_code": "state_lagos_ifako_ijaiye_ii",
-    "ward_code": "lagos_ifako_ijaye_iju_obawole",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ifako_ijaiye_ii",
     "ward_code": "lagos_ifako_ijaye_pamada_abule_egba",
     "source": "inec_reconcile",
     "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
     "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ikeja_i",
-    "ward_code": "lagos_ikeja_adekunle_village_adeniyi_jones",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
     "confidence": "medium"
   },
   {
@@ -95209,23 +95137,7 @@
   },
   {
     "constituency_code": "state_lagos_ikeja_i",
-    "ward_code": "lagos_ikeja_anifowoshe_ikeja",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ikeja_i",
     "ward_code": "lagos_ikeja_gra_police_barracks",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_ikeja_i",
-    "ward_code": "lagos_ikeja_ipodo_seriki_aro",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -95473,26 +95385,10 @@
   },
   {
     "constituency_code": "state_lagos_lagos_mainland_ii",
-    "ward_code": "lagos_lagos_mainland_makoko_ebute_metta",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_lagos_mainland_ii",
     "ward_code": "lagos_lagos_mainland_oyadiran_abule_oja",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_lagos_mainland_ii",
-    "ward_code": "lagos_lagos_mainland_oyingbo_market_ebute_metta",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
     "confidence": "medium"
   },
   {
@@ -95506,22 +95402,6 @@
   {
     "constituency_code": "state_lagos_mushin_i",
     "ward_code": "lagos_mushin_babalosa",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_i",
-    "ward_code": "lagos_mushin_babalosa_idi_araba",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_i",
-    "ward_code": "lagos_mushin_idi_araba",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -95545,14 +95425,6 @@
   },
   {
     "constituency_code": "state_lagos_mushin_i",
-    "ward_code": "lagos_mushin_mushin_atewolara",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_i",
     "ward_code": "lagos_mushin_ojuwoye",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
@@ -95561,23 +95433,7 @@
   },
   {
     "constituency_code": "state_lagos_mushin_ii",
-    "ward_code": "lagos_mushin_alakara",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_ii",
     "ward_code": "lagos_mushin_ilasamaja",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_ii",
-    "ward_code": "lagos_mushin_ilupeju",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -95594,14 +95450,6 @@
   {
     "constituency_code": "state_lagos_mushin_ii",
     "ward_code": "lagos_mushin_itire",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_mushin_ii",
-    "ward_code": "lagos_mushin_olateju",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -95777,14 +95625,6 @@
   },
   {
     "constituency_code": "state_lagos_somolu_i",
-    "ward_code": "lagos_shomolu_abule_okuta_ilaje_bariga",
-    "source": "inec_reconcile",
-    "source_url": "https://www.inecnigeria.org/electoral-constituencies-of-the-federation/",
-    "source_date": "2026-06",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_somolu_i",
     "ward_code": "lagos_shomolu_alase",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
@@ -95810,14 +95650,6 @@
   {
     "constituency_code": "state_lagos_somolu_i",
     "ward_code": "lagos_shomolu_igbobi_fadeyi",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_somolu_i",
-    "ward_code": "lagos_shomolu_ilaje_akoka",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -95897,14 +95729,6 @@
   },
   {
     "constituency_code": "state_lagos_surulere_i",
-    "ward_code": "lagos_surulere_orile",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_surulere_i",
     "ward_code": "lagos_surulere_shitta_ogunlana_drive",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
@@ -95930,14 +95754,6 @@
   {
     "constituency_code": "state_lagos_surulere_ii",
     "ward_code": "lagos_surulere_coker",
-    "source": "manual_lagos_pilot",
-    "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
-    "source_date": "2026-04-03",
-    "confidence": "medium"
-  },
-  {
-    "constituency_code": "state_lagos_surulere_ii",
-    "ward_code": "lagos_surulere_igbaja_stadium",
     "source": "manual_lagos_pilot",
     "source_url": "https://www.cknnigeria.com/2016/10/venues-of-scheduled-lagos-state-house.html",
     "source_date": "2026-04-03",
@@ -137412,6 +137228,286 @@
     "ward_code": "oyo_ori_ire_ori_ire_x",
     "source": "inec_oyo_fc_worksheet",
     "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/OYO.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ajeromi_ifelodun_i",
+    "ward_code": "lagos_ajeromi_ifelodun_awodi_ora",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ajeromi_ifelodun_ii",
+    "ward_code": "lagos_ajeromi_ifelodun_temidire_i",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ajeromi_ifelodun_ii",
+    "ward_code": "lagos_ajeromi_ifelodun_temidire_ii",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ajeromi_ifelodun_ii",
+    "ward_code": "lagos_ajeromi_ifelodun_tolu",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_apapa_i",
+    "ward_code": "lagos_apapa_ijora_oloye",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_eti_osa_i",
+    "ward_code": "lagos_eti_osa_victoria_island_ii",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ifako_ijaiye_i",
+    "ward_code": "lagos_ifako_ijaye_fagba_akute_road",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ifako_ijaiye_i",
+    "ward_code": "lagos_ifako_ijaye_iju_obawole",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ikeja_ii",
+    "ward_code": "lagos_ikeja_anifowoshe_ikeja",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ikeja_ii",
+    "ward_code": "lagos_ikeja_ipodo_seriki_aro",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_ikeja_ii",
+    "ward_code": "lagos_ikeja_adekunle_village_adeniyi_jones",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_lagos_mainland_i",
+    "ward_code": "lagos_lagos_mainland_makoko_ebute_metta",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_lagos_mainland_i",
+    "ward_code": "lagos_lagos_mainland_oyingbo_market_ebute_metta",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_i",
+    "ward_code": "lagos_mushin_alakara",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_i",
+    "ward_code": "lagos_mushin_ilupeju",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_i",
+    "ward_code": "lagos_mushin_olateju",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_ii",
+    "ward_code": "lagos_mushin_babalosa_idi_araba",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_ii",
+    "ward_code": "lagos_mushin_idi_araba",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_mushin_ii",
+    "ward_code": "lagos_mushin_mushin_atewolara",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_somolu_ii",
+    "ward_code": "lagos_shomolu_abule_okuta_ilaje_bariga",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_somolu_ii",
+    "ward_code": "lagos_shomolu_ilaje_akoka",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_surulere_i",
+    "ward_code": "lagos_surulere_igbaja_stadium",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "state_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_orile",
+    "source": "inec_lagos_sc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_iponri_housing_estate_eric_moore",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_akinhanmi_cole",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_yaba_ojuelegba",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_igbaja_stadium",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_adeniran_ogunsanya",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_i",
+    "ward_code": "lagos_surulere_shitta_ogunlana_drive",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_aguda",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_itire",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_ikate",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_coker",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_orile",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
+    "source_date": "2026-08",
+    "confidence": "high"
+  },
+  {
+    "constituency_code": "fed_lagos_surulere_ii",
+    "ward_code": "lagos_surulere_ijeshatedo",
+    "source": "inec_lagos_fc_worksheet",
+    "source_url": "https://wp1.inecnigeria.org/wp-content/uploads/LAGOS.xlsx",
     "source_date": "2026-08",
     "confidence": "high"
   }
