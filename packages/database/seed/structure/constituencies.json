@@ -10239,5 +10239,96 @@
     "type": "state",
     "state_code": "kaduna",
     "pcode": null
+  },
+  {
+    "code": "state_bauchi_azare",
+    "name": "Azare",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null
+  },
+  {
+    "code": "state_bauchi_madara_chinade",
+    "name": "Madara/Chinade",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null
+  },
+  {
+    "code": "state_bauchi_udubo",
+    "name": "Udubo",
+    "type": "state",
+    "state_code": "bauchi",
+    "pcode": null
+  },
+  {
+    "code": "state_kogi_okura",
+    "name": "Okura",
+    "type": "state",
+    "state_code": "kogi",
+    "pcode": null
+  },
+  {
+    "code": "state_plateau_rukuba_irigwe",
+    "name": "Rukuba/Irigwe",
+    "type": "state",
+    "state_code": "plateau",
+    "pcode": null
+  },
+  {
+    "code": "state_plateau_langtang_central",
+    "name": "Langtang Central",
+    "type": "state",
+    "state_code": "plateau",
+    "pcode": null
+  },
+  {
+    "code": "state_taraba_gembu",
+    "name": "Gembu",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null
+  },
+  {
+    "code": "state_taraba_mbamnga",
+    "name": "Mbamnga",
+    "type": "state",
+    "state_code": "taraba",
+    "pcode": null
+  },
+  {
+    "code": "state_yobe_jajere",
+    "name": "Jajere",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null
+  },
+  {
+    "code": "state_yobe_mamudo",
+    "name": "Mamudo",
+    "type": "state",
+    "state_code": "yobe",
+    "pcode": null
+  },
+  {
+    "code": "state_kwara_balogun_ojumu",
+    "name": "Balogun/Ojumu",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null
+  },
+  {
+    "code": "state_kwara_odo_ogun",
+    "name": "Odo-Ogun",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null
+  },
+  {
+    "code": "state_kwara_shawo_essa",
+    "name": "Shawo/Essa",
+    "type": "state",
+    "state_code": "kwara",
+    "pcode": null
   }
 ]

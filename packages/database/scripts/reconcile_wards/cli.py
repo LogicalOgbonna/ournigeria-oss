@@ -21,7 +21,7 @@ import openpyxl
 from . import apply as apply_mod
 from . import db
 from .fetch import BASE, fetch_state
-from .match import apply_seat_synonym, match_one, resolve_constituency_lgas
+from .match import apply_seat_synonym, match_one, resolve_constituency_lgas, seat_name_variants
 from .parse import parse_lga_rows, parse_sc_rows
 from .report import ConstituencyResult, WardResult, build_report, write_report
 
@@ -123,6 +123,13 @@ def reconcile_state(workbook: str) -> tuple:
     for pc in parsed_sc:
         # match SC name -> DB state-constituency code
         cm = match_one(apply_seat_synonym(state, pc.name), state_consts)
+        if cm.code is None:
+            # Parenthetical-alias fallback: try each half of an annotated name.
+            for variant in seat_name_variants(pc.name)[1:]:
+                vm = match_one(apply_seat_synonym(state, variant), state_consts)
+                if vm.code is not None:
+                    cm = vm
+                    break
         constituency_code = cm.code
         # Resolve the FULL set of LGAs this constituency spans. `lga_codes[0]` is
         # the primary LGA; any trailing entries are sibling LGAs discovered by
@@ -218,6 +225,34 @@ def reconcile_state(workbook: str) -> tuple:
         if any(w.ward_code == wc for cr in results for w in cr.wards
                if cr.constituency_code == c)
     ]
+
+    # ---- elimination rule ----------------------------------------------------
+    # A resolved seat with exactly ONE unmatched parsed ward, whose primary LGA
+    # has exactly ONE ward left that nothing else claims or owns, pairs them by
+    # process of elimination. This is evidence, not similarity: the worksheet
+    # says the seat has N wards, N-1 are accounted for, and only one in-LGA
+    # ward remains anywhere. Spelling drift ("Nkomoro" vs "Nkomor") is exactly
+    # the case fuzzy matching abstains on and elimination closes safely.
+    claimed_now = {w.ward_code for cr in results for w in cr.wards if w.ward_code}
+    owned_before = {w for c_, w, _t in existing_maps}
+    for cr in results:
+        if cr.constituency_code is None or cr.lga_code is None:
+            continue
+        unmatched = [w for w in cr.wards if w.ward_code is None]
+        if len(unmatched) != 1:
+            continue
+        free = [
+            wc for wc, _n in wards_index.get(cr.lga_code, [])
+            if wc not in claimed_now and wc not in owned_before
+        ]
+        if len(free) != 1:
+            continue
+        w = unmatched[0]
+        w.ward_code = free[0]
+        w.score = 0.92
+        w.needs_review = False
+        claimed_now.add(free[0])
+        additions.append((cr.constituency_code, free[0], "medium"))
 
     senatorial_additions: list[tuple[str, str, str]] = []
     for d in districts:

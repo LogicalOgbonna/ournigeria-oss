@@ -12,6 +12,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass
+import re
 from difflib import SequenceMatcher
 
 # Reuse the existing normalizer (scripts dir is put on sys.path by conftest, but
@@ -125,6 +126,30 @@ SEAT_NAME_SYNONYMS: dict[tuple[str, str], str] = {
 def apply_seat_synonym(state: str, name: str) -> str:
     """The register spelling of a worksheet seat name, or the name unchanged."""
     return SEAT_NAME_SYNONYMS.get((state, _norm(name)), name)
+
+
+_PAREN_RE = re.compile(r"^(?P<outside>[^()]*?)\s*\(\s*(?P<inside>[^()]+?)\s*\)\s*$")
+
+
+def seat_name_variants(name: str) -> list[str]:
+    """Candidate spellings of a worksheet seat name, most specific first.
+
+    Several states annotate seats with a parenthetical alias — Adamawa writes
+    ``Verre ( FUFORE II)``, Kwara ``Omupo/Igbaja (Ifelodun I)`` — where either
+    half alone matches the register but the combined string matches nothing.
+    393 residual wards traced back to exactly this. The full name is tried
+    first so states without the quirk behave as before; the outside half next
+    (the seat's own name); the inside half last (the register-style alias).
+    """
+    variants = [name]
+    m = _PAREN_RE.match(name.strip())
+    if m:
+        outside, inside = m.group("outside").strip(), m.group("inside").strip()
+        if outside:
+            variants.append(outside)
+        if inside:
+            variants.append(inside)
+    return variants
 
 
 def match_one(name: str, candidates: list[tuple[str, str]]) -> Match:
