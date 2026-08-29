@@ -23,7 +23,10 @@ class ParsedDistrict:
 # writes "SC/895/S0". With the strict [A-Z]{2} the code never stripped from the
 # seat name, so "Dange Shuni SC/895/S0" failed to match its register seat and
 # every one of its wards surfaced as a phantom conflict.
-_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z][A-Z0-9])")
+# Case-insensitive: Jigawa's FC sheet writes "Fc/141/JG", which the uppercase-
+# only pattern left glued to the seat name.
+# Second suffix char optional: Anambra truncates to "FC/031/A".
+_CODE_RE = re.compile(r"((?:SD|FC|SC)/\d+/[A-Z][A-Z0-9]?)", re.I)
 
 # Header-label matchers (normalized: lowercased, whitespace-collapsed). INEC
 # workbooks vary the exact spelling/spacing per state, so match fuzzily.
