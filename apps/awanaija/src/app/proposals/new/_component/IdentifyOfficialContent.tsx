@@ -268,9 +268,13 @@ export function IdentifyOfficialContent() {
           </Show>
 
           <Show when={!candidatesLoading && !showVerification}>
+            {/* The change-location escape stays visible even for locked deep-link
+                context: the pre-filled seat comes from ward→constituency mapping
+                data that can be wrong or stale, and without this link the only
+                way to correct it is editing the URL. */}
             <IdentifyForm
               form={form}
-              showChangeLocation={!locked || forceForm}
+              showChangeLocation
               changeLabel={forceForm ? "Back to suggestions" : "Change position / location"}
               onChangeLocation={handleChangeLocation}
             />

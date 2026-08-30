@@ -4,6 +4,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 export const metadata = {
   title: "Recent Activity | OurNigeria",
   description: "See the latest contributions to Nigeria's civic data platform.",
+  alternates: { canonical: "/activity" },
 };
 
 export default function ActivityPage() {

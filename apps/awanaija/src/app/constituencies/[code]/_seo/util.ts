@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { typeLabel, fetchConstituency } from "../utils";
+import { SITE_URL } from "@/lib/constants";
 
 export async function generateMetadata({
   params,
@@ -14,6 +15,6 @@ export async function generateMetadata({
   return {
     title: `${c.name} ${label}, ${c.stateName} State | OurNigeria`,
     description: `${c.name} ${label} in ${c.stateName} State — see who represents it and the local governments and wards it covers.`,
-    alternates: { canonical: `https://ournigeria.ng/constituencies/${c.code}` },
+    alternates: { canonical: `${SITE_URL}/constituencies/${c.code}` },
   };
 }

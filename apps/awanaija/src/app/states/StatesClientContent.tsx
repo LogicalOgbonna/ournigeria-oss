@@ -9,11 +9,9 @@ interface StatesClientContentProps {
   statesData: { code: string; name: string; region: string; party: string; faac: string; faacDate?: string }[];
   partiesData: { acronym: string; name: string }[];
   regionsData: { code: string; name: string }[];
-  bestYear?: number;
-  bestMonth?: number;
 }
 
-export function StatesClientContent({ statesData, partiesData, regionsData, bestYear, bestMonth }: StatesClientContentProps) {
+export function StatesClientContent({ statesData, partiesData, regionsData }: StatesClientContentProps) {
   const [selectedRegion, setSelectedRegion] = useState<string>("");
   const [selectedParty, setSelectedParty] = useState<string>("");
 
@@ -76,9 +74,10 @@ export function StatesClientContent({ statesData, partiesData, regionsData, best
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <Show when={filteredStates.length > 0}>
         {filteredStates.map((state, i) => {
-          const stateUrl = bestYear && bestMonth 
-            ? `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}?year=${bestYear}&month=${bestMonth}`
-            : `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}`;
+          // Always link the clean path — the state page defaults to the latest
+          // FAAC period anyway, and param links here made Googlebot discover a
+          // ?year=&month= variant of every state/LGA page (crawl-budget waste).
+          const stateUrl = `/states/${state.name.toLowerCase().replace(/\s+/g, "-")}`;
           
           return (
           <Link

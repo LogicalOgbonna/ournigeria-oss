@@ -1,8 +1,9 @@
 import { Metadata } from "next";
 import React from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { getStates, getParties, getRegions, getFaacPeriods } from "@/lib/api";
+import { getStates, getParties, getRegions } from "@/lib/api";
 import { StatesClientContent } from "./StatesClientContent";
+import { SITE_URL } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,52 +11,21 @@ export const metadata: Metadata = {
   title: "Nigerian States Directory | Our Nigeria",
   description: "Browse all 36 Nigerian states to view their budgets, representatives, local governments, and FAAC allocations.",
   alternates: {
-    canonical: "https://ournigeria.ng/states",
+    canonical: `${SITE_URL}/states`,
   },
   openGraph: {
     title: "Nigerian States Directory",
     description: "Browse all 36 Nigerian states to view their budgets and representatives.",
-    url: "https://ournigeria.ng/states",
+    url: `${SITE_URL}/states`,
   }
 };
 
 export default async function StatesDirectoryPage() {
-  const [statesData, partiesData, regionsData, faacPeriods] = await Promise.all([
+  const [statesData, partiesData, regionsData] = await Promise.all([
     getStates(),
     getParties(),
-    getRegions(),
-    getFaacPeriods()
+    getRegions()
   ]);
-
-  const availableYears = faacPeriods.years || [];
-  const monthsByYear = faacPeriods.monthsByYear || {};
-
-  let bestYear: number | undefined;
-  let bestMonth: number | undefined;
-
-  if (availableYears.length > 0) {
-    const now = new Date();
-    const nowYear = now.getFullYear();
-    const nowMonth = now.getMonth() + 1;
-
-    if (availableYears.includes(nowYear)) {
-      bestYear = nowYear;
-    } else {
-      bestYear = availableYears[0];
-    }
-
-    if (bestYear) {
-      const availableMonths = monthsByYear[bestYear] || [];
-      if (availableMonths.length > 0) {
-        const nearestInYear = bestYear === nowYear
-          ? availableMonths.filter((m: number) => m <= nowMonth)
-          : availableMonths;
-        bestMonth = nearestInYear.length > 0
-          ? nearestInYear[nearestInYear.length - 1]
-          : availableMonths[availableMonths.length - 1];
-      }
-    }
-  }
 
   return (
     <PageLayout className="bg-background" mainClassName="container max-w-5xl mx-auto px-4 pt-24 pb-20 space-y-10">
@@ -68,12 +38,10 @@ export default async function StatesDirectoryPage() {
           </p>
         </section>
 
-        <StatesClientContent 
-          statesData={statesData} 
-          partiesData={partiesData} 
-          regionsData={regionsData} 
-          bestYear={bestYear}
-          bestMonth={bestMonth}
+        <StatesClientContent
+          statesData={statesData}
+          partiesData={partiesData}
+          regionsData={regionsData}
         />
     </PageLayout>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getWardDetails } from "@/lib/api";
+import { SITE_URL } from "@/lib/constants";
 
 export async function generateMetadata({ params }: { params: Promise<{ state_slug: string; lga_slug: string; ward_slug: string }> }): Promise<Metadata> {
   const { state_slug, lga_slug, ward_slug } = await params;
@@ -20,12 +21,12 @@ export async function generateMetadata({ params }: { params: Promise<{ state_slu
     title: `${wardLabel}, ${ward.lgaName} LGA, ${ward.stateName} State | Our Nigeria`,
     description: `Explore community updates and projects for ${wardLabel} in ${ward.lgaName} Local Government Area, ${ward.stateName} State.`,
     alternates: {
-      canonical: `https://ournigeria.ng/states/${state_slug}/${lga_slug}/${ward_slug}`,
+      canonical: `${SITE_URL}/states/${state_slug}/${lga_slug}/${ward_slug}`,
     },
     openGraph: {
       title: `${ward.name} Ward, ${ward.lgaName} LGA`,
       description: `Explore community updates and projects for ${ward.name} Ward.`,
-      url: `https://ournigeria.ng/states/${state_slug}/${lga_slug}/${ward_slug}`,
+      url: `${SITE_URL}/states/${state_slug}/${lga_slug}/${ward_slug}`,
     }
   };
 }

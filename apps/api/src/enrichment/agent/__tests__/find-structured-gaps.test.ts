@@ -15,6 +15,8 @@ describe("findStructuredGaps (integration)", () => {
   let electedWithElectionId: string;
   let appointedId: string;
   let pendingPropId: string;
+  let execCandidateId: string;
+  let legCandidateId: string;
 
   beforeAll(async () => {
     if (!URL) throw new Error("DATABASE_URL not set");
@@ -47,6 +49,23 @@ describe("findStructuredGaps (integration)", () => {
       `INSERT INTO change_proposals (target_table, target_field, proposed_value, change_kind, status)
        VALUES ('official_education', '__create__', $1::jsonb, 'create', 'pending')`,
       [JSON.stringify({ officialId: pendingPropId, institution: "X" })]);
+
+    // CANDIDATE officials (type NULL, no non-contesting positions):
+    // an executive-ticket winner (vice_presidential) MUST be swept (plan 60
+    // §5.3 carve-out), a legislative candidate must stay excluded.
+    const xc = await db.query(
+      `INSERT INTO nigerian_officials (name, official_type, completeness_score) VALUES ('Gap VP Candidate ASE', NULL, 0.05) RETURNING id`);
+    execCandidateId = xc.rows[0].id; ids.push(execCandidateId);
+    await db.query(
+      `INSERT INTO official_elections (official_id, election_type, year, result, is_primary, confidence) VALUES ($1::uuid, 'vice_presidential', 2027, 'won', true, 'high')`,
+      [execCandidateId]);
+
+    const lc = await db.query(
+      `INSERT INTO nigerian_officials (name, official_type, completeness_score) VALUES ('Gap Senate Candidate ASE', NULL, 0.05) RETURNING id`);
+    legCandidateId = lc.rows[0].id; ids.push(legCandidateId);
+    await db.query(
+      `INSERT INTO official_elections (official_id, election_type, year, result, is_primary, confidence) VALUES ($1::uuid, 'senatorial', 2027, 'won', true, 'high')`,
+      [legCandidateId]);
   });
 
   afterAll(async () => {
@@ -92,6 +111,29 @@ describe("findStructuredGaps (integration)", () => {
     const cats = await gapsFor(pendingPropId);
     expect(cats).not.toContain("education");
     expect(cats).toContain("career");
+  });
+
+  it("sweeps an executive-ticket candidate (type NULL) — plan 60 carve-out", async () => {
+    const cats = await gapsFor(execCandidateId);
+    expect(cats.length).toBeGreaterThan(0);
+    expect(cats).toContain("legal_case"); // the court-records pre-step reaches them
+  });
+
+  it("still excludes legislative candidates (type NULL, senatorial only)", async () => {
+    const cats = await gapsFor(legCandidateId);
+    expect(cats).toEqual([]);
+  });
+
+  it("electionTypes filter restricts the sweep to ticket holders of those types", async () => {
+    // VP candidate is in; an elected official with no such election is out.
+    const vpGaps = await findStructuredGaps(db, 500, { electionTypes: ["vice_presidential"] });
+    const ids = new Set(vpGaps.map((g) => g.officialId));
+    expect(ids.has(execCandidateId)).toBe(true);
+    expect(ids.has(electedId)).toBe(false);
+    // gubernatorial-only filter excludes the VP candidate
+    const gubGaps = await findStructuredGaps(db, 500, { electionTypes: ["gubernatorial"] });
+    const gubIds = new Set(gubGaps.map((g) => g.officialId));
+    expect(gubIds.has(execCandidateId)).toBe(false);
   });
 
   it("respects the attempts cursor (future nextEligibleAt is skipped)", async () => {

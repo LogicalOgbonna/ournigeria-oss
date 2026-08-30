@@ -1,4 +1,65 @@
 import type { EnrichmentProfile } from "./profile.types";
+import { WORLD_UNIVERSITY_DOMAINS } from "./university-domains.gen";
+
+
+// ------------------------------------------------------------------
+// Shared trusted-source sets (2026-08-28 source-broadening review):
+// the original lists were built for officeholder verification against
+// government registries and silently excluded where candidate biography
+// actually lives. Verdicts from that review:
+//  - education must not exclude non-Nigerian schools,
+//  - election coverage must admit international observer missions,
+//  - careers/awards exist outside government and the CAC registry,
+//  - family is not in any government registry,
+//  - publications should roam (book registries + press).
+// Press stays UNTRUSTED for legal/corruption allegations and election
+// RESULTS —  those keep the strict multi-source bar.
+// ------------------------------------------------------------------
+
+
+/**
+ * Historical archives (source-catalog research, plan 57 + the archivi.ng
+ * review): the pipeline browsed only the LIVE official web — historical
+ * officials/careers live in digitized archives. archivi.ng = OCR'd Nigerian
+ * newspapers 1960–2010; gazettes.africa/laws.africa = the Official Gazette
+ * (the primary record of appointments/commissions); allafrica.com = wire
+ * archive to ~1997; nigerialii.org = Nigerian court judgments. NOTE:
+ * archive.org is deliberately ABSENT — user-uploaded items are not
+ * editorially controlled, so it stays web tier.
+ */
+const HISTORICAL_ARCHIVES = ["archivi.ng", "allafrica.com", "gazettes.africa", "laws.africa"];
+const COURT_ARCHIVES = ["nigerialii.org"];
+
+/** Vetted national press — biographical facts, not allegations. */
+const NATIONAL_PRESS = [
+  "premiumtimesng.com", "punchng.com", "thecable.ng", "guardian.ng",
+  "vanguardngr.com", "dailytrust.com", "channelstv.com", "thisdaylive.com",
+  "tribuneonlineng.com", "businessday.ng", "leadership.ng",
+];
+
+/**
+ * International ACADEMIC-SPECIFIC domain families. Necessarily partial: countries
+ * whose universities live on general TLDs (Canada .ca, Germany .de, France .fr)
+ * cannot be pattern-trusted without blessing the whole country — schools there
+ * still file via the 2-independent-source web path or a trusted press profile.
+ */
+const INTL_EDUCATION = [
+  "*.edu",     // US institutions
+  "*.edu.*",   // edu.<cc> families: edu.ng, edu.gh, edu.eg, edu.sa, edu.my, ...
+  "*.ac.*",    // ac.<cc> families: ac.uk, ac.in, ac.ke, ac.jp, ac.ae, ...
+  // General-TLD universities (.de/.ca/.fr/...) — pattern-untrustable countries,
+  // covered by the vendored world-universities dataset instead (3,252 domains).
+  ...WORLD_UNIVERSITY_DOMAINS,
+];
+
+/** Election observer missions (AU, ECOWAS, EU, US institutes, Commonwealth, EISA, Yiaga). */
+const ELECTION_OBSERVERS = [
+  "au.int", "ecowas.int", "eeas.europa.eu", "ndi.org", "iri.org",
+  "cartercenter.org", "thecommonwealth.org", "eisa.org", "yiaga.org",
+];
+
+/** Bibliographic registries — authoritative for "this work exists by this author". */
+const BOOK_REGISTRIES = ["worldcat.org", "openlibrary.org", "books.google.com"];
 
 const OFFICIALS: EnrichmentProfile = {
   domain: "officials",
@@ -35,7 +96,7 @@ const EDUCATION: EnrichmentProfile = {
   targetTable: "official_education",
   targetFields: ["institution", "institution_type", "qualification", "field", "start_year", "end_year", "graduated", "location"],
   sensitiveFields: ["qualification", "institution"],
-  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng"],
+  trustedDomains: ["*.edu.ng", "nuc.edu.ng", "*.gov.ng", "jamb.gov.ng", ...INTL_EDUCATION, ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [], // no single canonical registry of Nigerian alumni
 };
 
@@ -44,7 +105,7 @@ const ELECTIONS: EnrichmentProfile = {
   targetTable: "official_elections",
   targetFields: ["result", "votes", "vote_percentage", "winner_name", "election_date", "notes"],
   sensitiveFields: ["result", "votes"],
-  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org"],
+  trustedDomains: ["inecnigeria.org", "*.gov.ng", "placng.org", ...ELECTION_OBSERVERS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [
     // INEC declared-results pages are the canonical election source.
     { publisher: "inecnigeria.org", urlIncludes: "election-result", format: "html" },
@@ -57,7 +118,7 @@ const CAREERS: EnrichmentProfile = {
   targetTable: "official_careers",
   targetFields: ["organization", "role", "industry", "employment_type", "start_year", "end_year", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng", "cac.gov.ng"],
+  trustedDomains: ["*.gov.ng", "cac.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [],
 };
 
@@ -102,7 +163,7 @@ const AWARDS: EnrichmentProfile = {
   targetTable: "official_awards",
   targetFields: ["title", "awarded_by", "year", "category", "description"],
   sensitiveFields: [],
-  trustedDomains: ["*.gov.ng"],
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [],
 };
 
@@ -111,7 +172,8 @@ const PUBLICATIONS: EnrichmentProfile = {
   targetTable: "official_publications",
   targetFields: ["title", "type", "publisher", "year"],
   sensitiveFields: [],
-  trustedDomains: [],
+  // "should roam": bibliographic registries + press count as authoritative.
+  trustedDomains: [...BOOK_REGISTRIES, ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [],
 };
 
@@ -120,7 +182,9 @@ const FAMILY: EnrichmentProfile = {
   targetTable: "official_family_members",
   targetFields: ["relationship", "name", "is_public_figure", "notes"],
   sensitiveFields: ["name", "relationship"],
-  trustedDomains: ["*.gov.ng"],
+  // Families are not in government registries; press is the record. The
+  // sensitive-field bar and the skill's needsHuman bias still apply.
+  trustedDomains: ["*.gov.ng", ...NATIONAL_PRESS, ...HISTORICAL_ARCHIVES],
   sourceTemplates: [],
 };
 
@@ -132,7 +196,7 @@ const LEGAL_CASES: EnrichmentProfile = {
   // courtlistener.com (Free Law Project / RECAP) = US federal court dockets, tiered
   // `official` (RECAP is crowd-sourced from PACER, so not a canonical single-doc);
   // a docket backlink satisfies the create bar and every proposal stays human-reviewed.
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "placng.org", "courtlistener.com", ...COURT_ARCHIVES],
   sourceTemplates: [{ publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" }],
 };
 
@@ -144,7 +208,7 @@ const CORRUPTION_CASES: EnrichmentProfile = {
   // corruptioncases.ng (TransparencIT) is a structured, curated DB citing EFCC/court
   // records — registered as canonical so a single case-page backlink satisfies the
   // create bar (still human-reviewed before any live write).
-  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng"],
+  trustedDomains: ["efcc.gov.ng", "icpc.gov.ng", "*.gov.ng", "corruptioncases.ng", ...COURT_ARCHIVES],
   sourceTemplates: [
     { publisher: "efcc.gov.ng", urlIncludes: "press-release", format: "html" },
     { publisher: "icpc.gov.ng", urlIncludes: "press", format: "html" },

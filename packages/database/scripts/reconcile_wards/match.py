@@ -119,12 +119,55 @@ SEAT_NAME_SYNONYMS: dict[tuple[str, str], str] = {
     ("osun", "atakunmosa east and atakunmosa west"): "Atakumosa East/West",
     # Fully-spelled second half of the register's prefixed form. Same seat.
     ("oyo", "ibarapa central ibarapa north"): "Ibarapa Central/North",
+    # --- federal seats: the FC sheets spell every member LGA in full while the
+    # register compresses ("Aniocha/Oshimili"); similarity falls under the
+    # accept threshold. Each entry verified to have exactly one register seat
+    # covering the same LGA set.
+    ("osun", "atakunmosa east atakunmosa west ilesha east ilesha west"): "Atakumosa East/West/Ilesa East/West",
+    ("osun", "ife central ife north ife south ife east"): "Ife Central/North/South/East",
+    ("delta", "aniocha north aniocha south oshimili north and oshimili south"): "Aniocha/Oshimili",
+    ("delta", "ndokwa east ndokwa west ukwuani"): "Ndokwa/Ukwuani",
+    ("oyo", "afijio oyo east oyo west atiba"): "Afijio/Atiba/Oyo East/Oyo West",
+    ("oyo", "ogbomoso north ogbomoso south orire"): "Ogbomosho North/South/Ori Ire",
+    ("edo", "etsako east etsako west etsako central"): "Etsako",
+    # Aiyekire is Gbonyin LGA's former name — third appearance of this alias.
+    ("ekiti", "emure aiyekire ekiti east"): "Emure/Gbonyin/Ekiti East",
+    ("ogun", "ijebu north east ijebu ode odogbolu"): "Ijebu Ode/Odogbolu/Ijebu North East",
+    # K.K = Koton-Karfe, the Kogi LGA's other name. Key keeps the parentheses
+    # because normalize_name does not strip them.
+    ("kogi", "kogi (lokoja) kogi (k k)"): "Lokoja/Kogi",
+    # Edda is the local name of the Afikpo South area; same two-LGA seat.
+    ("ebonyi", "afikpo edda"): "Afikpo North/Afikpo South",
 }
 
 
 def apply_seat_synonym(state: str, name: str) -> str:
     """The register spelling of a worksheet seat name, or the name unchanged."""
     return SEAT_NAME_SYNONYMS.get((state, _norm(name)), name)
+
+
+_PAREN_RE = re.compile(r"^(?P<outside>[^()]*?)\s*\(\s*(?P<inside>[^()]+?)\s*\)\s*$")
+
+
+def seat_name_variants(name: str) -> list[str]:
+    """Candidate spellings of a worksheet seat name, most specific first.
+
+    Several states annotate seats with a parenthetical alias — Adamawa writes
+    ``Verre ( FUFORE II)``, Kwara ``Omupo/Igbaja (Ifelodun I)`` — where either
+    half alone matches the register but the combined string matches nothing.
+    393 residual wards traced back to exactly this. The full name is tried
+    first so states without the quirk behave as before; the outside half next
+    (the seat's own name); the inside half last (the register-style alias).
+    """
+    variants = [name]
+    m = _PAREN_RE.match(name.strip())
+    if m:
+        outside, inside = m.group("outside").strip(), m.group("inside").strip()
+        if outside:
+            variants.append(outside)
+        if inside:
+            variants.append(inside)
+    return variants
 
 
 def match_one(name: str, candidates: list[tuple[str, str]]) -> Match:
