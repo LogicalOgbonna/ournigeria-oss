@@ -12,7 +12,6 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-import re
 from difflib import SequenceMatcher
 
 # Reuse the existing normalizer (scripts dir is put on sys.path by conftest, but

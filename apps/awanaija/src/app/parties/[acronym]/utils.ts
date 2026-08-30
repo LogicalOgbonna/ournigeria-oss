@@ -1,7 +1,7 @@
 import type { PartyDetail } from "@/lib/api";
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.example.invalid";
+  process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";
 export { SITE_URL } from "@/lib/constants";
 
 export async function getParty(acronym: string): Promise<PartyDetail | null> {
