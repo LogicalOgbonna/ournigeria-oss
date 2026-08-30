@@ -382,6 +382,10 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   useEffect(() => {
     if (!dropdownOpen && !dateDropdownOpen) return;
     const close = () => {
+      // iOS Safari scrolls the page itself to reveal a focused input above the
+      // keyboard — that browser-initiated scroll must not close the dropdown,
+      // or tapping "Search states…" dismisses the whole picker on iPhone.
+      if (document.activeElement instanceof HTMLInputElement) return;
       setDropdownOpen(false);
       setDateDropdownOpen(false);
     };
@@ -627,10 +631,14 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
             against the near-black background (border-border is dark-on-dark there). */}
         <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
           <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <span className="hidden sm:inline">You are viewing</span>
-              <span className="sm:hidden">Viewing</span>
+            {/* Label and status dot are desktop-only. On a phone the row has to
+                hold the location, the location picker and the month picker, and
+                a ward like "Alausa Oregun Olusosun" wraps to four lines if it
+                shares the width with anything else — so the location gets it
+                all, and the surrounding section already says what it is. */}
+            <div className="hidden sm:block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+            <span className="hidden sm:inline font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              You are viewing
             </span>
             <button
               type="button"
@@ -688,7 +696,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                       <input 
                         type="text" 
                         placeholder={`Search ${selectorStep === "state" ? "states" : selectorStep === "lga" ? "LGAs" : "wards"}...`}
-                        className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
