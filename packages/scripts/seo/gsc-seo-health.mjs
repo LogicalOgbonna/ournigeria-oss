@@ -110,9 +110,13 @@ async function checkResubmit(token, liveCount) {
     return;
   }
   const submitted = Number((entry.contents || []).find((c) => c.type === 'web')?.submitted || 0);
-  const ageDays = (Date.now() - Date.parse(entry.lastSubmitted)) / 86400000;
+  // lastSubmitted can be absent (index-type entries, freshly-registered feeds) —
+  // guard so a missing field doesn't throw and dark out the rest of the health run.
+  const ageDays = entry.lastSubmitted ? (Date.now() - Date.parse(entry.lastSubmitted)) / 86400000 : Infinity;
+  const lastSubmittedLabel = entry.lastSubmitted ? entry.lastSubmitted.slice(0, 10) : 'never';
+  const ageLabel = Number.isFinite(ageDays) ? `${ageDays.toFixed(1)}d ago` : 'never';
   const driftPct = submitted ? Math.abs(liveCount - submitted) / submitted * 100 : 100;
-  info(`GSC sitemap: submitted=${submitted} lastSubmitted=${entry.lastSubmitted.slice(0, 10)} (${ageDays.toFixed(1)}d ago), live=${liveCount} (drift ${driftPct.toFixed(1)}%)`);
+  info(`GSC sitemap: submitted=${submitted} lastSubmitted=${lastSubmittedLabel} (${ageLabel}), live=${liveCount} (drift ${driftPct.toFixed(1)}%)`);
   if (liveCount >= MIN_SITEMAP_URLS && (ageDays > RESUBMIT_MAX_AGE_DAYS || driftPct > RESUBMIT_DRIFT_PCT)) {
     await gsc(token, `/webmasters/v3/sites/${site}/sitemaps/${feed}`, { method: 'PUT' });
     info('resubmitted sitemap to GSC');
