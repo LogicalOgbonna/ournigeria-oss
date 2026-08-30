@@ -17,13 +17,13 @@
       }
     },
     "prisma:migrate": {
-      "command": "infisical run --path /api -- prisma migrate deploy",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --path /api -- prisma migrate deploy",
       "options": {
         "cwd": "packages/database"
       }
     },
     "prisma:studio": {
-      "command": "infisical run --path /api -- prisma studio",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --path /api -- prisma studio",
       "options": {
         "cwd": "packages/database"
       }

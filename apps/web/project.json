@@ -4,7 +4,7 @@
   "sourceRoot": "apps/web/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --path /web --watch -- next dev",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /web --watch -- next dev",
       "options": {
         "cwd": "apps/web"
       }

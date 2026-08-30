@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getLgaDetails } from "@/lib/api";
+import { SITE_URL } from "@/lib/constants";
 
 export async function generateMetadata({ params }: { params: Promise<{ state_slug: string; lga_slug: string }> }): Promise<Metadata> {
   const { state_slug, lga_slug } = await params;
@@ -16,12 +17,12 @@ export async function generateMetadata({ params }: { params: Promise<{ state_slu
     title: `${lga.name} LGA, ${lga.stateName} State | Our Nigeria`,
     description: `Explore the FAAC allocation, internally generated revenue, and projects for ${lga.name} Local Government Area in ${lga.stateName} State.`,
     alternates: {
-      canonical: `https://ournigeria.ng/states/${state_slug}/${lga_slug}`,
+      canonical: `${SITE_URL}/states/${state_slug}/${lga_slug}`,
     },
     openGraph: {
       title: `${lga.name} LGA, ${lga.stateName} State`,
       description: `Explore FAAC allocation, revenue, and projects for ${lga.name} LGA.`,
-      url: `https://ournigeria.ng/states/${state_slug}/${lga_slug}`,
+      url: `${SITE_URL}/states/${state_slug}/${lga_slug}`,
     }
   };
 }

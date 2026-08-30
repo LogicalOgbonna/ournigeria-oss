@@ -27,6 +27,11 @@ import { HomeHero } from "./_component/HomeHero";
 // (see `_component/useHomeFilters`) so this page stays statically rendered.
 export const revalidate = 300;
 
+// Canonical for the site root (from main).
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 /**
  * Which contests the rail offers, per the `election-gate` PostHog flag.
  *

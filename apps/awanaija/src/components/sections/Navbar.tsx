@@ -165,17 +165,17 @@ export function Navbar() {
 
             <Link
               href="/roadmap"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover-lift py-2"
+              className="text-sm font-medium text-emerald-600 dark:text-emerald-400 transition-colors hover:text-emerald-500 hover-lift py-2"
             >
-              Roadmap
+              Our Roadmap
             </Link>
 
-            <Link
+            {/* <Link
               href="/donate"
               className="text-sm font-medium text-emerald-600 dark:text-emerald-400 transition-colors hover:text-emerald-500 hover-lift py-2"
             >
               Back Our Mission
-            </Link>
+            </Link> */}
           </div>
 
           {/* Right side */}

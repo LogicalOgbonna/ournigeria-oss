@@ -4,7 +4,7 @@
   "sourceRoot": "apps/awanaija/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --path /awanaija --watch -- next dev -p 3003",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /awanaija --watch -- next dev -p 3003",
       "options": {
         "cwd": "apps/awanaija"
       }

@@ -46,7 +46,7 @@
       }
     },
     "add-corruption-sources": {
-      "command": "infisical run --env dev -- node add-corruption-sources.mjs",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- node add-corruption-sources.mjs",
       "options": {
         "cwd": "packages/scripts"
       }

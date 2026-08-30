@@ -4,7 +4,7 @@
   "sourceRoot": "apps/api/src",
   "targets": {
     "dev": {
-      "command": "infisical run --env dev --path /api --watch -- nest start --watch",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /api --watch -- nest start --watch",
       "options": {
         "cwd": "apps/api"
       }
@@ -22,7 +22,7 @@
       }
     },
     "prisma:generate": {
-      "command": "infisical run --path /api -- prisma generate",
+      "command": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --path /api -- prisma generate",
       "options": {
         "cwd": "apps/api"
       }

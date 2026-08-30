@@ -4,18 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "infisical run --env dev --path /socials --watch -- nest start --watch",
+    "dev": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials --watch -- nest start --watch",
     "build": "nest build",
     "start": "infisical run --env prod --path /socials -- node dist/main",
     "start:prod": "infisical run --env prod --path /socials -- node dist/main",
     "test": "vitest run",
     "test:watch": "vitest",
-    "x-oauth-bootstrap": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-bootstrap.ts",
-    "x-oauth-authorize": "infisical run --env dev --path /socials -- tsx src/scripts/x-oauth-authorize.ts",
-    "x-post-test": "infisical run --env dev --path /socials -- tsx src/scripts/x-post-test.ts",
-    "x-reply-test": "infisical run --env dev --path /socials -- tsx src/scripts/x-reply-test.ts",
-    "seed-topics": "infisical run --env dev --path /socials -- tsx src/scripts/seed-topics.ts",
-    "seed-bot-sessions": "infisical run --env dev --path /socials -- tsx src/scripts/seed-bot-sessions.ts"
+    "x-oauth-bootstrap": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/x-oauth-bootstrap.ts",
+    "x-oauth-authorize": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/x-oauth-authorize.ts",
+    "x-post-test": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/x-post-test.ts",
+    "x-reply-test": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/x-reply-test.ts",
+    "seed-topics": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/seed-topics.ts",
+    "seed-bot-sessions": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /socials -- tsx src/scripts/seed-bot-sessions.ts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.0",
