@@ -9,11 +9,11 @@
     "./templates": "./templates/index.ts"
   },
   "scripts": {
-    "generate": "infisical run --env dev -- npx tsx generate.ts",
-    "query": "infisical run --env dev -- npx tsx query.ts",
+    "generate": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- npx tsx generate.ts",
+    "query": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- npx tsx query.ts",
     "render": "npx tsx render.ts",
-    "engine": "infisical run --env dev -- npx tsx engine.ts",
-    "batch": "infisical run --env dev -- npx tsx batch.ts",
+    "engine": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- npx tsx engine.ts",
+    "batch": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- npx tsx batch.ts",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "test": "vitest run",
     "test:watch": "vitest"
