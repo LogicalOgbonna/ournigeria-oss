@@ -36,19 +36,55 @@ export const ROLE_OPTIONS: {
   { value: "governor", label: "Governor", depth: "state", blurb: "Chief executive of a state" },
 ];
 
+// The codebase spells House of Reps both ways ("rep" in the DB/geo endpoints,
+// "representative" here) — normalize at the boundary so every deep-link sender
+// works regardless of which spelling it carries. Mirrors the API's own alias
+// handling in proposals.service.ts.
+const ROLE_ALIASES: Record<string, string> = { rep: "representative" };
+
+export function normalizeRole(role: string | undefined): string | undefined {
+  return role ? (ROLE_ALIASES[role] ?? role) : role;
+}
+
 export function roleConfig(role: string) {
-  return ROLE_OPTIONS.find((r) => r.value === role);
+  const r = normalizeRole(role);
+  return ROLE_OPTIONS.find((o) => o.value === r);
 }
 
 export function ctxFromParams(sp: URLSearchParams): ProposalContext {
   const g = (k: string) => sp.get(k) || undefined;
   return {
-    role: g("role"),
+    role: normalizeRole(g("role")),
     stateCode: g("stateCode"), stateName: g("stateName"),
     lgaCode: g("lgaCode"), lgaName: g("lgaName"),
     wardCode: g("wardCode"), wardName: g("wardName"),
     constituencyCode: g("constituencyCode"), constituencyName: g("constituencyName"),
   };
+}
+
+/**
+ * Canonical serializer for /proposals/new identify deep links — the inverse of
+ * ctxFromParams. Senders should build a ProposalContext and call this instead
+ * of hand-rolling the query string, so the param vocabulary lives in one place.
+ * Skips empty and sentinel ("unknown") geo codes so a partial context degrades
+ * to the manual seat picker instead of locking the form on a bogus seat.
+ */
+export function identifyHref(ctx: ProposalContext): string {
+  const params = new URLSearchParams();
+  const role = normalizeRole(ctx.role);
+  if (role) params.set("role", role);
+  // Name params ride with their code — a name without a resolvable code is
+  // display-only noise that would still render into the location chip.
+  const setPair = (codeKey: string, code: string | undefined, nameKey: string, name: string | undefined) => {
+    if (!code || code === "unknown") return;
+    params.set(codeKey, code);
+    if (name) params.set(nameKey, name);
+  };
+  setPair("stateCode", ctx.stateCode, "stateName", ctx.stateName);
+  setPair("lgaCode", ctx.lgaCode, "lgaName", ctx.lgaName);
+  setPair("wardCode", ctx.wardCode, "wardName", ctx.wardName);
+  setPair("constituencyCode", ctx.constituencyCode, "constituencyName", ctx.constituencyName);
+  return `/proposals/new?${params.toString()}`;
 }
 
 export function hasFullContext(ctx: ProposalContext): boolean {

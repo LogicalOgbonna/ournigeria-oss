@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
 import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode, type WardConstituencies } from "@/lib/api";
+import { identifyHref } from "@/components/proposals/identify-form";
 import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -156,8 +157,9 @@ function igrKpiLabel(stats: GeoStats | null | undefined): string {
 }
 
 // Maps the display role shown in "Know Your Leaders" to the seat value the
-// /proposals/new identify form expects (must match ROLE_OPTIONS in
-// components/proposals/identify-form.tsx — "representative", not "rep").
+// /proposals/new identify form expects (ROLE_OPTIONS in identify-form.tsx).
+// An unmapped label yields no role at all, which drops the citizen on the
+// manual seat picker — never silently mis-file against a different seat.
 const ROLE_TO_IDENTIFY_VALUE: Record<string, string> = {
   Governor: "governor",
   Senator: "senator",
@@ -170,22 +172,18 @@ const ROLE_TO_IDENTIFY_VALUE: Record<string, string> = {
 /** Builds the "Help us identify them" deep link, carrying whatever seat context
  * (state/lga/ward, and — for constituency-based seats — the constituency
  * already resolved for this ward) so the identify form opens pre-filled. */
-function identifyHref(
+function missingSeatHref(
   official: Extract<ProfileOfficialRow, { isMissing: true }>,
   ctx: { stateCode: string; stateName: string; lgaCode: string; lgaName: string; wardCode: string; wardName: string },
 ): string {
-  const params = new URLSearchParams({
-    role: ROLE_TO_IDENTIFY_VALUE[official.role] || "councilor",
-    stateCode: ctx.stateCode,
-    stateName: ctx.stateName,
-    lgaCode: ctx.lgaCode,
-    lgaName: ctx.lgaName,
-    wardCode: ctx.wardCode,
-    wardName: ctx.wardName,
+  return identifyHref({
+    role: ROLE_TO_IDENTIFY_VALUE[official.role],
+    stateCode: ctx.stateCode, stateName: ctx.stateName,
+    lgaCode: ctx.lgaCode, lgaName: ctx.lgaName,
+    wardCode: ctx.wardCode, wardName: ctx.wardName,
+    constituencyCode: official.constituencyCode,
+    constituencyName: official.constituencyName,
   });
-  if (official.constituencyCode) params.set("constituencyCode", official.constituencyCode);
-  if (official.constituencyName) params.set("constituencyName", official.constituencyName);
-  return `/proposals/new?${params.toString()}`;
 }
 
 function geocodeIndicatesOutsideNigeria(res: unknown): boolean {
@@ -954,7 +952,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                             </p>
                             <div className="mt-2">
                               <Link
-                                href={identifyHref(official, currentSelection)}
+                                href={missingSeatHref(official, currentSelection)}
                                 className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                               >
                                 Help us identify them <ArrowRight className="h-3 w-3" />
