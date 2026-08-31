@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { User } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
-import { cdnAvatar } from "@/lib/img";
 import type { Official, Position } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,7 +22,11 @@ function CompletenessBadge({ value }: { value: number }) {
   const radius = 11;
   const circumference = 2 * Math.PI * radius;
   return (
-    <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white ring-2 ring-white/30">
+    <div
+      role="img"
+      aria-label={`Profile ${value}% complete`}
+      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white ring-2 ring-white/30"
+    >
       <svg width="28" height="28" viewBox="0 0 28 28" className="absolute inset-0" aria-hidden>
         <circle cx="14" cy="14" r={radius} fill="none" stroke="#cbffef" strokeWidth="2" />
         <circle
@@ -39,22 +42,37 @@ function CompletenessBadge({ value }: { value: number }) {
           transform="rotate(-90 14 14)"
         />
       </svg>
-      <span className="relative text-[8px] font-bold leading-none text-[#0f2919]">{value}%</span>
+      <span aria-hidden className="relative text-[8px] font-bold leading-none text-[#0f2919]">
+        {value}%
+      </span>
     </div>
   );
 }
 
 /** Mini party flag disc — logo on a white fill (transparent PNGs stay legible),
- *  acronym fallback when missing or broken. */
+ *  party-initial fallback when missing or broken. Decorative: the acronym text
+ *  renders right beside it, so the disc is aria-hidden. */
 function PartyFlag({ acronym, logo }: { acronym: string; logo?: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#43ee94] bg-[#2a2a2a] text-[6px] font-bold text-white">
+    <span
+      aria-hidden
+      className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500 bg-white text-[8px] font-bold text-slate-600 dark:border-[#43ee94] dark:bg-[#2a2a2a] dark:text-white"
+    >
       {logo && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt={acronym} className="h-full w-full bg-white object-contain p-px" onError={() => setFailed(true)} />
+        <img
+          src={logo}
+          alt=""
+          width={16}
+          height={16}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full bg-white object-contain p-px"
+          onError={() => setFailed(true)}
+        />
       ) : (
-        acronym.slice(0, 3).toUpperCase()
+        acronym.slice(0, 1).toUpperCase()
       )}
     </span>
   );
@@ -77,22 +95,32 @@ export function OfficialGridCard({
 }) {
   const [imgError, setImgError] = useState(false);
   const position = positionProp ?? official.positions?.[0];
-  const completeness = Math.round(official.completenessScore * 100);
+  // Score can be null/undefined or mis-scaled at runtime despite the typing —
+  // clamp to 0-100 and hide the badge rather than render "NaN%".
+  const completeness = Number.isFinite(official.completenessScore)
+    ? Math.min(100, Math.max(0, Math.round(official.completenessScore * 100)))
+    : null;
   const location = position?.ward || position?.constituency || position?.lga || position?.state || "";
   const roleLabel = position?.role ? ROLE_LABELS[position.role] || position.role : "Official";
-  const sinceYear = position?.startDate ? new Date(position.startDate).getFullYear() : null;
+  // Year taken lexically from the date-only string: new Date("YYYY-MM-DD") is UTC
+  // midnight, so .getFullYear() shifts to the prior year west of UTC (and can
+  // mismatch between server and client render).
+  const sinceYear = /^\d{4}/.test(position?.startDate ?? "") ? position!.startDate!.slice(0, 4) : null;
   const showImage = official.imageUrl && !imgError;
 
   return (
     <Link
       href={`/officials/${official.slug ?? official.id}`}
+      data-testid="official-card"
       className="block overflow-hidden rounded-[10px] border border-slate-200 bg-white transition-all hover:border-emerald-400 hover:shadow-md dark:border-white/5 dark:bg-[#060a08] dark:hover:border-emerald-600"
     >
-      {/* Photo on the brand-green backdrop */}
+      {/* Photo on the brand-green backdrop. Uses the stored -600 variant directly:
+          cdnAvatar's -128 thumbnail is for small avatars and would upscale blurry
+          at this card width. */}
       <div className="relative aspect-[171/146] w-full overflow-hidden bg-[#43ee94]">
         {showImage ? (
           <SmartImage
-            src={cdnAvatar(official.imageUrl) ?? official.imageUrl!}
+            src={official.imageUrl!}
             alt={official.name}
             px={342}
             className="h-full w-full object-cover object-top"
@@ -106,7 +134,7 @@ export function OfficialGridCard({
             strokeWidth={0}
           />
         )}
-        <CompletenessBadge value={completeness} />
+        {completeness !== null && <CompletenessBadge value={completeness} />}
       </div>
 
       {/* Meta */}
@@ -119,7 +147,7 @@ export function OfficialGridCard({
           {location && (
             <>
               <span aria-hidden className="h-0.5 w-0.5 shrink-0 rounded-full bg-current" />
-              <span className="truncate text-emerald-600 dark:text-[#00d492]">{location}</span>
+              <span className="truncate text-emerald-700 dark:text-[#00d492]">{location}</span>
             </>
           )}
         </p>
@@ -127,7 +155,7 @@ export function OfficialGridCard({
           {position?.party ? (
             <span className="flex min-w-0 items-center gap-1.5">
               <PartyFlag acronym={position.party} logo={partyLogos[position.party.toUpperCase()]} />
-              <span className="truncate text-[10px] text-slate-600 dark:text-[#bbcbbc]">
+              <span className="truncate text-[11px] text-slate-600 dark:text-[#bbcbbc]">
                 {position.party}
               </span>
             </span>
@@ -135,7 +163,7 @@ export function OfficialGridCard({
             <span />
           )}
           {sinceYear && (
-            <span className="shrink-0 text-[10px] text-slate-500 dark:text-white/80">
+            <span className="shrink-0 text-[11px] text-slate-500 dark:text-white/80">
               Since {sinceYear}
             </span>
           )}

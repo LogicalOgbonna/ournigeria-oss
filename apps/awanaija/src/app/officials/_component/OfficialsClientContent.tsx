@@ -90,14 +90,14 @@ export function OfficialsClientContent({
             value={search}
             onChange={handleSearchChange}
             placeholder="Search by name..."
-            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-3 py-2.5 text-base sm:text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
         <div className="relative">
           <select
             value={initialRole}
             onChange={handleRoleChange}
-            className="appearance-none w-full sm:w-44 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="appearance-none w-full sm:w-44 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 pr-8 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>{r.label}</option>

@@ -173,9 +173,12 @@ export async function getPartyLogoMap(): Promise<Record<string, string>> {
   try {
     const parties = await getPartyDirectory({ next: { revalidate: 3600 } });
     return Object.fromEntries(
-      parties.filter((p) => p.logoUrl).map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
+      parties
+        .filter((p) => typeof p.acronym === "string" && p.logoUrl)
+        .map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
     );
-  } catch {
+  } catch (err) {
+    console.error("getPartyLogoMap: party logos unavailable, falling back to acronyms", err);
     return {};
   }
 }
