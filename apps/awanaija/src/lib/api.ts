@@ -168,6 +168,18 @@ export async function getPartyDirectory(init?: RequestInit) {
   return apiFetch<PartyListItem[]>("/parties", init);
 }
 
+/** acronym → logoUrl map for party flag discs (fail-soft: {} on error). */
+export async function getPartyLogoMap(): Promise<Record<string, string>> {
+  try {
+    const parties = await getPartyDirectory({ next: { revalidate: 3600 } });
+    return Object.fromEntries(
+      parties.filter((p) => p.logoUrl).map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
+    );
+  } catch {
+    return {};
+  }
+}
+
 export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
   return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
 }
