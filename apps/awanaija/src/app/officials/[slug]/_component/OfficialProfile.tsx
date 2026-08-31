@@ -3,7 +3,8 @@
 import { BackButton } from "@/components/ui/BackButton";
 import { Show } from "@/components/ui/Show";
 import type { Official, ChainEntry } from "@/lib/api";
-import { RelatedLinks, type RelatedLink } from "@/components/civic/RelatedLinks";
+import type { RelatedLink } from "@/components/civic/RelatedLinks";
+import { WhereTheyServe } from "./WhereTheyServe";
 import { ProposedBanner } from "./ProposedBanner";
 import { OfficialHero } from "./OfficialHero";
 import { ContactPills } from "./ContactPills";
@@ -37,6 +38,7 @@ export function OfficialProfile({
   topSlot,
   bottomSlot,
   whereServeLast = false,
+  partyLogos = {},
 }: {
   official: Official;
   peers?: ChainEntry[];
@@ -46,13 +48,14 @@ export function OfficialProfile({
   showPeers?: boolean;
   topSlot?: React.ReactNode;
   bottomSlot?: React.ReactNode;
+  partyLogos?: Record<string, string>;
   /** Render the "Where they serve" block at the very end (after bottomSlot)
    *  instead of its default mid-body position — used by the seat-confirm view
    *  so the verify action precedes it. Real profile keeps the default order. */
   whereServeLast?: boolean;
 }) {
   const position = official.positions?.[0];
-  const peerAreaLabel = position?.lga || position?.state || "this area";
+  const peerAreaLabel = position?.ward || position?.lga || position?.state || "this area";
   const completeness = Math.round(official.completenessScore * 100);
   const missingFields = TRACKED_FIELDS.filter(
     (f) => f === "partyAcronym" ? !position?.party : !(official as unknown as Record<string, unknown>)[f],
@@ -147,20 +150,20 @@ export function OfficialProfile({
         {/* Retention Phase 1 — explore the jurisdictions this official serves */}
         <Show when={!whereServeLast}>
           <div className="mt-10">
-            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+            <WhereTheyServe items={serveLinks} />
           </div>
         </Show>
 
         {/* Retention Phase 1 — the other people who represent this area */}
         <Show when={showPeers && peers.length > 0}>
-          <PeerOfficials peers={peers} areaLabel={peerAreaLabel} />
+          <PeerOfficials peers={peers} areaLabel={peerAreaLabel} partyLogos={partyLogos} />
         </Show>
 
         {bottomSlot}
 
         <Show when={whereServeLast}>
           <div className="mt-10">
-            <RelatedLinks title="Where they serve" items={serveLinks} columns={3} />
+            <WhereTheyServe items={serveLinks} />
           </div>
         </Show>
       </div>
