@@ -12,6 +12,7 @@
  * starts with `stateCode`), so strip the parent prefix before de-slugging.
  */
 import type { OgIdentityProps } from "./og-identity";
+import { parseProposalRole } from "./proposal-roles";
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -58,92 +59,15 @@ function place(p: Params) {
 const breadcrumb = (parts: (string | null)[]) => parts.filter(Boolean).join(", ");
 
 export function proposalCardFromParams(p: Params): OgIdentityProps {
-  const role = first(p, "role");
+  const role = parseProposalRole(first(p, "role"));
   const stateCode = first(p, "stateCode");
   const { state, lga, ward, constituency } = place(p);
   const subAsk = "Know who holds this seat? Naming them takes two minutes.";
   const withCrumb = (crumb: string) => (crumb ? `${crumb}. ${subAsk}` : subAsk);
 
-  if (role === "councilor" && ward) {
-    return {
-      headline: [
-        { text: "Who is the councilor for " },
-        { text: `${ward} Ward?`, accent: true },
-      ],
-      subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
-      stateCode,
-    };
-  }
-
-  if (role === "lga_chairman" && lga) {
-    return {
-      headline: [
-        { text: "Who chairs " },
-        { text: `${lga} Local Government?`, accent: true },
-      ],
-      subline: withCrumb(breadcrumb([state && `${state} State`])),
-      stateCode,
-    };
-  }
-
-  if (role === "senator" && (constituency || state)) {
-    return {
-      headline: constituency
-        ? [
-            { text: "Who is the senator for " },
-            { text: `${constituency}?`, accent: true },
-          ]
-        : [
-            { text: "Who represents " },
-            { text: `${state} State`, accent: true },
-            { text: " in the Senate?" },
-          ],
-      subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
-      stateCode,
-    };
-  }
-
-  if (role === "rep" && (constituency || lga || state)) {
-    return {
-      headline: [
-        { text: "Who speaks for " },
-        { text: constituency ?? lga ?? `${state} State`, accent: true },
-        { text: " in the House of Reps?" },
-      ],
-      subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
-      stateCode,
-    };
-  }
-
-  if (role === "governor" && state) {
-    return {
-      headline: [
-        { text: "Who governs " },
-        { text: `${state} State?`, accent: true },
-      ],
-      subline: withCrumb(breadcrumb([state && `${state} State`])),
-      stateCode,
-    };
-  }
-
-  // Assembly links from the chain view often carry only ward/LGA context, no
-  // constituency code — fall back to the LGA as the seat's nearest name.
-  if (role === "mha" && (constituency || lga || state)) {
-    return {
-      headline: [
-        { text: "Who speaks for " },
-        { text: constituency ?? lga ?? `${state} State`, accent: true },
-        { text: " in the State Assembly?" },
-      ],
-      subline: withCrumb(
-        breadcrumb([constituency && lga ? `${lga} LGA` : null, state && `${state} State`])
-      ),
-      stateCode,
-    };
-  }
-
-  // Cold visit or unrecognized role: still an ask, just a general one.
-  return {
+  // Cold visit, unrecognized role, or role missing its location context:
+  // still an ask, just a general one.
+  const fallback: OgIdentityProps = {
     headline: [
       { text: "Help us name " },
       { text: "every official in Nigeria.", accent: true },
@@ -152,4 +76,89 @@ export function proposalCardFromParams(p: Params): OgIdentityProps {
       "Identify a missing official or correct an existing profile — from your ward councilor to the governor.",
     stateCode,
   };
+
+  // Exhaustive over ProposalRole: adding a role to PROPOSAL_ROLES without a
+  // case here is a compile error, not a silent generic card.
+  switch (role) {
+    case null:
+      return fallback;
+
+    case "councilor":
+      if (!ward) return fallback;
+      return {
+        headline: [
+          { text: "Who is the councilor for " },
+          { text: `${ward} Ward?`, accent: true },
+        ],
+        subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
+        stateCode,
+      };
+
+    case "lga_chairman":
+      if (!lga) return fallback;
+      return {
+        headline: [
+          { text: "Who chairs " },
+          { text: `${lga} Local Government?`, accent: true },
+        ],
+        subline: withCrumb(breadcrumb([state && `${state} State`])),
+        stateCode,
+      };
+
+    case "senator":
+      if (!constituency && !state) return fallback;
+      return {
+        headline: constituency
+          ? [
+              { text: "Who is the senator for " },
+              { text: `${constituency}?`, accent: true },
+            ]
+          : [
+              { text: "Who represents " },
+              { text: `${state} State`, accent: true },
+              { text: " in the Senate?" },
+            ],
+        subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
+        stateCode,
+      };
+
+    case "rep":
+      if (!constituency && !lga && !state) return fallback;
+      return {
+        headline: [
+          { text: "Who speaks for " },
+          { text: constituency ?? lga ?? `${state} State`, accent: true },
+          { text: " in the House of Reps?" },
+        ],
+        subline: withCrumb(breadcrumb([lga && `${lga} LGA`, state && `${state} State`])),
+        stateCode,
+      };
+
+    case "governor":
+      if (!state) return fallback;
+      return {
+        headline: [
+          { text: "Who governs " },
+          { text: `${state} State?`, accent: true },
+        ],
+        subline: withCrumb(breadcrumb([state && `${state} State`])),
+        stateCode,
+      };
+
+    // Assembly links from the chain view often carry only ward/LGA context, no
+    // constituency code — fall back to the LGA as the seat's nearest name.
+    case "mha":
+      if (!constituency && !lga && !state) return fallback;
+      return {
+        headline: [
+          { text: "Who speaks for " },
+          { text: constituency ?? lga ?? `${state} State`, accent: true },
+          { text: " in the State Assembly?" },
+        ],
+        subline: withCrumb(
+          breadcrumb([constituency && lga ? `${lga} LGA` : null, state && `${state} State`])
+        ),
+        stateCode,
+      };
+  }
 }
