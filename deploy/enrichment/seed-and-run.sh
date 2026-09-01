@@ -22,13 +22,24 @@ cp -a /opt/seed/skills/. "$HOME_DIR/skills/"
 # Secrets: always rewritten from env so rotation just needs a container restart.
 umask 077
 cat > "$HOME_DIR/.env" <<EOF
-OPENAI_API_KEY=${LLM_API_KEY:-${DEEPSEEK_API_KEY}}
-DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+OPENAI_API_KEY=${DEEPSEEK_API_KEY}
+DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+ZAI_API_KEY=${ZAI_API_KEY:-}
 ENRICHMENT_AGENT_DATABASE_URL=${ENRICHMENT_AGENT_DATABASE_URL}
 CAMOFOX_URL=${CAMOFOX_URL}
 TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
 TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS}
 EOF
+
+# Vision auxiliary (GLM @ z.ai): inject the api_key into the LIVE config on every
+# boot (config.yaml itself is first-boot-only; the key must never be committed).
+if [ -n "${ZAI_API_KEY:-}" ] && grep -q 'model: "glm-5.3-flash"' "$HOME_DIR/config.yaml" 2>/dev/null; then
+  # anchor: the api_key line directly following the glm vision model line
+  awk -v key="${ZAI_API_KEY}" '
+    /model: "glm-5.3-flash"/ { invision=1 }
+    invision && /api_key:/ { sub(/api_key:.*/, "api_key: \"" key "\""); invision=0 }
+    { print }' "$HOME_DIR/config.yaml" > "$HOME_DIR/config.yaml.tmp" && mv "$HOME_DIR/config.yaml.tmp" "$HOME_DIR/config.yaml"
+fi
 
 # Own the home as the hermes runtime user so the supervised gateway can write skills/sessions.
 chown -R "${HERMES_UID:-10000}:${HERMES_GID:-10000}" "$HOME_DIR" 2>/dev/null || true

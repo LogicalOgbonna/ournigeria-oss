@@ -2,12 +2,23 @@
 # HERMES_HOME is this single-purpose home (SOUL.md + this config + skills/ + .env).
 # Secrets come from .env (written at boot from container env), never baked into the image.
 model:
-  # GLM-5.3-flash (z.ai): native multimodal — reads page images/PDFs, which the
-  # historical-archive sources (archivi.ng scans, gazettes) need and a text-only
-  # model cannot. Thinking mode is always-on upstream. OpenAI-compatible API.
-  default: "glm-5.3-flash"
+  # Split-engine design (user decision): DeepSeek-v4-flash stays the reasoning
+  # brain (proven, prefix-cache-cheap for agent loops); GLM-5.3-flash serves
+  # ONLY as the vision auxiliary below — page images / scanned archives /
+  # gazette PDFs, which a text-only brain cannot read.
+  default: "deepseek-v4-flash"
   provider: "custom"
-  base_url: "https://api.z.ai/api/paas/v4"
+  base_url: "https://api.deepseek.com/v1"
+
+auxiliary:
+  vision:
+    # GLM-5.3-flash (z.ai, OpenAI-compatible): native multimodal. api_key is
+    # injected from ZAI_API_KEY at boot by seed-and-run.sh (never committed).
+    provider: "custom"
+    model: "glm-5.3-flash"
+    base_url: "https://api.z.ai/api/paas/v4"
+    api_key: ""
+    timeout: 120
 
 # Only what the agent needs: browse (camofox) + run the bundled CLIs (terminal,
 # container-confined) + read files. NO web-search, no delegation, no kanban, etc.
