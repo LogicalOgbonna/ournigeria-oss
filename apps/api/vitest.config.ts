@@ -9,6 +9,7 @@ export default defineConfig({
       "@ournigeria/tools": resolve(__dirname, "../../packages/tools/src/index.ts"),
       // Same rationale for the other workspace packages, whose dist/ is only
       // produced by an explicit nx build — tests must not depend on that.
+      "@ournigeria/access": resolve(__dirname, "../../packages/access/src/index.ts"),
       "@ournigeria/database": resolve(__dirname, "../../packages/database/src/index.ts"),
       "@ournigeria/official-records": resolve(__dirname, "../../packages/official-records/src/index.ts"),
       "@ournigeria/cache": resolve(__dirname, "../../packages/cache/src/index.ts"),

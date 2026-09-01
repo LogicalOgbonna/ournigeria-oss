@@ -32,6 +32,8 @@ export interface EnvConfig {
   OKF_GIT_TOKEN?: string; // fine-grained PAT scoped to the mirror repo (fallback)
   OKF_PUBLISH_ENABLED?: string; // "1" to allow publishing
   ADMIN_SESSION_SECRET: string;
+  /** 32-byte base64 master key wrapping per-subject audit erasure keys (spec 62 §9). Required in production (enforced by AuditCryptoService). */
+  AUDIT_ERASURE_MASTER_KEY?: string;
   LANGFUSE_PUBLIC_KEY?: string;
   LANGFUSE_SECRET_KEY?: string;
   LANGFUSE_BASE_URL?: string;
@@ -123,6 +125,8 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     OKF_GIT_TOKEN: (config.OKF_GIT_TOKEN as string) || undefined,
     OKF_PUBLISH_ENABLED: (config.OKF_PUBLISH_ENABLED as string) || undefined,
     ADMIN_SESSION_SECRET: config.ADMIN_SESSION_SECRET as string,
+    AUDIT_ERASURE_MASTER_KEY:
+      (config.AUDIT_ERASURE_MASTER_KEY as string) || undefined,
     LANGFUSE_PUBLIC_KEY: (config.LANGFUSE_PUBLIC_KEY as string) || undefined,
     LANGFUSE_SECRET_KEY: (config.LANGFUSE_SECRET_KEY as string) || undefined,
     LANGFUSE_BASE_URL: (config.LANGFUSE_BASE_URL as string) || undefined,

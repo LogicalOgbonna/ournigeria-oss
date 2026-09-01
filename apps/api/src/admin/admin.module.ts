@@ -25,8 +25,10 @@ import { AdminConnectionsController } from "./admin-connections.controller";
 import { AdminConnectionsService } from "./admin-connections.service";
 import { AdminBackupController } from "./admin-backup.controller";
 import { AdminBackupService } from "./admin-backup.service";
+import { AuditModule } from "../audit/audit.module";
 
 @Module({
+  imports: [AuditModule],
   controllers: [
     AdminAuthController,
     AdminConversationsController,

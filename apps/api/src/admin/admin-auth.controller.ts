@@ -15,8 +15,12 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { Public } from "../auth/decorators/public";
 import { cache } from "@ournigeria/cache";
+import { PrismaService } from "@ournigeria/database";
+import { resolvePermissions } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
 import { AdminAuthService } from "./admin-auth.service";
+import { loadActiveRoles } from "./roles.util";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 
 
 const ADMIN_COOKIE = "on_admin_session";
@@ -40,7 +44,11 @@ const createAdminSchema = z.object({
 @ApiTags("Admin - Auth")
 @Controller("admin/auth")
 export class AdminAuthController {
-  constructor(private authService: AdminAuthService) {}
+  constructor(
+    private authService: AdminAuthService,
+    private audit: AuditService,
+    private prisma: PrismaService,
+  ) {}
 
   @Post("login")
   @ApiOperation({ summary: "Admin login" })
@@ -79,6 +87,13 @@ export class AdminAuthController {
       );
 
       if (!result.success) {
+        await this.audit.logBestEffort(
+          { actorType: "staff", ip, userAgent: req.headers["user-agent"] ?? null },
+          {
+            action: "auth.login.failed",
+            metadata: { email: parsed.data.email },
+          },
+        );
         return res
           .status(HttpStatus.UNAUTHORIZED)
           .json({ error: result.error });
@@ -86,6 +101,16 @@ export class AdminAuthController {
 
       // Reset rate limit on successful login
       await adminCache.del(rateLimitKey);
+
+      await this.audit.logBestEffort(
+        {
+          actorType: "staff",
+          actorId: result.admin?.id ?? null,
+          ip,
+          userAgent: req.headers["user-agent"] ?? null,
+        },
+        { action: "auth.login", metadata: { email: parsed.data.email } },
+      );
 
       res.cookie(ADMIN_COOKIE, result.token, {
         httpOnly: true,
@@ -111,6 +136,14 @@ export class AdminAuthController {
     const token = req.cookies?.[ADMIN_COOKIE] || req.headers["x-admin-key"];
     if (typeof token === "string") {
       await this.authService.revokeSession(token).catch(() => {});
+      await this.audit.logBestEffort(
+        {
+          actorType: "staff",
+          ip: req.ip ?? null,
+          userAgent: req.headers["user-agent"] ?? null,
+        },
+        { action: "auth.logout" },
+      );
     }
     res.clearCookie(ADMIN_COOKIE, { path: "/" });
     return res.json({ success: true });
@@ -128,7 +161,12 @@ export class AdminAuthController {
           .status(HttpStatus.NOT_FOUND)
           .json({ error: "Admin not found" });
       }
-      return res.json(admin);
+      const roles = await loadActiveRoles(this.prisma, "staff", adminId);
+      return res.json({
+        ...admin,
+        roles,
+        permissions: [...resolvePermissions(roles)],
+      });
     } catch (err) {
       console.error("admin me error:", err);
       return res
