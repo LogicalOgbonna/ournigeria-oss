@@ -5,17 +5,7 @@ export const API_URL =
 import { SITE_URL } from "@/lib/constants";
 export { SITE_URL };
 
-// Humanized role labels for titles/descriptions/JSON-LD.
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State House of Assembly Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Councilor",
-};
+import { roleLabel as baseRoleLabel } from "@/lib/roles";
 
 export async function getOfficial(idOrSlug: string): Promise<Official | null> {
   try {
@@ -30,8 +20,7 @@ export async function getOfficial(idOrSlug: string): Promise<Official | null> {
 }
 
 export function roleLabel(role?: string | null): string {
-  if (!role) return "Public Official";
-  return ROLE_LABELS[role] ?? role.replaceAll("_", " ");
+  return baseRoleLabel(role, "Public Official");
 }
 
 export function absoluteImage(imageUrl: string | null): string | undefined {

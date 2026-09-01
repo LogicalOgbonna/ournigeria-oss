@@ -26,6 +26,7 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import type { Official, Position, ElectionRecord } from "@/lib/api";
+import { roleLabel } from "@/lib/roles";
 
 /* ---------- palette (light/print rendition of the brand) ---------- */
 
@@ -81,17 +82,6 @@ export function registerCvFonts(base: string) {
 
 /* ---------- labels + formatters (same semantics as ProfileV10) ---------- */
 
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State Assembly Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Councilor",
-};
-
 const TYPE_LABELS: Record<string, string> = {
   elected: "Elected Official",
   appointed: "Appointed Official",
@@ -102,10 +92,6 @@ const TYPE_LABELS: Record<string, string> = {
   other: "Public Official",
 };
 
-function roleLabel(role?: string | null): string {
-  if (!role) return "Official";
-  return ROLE_LABELS[role] ?? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
 
 function yearOf(iso: string | null): string | null {
   return iso ? iso.split("-")[0] : null;
