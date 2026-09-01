@@ -2,9 +2,12 @@
 # HERMES_HOME is this single-purpose home (SOUL.md + this config + skills/ + .env).
 # Secrets come from .env (written at boot from container env), never baked into the image.
 model:
-  default: "deepseek-v4-flash"
+  # GLM-5.3-flash (z.ai): native multimodal — reads page images/PDFs, which the
+  # historical-archive sources (archivi.ng scans, gazettes) need and a text-only
+  # model cannot. Thinking mode is always-on upstream. OpenAI-compatible API.
+  default: "glm-5.3-flash"
   provider: "custom"
-  base_url: "https://api.deepseek.com/v1"
+  base_url: "https://api.z.ai/api/paas/v4"
 
 # Only what the agent needs: browse (camofox) + run the bundled CLIs (terminal,
 # container-confined) + read files. NO web-search, no delegation, no kanban, etc.
