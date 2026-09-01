@@ -37,6 +37,12 @@ export async function generateMetadata(props: {
     const s = Array.isArray(v) ? v[0] : v;
     if (s) img.set(key, s);
   }
+  // Deploy-scoped version param: X/WhatsApp cache image validation PER IMAGE
+  // URL (including failures — a pre-release 404 sticks for days). Varying the
+  // URL each deploy busts those caches; without this, a share that failed once
+  // never recovers even with a cache-busted page URL.
+  const ogVersion = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  if (ogVersion) img.set("v", ogVersion);
   const image = { url: `/og/proposal?${img.toString()}`, width: 1200, height: 630 };
 
   const title = `${ogIdentityHeadlineText(card.headline)} | OurNigeria`;
