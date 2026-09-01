@@ -26,11 +26,14 @@ import { AdminConnectionsService } from "./admin-connections.service";
 import { AdminBackupController } from "./admin-backup.controller";
 import { AdminBackupService } from "./admin-backup.service";
 import { AuditModule } from "../audit/audit.module";
+import { AdminRolesController } from "./admin-roles.controller";
+import { RolesAdminService } from "./roles-admin.service";
 
 @Module({
   imports: [AuditModule],
   controllers: [
     AdminAuthController,
+    AdminRolesController,
     AdminConversationsController,
     AdminNotificationsController,
     AdminUsersController,
@@ -46,6 +49,7 @@ import { AuditModule } from "../audit/audit.module";
   ],
   providers: [
     AdminAuthService,
+    RolesAdminService,
     AdminConversationsService,
     AdminNotificationsService,
     AdminUsersService,

@@ -2,10 +2,14 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { invalidateUserAuthCache } from "../auth/auth.guard";
 import { invalidateSessionResolutionCache } from "../auth/session.service";
+import { AuditService, type AuditActor } from "../audit/audit.service";
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async listUsers(page: number, limit: number, search?: string) {
     const where = search
@@ -158,51 +162,115 @@ export class AdminUsersService {
   async updateUserPreferences(
     id: string,
     preferences: Record<string, unknown>,
+    actor: AuditActor,
   ) {
-    return this.prisma.user.update({
-      where: { id },
-      data: { preferences: preferences as any },
-      select: { id: true, preferences: true },
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({
+        where: { id },
+        select: { preferences: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: { preferences: preferences as any },
+        select: { id: true, preferences: true },
+      });
+      await this.audit.log(tx, actor, {
+        action: "user.updated",
+        targetType: "user",
+        targetId: id,
+        diff: {
+          before: { preferences: before?.preferences ?? null },
+          after: { preferences: updated.preferences },
+        },
+      });
+      return updated;
     });
   }
 
-  async banUser(id: string, reason?: string) {
-    const result = await this.prisma.user.update({
-      where: { id },
-      data: {
-        banned: true,
-        bannedAt: new Date(),
-        banReason: reason || null,
-      },
-      select: { id: true, banned: true, bannedAt: true, banReason: true },
-    });
-    // Kill every active session immediately (the ban cache alone lags up to 60s)
-    // and purge cached token resolutions so they can't outlive the ban.
-    await this.prisma.userSession.updateMany({
-      where: { userId: id, revokedAt: null },
-      data: { revokedAt: new Date() },
+  async banUser(id: string, reason: string | undefined, actor: AuditActor) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({
+        where: { id },
+        select: { banned: true, bannedAt: true, banReason: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: {
+          banned: true,
+          bannedAt: new Date(),
+          banReason: reason || null,
+        },
+        select: { id: true, banned: true, bannedAt: true, banReason: true },
+      });
+      // Kill every active session immediately (the ban cache alone lags up to 60s)
+      // and purge cached token resolutions so they can't outlive the ban.
+      await tx.userSession.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.log(tx, actor, {
+        action: "user.banned",
+        targetType: "user",
+        targetId: id,
+        diff: {
+          before,
+          after: {
+            banned: updated.banned,
+            bannedAt: updated.bannedAt,
+            banReason: updated.banReason,
+          },
+        },
+        metadata: reason ? { reason } : {},
+      });
+      return updated;
     });
     await invalidateSessionResolutionCache();
     await invalidateUserAuthCache(id);
     return result;
   }
 
-  async unbanUser(id: string) {
-    const result = await this.prisma.user.update({
-      where: { id },
-      data: {
-        banned: false,
-        bannedAt: null,
-        banReason: null,
-      },
-      select: { id: true, banned: true },
+  async unbanUser(id: string, actor: AuditActor) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({
+        where: { id },
+        select: { banned: true, bannedAt: true, banReason: true },
+      });
+      const updated = await tx.user.update({
+        where: { id },
+        data: {
+          banned: false,
+          bannedAt: null,
+          banReason: null,
+        },
+        select: { id: true, banned: true },
+      });
+      await this.audit.log(tx, actor, {
+        action: "user.unbanned",
+        targetType: "user",
+        targetId: id,
+        diff: {
+          before,
+          after: { banned: false, bannedAt: null, banReason: null },
+        },
+      });
+      return updated;
     });
     await invalidateUserAuthCache(id);
     return result;
   }
 
-  async deleteUser(id: string) {
-    return this.prisma.user.delete({ where: { id } });
+  async deleteUser(id: string, actor: AuditActor) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.user.findUnique({ where: { id } });
+      const deleted = await tx.user.delete({ where: { id } });
+      await this.audit.log(tx, actor, {
+        action: "user.deleted",
+        targetType: "user",
+        targetId: id,
+        diff: { before, after: null },
+      });
+      return deleted;
+    });
   }
 
   async getUserStats() {

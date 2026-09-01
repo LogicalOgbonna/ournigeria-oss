@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from "@nestjs/common";
+import { Global, Module, OnModuleInit } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { TelegramModule } from "../telegram/telegram.module";
 import { setPermissionDenialLogger } from "../admin/permissions.guard";
@@ -11,6 +11,9 @@ import { AuditAnchorService } from "./audit-anchor.service";
 import { AuditBackstopInterceptor } from "./audit-backstop.interceptor";
 import { AuditController } from "./audit.controller";
 
+// Global: audit logging is cross-cutting (like DatabaseModule) — every admin
+// controller/service injects AuditService without per-module imports.
+@Global()
 @Module({
   imports: [TelegramModule],
   controllers: [AuditController],

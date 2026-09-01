@@ -14,6 +14,7 @@ import { OfficialRecordService } from "./official-record.service";
 import { getCreatableEntity } from "../enrichment/creatable.registry";
 import { validateSourceUrl, validateImageUrl, validateFacebookUrl } from "../lib/url-validation";
 import { buildIdentifyDisplayValue, composeGeo } from "./proposal-display";
+import { AuditService } from "../audit/audit.service";
 
 const VALID_TARGET_FIELDS = [
   "name",
@@ -79,7 +80,15 @@ export class ProposalsService {
     private officialsService: OfficialsService,
     private notifier: ProposalNotifierService,
     private officialRecords: OfficialRecordService = new OfficialRecordService(),
-  ) {}
+    // Optional so existing manual-construction tests keep working; injected by
+    // Nest in the real app (AuditModule is @Global).
+    private audit?: AuditService,
+  ) {
+    if (!this.audit && process.env.NODE_ENV === "production") {
+      // Approvals must never mutate live data unaudited (plan 62 §8).
+      throw new Error("ProposalsService: AuditService missing in production");
+    }
+  }
 
   async create(data: {
     officialId: string;
@@ -1390,10 +1399,39 @@ export class ProposalsService {
       });
     }
 
-    // Mark proposal as approved
-    await this.prisma.dataProposal.update({
-      where: { id: proposalId },
-      data: { status: "approved", reviewedAt: new Date(), reviewedBy: adminId },
+    // Mark proposal as approved — same transaction as its chain event, so an
+    // approval can never commit unlogged (plan 62 §8). Field writes above are
+    // separate steps by pre-existing design; if this tx fails the proposal
+    // stays unresolved and the review is retryable.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.dataProposal.update({
+        where: { id: proposalId },
+        data: { status: "approved", reviewedAt: new Date(), reviewedBy: adminId },
+      });
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "proposal.approved",
+          targetType: "official",
+          targetId: proposal.officialId,
+          diff: {
+            before: {
+              [proposal.targetField]:
+                (proposal.official as unknown as Record<string, unknown>)[
+                  proposal.targetField
+                ] ?? null,
+            },
+            after: { [proposal.targetField]: value ?? null },
+          },
+          metadata: {
+            pathway: "proposal",
+            proposalId,
+            targetField: proposal.targetField,
+            ...(successorOfficialId ? { successorOfficialId } : {}),
+          },
+        },
+      );
     });
 
     // Seat supersession: approving an identify name-candidate resolves the seat.
@@ -1442,6 +1480,7 @@ export class ProposalsService {
         },
       },
     });
+
 
     return { status: "approved" };
   }
@@ -1528,6 +1567,23 @@ export class ProposalsService {
           },
         },
       });
+
+      // Chain-of-trust audit (plan 62): same-transaction, last write in the tx.
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "proposal.approved",
+          targetType: "official",
+          targetId: proposal.officialId,
+          metadata: {
+            pathway: "proposal",
+            proposalId: proposal.id,
+            targetField: proposal.targetField,
+            structured: true,
+          },
+        },
+      );
     });
 
     // Post-commit, default role — same pattern as the enrichment service.
@@ -1543,9 +1599,22 @@ export class ProposalsService {
       throw new NotFoundException("Proposal not found");
     }
 
-    await this.prisma.dataProposal.update({
-      where: { id: proposalId },
-      data: { status: "rejected", reviewedAt: new Date(), reviewedBy: adminId },
+    // Same-transaction audit: the rejection and its chain event commit together.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.dataProposal.update({
+        where: { id: proposalId },
+        data: { status: "rejected", reviewedAt: new Date(), reviewedBy: adminId },
+      });
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "proposal.rejected",
+          targetType: "official",
+          targetId: proposal.officialId,
+          metadata: { pathway: "proposal", proposalId, targetField: proposal.targetField },
+        },
+      );
     });
 
     // If this was the last pending identify candidate on a never-approved seat,

@@ -28,7 +28,7 @@ describe("AuditBackstopInterceptor", () => {
       interceptor.intercept(makeContext(req), { handle: () => of({ ok: true }) }),
     );
     expect(audit.logBestEffort).toHaveBeenCalledTimes(1);
-    const [, event] = audit.logBestEffort.mock.calls[0] as [unknown, any];
+    const [, event] = audit.logBestEffort.mock.calls[0] as unknown as [unknown, any];
     expect(event.action).toBe("admin.post");
     expect(event.metadata.backstop).toBe(true);
     expect(event.metadata.body.apiKey).toBe("[REDACTED]");
@@ -69,7 +69,7 @@ describe("AuditBackstopInterceptor", () => {
         }),
       ),
     ).rejects.toThrow("boom");
-    const [, event] = audit.logBestEffort.mock.calls[0] as [unknown, any];
+    const [, event] = audit.logBestEffort.mock.calls[0] as unknown as [unknown, any];
     expect(event.metadata.outcome).toBe("error");
   });
 });

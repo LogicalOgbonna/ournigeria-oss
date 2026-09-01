@@ -8,7 +8,13 @@ describe("AdminEnrichmentController", () => {
     getWithSources: vi.fn().mockResolvedValue({ id: "p1", sources: [] }),
   } as any;
   const prisma = { changeProposal: { update: vi.fn().mockResolvedValue({ id: "p1" }) } } as any;
-  const ctrl = new AdminEnrichmentController(apply, query, prisma);
+  // Interactive-tx convention: $transaction(fn) runs fn against the same stub.
+  prisma.$transaction = vi.fn(async (fn: any) => fn(prisma));
+  const audit = {
+    log: vi.fn().mockResolvedValue({ seq: 1 }),
+    logBestEffort: vi.fn().mockResolvedValue(null),
+  } as any;
+  const ctrl = new AdminEnrichmentController(apply, query, prisma, audit);
   // The AdminGuard sets request.adminId (a plain string) — not request.admin.id
   const req = { adminId: "admin-1" } as any;
 

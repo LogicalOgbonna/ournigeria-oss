@@ -18,6 +18,8 @@ import { cache } from "@ournigeria/cache";
 import { PrismaService } from "@ournigeria/database";
 import { resolvePermissions } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthService } from "./admin-auth.service";
 import { loadActiveRoles } from "./roles.util";
 import { AuditService, auditActorFromRequest } from "../audit/audit.service";
@@ -175,7 +177,8 @@ export class AdminAuthController {
     }
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("admins.manage")
   @Get("admins")
   @ApiOperation({ summary: "List all admin users" })
   async listAdmins(@Res() res: Response) {
@@ -190,7 +193,8 @@ export class AdminAuthController {
     }
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("admins.manage")
   @Post("admins")
   @ApiOperation({ summary: "Create a new admin user" })
   async createAdmin(
@@ -211,6 +215,12 @@ export class AdminAuthController {
         createdById,
         parsed.data,
       );
+      await this.audit.logBestEffort(auditActorFromRequest(req as never), {
+        action: "admin.created",
+        targetType: "admin",
+        targetId: (admin as { id?: string }).id ?? null,
+        metadata: { email: parsed.data.email, name: parsed.data.name },
+      });
       return res.status(HttpStatus.CREATED).json(admin);
     } catch (err: any) {
       if (err?.code === "P2002") {
@@ -225,7 +235,8 @@ export class AdminAuthController {
     }
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("admins.manage")
   @Delete("admins/:id")
   @ApiOperation({ summary: "Delete an admin user" })
   async deleteAdmin(
@@ -241,9 +252,14 @@ export class AdminAuthController {
           .json({ error: "Cannot delete yourself" });
       }
 
-      await this.authService.deleteAdmin(id);
+      // deleteAdmin writes the chain event in its own transaction.
+      auditActorFromRequest(req as never);
+      await this.authService.deleteAdmin(id, adminId);
       return res.json({ success: true });
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.status === 409) {
+        return res.status(HttpStatus.CONFLICT).json({ error: err.message });
+      }
       console.error("admin delete error:", err);
       return res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
