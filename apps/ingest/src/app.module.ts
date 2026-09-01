@@ -9,6 +9,8 @@ import { SchedulingModule } from "./scheduling/scheduling.module";
 import { S3Module } from "./s3/s3.module";
 import { SqsModule } from "./sqs/sqs.module";
 import { AdminGuard } from "./auth/admin.guard";
+import { PermissionsGuard } from "./auth/permissions.guard";
+import { AuditModule } from "./audit/audit.module";
 import { validateEnv } from "./config/env.validation";
 import { HealthModule } from "./health/health.module";
 
@@ -28,11 +30,16 @@ import { HealthModule } from "./health/health.module";
     SchedulingModule,
     SqsModule,
     HealthModule,
+    AuditModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: AdminGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
     },
   ],
 })

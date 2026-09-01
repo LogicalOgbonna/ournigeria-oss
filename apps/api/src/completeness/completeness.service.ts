@@ -104,7 +104,7 @@ export class CompletenessService {
           WHERE p.status = 'active'
         ) pos ON pos.resolved_state_code = s.code
         LEFT JOIN nigerian_officials o
-          ON o.id = pos.official_id
+          ON o.id = pos.official_id AND o.deleted_at IS NULL
         GROUP BY s.code, s.name
         ORDER BY avg_completeness DESC, s.name ASC
       `);
@@ -137,7 +137,7 @@ export class CompletenessService {
           WHERE p.status = 'active'
         ) pos ON pos.resolved_lga_code = l.code
         LEFT JOIN nigerian_officials o
-          ON o.id = pos.official_id
+          ON o.id = pos.official_id AND o.deleted_at IS NULL
         WHERE l.state_code = $1
         GROUP BY l.code, l.name
         ORDER BY avg_completeness DESC, l.name ASC
