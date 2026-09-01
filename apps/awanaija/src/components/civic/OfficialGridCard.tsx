@@ -4,18 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { User } from "lucide-react";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { roleLabel } from "@/lib/roles";
 import type { Official, Position } from "@/lib/api";
-
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State House Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Ward Councilor",
-};
 
 /** Donut completeness badge overlaid on the card photo (Figma 541:600). */
 function CompletenessBadge({ value }: { value: number }) {
@@ -57,7 +47,7 @@ function PartyFlag({ acronym, logo }: { acronym: string; logo?: string }) {
   return (
     <span
       aria-hidden
-      className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500 bg-white text-[8px] font-bold text-slate-600 dark:border-[#43ee94] dark:bg-[#2a2a2a] dark:text-white"
+      className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500 bg-white text-[8px] font-bold text-slate-600 dark:border-brand-green dark:bg-[#2a2a2a] dark:text-white"
     >
       {logo && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -68,6 +58,7 @@ function PartyFlag({ acronym, logo }: { acronym: string; logo?: string }) {
           height={16}
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
           className="h-full w-full bg-white object-contain p-px"
           onError={() => setFailed(true)}
         />
@@ -87,10 +78,14 @@ function PartyFlag({ acronym, logo }: { acronym: string; logo?: string }) {
 export function OfficialGridCard({
   official,
   position: positionProp,
+  role: roleProp,
   partyLogos = {},
 }: {
   official: Official;
   position?: Position | null;
+  /** Role-code override — the by-location chain's slot role is authoritative
+   *  for peer cards even when the chain entry carries no position. */
+  role?: string | null;
   partyLogos?: Record<string, string>;
 }) {
   const [imgError, setImgError] = useState(false);
@@ -101,7 +96,8 @@ export function OfficialGridCard({
     ? Math.min(100, Math.max(0, Math.round(official.completenessScore * 100)))
     : null;
   const location = position?.ward || position?.constituency || position?.lga || position?.state || "";
-  const roleLabel = position?.role ? ROLE_LABELS[position.role] || position.role : "Official";
+  const role = roleLabel(roleProp ?? position?.role);
+  const party = typeof position?.party === "string" ? position.party : null;
   // Year taken lexically from the date-only string: new Date("YYYY-MM-DD") is UTC
   // midnight, so .getFullYear() shifts to the prior year west of UTC (and can
   // mismatch between server and client render).
@@ -112,12 +108,12 @@ export function OfficialGridCard({
     <Link
       href={`/officials/${official.slug ?? official.id}`}
       data-testid="official-card"
-      className="block overflow-hidden rounded-[10px] border border-slate-200 bg-white transition-all hover:border-emerald-400 hover:shadow-md dark:border-white/5 dark:bg-[#060a08] dark:hover:border-emerald-600"
+      className="block overflow-hidden rounded-[10px] border border-slate-200 bg-white transition-all hover:border-emerald-400 hover:shadow-md dark:border-white/5 dark:bg-surface-night dark:hover:border-emerald-600"
     >
       {/* Photo on the brand-green backdrop. Uses the stored -600 variant directly:
           cdnAvatar's -128 thumbnail is for small avatars and would upscale blurry
           at this card width. */}
-      <div className="relative aspect-[171/146] w-full overflow-hidden bg-[#43ee94]">
+      <div className="relative aspect-[171/146] w-full overflow-hidden bg-brand-green">
         {showImage ? (
           <SmartImage
             src={official.imageUrl!}
@@ -139,24 +135,24 @@ export function OfficialGridCard({
 
       {/* Meta */}
       <div className="p-3">
-        <p className="truncate text-sm font-bold text-slate-900 dark:text-[#bbcbbc]">
+        <p className="truncate text-sm font-bold text-slate-900 dark:text-ink-mist">
           {official.name}
         </p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-[#bbcbbc]">
-          <span className="truncate">{roleLabel}</span>
+        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-ink-mist">
+          <span className="truncate">{role}</span>
           {location && (
             <>
               <span aria-hidden className="h-0.5 w-0.5 shrink-0 rounded-full bg-current" />
-              <span className="truncate text-emerald-700 dark:text-[#00d492]">{location}</span>
+              <span className="truncate text-emerald-700 dark:text-brand-mint">{location}</span>
             </>
           )}
         </p>
         <div className="mt-2 flex h-4 items-center justify-between gap-2">
-          {position?.party ? (
-            <span className="flex min-w-0 items-center gap-1.5">
-              <PartyFlag acronym={position.party} logo={partyLogos[position.party.toUpperCase()]} />
-              <span className="truncate text-[11px] text-slate-600 dark:text-[#bbcbbc]">
-                {position.party}
+          {party ? (
+            <span data-testid="party-row" className="flex min-w-0 items-center gap-1.5">
+              <PartyFlag acronym={party} logo={partyLogos[party.toUpperCase()]} />
+              <span className="truncate text-[11px] text-slate-600 dark:text-ink-mist">
+                {party}
               </span>
             </span>
           ) : (

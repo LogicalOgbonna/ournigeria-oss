@@ -18,11 +18,11 @@ test.describe('Officials directory @awanaija', () => {
     await expect(name).not.toBeEmpty();
 
     // At least one card on the page shows a party row (flag disc + acronym) —
-    // catches total party-flag disappearance (e.g. a permanently failing
-    // /parties fetch would be invisible otherwise). Officials without an active
+    // catches total party-row disappearance. Officials without an active
     // position legitimately have no party row, hence "at least one".
-    const partyRows = page.getByTestId('official-card').locator('span[aria-hidden]');
+    const partyRows = page.getByTestId('party-row');
     expect(await partyRows.count()).toBeGreaterThan(0);
+    await expect(partyRows.first()).not.toBeEmpty();
 
     // Clicking a card lands on that official's profile.
     await cards.first().click();

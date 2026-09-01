@@ -19,7 +19,7 @@ export function PeerOfficials({
 
   return (
     <section data-testid="peer-officials" className="mt-10">
-      <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-[#e5e2e1] mb-4">
+      <h2 className="font-heading text-2xl font-semibold text-slate-900 dark:text-ink-bright mb-4">
         Other representatives for {areaLabel}
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -28,6 +28,7 @@ export function PeerOfficials({
             key={entry.official.id}
             official={entry.official}
             position={entry.position}
+            role={entry.role}
             partyLogos={partyLogos}
           />
         ))}
