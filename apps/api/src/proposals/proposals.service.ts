@@ -271,9 +271,13 @@ export class ProposalsService {
       await this.checkProposalRateLimit(data.proposerPhone!);
     }
 
-    // Determine the correct geographic scope for the position
+    // Determine the correct geographic scope for the position.
+    // Normalize to "rep" — the spelling every stored House-of-Reps position uses
+    // and every geo/parties read path queries. Normalizing the other way makes
+    // the canonical-seat dedupe blind to existing reps and writes positions no
+    // widget can see.
     const positionScope: Record<string, string> = {};
-    const role = data.role === "rep" ? "representative" : data.role;
+    const role = data.role === "representative" ? "rep" : data.role;
     const imageInfo = this.normalizeIdentifyImage(data.imageUrl);
     const officialProfile = this.normalizeIdentifyProfile(data);
 
@@ -286,7 +290,7 @@ export class ProposalsService {
     } else if (role === "mha") {
       if (!data.constituencyCode) throw new BadRequestException("constituencyCode is required for state house member");
       positionScope.constituencyCode = data.constituencyCode;
-    } else if (role === "representative") {
+    } else if (role === "rep") {
       if (!data.constituencyCode) throw new BadRequestException("constituencyCode is required for federal representative");
       positionScope.constituencyCode = data.constituencyCode;
     } else if (role === "senator") {
@@ -454,7 +458,7 @@ export class ProposalsService {
   ): { column: "wardCode" | "lgaCode" | "constituencyCode" | "stateCode"; value: string } {
     if (role === "councilor") return { column: "wardCode", value: scope.wardCode! };
     if (role === "lga_chairman") return { column: "lgaCode", value: scope.lgaCode! };
-    if (role === "mha" || role === "representative" || role === "senator")
+    if (role === "mha" || role === "rep" || role === "senator")
       return { column: "constituencyCode", value: scope.constituencyCode! };
     if (role === "governor") return { column: "stateCode", value: scope.stateCode! };
     throw new BadRequestException(`Unsupported role for seat key: ${role}`);
@@ -1061,8 +1065,9 @@ export class ProposalsService {
     constituencyCode?: string;
     stateCode?: string;
   }) {
-    const role = params.role === "rep" ? "representative" : params.role;
-    const validRoles = ["councilor", "lga_chairman", "mha", "representative", "senator", "governor"];
+    // Same normalization as identify(): stored positions use "rep".
+    const role = params.role === "representative" ? "rep" : params.role;
+    const validRoles = ["councilor", "lga_chairman", "mha", "rep", "senator", "governor"];
     if (!validRoles.includes(role)) {
       throw new BadRequestException(`Invalid role: ${params.role}`);
     }

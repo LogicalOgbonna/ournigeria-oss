@@ -7,11 +7,16 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
 }) as any;
 // publisher stub that throws — getPending must never touch it
-const svc = new ReplyQueueService(prisma, {
-  publishOriginal: () => {
-    throw new Error("no publish in test");
-  },
-} as any);
+const svc = new ReplyQueueService(
+  prisma,
+  {
+    publishOriginal: () => {
+      throw new Error("no publish in test");
+    },
+  } as any,
+  { findByHandle: async () => null, taggedInLastDay: async () => 0, markTagged: async () => {} } as any,
+  { get: () => 10 } as any,
+);
 
 async function main() {
   const post = await prisma.socialPost.create({

@@ -24,6 +24,32 @@ const nextConfig: NextConfig = {
     // permanent: true ⇒ HTTP 308 (SEO-equivalent to 301).
     return wardRedirects;
   },
+  async headers() {
+    // X (Twitter) card validation is flaky with the default
+    // `max-age=0, must-revalidate` on generated OG images; a cacheable response
+    // lets crawler-side image caches (pbs.twimg.com) persist the card image.
+    // The build-hash query param already busts caches across deploys.
+    return [
+      {
+        source: "/:path*/opengraph-image",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" },
+        ],
+      },
+      {
+        source: "/opengraph-image",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" },
+        ],
+      },
+      {
+        source: "/og/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL || "https://api.ournigeria.ng";

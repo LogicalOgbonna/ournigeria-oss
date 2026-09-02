@@ -3,7 +3,7 @@ import { OfficialProfile } from "./_component/OfficialProfile";
 import { StructuredData } from "./_seo/structured-data";
 import { PageLayout } from "@/components/layout/PageLayout";
 
-import { formatOfficialLocation } from "@/lib/api";
+import { formatOfficialLocation, getPartyLogoMap } from "@/lib/api";
 import { SITE_URL, getOfficial, roleLabel, absoluteImage, getPeers } from "./utils";
 
 export { generateMetadata } from "./_seo/util";
@@ -28,7 +28,10 @@ export default async function OfficialPage({
   const location = formatOfficialLocation(position);
   const party = position?.partyName || position?.party || null;
   const canonicalSlug = official.slug || slug;
-  const peers = await getPeers(position, official.id);
+  const [peers, partyLogos] = await Promise.all([
+    getPeers(position, official.id),
+    getPartyLogoMap(),
+  ]);
   const url = `${SITE_URL}/officials/${canonicalSlug}`;
   const image = absoluteImage(official.imageUrl);
 
@@ -43,7 +46,7 @@ export default async function OfficialPage({
         url={url}
         image={image}
       />
-      <OfficialProfile official={official} peers={peers} />
+      <OfficialProfile official={official} peers={peers} partyLogos={partyLogos} />
     </PageLayout>
   );
 }

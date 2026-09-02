@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { getStates, getLgas, getWards, getOfficials, getConstituencies } from '@/lib/api';
+import { getStates, getLgas, getWards, getOfficials, getConstituencies, getPartyDirectory } from '@/lib/api';
 import { SITE_URL } from '@/lib/constants';
 
 export const revalidate = 86400; // Revalidate every 24 hours
@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/states',
     '/officials',
     '/representatives',
+    '/parties',
     '/activity',
     '/donate',
     '/leaderboard',
@@ -96,6 +97,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
     
+    // Party profile pages.
+    try {
+      const parties = await getPartyDirectory();
+      for (const party of parties) {
+        dynamicRoutes.push({
+          url: `${baseUrl}/parties/${encodeURIComponent(party.acronym)}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.6,
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to fetch parties for sitemap', e);
+    }
+
     // Fetch officials. The API caps `limit` at 100, so paginate through every
     // page to list all officials (~3.3k) — they are high-demand SEO pages
     // (~half of all impressions). Page 1 first to learn the page count, then

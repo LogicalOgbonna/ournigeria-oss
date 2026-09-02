@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 export const metadata = {
   title: "State Completeness Leaderboard | OurNigeria",
   description: "See which Nigerian states have the most complete official data. Help fill the gaps.",
+  alternates: { canonical: "/leaderboard" },
 };
 
 export default function LeaderboardPage() {

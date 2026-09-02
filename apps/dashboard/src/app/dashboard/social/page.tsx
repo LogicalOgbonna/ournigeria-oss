@@ -33,6 +33,7 @@ export default function SocialQueuePage() {
   const [stats, setStats] = useState<QueueStats | null>(null);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -47,12 +48,18 @@ export default function SocialQueuePage() {
     if (statusFilter !== "all") params.set("reviewStatus", statusFilter);
     if (typeFilter !== "all") params.set("postType", typeFilter);
 
+    setLoadError(null);
     socialsFetch(`/v1/replies?${params}`)
       .then((res: DraftListResponse) => {
         setItems(res.items ?? []);
         setTotal(res.total ?? 0);
       })
-      .catch(() => setItems([]))
+      .catch((e) => {
+        // Surface failures — an empty queue must never be indistinguishable
+        // from a dead socials service.
+        setItems([]);
+        setLoadError(e instanceof Error ? e.message : "Failed to load queue");
+      })
       .finally(() => setLoading(false));
   }, [page, statusFilter, typeFilter]);
 
@@ -90,6 +97,11 @@ export default function SocialQueuePage() {
           <Link href="/dashboard/social/topics">
             <Button variant="outline" size="sm">
               Topics
+            </Button>
+          </Link>
+          <Link href="/dashboard/social/handles">
+            <Button variant="outline" size="sm">
+              Handles
             </Button>
           </Link>
           <Link href="/dashboard/social/sessions">
@@ -173,6 +185,16 @@ export default function SocialQueuePage() {
         </Select>
       </div>
 
+      {loadError && (
+        <Card>
+          <CardContent className="py-4 text-sm text-red-600">
+            Failed to load the queue: {loadError}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* On a load failure only the error banner shows — an empty queue must
+          not masquerade as "no drafts yet". */}
       {loading && items.length === 0 ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -180,12 +202,14 @@ export default function SocialQueuePage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-40" />
-            <p>No drafts yet — waiting on roamer + drafter</p>
-          </CardContent>
-        </Card>
+        !loadError && (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <MessageCircle className="h-8 w-8 mx-auto mb-3 opacity-40" />
+              <p>No drafts yet — waiting on roamer + drafter</p>
+            </CardContent>
+          </Card>
+        )
       ) : (
         <div className="space-y-3">
           {items.map((d) => (

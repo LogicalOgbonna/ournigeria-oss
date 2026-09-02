@@ -6,7 +6,7 @@
     "dev": "remotion studio",
     "build": "remotion render",
     "lint": "eslint",
-    "generate": "infisical run --env dev -- npx tsx scripts/generate.ts",
+    "generate": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev -- npx tsx scripts/generate.ts",
     "smoke-test": "npx tsx scripts/smoke-test.ts"
   },
   "dependencies": {

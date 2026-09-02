@@ -1697,6 +1697,10 @@ model SocialPost {
   status         String    @default("drafted") @db.VarChar(20) // drafted, published, failed, rejected
   publishedAt    DateTime? @map("published_at") @db.Timestamptz()
   engagementData Json?     @map("engagement_data") @db.JsonB // {likes, retweets, replies, bookmarks}
+  // socials_scouted_handle ids whose @-mentions were appended to this draft.
+  // The publish-time consent guard validates THESE ids (never text inference)
+  // before an approved draft goes out.
+  taggedHandleIds String[] @default([]) @map("tagged_handle_ids") @db.Uuid
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
@@ -1993,6 +1997,77 @@ model SocialsTelegramPollState {
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
   @@map("socials_telegram_poll_state")
+}
+
+/// X accounts scouted as identifiably Nigerian + attributable to a state (and,
+/// when the bio/tweet allows, an LGA/ward). Campaign tweets for a location tag
+/// up to N of these handles to push the post into their notifications.
+model SocialsScoutedHandle {
+  id              String    @id @default(uuid()) @db.Uuid
+  restId          String    @unique @map("rest_id") @db.VarChar(100) // X user rest_id — stable across renames
+  handle          String    @db.VarChar(100) // screen_name, refreshed on re-sight
+  name            String    @db.VarChar(200)
+  bio             String    @db.Text
+  followers       Int       @default(0)
+  profileImageUrl String?   @map("profile_image_url") @db.Text
+  stateCode       String    @map("state_code") @db.VarChar(30) // nigerian_states.code slug — REQUIRED (no state = no row)
+  lgaCode         String?   @map("lga_code") @db.VarChar(60)
+  wardCode        String?   @map("ward_code") @db.VarChar(100)
+  confidence      Float
+  evidence        String    @db.Text // classifier's one-line justification
+  sourceTweetId   String?   @map("source_tweet_id") @db.VarChar(100)
+  sourceTweetText String?   @map("source_tweet_text") @db.Text
+  // Deny-by-default: a row nobody explicitly vouched for must never be
+  // taggable. The scout stores pending (human activates); createManual sets
+  // active explicitly (the operator IS the vouch).
+  status          String    @default("pending") @db.VarChar(20) // pending | active | rejected | opted_out
+  timesTagged     Int       @default(0) @map("times_tagged")
+  lastTaggedAt    DateTime? @map("last_tagged_at") @db.Timestamptz()
+  // The created_at of the tweet we last discovered them through — an activity
+  // proxy. Scout only stores/keeps accounts whose last activity is within the
+  // recency window, and tagging skips accounts that have gone quiet.
+  lastActiveAt    DateTime? @map("last_active_at") @db.Timestamptz()
+  lastSeenAt      DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([stateCode, status], map: "idx_socials_scouted_handle_state_status")
+  @@index([lgaCode], map: "idx_socials_scouted_handle_lga")
+  @@index([lastActiveAt], map: "idx_socials_scouted_handle_active")
+  @@map("socials_scouted_handle")
+}
+
+/// Per-state scouting rotation bookkeeping (stalest state scouted next).
+model SocialsScoutState {
+  stateCode    String    @id @map("state_code") @db.VarChar(30)
+  lastRunAt    DateTime? @map("last_run_at") @db.Timestamptz()
+  handlesFound Int       @default(0) @map("handles_found")
+
+  @@map("socials_scout_state")
+}
+
+/// Cluster-singleton ledger for scout windows: the first node to INSERT a
+/// (window_date, window_hour) row owns that window (blue/green safe) — same
+/// pattern as identify_campaign_runs.
+model SocialsScoutRun {
+  id            String    @id @default(uuid()) @db.Uuid
+  windowDate    DateTime  @map("window_date") @db.Date
+  windowHour    Int       @map("window_hour")
+  stateCode     String?   @map("state_code") @db.VarChar(30)
+  claimedByPid  Int       @map("claimed_by_pid")
+  claimedByHost String    @map("claimed_by_host") @db.VarChar(200)
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+  stopReason    String?   @map("stop_reason") @db.VarChar(50)
+  tweetsScanned Int       @default(0) @map("tweets_scanned")
+  authorsSeen   Int       @default(0) @map("authors_seen")
+  classified    Int       @default(0)
+  stored        Int       @default(0)
+  errorMessage  String?   @map("error_message") @db.Text
+
+  @@unique([windowDate, windowHour], map: "uq_socials_scout_run_window")
+  @@index([startedAt], map: "idx_socials_scout_run_started_at")
+  @@map("socials_scout_run")
 }
 
 // ============================================================

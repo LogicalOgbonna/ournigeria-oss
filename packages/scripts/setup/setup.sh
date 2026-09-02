@@ -60,3 +60,9 @@ echo -e "${GREEN}==> All internal packages built. Apps are ready to run (pnpm ap
 
 echo -e "${YELLOW}==> Generating prisma schema"
 pnpm prisma:generate
+
+# ─── Ensure the Infisical CLI is available (for `pnpm secret:login`) ─────────
+# Non-fatal: a dev can finish setup without it and install later on demand.
+# shellcheck source=./ensure-infisical.sh
+source "${ROOT_DIR}/packages/scripts/setup/ensure-infisical.sh"
+ensure_infisical || echo -e "${YELLOW}==> Skipping Infisical CLI for now — run 'pnpm secret:login' later to install + sign in.${NC}"

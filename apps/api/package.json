@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "infisical run --env dev --path /api --watch -- nest start",
+    "dev": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /api --watch -- nest start",
     "build": "nest build",
     "start": "infisical run --env prod --path /api -- nest start",
     "start:prod": "infisical run --env prod --path /api -- node dist/main",

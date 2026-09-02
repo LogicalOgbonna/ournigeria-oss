@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Show } from "@/components/ui/Show";
 import { PartiesDirectory } from "./PartiesDirectory";
 import { getPartyDirectory, type PartyListItem } from "@/lib/api";
 
-const SITE_URL = "https://ournigeria.ng";
+
 
 export const metadata: Metadata = {
   title: "Political Parties | OurNigeria",

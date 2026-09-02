@@ -8,7 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { BarDatum } from "@/components/landing-variants/LandingVariantKit";
-import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode } from "@/lib/api";
+import { getLgaDetails, getLgas, getStateDetails, getWardDetails, getWards, reverseGeocode, type WardConstituencies } from "@/lib/api";
+import { identifyHref } from "@/components/proposals/identify-form";
 import { AlertCircle, ArrowLeft, ArrowRight, Calendar, Check, ChevronDown, ChevronRight, Flag, Lightbulb, Loader2, Mail, MapPin, Minus, Plus, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -78,6 +79,9 @@ type LgaDetails = {
 
 type WardDetails = {
   councilor?: GeoOfficial | null;
+  /** Which senatorial/federal/state constituency this ward votes in — used to
+   * pre-fill the "identify an official" seat when the seat is still vacant. */
+  constituencies?: WardConstituencies | null;
 };
 
 /** State/LGA/ward picker lists — `getStates` returns extra fields; only code+name are used here. */
@@ -97,7 +101,7 @@ type ProfileLgaKpi = {
 };
 
 type ProfileOfficialRow =
-  | { isMissing: true; role: string }
+  | { isMissing: true; role: string; constituencyCode?: string; constituencyName?: string }
   | {
       isMissing?: false;
       role: string;
@@ -152,6 +156,36 @@ function igrKpiLabel(stats: GeoStats | null | undefined): string {
   return "Internally Generated Revenue";
 }
 
+// Maps the display role shown in "Know Your Leaders" to the seat value the
+// /proposals/new identify form expects (ROLE_OPTIONS in identify-form.tsx).
+// An unmapped label yields no role at all, which drops the citizen on the
+// manual seat picker — never silently mis-file against a different seat.
+const ROLE_TO_IDENTIFY_VALUE: Record<string, string> = {
+  Governor: "governor",
+  Senator: "senator",
+  "House of Reps": "representative",
+  "State House": "mha",
+  "LGA Chairman": "lga_chairman",
+  "Ward Councillor": "councilor",
+};
+
+/** Builds the "Help us identify them" deep link, carrying whatever seat context
+ * (state/lga/ward, and — for constituency-based seats — the constituency
+ * already resolved for this ward) so the identify form opens pre-filled. */
+function missingSeatHref(
+  official: Extract<ProfileOfficialRow, { isMissing: true }>,
+  ctx: { stateCode: string; stateName: string; lgaCode: string; lgaName: string; wardCode: string; wardName: string },
+): string {
+  return identifyHref({
+    role: ROLE_TO_IDENTIFY_VALUE[official.role],
+    stateCode: ctx.stateCode, stateName: ctx.stateName,
+    lgaCode: ctx.lgaCode, lgaName: ctx.lgaName,
+    wardCode: ctx.wardCode, wardName: ctx.wardName,
+    constituencyCode: official.constituencyCode,
+    constituencyName: official.constituencyName,
+  });
+}
+
 function geocodeIndicatesOutsideNigeria(res: unknown): boolean {
   return (
     typeof res === "object" &&
@@ -197,21 +231,33 @@ export function transformProfileData(
     const sen = lgaDetails.senator;
     officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image, proposed: sen.proposed });
   } else {
-    officials.push({ isMissing: true, role: "Senator" });
+    officials.push({
+      isMissing: true, role: "Senator",
+      constituencyCode: wardDetails?.constituencies?.senatorial?.code,
+      constituencyName: wardDetails?.constituencies?.senatorial?.name,
+    });
   }
-  
+
   if (lgaDetails?.houseMembers?.[0]) {
     const rep = lgaDetails.houseMembers[0];
     officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image, proposed: rep.proposed });
   } else {
-    officials.push({ isMissing: true, role: "House of Reps" });
+    officials.push({
+      isMissing: true, role: "House of Reps",
+      constituencyCode: wardDetails?.constituencies?.federal?.code,
+      constituencyName: wardDetails?.constituencies?.federal?.name,
+    });
   }
-  
+
   if (lgaDetails?.stateAssemblyMembers?.[0]) {
     const mha = lgaDetails.stateAssemblyMembers[0];
     officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image, proposed: mha.proposed });
   } else {
-    officials.push({ isMissing: true, role: "State House" });
+    officials.push({
+      isMissing: true, role: "State House",
+      constituencyCode: wardDetails?.constituencies?.state?.code,
+      constituencyName: wardDetails?.constituencies?.state?.name,
+    });
   }
   
   if (lgaDetails?.chairman) {
@@ -336,6 +382,10 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
   useEffect(() => {
     if (!dropdownOpen && !dateDropdownOpen) return;
     const close = () => {
+      // iOS Safari scrolls the page itself to reveal a focused input above the
+      // keyboard — that browser-initiated scroll must not close the dropdown,
+      // or tapping "Search states…" dismisses the whole picker on iPhone.
+      if (document.activeElement instanceof HTMLInputElement) return;
       setDropdownOpen(false);
       setDateDropdownOpen(false);
     };
@@ -581,10 +631,14 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
             against the near-black background (border-border is dark-on-dark there). */}
         <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
           <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <span className="hidden sm:inline">You are viewing</span>
-              <span className="sm:hidden">Viewing</span>
+            {/* Label and status dot are desktop-only. On a phone the row has to
+                hold the location, the location picker and the month picker, and
+                a ward like "Alausa Oregun Olusosun" wraps to four lines if it
+                shares the width with anything else — so the location gets it
+                all, and the surrounding section already says what it is. */}
+            <div className="hidden sm:block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+            <span className="hidden sm:inline font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              You are viewing
             </span>
             <button
               type="button"
@@ -642,7 +696,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                       <input 
                         type="text" 
                         placeholder={`Search ${selectorStep === "state" ? "states" : selectorStep === "lga" ? "LGAs" : "wards"}...`}
-                        className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -906,7 +960,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                             </p>
                             <div className="mt-2">
                               <Link
-                                href={`/proposals/new?role=${encodeURIComponent(official.role === "Governor" ? "governor" : official.role === "Senator" ? "senator" : official.role === "House of Reps" ? "rep" : official.role === "State House" ? "mha" : official.role === "LGA Chairman" ? "lga_chairman" : "councilor")}&stateCode=${currentSelection.stateCode}&stateName=${encodeURIComponent(currentSelection.stateName)}&lgaCode=${currentSelection.lgaCode}&lgaName=${encodeURIComponent(currentSelection.lgaName)}&wardCode=${currentSelection.wardCode}&wardName=${encodeURIComponent(currentSelection.wardName)}`}
+                                href={missingSeatHref(official, currentSelection)}
                                 className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
                               >
                                 Help us identify them <ArrowRight className="h-3 w-3" />

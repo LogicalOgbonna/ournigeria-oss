@@ -6,6 +6,10 @@ import { HomeContent } from "@/components/pages/HomeContent";
 // PersonalizedDataClient hit the DB in real time and are never cached).
 export const revalidate = 300;
 
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 export default function Home() {
   return <HomeContent electionActive={false} />;
 }

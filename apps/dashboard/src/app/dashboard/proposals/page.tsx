@@ -62,6 +62,7 @@ const ROLE_LABELS: Record<string, string> = {
   councilor: "Ward Councilor",
   lga_chairman: "LGA Chairman",
   mha: "State Assembly",
+  rep: "House of Reps",
   representative: "House of Reps",
   senator: "Senator",
   governor: "Governor",

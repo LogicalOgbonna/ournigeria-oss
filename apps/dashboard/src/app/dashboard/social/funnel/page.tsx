@@ -243,20 +243,37 @@ function SocialFunnelPageContent() {
   const [loadingFunnel, setLoadingFunnel] = useState(true);
   const [loadingList, setLoadingList] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const reloadFunnel = useCallback(() => {
     setLoadingFunnel(true);
     socialsFetch("/v1/replies/funnel")
-      .then(setFunnel)
-      .catch(() => setFunnel(null))
+      .then((f) => {
+        setFunnel(f);
+        setLoadError(null);
+      })
+      .catch((e) => {
+        // Surface failures — a dead socials service must not render as an
+        // innocently empty funnel.
+        setFunnel(null);
+        setLoadError(e instanceof Error ? e.message : "Failed to load funnel");
+      })
       .finally(() => setLoadingFunnel(false));
   }, []);
 
   const reloadList = useCallback(() => {
     setLoadingList(true);
     socialsFetch(`/v1/replies/funnel/${stage}?page=${page}&pageSize=25`)
-      .then(setList)
-      .catch(() => setList(null))
+      .then((l) => {
+        setList(l);
+        // Clear the shared banner on success so a past failure doesn't sit
+        // above freshly loaded data.
+        setLoadError(null);
+      })
+      .catch((e) => {
+        setList(null);
+        setLoadError(e instanceof Error ? e.message : "Failed to load stage list");
+      })
       .finally(() => setLoadingList(false));
   }, [stage, page]);
 
@@ -326,6 +343,14 @@ function SocialFunnelPageContent() {
           Refresh
         </Button>
       </div>
+
+      {loadError && (
+        <Card>
+          <CardContent className="py-4 text-sm text-red-600">
+            Failed to load: {loadError}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stage summary cards */}
       {loadingFunnel && !funnel ? (

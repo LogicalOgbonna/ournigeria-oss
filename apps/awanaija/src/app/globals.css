@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
+/* OurNigeria dark-brand palette (Figma officials-card system). Single source
+   for hexes that were repeated as arbitrary values across card components —
+   use e.g. `bg-brand-green`, `dark:bg-surface-night`, `dark:text-ink-mist`. */
+@theme {
+  --color-brand-green: #43ee94; /* photo backdrop / accents */
+  --color-brand-mint: #00d492; /* jurisdiction links, progress arcs */
+  --color-surface-night: #060a08; /* dark card background */
+  --color-line-night: #3c4a3f; /* dark card border */
+  --color-ink-mist: #bbcbbc; /* dark body text */
+  --color-ink-bright: #e5e2e1; /* dark headings */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

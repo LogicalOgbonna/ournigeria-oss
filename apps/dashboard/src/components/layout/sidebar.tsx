@@ -34,6 +34,7 @@ import {
   MessageCircle,
   Hash,
   Activity,
+  AtSign,
   Filter,
   Sparkles,
   Upload,
@@ -117,6 +118,18 @@ const socialNav: NavItem[] = [
     title: "Topics",
     href: "/dashboard/social/topics",
     icon: Hash,
+    permission: "socials.review",
+  },
+  {
+    title: "Handles",
+    href: "/dashboard/social/handles",
+    icon: AtSign,
+    permission: "socials.review",
+  },
+  {
+    title: "Campaign",
+    href: "/dashboard/social/campaign",
+    icon: Megaphone,
     permission: "socials.review",
   },
   {

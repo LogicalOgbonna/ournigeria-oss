@@ -3,6 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 export const metadata = {
   title: "Contact Us | OurNigeria",
   description: "Get in touch with the OurNigeria team.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {

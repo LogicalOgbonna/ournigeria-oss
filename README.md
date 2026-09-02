@@ -97,18 +97,21 @@ ournigeria/
 - Node.js 20+
 - pnpm 10+ (`corepack enable` will pin the version from `package.json`)
 - [Docker](https://docs.docker.com/desktop/) and [docker compose](https://docs.docker.com/compose/install/) (for the local PostgreSQL 16 + pgvector database)
-- [Infisical CLI](https://infisical.com/docs/cli/overview) — all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria Infisical project; ask a maintainer to be added.
+- [Infisical CLI](https://infisical.com/docs/cli/overview) — installed automatically by `pnpm setup` (or on demand by `pnpm secret:login`); all dev commands inject secrets via `infisical run --env dev`. You need access to the OurNigeria secrets manager; ask a maintainer to be allow-listed.
 
 ### Development
 
 ```bash
-# 1. Install dependencies
+# 1. Install dependencies (also installs the Infisical CLI if missing)
 pnpm setup
 
-# 2. Start the development database (PostgreSQL 16 + pgvector)
+# 2. Log into the secrets manager (self-hosted Infisical at secrets.example.invalid)
+pnpm secret:login
+
+# 3. Start the development database (PostgreSQL 16 + pgvector)
 docker compose -f docker-compose.dev.yml up -d
 
-# 3. Apply migrations
+# 4. Apply migrations
 pnpm prisma:migrate
 
 # 5. Start the services you need
@@ -121,6 +124,8 @@ pnpm start:stop api web         # stop services (omit app names to stop everythi
 # Valid app names: api, web, ingest, awanaija, dashboard, socials
 pnpm videos:dev                 # Remotion Studio (optional) — not managed by start.sh
 ```
+
+> `pnpm secret:login` opens your browser to sign in to the self-hosted Infisical (`secrets.example.invalid`). It sits behind Cloudflare Access, so you'll first complete a one-time email code (your address must be allow-listed — ask a maintainer), then log in to Infisical. Every dev command injects secrets via `infisical run --env dev`, so this is required before the steps below.
 
 > Most contributors only need `pnpm start api awanaija web`. The migration step against the shared dev DB may report drift from the Mastra-managed chunk tables — that's expected (see `CLAUDE.md` → Migration Workflow).
 
@@ -294,7 +299,7 @@ apps/api/src/
 ├── sources/           # Budget document file serving
 └── telegram/          # Webhook handler, bot commands, user sync
 
-# Prisma schema lives in packages/database/prisma/schema.prisma (~90 models, pgvector, enums)
+# Prisma schema lives in packages/database/prisma/schema.prisma (~100 models, pgvector, enums)
 ```
 
 </details>
@@ -349,7 +354,9 @@ packages/source/
 ```
 apps/socials/src/
 ├── intelligence/ # Tweet discovery + DeepSeek classification, Claude draft generation
-├── platforms/    # X/Twitter integration — captured sessions, OAuth2 posting
+├── platforms/    # X/Twitter integration — captured sessions, OAuth2 posting, location scout
+├── identify/     # "Do you know your rep?" campaign tweets per state/LGA
+├── campaign/     # Tag-line helpers — append scouted location handles to campaign tweets
 ├── reply-queue/  # Human approval workflow — nothing posts without a click
 ├── scheduler/    # Roamer/drafter scheduled loops
 ├── content/      # Draft content + safety filtering

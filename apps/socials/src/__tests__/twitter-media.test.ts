@@ -1,23 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TwitterAdapter } from "../platforms/twitter/twitter.adapter.js";
 
-// Mock twitter-api-v2
+// The adapter builds a fresh TwitterApi per call from a DB-stored OAuth2 token
+// (getClient → new TwitterApi(accessToken)) — there is no long-lived
+// `adapter.client` to stub anymore. Mock the module so every construction
+// returns our fake client, and pre-seed the cached token so getClient never
+// touches XTokenRepo.
 const mockUploadMedia = vi.fn();
 const mockCreateMediaMetadata = vi.fn();
 const mockTweet = vi.fn();
+const mockClient = {
+  v1: {
+    uploadMedia: mockUploadMedia,
+    createMediaMetadata: mockCreateMediaMetadata,
+  },
+  v2: {
+    tweet: mockTweet,
+  },
+};
+
+vi.mock("twitter-api-v2", () => ({
+  // A constructor returning an object overrides `this` — every
+  // `new TwitterApi(...)` in the adapter yields our fake client.
+  TwitterApi: class {
+    constructor() {
+      return mockClient;
+    }
+  },
+  // The adapter's 401-refresh path does `instanceof ApiResponseError`.
+  ApiResponseError: class ApiResponseError extends Error {
+    code?: number;
+  },
+}));
+
+import { TwitterAdapter } from "../platforms/twitter/twitter.adapter.js";
 
 function createMockAdapter(): TwitterAdapter {
-  const adapter = Object.create(TwitterAdapter.prototype);
-  adapter.logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() };
-  adapter.client = {
-    v1: {
-      uploadMedia: mockUploadMedia,
-      createMediaMetadata: mockCreateMediaMetadata,
-    },
-    v2: {
-      tweet: mockTweet,
-    },
-  };
+  const adapter = Object.create(TwitterAdapter.prototype) as TwitterAdapter;
+  (adapter as any).logger = { log: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  // Seed the token cache so getClient() skips the XTokenRepo load.
+  (adapter as any).cachedAccessToken = "cached-token";
   return adapter;
 }
 
