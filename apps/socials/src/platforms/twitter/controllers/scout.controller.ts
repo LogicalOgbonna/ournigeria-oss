@@ -14,7 +14,9 @@ import {
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { PrismaService } from "@ournigeria/database";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../guards/permissions.guard.js";
 import { SocialsSettingsService } from "../../../config/socials-settings.service.js";
 import { ScoutService } from "../scout/scout.service.js";
 import { ScoutedHandleRepo } from "../scout/scouted-handle.repo.js";
@@ -54,7 +56,8 @@ interface UpdateScoutSettingsBody {
 
 @ApiTags("Location Scout")
 @Controller("v1/scout")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
+@RequirePermission("socials.topics")
 export class ScoutController {
   constructor(
     private readonly scout: ScoutService,
