@@ -28,6 +28,7 @@ function parseFilters(query: Record<string, unknown>): AuditListFilters {
     return Number.isNaN(parsed) ? undefined : parsed;
   };
   return {
+    seq: n("seq"),
     actorId: s("actorId"),
     actorType: s("actorType"),
     action: s("action"),

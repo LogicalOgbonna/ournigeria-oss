@@ -148,8 +148,37 @@ export function AuditTable({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AuditEventView | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  // Modal state lives in the URL (?event=<seq>): refresh-proof + shareable.
+  const [eventSeq, setEventSeq] = useQueryState("event", parseAsInteger);
+  // Fallback for deep links whose event isn't in the currently loaded page.
+  const [fetchedEvent, setFetchedEvent] = useState<AuditEventView | null>(null);
+  const selected =
+    eventSeq === null
+      ? null
+      : (events.find((e) => e.seq === eventSeq) ??
+        (fetchedEvent?.seq === eventSeq ? fetchedEvent : null));
+  const dialogOpen = eventSeq !== null && selected !== null;
+
+  useEffect(() => {
+    if (eventSeq === null) {
+      setFetchedEvent(null);
+      return;
+    }
+    if (events.some((e) => e.seq === eventSeq)) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await adminFetch(`${endpoint}?seq=${eventSeq}&limit=1`);
+        if (!cancelled) setFetchedEvent(res.data?.[0] ?? null);
+      } catch {
+        if (!cancelled) setFetchedEvent(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventSeq, events, endpoint]);
 
   // Ref so an inline onForbidden prop can't retrigger the fetch effect.
   const onForbiddenRef = useRef(onForbidden);
@@ -286,8 +315,7 @@ export function AuditTable({
                   key={event.id}
                   className="cursor-pointer"
                   onClick={() => {
-                    setSelected(event);
-                    setDialogOpen(true);
+                    void setEventSeq(event.seq);
                   }}
                 >
                   <TableCell className="whitespace-nowrap text-sm">
@@ -391,7 +419,9 @@ export function AuditTable({
       <DiffViewerDialog
         event={selected}
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) void setEventSeq(null);
+        }}
         onReverted={() => void load()}
       />
     </div>

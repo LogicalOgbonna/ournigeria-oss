@@ -4,6 +4,8 @@ import { decryptPermissionFor, type Permission } from "@ournigeria/access";
 import { AuditCryptoService } from "./audit-crypto.service";
 
 export interface AuditListFilters {
+  /** Exact chain position — used by the dashboard's deep-linked event modal. */
+  seq?: number;
   actorId?: string;
   actorType?: string;
   /** Prefix match, e.g. "official." matches official.updated etc. */
@@ -53,6 +55,7 @@ export class AuditQueryService {
 
   private buildWhere(filters: AuditListFilters): Prisma.AuditEventWhereInput {
     const where: Prisma.AuditEventWhereInput = {};
+    if (filters.seq !== undefined) where.seq = BigInt(filters.seq);
     if (filters.actorId) where.actorId = filters.actorId;
     if (filters.actorType) where.actorType = filters.actorType;
     if (filters.action) where.action = { startsWith: filters.action };
