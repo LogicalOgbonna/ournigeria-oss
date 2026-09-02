@@ -24,17 +24,21 @@ export interface AuditEventView {
   epoch: number;
   actorType: string;
   actorId: string | null;
-  /** Resolved display name/email for staff actors (null if unresolvable). */
+  /** Resolved display name for staff actors (email fallback; null if unresolvable). */
   actorLabel: string | null;
+  /** Staff actor's email — shown in the detail modal, not the list. */
+  actorEmail: string | null;
   ip: string | null;
   action: string;
   targetType: string | null;
   targetId: string | null;
   /**
-   * Resolved display label for the target. Citizen `user` targets resolve
+   * Resolved display name for the target. Citizen `user` targets resolve
    * ONLY for readers holding users.read (same PII gate as diff decryption).
    */
   targetLabel: string | null;
+  /** Admin targets' email — modal only. Never populated for citizen users. */
+  targetEmail: string | null;
   diff: unknown;
   metadata: unknown;
   hash: string;
@@ -106,7 +110,11 @@ export class AuditQueryService {
         actorId: row.actorId,
         actorLabel:
           row.actorType === "staff" && row.actorId
-            ? (labels.admins.get(row.actorId) ?? null)
+            ? (labels.admins.get(row.actorId)?.name ?? null)
+            : null,
+        actorEmail:
+          row.actorType === "staff" && row.actorId
+            ? (labels.admins.get(row.actorId)?.email ?? null)
             : null,
         ip: row.ip,
         action: row.action,
@@ -114,7 +122,13 @@ export class AuditQueryService {
         targetId: row.targetId,
         targetLabel:
           row.targetType && row.targetId
-            ? (labels.targets.get(`${row.targetType}:${row.targetId}`) ?? null)
+            ? (labels.targets.get(`${row.targetType}:${row.targetId}`)?.name ??
+              null)
+            : null,
+        targetEmail:
+          row.targetType && row.targetId
+            ? (labels.targets.get(`${row.targetType}:${row.targetId}`)?.email ??
+              null)
             : null,
         diff: mayDecrypt
           ? await this.crypto.decryptDiff(row.diff)
@@ -141,7 +155,10 @@ export class AuditQueryService {
       targetId: string | null;
     }>,
     readerPermissions?: ReadonlySet<Permission>,
-  ): Promise<{ admins: Map<string, string>; targets: Map<string, string> }> {
+  ): Promise<{
+    admins: Map<string, { name: string; email: string }>;
+    targets: Map<string, { name: string; email: string | null }>;
+  }> {
     const adminIds = new Set<string>();
     const officialIds = new Set<string>();
     const userIds = new Set<string>();
@@ -179,14 +196,17 @@ export class AuditQueryService {
     ]);
 
     const adminLabels = new Map(
-      admins.map((a) => [a.id, a.name ? `${a.name} (${a.email})` : a.email]),
+      admins.map((a) => [a.id, { name: a.name || a.email, email: a.email }]),
     );
-    const targets = new Map<string, string>();
+    const targets = new Map<string, { name: string; email: string | null }>();
     for (const [id, label] of adminLabels) targets.set(`admin:${id}`, label);
-    for (const o of officials) targets.set(`official:${o.id}`, o.name);
+    for (const o of officials)
+      targets.set(`official:${o.id}`, { name: o.name, email: null });
     for (const u of users) {
-      const label = u.name ?? u.phoneNumber;
-      if (label) targets.set(`user:${u.id}`, label);
+      const name = u.name ?? u.phoneNumber;
+      // Citizen emails are never shipped in labels — even with users.read the
+      // list/modal identity line doesn't need them (diffs carry what's permitted).
+      if (name) targets.set(`user:${u.id}`, { name, email: null });
     }
     return { admins: adminLabels, targets };
   }

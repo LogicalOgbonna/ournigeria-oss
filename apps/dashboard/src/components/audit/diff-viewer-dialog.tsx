@@ -18,14 +18,18 @@ export interface AuditEventView {
   epoch: number;
   actorType: string;
   actorId: string | null;
-  /** Resolved staff name/email (null when unresolvable). */
+  /** Resolved staff name (null when unresolvable). */
   actorLabel: string | null;
+  /** Staff actor email — modal only. */
+  actorEmail: string | null;
   ip: string | null;
   action: string;
   targetType: string | null;
   targetId: string | null;
-  /** Resolved target label; citizen user targets resolve only with users.read. */
+  /** Resolved target name; citizen user targets resolve only with users.read. */
   targetLabel: string | null;
+  /** Admin targets' email — modal only. */
+  targetEmail: string | null;
   /** May contain { __erased: true } markers for privacy-erased fields. */
   diff: { before?: unknown; after?: unknown } | null;
   /** May contain `pathway`. */
@@ -105,12 +109,39 @@ export function DiffViewerDialog({
               </DialogTitle>
               <DialogDescription>
                 {event.actorType}
-                {event.actorLabel
-                  ? ` ${event.actorLabel}`
-                  : event.actorId
-                    ? ` ${event.actorId}`
-                    : ""}{" "}
+                {event.actorLabel ? (
+                  <>
+                    {" "}
+                    {event.actorLabel}
+                    {event.actorEmail && (
+                      <>
+                        {" · "}
+                        <span className="underline underline-offset-2">
+                          {event.actorEmail}
+                        </span>
+                      </>
+                    )}
+                  </>
+                ) : event.actorId ? (
+                  ` ${event.actorId}`
+                ) : (
+                  ""
+                )}{" "}
                 · {formatDateTimeFull(event.occurredAt)}
+                {event.targetLabel && (
+                  <>
+                    <br />
+                    target: {event.targetType} {event.targetLabel}
+                    {event.targetEmail && (
+                      <>
+                        {" · "}
+                        <span className="underline underline-offset-2">
+                          {event.targetEmail}
+                        </span>
+                      </>
+                    )}
+                  </>
+                )}
               </DialogDescription>
             </DialogHeader>
 

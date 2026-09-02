@@ -301,7 +301,9 @@ export function AuditTable({
                       {event.actorLabel ? (
                         <span
                           className="max-w-48 truncate text-sm"
-                          title={`${event.actorLabel} · ${event.actorId ?? ""}`}
+                          title={[event.actorLabel, event.actorEmail, event.actorId]
+                            .filter(Boolean)
+                            .join(" · ")}
                         >
                           {event.actorLabel}
                         </span>
@@ -330,7 +332,9 @@ export function AuditTable({
                         {event.targetLabel ? (
                           <span
                             className="max-w-48 truncate text-sm text-muted-foreground"
-                            title={`${event.targetLabel} · ${event.targetId ?? ""}`}
+                            title={[event.targetLabel, event.targetEmail, event.targetId]
+                              .filter(Boolean)
+                              .join(" · ")}
                           >
                             {event.targetLabel}
                           </span>

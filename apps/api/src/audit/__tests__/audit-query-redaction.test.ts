@@ -66,7 +66,8 @@ describe("audit list PII gating (spec §4: auditor never sees citizen PII)", () 
     const diff = data[0].diff as { before: { phoneNumber: unknown } };
     expect(diff.before.phoneNumber).toEqual({ __redacted: true });
     // Staff actors always resolve (admins are not citizen PII)…
-    expect(data[0].actorLabel).toBe("Val Super (val@x.ng)");
+    expect(data[0].actorLabel).toBe("Val Super");
+    expect(data[0].actorEmail).toBe("val@x.ng");
     // …but the citizen target's name must NOT leak through the label.
     expect(data[0].targetLabel).toBeNull();
   });
