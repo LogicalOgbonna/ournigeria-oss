@@ -172,16 +172,38 @@ export class AdminAuthService {
     };
   }
 
-  /** Revoke a single admin session by its raw token (used on logout). */
-  async revokeSession(token: string): Promise<void> {
-    if (!AdminAuthService.isSessionToken(token)) return;
+  /**
+   * Revoke a single admin session by its raw token (used on logout).
+   *
+   * Returns the owning admin + session row so the (@Public) logout route can
+   * attribute the auth.logout audit event — without this the event has no
+   * actor and never shows up in /audit/mine. Unknown/invalid tokens resolve
+   * to { adminId: null, sessionId: null }; legacy HMAC tokens are stateless,
+   * so only the verified adminId is returned (sessionId null).
+   */
+  async revokeSession(
+    token: string,
+  ): Promise<{ adminId: string | null; sessionId: string | null }> {
+    if (!AdminAuthService.isSessionToken(token)) {
+      // Legacy stateless HMAC token — nothing stored server-side to revoke,
+      // but a valid signature still identifies the admin for audit.
+      return { adminId: AdminAuthService.verifyLegacyToken(token), sessionId: null };
+    }
     const tokenHash = this.hash(token);
+    const session = await this.prisma.adminSession.findUnique({
+      where: { tokenHash },
+      select: { id: true, adminId: true },
+    });
     await this.prisma.adminSession.updateMany({
       where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
     // Immediate on this instance; other instances age out within the cache TTL.
     await adminSessionCache.del(tokenHash);
+    return {
+      adminId: session?.adminId ?? null,
+      sessionId: session?.id ?? null,
+    };
   }
 
   async getAdmin(id: string) {

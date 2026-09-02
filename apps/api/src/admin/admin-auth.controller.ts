@@ -137,10 +137,16 @@ export class AdminAuthController {
     // Revoke the presented session server-side so the token cannot be replayed.
     const token = req.cookies?.[ADMIN_COOKIE] || req.headers["x-admin-key"];
     if (typeof token === "string") {
-      await this.authService.revokeSession(token).catch(() => {});
+      // Resolve the session's admin while revoking — the route is @Public, so
+      // this is the only way to attribute the auth.logout audit event.
+      const revoked = await this.authService
+        .revokeSession(token)
+        .catch(() => ({ adminId: null, sessionId: null }));
       await this.audit.logBestEffort(
         {
           actorType: "staff",
+          actorId: revoked.adminId,
+          sessionId: revoked.sessionId,
           ip: req.ip ?? null,
           userAgent: req.headers["user-agent"] ?? null,
         },
