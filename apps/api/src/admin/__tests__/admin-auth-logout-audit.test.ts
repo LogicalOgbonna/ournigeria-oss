@@ -57,7 +57,7 @@ describe("admin logout audit attribution", () => {
     expect(actor.sessionId).toBe("sess-1");
   });
 
-  it("does not fabricate an actor for an unknown token", async () => {
+  it("skips the chain entirely for an unknown token (public route, unlimited)", async () => {
     const { controller, authService, audit } = makeController();
     authService.revokeSession.mockResolvedValue({
       adminId: null,
@@ -70,12 +70,12 @@ describe("admin logout audit attribution", () => {
     };
     await controller.logout(req as never, makeRes() as never);
 
+    // Junk tokens must not inflate the append-only chain (or contend its
+    // advisory lock) via an unauthenticated loop — no event at all.
     const call = audit.logBestEffort.mock.calls.find(
       ([, event]: [unknown, { action: string }]) =>
         event.action === "auth.logout",
     );
-    expect(call).toBeTruthy();
-    const [actor] = call as [{ actorId?: string | null }, unknown];
-    expect(actor.actorId ?? null).toBeNull();
+    expect(call).toBeUndefined();
   });
 });

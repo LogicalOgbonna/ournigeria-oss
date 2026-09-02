@@ -90,8 +90,40 @@ export class AuditCryptoService {
     ]);
   }
 
-  /** Get (or create) the subject's data key. Null = key was shredded. */
-  private async dataKeyFor(
+  private unwrapKeyRow(
+    row: { keyCiphertext: string | null; shreddedAt: Date | null } | null,
+  ): Buffer | null {
+    if (!row || row.shreddedAt || !row.keyCiphertext) return null;
+    const [iv, tag, ct] = row.keyCiphertext.split(".");
+    return this.gcmDecrypt(this.masterKey, { iv, tag, ct });
+  }
+
+  /**
+   * Read-only key lookup — NEVER writes. Null = missing or shredded. Used by
+   * the decrypt/display path: a GET must not mint erasure-key rows (a minted
+   * key can't decrypt anything, and a live-looking row for a subject that was
+   * never keyed corrupts erasure audits).
+   */
+  private async getDataKey(
+    db: TxLike,
+    subjectType: string,
+    subjectId: string,
+  ): Promise<Buffer | null> {
+    return this.unwrapKeyRow(
+      await db.auditErasureKey.findUnique({
+        where: { subjectType_subjectId: { subjectType, subjectId } },
+      }),
+    );
+  }
+
+  /**
+   * Encrypt-path key lookup — creates the subject's key on first use.
+   * INSERT ... ON CONFLICT DO NOTHING instead of create+catch(P2002): a unique
+   * violation aborts the surrounding Postgres transaction (25P02), so a
+   * catch-and-retry inside the same tx can never recover — the conflict must
+   * be avoided, not handled.
+   */
+  private async getOrCreateDataKey(
     tx: TxLike,
     subjectType: string,
     subjectId: string,
@@ -99,38 +131,20 @@ export class AuditCryptoService {
     const existing = await tx.auditErasureKey.findUnique({
       where: { subjectType_subjectId: { subjectType, subjectId } },
     });
-    if (existing) {
-      if (existing.shreddedAt || !existing.keyCiphertext) return null;
-      const [iv, tag, ct] = existing.keyCiphertext.split(".");
-      return this.gcmDecrypt(this.masterKey, { iv, tag, ct });
-    }
+    if (existing) return this.unwrapKeyRow(existing);
+
     const dataKey = randomBytes(32);
     const wrapped = this.gcmEncrypt(this.masterKey, dataKey);
-    try {
-      await tx.auditErasureKey.create({
-        data: {
-          subjectType,
-          subjectId,
-          keyCiphertext: `${wrapped.iv}.${wrapped.tag}.${wrapped.ct}`,
-        },
-      });
-    } catch (err) {
-      // Two transactions racing on a subject's FIRST event: loser hits
-      // uq_erasure_subject — reuse the winner's key instead of aborting the
-      // domain mutation.
-      if ((err as { code?: string })?.code === "P2002") {
-        const winner = await tx.auditErasureKey.findUnique({
-          where: { subjectType_subjectId: { subjectType, subjectId } },
-        });
-        if (winner?.keyCiphertext && !winner.shreddedAt) {
-          const [iv, tag, ct] = winner.keyCiphertext.split(".");
-          return this.gcmDecrypt(this.masterKey, { iv, tag, ct });
-        }
-        return null;
-      }
-      throw err;
-    }
-    return dataKey;
+    await tx.$executeRawUnsafe(
+      `INSERT INTO audit_erasure_keys (subject_type, subject_id, key_ciphertext)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (subject_type, subject_id) DO NOTHING`,
+      subjectType,
+      subjectId,
+      `${wrapped.iv}.${wrapped.tag}.${wrapped.ct}`,
+    );
+    // Ours, or the concurrent winner's — either way the stored row is truth.
+    return this.getDataKey(tx, subjectType, subjectId);
   }
 
   /**
@@ -148,7 +162,7 @@ export class AuditCryptoService {
     if (fields.length === 0 || diff === null || typeof diff !== "object") {
       return diff;
     }
-    const dataKey = await this.dataKeyFor(tx, targetType, subjectId);
+    const dataKey = await this.getOrCreateDataKey(tx, targetType, subjectId);
     const out: Record<string, unknown> = { ...(diff as Record<string, unknown>) };
     for (const side of ["before", "after"] as const) {
       const sideVal = out[side];
@@ -182,7 +196,7 @@ export class AuditCryptoService {
     if (diff === null || typeof diff !== "object") return diff;
     if (isEncryptedField(diff)) {
       try {
-        const key = await this.dataKeyFor(
+        const key = await this.getDataKey(
           this.prisma,
           diff.subjectType,
           diff.subjectId,
@@ -226,5 +240,31 @@ export class AuditCryptoService {
       data: { shreddedAt: new Date(), keyCiphertext: null },
     });
     return res.count > 0;
+  }
+
+  /**
+   * Bulk "forget" across many subjects (a user's conversations, messages,
+   * feedback, memories, donations each encrypt under their OWN subject key —
+   * spec §9's erasure guarantee has to cover all of them, not just the user
+   * key). Returns how many live keys were shredded.
+   */
+  async shredSubjects(
+    subjects: ReadonlyArray<{ subjectType: string; subjectId: string }>,
+  ): Promise<number> {
+    const byType = new Map<string, string[]>();
+    for (const s of subjects) {
+      const ids = byType.get(s.subjectType);
+      if (ids) ids.push(s.subjectId);
+      else byType.set(s.subjectType, [s.subjectId]);
+    }
+    let total = 0;
+    for (const [subjectType, ids] of byType) {
+      const res = await this.prisma.auditErasureKey.updateMany({
+        where: { subjectType, subjectId: { in: ids }, shreddedAt: null },
+        data: { shreddedAt: new Date(), keyCiphertext: null },
+      });
+      total += res.count;
+    }
+    return total;
   }
 }

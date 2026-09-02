@@ -44,7 +44,10 @@ function parseJsonFile(file: Express.Multer.File | undefined): unknown {
  */
 @Public()
 @UseGuards(AdminGuard, PermissionsGuard)
-@RequirePermission("imports.candidates")
+// ANY-of: budget_manager must not be locked out of the imports surface its
+// bundle advertises (imports.budget). Per-dataset permission split is a
+// follow-up once budget importers exist in the registry.
+@RequirePermission("imports.candidates", "imports.budget")
 @Controller("admin/imports")
 export class ImportsController {
   constructor(

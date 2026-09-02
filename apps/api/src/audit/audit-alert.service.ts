@@ -5,6 +5,18 @@ import { TelegramApiService } from "../telegram/telegram-api.service";
 const BOOT_DIGEST_WINDOW_MS = 10 * 60 * 1000;
 
 /**
+ * Escape user-influenced text for Telegram parse_mode: "HTML". An unescaped
+ * `<` in an admin name makes the whole sendMessage 400 — and a silently
+ * dropped super_admin-grant alert defeats the governance signal.
+ */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
  * Telegram ops alerts for audit/RBAC events (modeled on
  * ProposalNotifierService; TELEGRAM_ADMIN_CHAT_ID, warn-and-skip when unset).
  * Alerts within 10 min of boot batch into one digest message — the initial

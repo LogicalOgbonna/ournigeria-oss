@@ -79,19 +79,24 @@ export async function appendAuditEvent(
   const prevHash = head ? head.hash : GENESIS_PREV_HASH;
   const id = randomUUID();
 
+  // Truncate to column limits HERE, not in callers: an over-length value
+  // raises a Postgres error that best-effort writers swallow — the mutation
+  // commits and the audit row silently vanishes. One guard for every app.
+  const clip = (v: string | null | undefined, max: number): string | null =>
+    v == null ? null : v.slice(0, max);
   const fields: HashedEventFields = {
     seq,
     id,
     occurredAt: now.toISOString(),
     epoch,
     actorType: input.actorType,
-    actorId: input.actorId ?? null,
+    actorId: clip(input.actorId, 64),
     sessionId: input.sessionId ?? null,
-    ip: input.ip ?? null,
-    userAgent: input.userAgent ?? null,
-    action: input.action,
-    targetType: input.targetType ?? null,
-    targetId: input.targetId ?? null,
+    ip: clip(input.ip, 64),
+    userAgent: clip(input.userAgent, 400),
+    action: input.action.slice(0, 60),
+    targetType: clip(input.targetType, 30),
+    targetId: clip(input.targetId, 200),
     diff: toPlainJson(input.diff),
     metadata: toPlainJson(input.metadata) ?? {},
   };

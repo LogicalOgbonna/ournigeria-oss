@@ -16,6 +16,16 @@ function isUuid(v: string): boolean {
   return UUID_RE.test(v);
 }
 
+/**
+ * Audit-chain targetType convention: nigerian_officials rows are logged as
+ * "official" everywhere else (proposals, admin CRUD, label resolution, the
+ * dashboard's targetType filter) — enrichment must match or its events render
+ * unlabeled and vanish from per-official audit filters.
+ */
+function auditTargetType(table: string): string {
+  return table === "nigerian_officials" ? "official" : table;
+}
+
 @Injectable()
 export class EnrichmentApplyService {
   constructor(
@@ -173,7 +183,7 @@ export class EnrichmentApplyService {
         { actorType: "staff", actorId: adminId },
         {
           action: "enrichment.applied",
-          targetType: proposal.targetTable,
+          targetType: auditTargetType(proposal.targetTable),
           targetId: targetPk,
           diff: { before: null, after: { [proposal.targetField]: value ?? null } },
           metadata: {
@@ -260,7 +270,7 @@ export class EnrichmentApplyService {
         { actorType: "staff", actorId: adminId },
         {
           action: "enrichment.fact_created",
-          targetType: proposal.targetTable,
+          targetType: auditTargetType(proposal.targetTable),
           targetId: created.id,
           metadata: { pathway: "enrichment", proposalId: proposal.id },
         },
@@ -355,7 +365,7 @@ export class EnrichmentApplyService {
         { actorType: "staff", actorId: adminId },
         {
           action: "enrichment.official_created",
-          targetType: "nigerian_officials",
+          targetType: "official",
           targetId: officialId,
           metadata: { pathway: "enrichment", proposalId: proposal.id, role: "councilor" },
         },

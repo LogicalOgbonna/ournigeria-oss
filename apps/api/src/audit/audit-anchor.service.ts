@@ -9,6 +9,25 @@ import { PrismaService } from "@ournigeria/database";
 import { AuditAlertService } from "./audit-alert.service";
 
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // hourly tick
+
+/**
+ * A malformed interval env must fall back LOUDLY to the default, never
+ * silently disable a trust-critical job (NaN made `!ms` truthy before).
+ * "0" remains an explicit, intentional disable.
+ */
+export function parseIntervalMs(
+  raw: string | undefined,
+  fallback: number,
+  name: string,
+): number {
+  if (raw === undefined || raw === "") return fallback;
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(`${name}="${raw}" is not a valid interval — using default ${fallback}ms`);
+    return fallback;
+  }
+  return parsed;
+}
 const DEFAULT_ANCHOR_INTERVAL_MS = 24 * 60 * 60 * 1000; // daily anchor
 const DEFAULT_DEADMAN_MS = 36 * 60 * 60 * 1000; // 36h without a sent anchor => alert
 
@@ -39,12 +58,16 @@ export class AuditAnchorService implements OnModuleInit, OnModuleDestroy {
     this.s3 = new S3Client({
       region: config.get<string>("AWS_REGION") ?? "us-east-1",
     });
-    this.anchorIntervalMs = process.env.AUDIT_ANCHOR_INTERVAL_MS
-      ? parseInt(process.env.AUDIT_ANCHOR_INTERVAL_MS, 10)
-      : DEFAULT_ANCHOR_INTERVAL_MS;
-    this.deadmanMs = process.env.AUDIT_ANCHOR_DEADMAN_MS
-      ? parseInt(process.env.AUDIT_ANCHOR_DEADMAN_MS, 10)
-      : DEFAULT_DEADMAN_MS;
+    this.anchorIntervalMs = parseIntervalMs(
+      process.env.AUDIT_ANCHOR_INTERVAL_MS,
+      DEFAULT_ANCHOR_INTERVAL_MS,
+      "AUDIT_ANCHOR_INTERVAL_MS",
+    );
+    this.deadmanMs = parseIntervalMs(
+      process.env.AUDIT_ANCHOR_DEADMAN_MS,
+      DEFAULT_DEADMAN_MS,
+      "AUDIT_ANCHOR_DEADMAN_MS",
+    );
   }
 
   onModuleInit(): void {
@@ -71,6 +94,23 @@ export class AuditAnchorService implements OnModuleInit, OnModuleDestroy {
       const elapsed = lastSent
         ? now - lastSent.anchoredAt.getTime()
         : Number.POSITIVE_INFINITY;
+      // Never-anchored dead-man: with no SENT anchor at all (S3 misconfigured
+      // from day one), `elapsed` is Infinity but the lastSent guard below
+      // would skip — so check the chain's age directly.
+      if (!lastSent) {
+        const oldest = await this.prisma.auditEvent.findFirst({
+          orderBy: { seq: "asc" },
+          select: { occurredAt: true },
+        });
+        if (oldest && now - oldest.occurredAt.getTime() >= this.deadmanMs) {
+          await this.alerts.alert(
+            `⚠️ <b>Audit anchor dead-man</b>: the chain is ` +
+              `${Math.round((now - oldest.occurredAt.getTime()) / 3_600_000)}h old ` +
+              `and has NEVER been successfully anchored. Check S3 config.`,
+            { urgent: true },
+          );
+        }
+      }
       // Dead-man BEFORE the anchor attempt: deadman (36h) > interval (24h),
       // so it only trips when anchoring itself has been failing repeatedly —
       // exactly the silent-failure window it exists to catch.

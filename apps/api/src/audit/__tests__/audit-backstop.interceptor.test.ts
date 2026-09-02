@@ -31,8 +31,10 @@ describe("AuditBackstopInterceptor", () => {
     const [, event] = audit.logBestEffort.mock.calls[0] as unknown as [unknown, any];
     expect(event.action).toBe("admin.post");
     expect(event.metadata.backstop).toBe(true);
-    expect(event.metadata.body.apiKey).toBe("[REDACTED]");
-    expect(event.metadata.body.value).toBe("ok");
+    // Field NAMES only — values from an un-instrumented endpoint could carry
+    // citizen PII into unerasable, permission-ungated metadata.
+    expect(event.metadata.body).toBeUndefined();
+    expect(event.metadata.bodyKeys).toEqual(["value", "apiKey"]);
   });
 
   it("stays silent when the handler logged explicitly (__audited)", async () => {

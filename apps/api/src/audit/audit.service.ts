@@ -27,23 +27,30 @@ export interface AuditEventDetails {
 export const SYSTEM_ACTOR: AuditActor = { actorType: "system" };
 
 /**
- * Build an actor off an AdminGuard-authenticated request and mark the request
- * explicitly audited (suppresses the backstop interceptor).
+ * Links an actor back to its request so AuditService can mark the request
+ * audited AFTER a successful append. Marking eagerly here would disarm the
+ * backstop interceptor even when the append later fails — leaving a committed
+ * privileged mutation with zero chain rows, the exact gap the backstop exists
+ * to close.
  */
+const actorRequests = new WeakMap<AuditActor, { __audited?: boolean }>();
+
+/** Build an actor off an AdminGuard-authenticated request. */
 export function auditActorFromRequest(req: {
   adminId?: string;
   ip?: string;
   headers?: Record<string, unknown>;
   __audited?: boolean;
 }): AuditActor {
-  req.__audited = true;
   const ua = req.headers?.["user-agent"];
-  return {
+  const actor: AuditActor = {
     actorType: "staff",
     actorId: req.adminId ?? null,
     ip: (req.ip ?? null)?.slice(0, 64) ?? null,
     userAgent: typeof ua === "string" ? ua.slice(0, 400) : null,
   };
+  actorRequests.set(actor, req);
+  return actor;
 }
 
 @Injectable()
@@ -63,10 +70,15 @@ export class AuditService {
     actor: AuditActor,
     event: AuditEventDetails,
   ): Promise<AppendedAuditEvent> {
-    if (tx) return this.append(tx, actor, event);
-    return this.prisma.$transaction((inner) =>
-      this.append(inner, actor, event),
-    );
+    const appended = tx
+      ? await this.append(tx, actor, event)
+      : await this.prisma.$transaction((inner) =>
+          this.append(inner, actor, event),
+        );
+    // Only a SUCCESSFUL append suppresses the backstop for this request.
+    const req = actorRequests.get(actor);
+    if (req) req.__audited = true;
+    return appended;
   }
 
   /** Same as log(null, ...) but never throws — for backstop/security events. */

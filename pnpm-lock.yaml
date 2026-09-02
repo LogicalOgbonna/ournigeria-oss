@@ -1033,9 +1033,19 @@ importers:
 
   packages/scripts:
     dependencies:
+      '@ournigeria/access':
+        specifier: workspace:*
+        version: link:../access
+      pg:
+        specifier: ^8.13.0
+        version: 8.18.0
       playwright:
         specifier: 1.58.2
         version: 1.58.2
+    devDependencies:
+      '@types/pg':
+        specifier: ^8.11.0
+        version: 8.16.0
 
   packages/shared-types: {}
 

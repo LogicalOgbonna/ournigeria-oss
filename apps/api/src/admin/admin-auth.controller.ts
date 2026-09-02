@@ -89,13 +89,22 @@ export class AdminAuthController {
       );
 
       if (!result.success) {
-        await this.audit.logBestEffort(
-          { actorType: "staff", ip, userAgent: req.headers["user-agent"] ?? null },
-          {
-            action: "auth.login.failed",
-            metadata: { email: parsed.data.email },
-          },
-        );
+        // Cap failed-login chain rows per IP: the append-only chain must not
+        // be inflatable by an unauthenticated loop varying the email (the
+        // login rate limit keys on ip:email and wouldn't stop that).
+        const auditKey = `loginfail:${ip}`;
+        const auditCache = cache.namespace("audit:loginfail");
+        const failCount = (await auditCache.get<number>(auditKey)) ?? 0;
+        if (failCount < MAX_LOGIN_ATTEMPTS) {
+          await auditCache.set(auditKey, failCount + 1, LOGIN_WINDOW_MS);
+          await this.audit.logBestEffort(
+            { actorType: "staff", ip, userAgent: req.headers["user-agent"] ?? null },
+            {
+              action: "auth.login.failed",
+              metadata: { email: parsed.data.email },
+            },
+          );
+        }
         return res
           .status(HttpStatus.UNAUTHORIZED)
           .json({ error: result.error });
@@ -142,16 +151,21 @@ export class AdminAuthController {
       const revoked = await this.authService
         .revokeSession(token)
         .catch(() => ({ adminId: null, sessionId: null }));
-      await this.audit.logBestEffort(
-        {
-          actorType: "staff",
-          actorId: revoked.adminId,
-          sessionId: revoked.sessionId,
-          ip: req.ip ?? null,
-          userAgent: req.headers["user-agent"] ?? null,
-        },
-        { action: "auth.logout" },
-      );
+      // Only a token that resolved to a real session/admin earns a chain row —
+      // this route is @Public and unlimited, so junk tokens must not be able
+      // to inflate the append-only chain (or contend its advisory lock).
+      if (revoked.adminId || revoked.sessionId) {
+        await this.audit.logBestEffort(
+          {
+            actorType: "staff",
+            actorId: revoked.adminId,
+            sessionId: revoked.sessionId,
+            ip: req.ip ?? null,
+            userAgent: req.headers["user-agent"] ?? null,
+          },
+          { action: "auth.logout" },
+        );
+      }
     }
     res.clearCookie(ADMIN_COOKIE, { path: "/" });
     return res.json({ success: true });

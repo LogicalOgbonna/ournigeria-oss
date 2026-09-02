@@ -17,6 +17,20 @@ function makeStub() {
   const rows = new Map<string, KeyRow>();
   const key = (t: string, i: string) => `${t}:${i}`;
   const prisma = {
+    // getOrCreateDataKey inserts via raw ON CONFLICT DO NOTHING (a P2002 would
+    // abort the surrounding tx) — emulate its first-writer-wins semantics.
+    $executeRawUnsafe: async (
+      _q: string,
+      subjectType: string,
+      subjectId: string,
+      keyCiphertext: string,
+    ) => {
+      const k = key(subjectType, subjectId);
+      if (!rows.has(k)) {
+        rows.set(k, { subjectType, subjectId, keyCiphertext, shreddedAt: null });
+      }
+      return 1;
+    },
     auditErasureKey: {
       findUnique: async ({ where }: any) => {
         const { subjectType, subjectId } = where.subjectType_subjectId;

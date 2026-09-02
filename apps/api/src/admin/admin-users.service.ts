@@ -262,30 +262,53 @@ export class AdminUsersService {
   }
 
   async deleteUser(id: string, actor: AuditActor) {
-    const result = await this.prisma.$transaction(async (tx) => {
+    const { deleted, subjects } = await this.prisma.$transaction(async (tx) => {
       const before = await tx.user.findUnique({ where: { id } });
-      const deleted = await tx.user.delete({ where: { id } });
+      // Collect every audit-subject id derived from this user BEFORE the
+      // cascade delete removes the rows — their diffs encrypt under these ids.
+      const [conversations, feedback, memories, donations] = await Promise.all([
+        tx.conversation.findMany({ where: { userId: id }, select: { id: true } }),
+        tx.feedback.findMany({ where: { userId: id }, select: { id: true } }),
+        tx.userMemory.findMany({ where: { userId: id }, select: { id: true } }),
+        tx.donation.findMany({ where: { userId: id }, select: { id: true } }),
+      ]);
+      const messages = await tx.message.findMany({
+        where: { conversation: { userId: id } },
+        select: { id: true },
+      });
+      const deletedRow = await tx.user.delete({ where: { id } });
       await this.audit.log(tx, actor, {
         action: "user.deleted",
         targetType: "user",
         targetId: id,
         diff: { before, after: null },
       });
-      return deleted;
+      return {
+        deleted: deletedRow,
+        subjects: [
+          { subjectType: "user", subjectId: id },
+          ...conversations.map((c) => ({ subjectType: "conversation", subjectId: c.id })),
+          ...messages.map((m) => ({ subjectType: "message", subjectId: m.id })),
+          ...feedback.map((f) => ({ subjectType: "feedback", subjectId: f.id })),
+          ...memories.map((m) => ({ subjectType: "user_memory", subjectId: m.id })),
+          ...donations.map((d) => ({ subjectType: "donation", subjectId: d.id })),
+        ],
+      };
     });
     // Crypto-erasure (spec §9): deleting a user erases their data everywhere —
-    // shred the subject key so encrypted audit diffs (incl. the snapshot just
-    // written) become permanently unreadable while the chain stays verifiable.
-    const shredded = await this.crypto.shredSubject("user", id);
-    if (shredded) {
+    // shred EVERY subject key their data encrypted under (user row, their
+    // conversations/messages/feedback/memories/donations), so the encrypted
+    // audit diffs become permanently unreadable while the chain verifies.
+    const shredded = await this.crypto.shredSubjects(subjects);
+    if (shredded > 0) {
       await this.audit.logBestEffort(actor, {
         action: "audit.erasure.shred",
         targetType: "user",
         targetId: id,
-        metadata: { trigger: "user.deleted" },
+        metadata: { trigger: "user.deleted", keysShredded: shredded },
       });
     }
-    return result;
+    return deleted;
   }
 
   async getUserStats() {

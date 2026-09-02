@@ -434,6 +434,7 @@ export class OfficialsService {
           role: "rep",
           status: "active",
           constituencyCode: { startsWith: `fed_${stateCode}_` },
+          official: { deletedAt: null },
         },
         include: { official: true, party: true, constituency: true, term: true },
       });
@@ -489,6 +490,7 @@ export class OfficialsService {
           role: "senator",
           status: "active",
           constituencyCode: { startsWith: `sen_${stateCode}_` },
+          official: { deletedAt: null },
         },
         include: { official: true, party: true, constituency: true, term: true },
       });
@@ -574,7 +576,12 @@ export class OfficialsService {
     // For senators, find via senatorial district LGA mapping
     if (role === "senator" && scope.stateCode) {
       const positions = await this.prisma.officialPosition.findMany({
-        where: { role, status: "active", stateCode: scope.stateCode },
+        where: {
+          role,
+          status: "active",
+          stateCode: scope.stateCode,
+          official: { deletedAt: null },
+        },
         include: {
           official: true,
           party: true,
@@ -612,6 +619,7 @@ export class OfficialsService {
           role,
           status: "active",
           stateCode: scope.stateCode,
+          official: { deletedAt: null },
         },
         include: {
           official: true,
@@ -630,7 +638,12 @@ export class OfficialsService {
     // For MHAs, find via ward
     if (role === "mha" && scope.wardCode) {
       const positions = await this.prisma.officialPosition.findMany({
-        where: { role, status: "active", wardCode: scope.wardCode },
+        where: {
+          role,
+          status: "active",
+          wardCode: scope.wardCode,
+          official: { deletedAt: null },
+        },
         include: {
           official: true,
           party: true,

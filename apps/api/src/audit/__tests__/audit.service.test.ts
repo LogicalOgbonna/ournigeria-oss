@@ -5,14 +5,27 @@ import { AuditCryptoService } from "../audit-crypto.service";
 
 function makeTx() {
   const executed: Array<{ query: string; values: unknown[] }> = [];
+  // getOrCreateDataKey writes keys via raw ON CONFLICT insert — emulate the
+  // store so the subsequent findUnique returns the created key row.
+  const keyRows = new Map<string, unknown>();
   const tx = {
     $executeRawUnsafe: vi.fn(async (query: string, ...values: unknown[]) => {
       executed.push({ query, values });
+      if (query.includes("INSERT INTO audit_erasure_keys")) {
+        const [subjectType, subjectId, keyCiphertext] = values as string[];
+        const k = `${subjectType}:${subjectId}`;
+        if (!keyRows.has(k)) {
+          keyRows.set(k, { subjectType, subjectId, keyCiphertext, shreddedAt: null });
+        }
+      }
       return 1;
     }),
     $queryRawUnsafe: vi.fn(async () => []), // empty chain => genesis
     auditErasureKey: {
-      findUnique: vi.fn(async () => null),
+      findUnique: vi.fn(async ({ where }: any) => {
+        const { subjectType, subjectId } = where.subjectType_subjectId;
+        return keyRows.get(`${subjectType}:${subjectId}`) ?? null;
+      }),
       create: vi.fn(async ({ data }: any) => data),
     },
   };
@@ -88,15 +101,34 @@ describe("AuditService", () => {
     expect(result).toBeNull();
   });
 
-  it("auditActorFromRequest marks the request audited and truncates fields", () => {
+  it("marks the request audited only AFTER a successful append (backstop stays armed on failure)", async () => {
     const req = {
       adminId: "admin-1",
       ip: "1.2.3.4",
       headers: { "user-agent": "x".repeat(500) },
     } as Parameters<typeof auditActorFromRequest>[0];
     const actor = auditActorFromRequest(req);
-    expect(req.__audited).toBe(true);
+    // Building the actor must NOT disarm the backstop — a failed append would
+    // otherwise leave a committed mutation with zero chain rows.
+    expect(req.__audited).toBeUndefined();
     expect(actor.actorId).toBe("admin-1");
     expect(actor.userAgent?.length).toBe(400);
+
+    const { tx } = makeTx();
+    const { svc } = makeService(tx);
+    await svc.log(null, actor, { action: "official.updated" });
+    expect(req.__audited).toBe(true);
+  });
+
+  it("a failed append leaves the request un-audited", async () => {
+    const req = { adminId: "admin-1", headers: {} } as Parameters<
+      typeof auditActorFromRequest
+    >[0];
+    const actor = auditActorFromRequest(req);
+    const { tx } = makeTx();
+    tx.$executeRawUnsafe.mockRejectedValueOnce(new Error("lock timeout"));
+    const { svc } = makeService(tx);
+    await svc.logBestEffort(actor, { action: "official.updated" });
+    expect(req.__audited).toBeUndefined();
   });
 });

@@ -253,15 +253,40 @@ export class AdminOfficialsService {
   ): Promise<string> {
     let base = slugifyName(name);
     if (!base) base = `official-${randomBytes(4).toString("hex")}`;
-    const rows = await tx.nigerianOfficial.findMany({
-      where: { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] },
-      select: { slug: true },
-    });
-    const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
+    const used = await this.usedSlugs(tx, base, null);
     if (!used.has(base)) return base;
     let n = 2;
     while (used.has(`${base}-${n}`)) n++;
     return `${base}-${n}`;
+  }
+
+  /**
+   * Slugs unavailable for `base`: other officials' live slugs AND other
+   * officials' redirect aliases — an alias is a promise that old public links
+   * keep resolving to ITS official; taking it over silently points someone
+   * else's shared links at the wrong person (spec §12). Own aliases are
+   * reclaimable (cycling back to an old name).
+   */
+  private async usedSlugs(
+    tx: Prisma.TransactionClient,
+    base: string,
+    selfId: string | null,
+  ): Promise<Set<string>> {
+    const slugFilter = { OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }] };
+    const [officials, aliases] = await Promise.all([
+      tx.nigerianOfficial.findMany({
+        where: { ...slugFilter, ...(selfId ? { id: { not: selfId } } : {}) },
+        select: { slug: true },
+      }),
+      tx.officialSlugAlias.findMany({
+        where: { ...slugFilter, ...(selfId ? { officialId: { not: selfId } } : {}) },
+        select: { slug: true },
+      }),
+    ]);
+    return new Set([
+      ...officials.map((r) => r.slug).filter((s): s is string => !!s),
+      ...aliases.map((r) => r.slug),
+    ]);
   }
 
   private async reslug(
@@ -273,19 +298,14 @@ export class AdminOfficialsService {
     const base = slugifyName(newName);
     if (!base) return;
     if (oldSlug === base) return;
-    const rows = await tx.nigerianOfficial.findMany({
-      where: {
-        OR: [{ slug: base }, { slug: { startsWith: `${base}-` } }],
-        id: { not: officialId },
-      },
-      select: { slug: true },
-    });
-    const used = new Set(rows.map((r) => r.slug).filter((s): s is string => !!s));
+    const used = await this.usedSlugs(tx, base, officialId);
     let slug = base;
     let n = 2;
     while (used.has(slug)) slug = `${base}-${n++}`;
     if (slug === oldSlug) return;
-    await tx.officialSlugAlias.deleteMany({ where: { slug } });
+    // Reclaim only OWN alias rows for the chosen slug — another official's
+    // alias is never deleted (it made `used` unavailable above anyway).
+    await tx.officialSlugAlias.deleteMany({ where: { slug, officialId } });
     await tx.nigerianOfficial.update({ where: { id: officialId }, data: { slug } });
     if (oldSlug) {
       await tx.officialSlugAlias.upsert({

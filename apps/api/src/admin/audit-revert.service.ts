@@ -8,7 +8,7 @@ import {
 import { PrismaService } from "@ournigeria/database";
 import type { Permission } from "@ournigeria/access";
 import { AuditService, type AuditActor } from "../audit/audit.service";
-import { AuditAlertService } from "../audit/audit-alert.service";
+import { AuditAlertService, escapeHtml } from "../audit/audit-alert.service";
 import {
   AdminOfficialsService,
   EDITABLE_FIELDS,
@@ -111,10 +111,10 @@ export class AuditRevertService {
 
     if (!ownAction) {
       await this.alerts.alert(
-        `↩️ <b>Cross-actor revert</b>: seq ${seq} (<code>${event.action}</code>` +
-          `${event.targetId ? ` on ${event.targetType} ${event.targetId}` : ""})` +
-          ` originally by <code>${event.actorId ?? "unknown"}</code> was reverted` +
-          ` by <code>${actorAdminId}</code>.\nReason: ${trimmedReason}`,
+        `↩️ <b>Cross-actor revert</b>: seq ${seq} (<code>${escapeHtml(event.action)}</code>` +
+          `${event.targetId ? ` on ${escapeHtml(event.targetType ?? "")} ${escapeHtml(event.targetId)}` : ""})` +
+          ` originally by <code>${escapeHtml(event.actorId ?? "unknown")}</code> was reverted` +
+          ` by <code>${escapeHtml(actorAdminId)}</code>.\nReason: ${escapeHtml(trimmedReason ?? "")}`,
       );
     }
 

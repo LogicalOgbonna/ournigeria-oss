@@ -5,7 +5,6 @@ import {
   NestInterceptor,
 } from "@nestjs/common";
 import { Observable, tap } from "rxjs";
-import { redactSecrets } from "@ournigeria/access";
 import { AuditService } from "./audit.service";
 
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -47,7 +46,14 @@ export class AuditBackstopInterceptor implements NestInterceptor {
           metadata: {
             backstop: true,
             outcome,
-            body: redactSecrets(req.body ?? null),
+            // Field NAMES only, never values: body values from an
+            // un-instrumented endpoint could carry citizen PII, and metadata
+            // is neither crypto-erasable nor permission-gated on read
+            // (spec §9 — nothing unerasable may enter the chain).
+            bodyKeys:
+              req.body && typeof req.body === "object"
+                ? Object.keys(req.body as Record<string, unknown>).slice(0, 50)
+                : [],
           },
         },
       );

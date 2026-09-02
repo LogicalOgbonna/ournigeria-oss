@@ -227,17 +227,19 @@ export class AuditQueryService {
       status: string;
     } | null;
   }> {
-    const [head, eventCount, lastAnchor] = await Promise.all([
+    const [head, lastAnchor] = await Promise.all([
       this.prisma.auditEvent.findFirst({
         orderBy: { seq: "desc" },
         select: { seq: true, hash: true, epoch: true },
       }),
-      this.prisma.auditEvent.count(),
       this.prisma.auditAnchor.findFirst({
         where: { status: "sent" },
         orderBy: { anchoredAt: "desc" },
       }),
     ]);
+    // seq is a dense 1..N counter by construction (appender derives head+1
+    // under the advisory lock) — head.seq IS the count; no table scan needed.
+    const eventCount = head ? Number(head.seq) : 0;
     return {
       headSeq: head ? Number(head.seq) : null,
       headHash: head?.hash ?? null,
@@ -258,10 +260,25 @@ export class AuditQueryService {
   /** CSV export of the current filter (max 10k rows). Caller audits the export. */
   async exportCsv(filters: AuditListFilters): Promise<{ csv: string; rows: number }> {
     const where = this.buildWhere(filters);
+    // Select only the emitted columns — `diff` is the largest column
+    // (base64-inflated ciphertext) and the CSV never ships it.
     const rows = await this.prisma.auditEvent.findMany({
       where,
       orderBy: { seq: "asc" },
       take: 10_000,
+      select: {
+        seq: true,
+        occurredAt: true,
+        epoch: true,
+        actorType: true,
+        actorId: true,
+        ip: true,
+        action: true,
+        targetType: true,
+        targetId: true,
+        metadata: true,
+        hash: true,
+      },
     });
     const esc = (v: unknown): string => {
       const s = v === null || v === undefined ? "" : String(v);

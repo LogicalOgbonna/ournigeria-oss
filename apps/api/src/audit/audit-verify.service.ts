@@ -11,6 +11,7 @@ import {
   type VerifiableEvent,
 } from "@ournigeria/access";
 import { AuditAlertService } from "./audit-alert.service";
+import { parseIntervalMs } from "./audit-anchor.service";
 
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 const PAGE_SIZE = 1000;
@@ -62,9 +63,11 @@ export class AuditVerifyService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    const ms = process.env.AUDIT_VERIFY_INTERVAL_MS
-      ? parseInt(process.env.AUDIT_VERIFY_INTERVAL_MS, 10)
-      : DEFAULT_INTERVAL_MS;
+    const ms = parseIntervalMs(
+      process.env.AUDIT_VERIFY_INTERVAL_MS,
+      DEFAULT_INTERVAL_MS,
+      "AUDIT_VERIFY_INTERVAL_MS",
+    );
     if (process.env.NODE_ENV === "test" || !ms) return;
     this.timer = setInterval(() => void this.runScheduled(), ms);
     this.timer.unref?.();

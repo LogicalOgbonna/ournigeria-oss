@@ -30,6 +30,7 @@ function makeStub(overrides: { existing?: Record<string, unknown> | null } = {})
       update: vi.fn(async ({ data }: any) => ({ ...existing, ...data })),
     },
     officialSlugAlias: {
+      findMany: vi.fn(async () => []), // usedSlugs: other officials' aliases count as taken
       findUnique: vi.fn(async () => null),
       delete: vi.fn(async () => ({})),
       deleteMany: vi.fn(async () => ({})),

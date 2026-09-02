@@ -17,7 +17,7 @@ import {
   type Role,
 } from "@ournigeria/access";
 import { AuditService, type AuditActor } from "../audit/audit.service";
-import { AuditAlertService } from "../audit/audit-alert.service";
+import { AuditAlertService, escapeHtml } from "../audit/audit-alert.service";
 import { bustRolesCache, loadActiveRoles } from "./roles.util";
 
 /**
@@ -141,8 +141,8 @@ export class RolesAdminService {
     }
     await bustRolesCache("staff", adminId);
     await this.alerts.alert(
-      `🔑 <b>Role granted</b>: <b>${role}</b> → ${target.name} (${target.email})` +
-        (reason ? `\nReason: ${reason}` : ""),
+      `🔑 <b>Role granted</b>: <b>${escapeHtml(role)}</b> → ${escapeHtml(target.name)} (${escapeHtml(target.email)})` +
+        (reason ? `\nReason: ${escapeHtml(reason)}` : ""),
     );
     return { success: true };
   }
@@ -214,7 +214,7 @@ export class RolesAdminService {
     });
     await bustRolesCache("staff", adminId);
     await this.alerts.alert(
-      `🔒 <b>Role revoked</b>: <b>${role}</b> ← ${target.name} (${target.email})\nReason: ${reason.trim()}`,
+      `🔒 <b>Role revoked</b>: <b>${escapeHtml(role)}</b> ← ${escapeHtml(target.name)} (${escapeHtml(target.email)})\nReason: ${escapeHtml(reason.trim())}`,
     );
     return { success: true };
   }

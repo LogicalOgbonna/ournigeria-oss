@@ -79,15 +79,24 @@ export function ChainStatusBadge() {
     );
   }
 
+  // A null lastVerify means no verification has RUN (fresh boot, disabled
+  // job, or a different instance holds the result) — that must not be
+  // presented as a positive "intact" claim.
+  const verified = Boolean(status.lastVerify?.ok);
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge variant="default" className="gap-1.5">
+      <Badge variant={verified ? "default" : "outline"} className="gap-1.5">
         <ShieldCheck className="h-3.5 w-3.5" />
-        Chain intact · seq {status.headSeq} · epoch {status.epoch}
+        {verified ? "Chain intact" : "Chain unverified"} · seq {status.headSeq} · epoch {status.epoch}
         {status.lastAnchor
           ? ` · anchored ${relativeTime(status.lastAnchor.anchoredAt)}`
           : ""}
       </Badge>
+      {!verified && (
+        <span className="text-xs text-muted-foreground">
+          verification pending on this instance
+        </span>
+      )}
       {!status.lastAnchor && (
         <span className="text-xs text-muted-foreground">Never anchored</span>
       )}
