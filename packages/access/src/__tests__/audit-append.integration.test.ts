@@ -46,6 +46,9 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_test_audit_events_immutable
   BEFORE UPDATE OR DELETE ON "${SCHEMA}"."audit_events"
   FOR EACH ROW EXECUTE FUNCTION "${SCHEMA}".audit_events_immutable();
+CREATE TRIGGER trg_test_audit_events_no_truncate
+  BEFORE TRUNCATE ON "${SCHEMA}"."audit_events"
+  FOR EACH STATEMENT EXECUTE FUNCTION "${SCHEMA}".audit_events_immutable();
 `;
 
 function txClient(client: PoolClient): AuditTxClient {
@@ -188,6 +191,46 @@ describe.skipIf(!URL)("appendAuditEvent (dev DB integration)", () => {
     expect(next.epoch).toBe(2);
     const chain = await readChain();
     expect(verifyChainSegment(chain, GENESIS_PREV_HASH).ok).toBe(true);
+  });
+
+  it("normalizes exotic diff values (Date, toJSON objects) so read-back verifies", async () => {
+    // Prisma Decimal serializes via toJSON() to a string, but iterates as an
+    // object — regression: hash-vs-storage mismatch found live (plan 62).
+    class FakeDecimal {
+      constructor(private readonly v: string) {}
+      toJSON(): string {
+        return this.v;
+      }
+    }
+    await withTx((tx) =>
+      appendAuditEvent(tx, {
+        actorType: "staff",
+        actorId: "11111111-1111-1111-1111-111111111111",
+        action: "test.exotic-values",
+        targetType: "official",
+        targetId: "x",
+        diff: {
+          before: {
+            completenessScore: new FakeDecimal("0.14"),
+            updatedAt: new Date("2026-01-02T03:04:05.678Z"),
+          },
+          after: null,
+        },
+      }),
+    );
+    const chain = await readChain();
+    expect(verifyChainSegment(chain, GENESIS_PREV_HASH).ok).toBe(true);
+    const last = chain[chain.length - 1] as {
+      diff: { before: { completenessScore: unknown; updatedAt: unknown } };
+    };
+    expect(last.diff.before.completenessScore).toBe("0.14");
+    expect(last.diff.before.updatedAt).toBe("2026-01-02T03:04:05.678Z");
+  });
+
+  it("TRUNCATE is rejected by the statement trigger", async () => {
+    await expect(
+      pool.query(`TRUNCATE "${SCHEMA}"."audit_events"`),
+    ).rejects.toThrow(/append-only/);
   });
 
   it("UPDATE and DELETE are rejected by the trigger", async () => {

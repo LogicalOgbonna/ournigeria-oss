@@ -72,6 +72,11 @@ CREATE TRIGGER trg_audit_events_immutable
   BEFORE UPDATE OR DELETE ON "audit_events"
   FOR EACH ROW EXECUTE FUNCTION audit_events_immutable();
 
+-- Row-level triggers do NOT fire on TRUNCATE — guard it separately.
+CREATE TRIGGER trg_audit_events_no_truncate
+  BEFORE TRUNCATE ON "audit_events"
+  FOR EACH STATEMENT EXECUTE FUNCTION audit_events_immutable();
+
 -- CreateTable: audit_anchors (external checkpoint receipts; mutable status)
 CREATE TABLE "audit_anchors" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),

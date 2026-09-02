@@ -39,6 +39,19 @@ export interface AppendedAuditEvent {
 }
 
 /**
+ * Force a value into plain JSON BEFORE hashing/storing, via the same
+ * serialization the DB write uses (JSON.stringify → toJSON semantics: Dates
+ * and Prisma Decimals become strings). Without this, exotic objects hash as
+ * one shape (canonicalJson's key iteration) but store as another (toJSON),
+ * and verification breaks on read-back — found live with Decimal
+ * completenessScore in an official.deleted snapshot.
+ */
+function toPlainJson(value: unknown): unknown {
+  if (value === undefined || value === null) return null;
+  return JSON.parse(JSON.stringify(value));
+}
+
+/**
  * Append one event to the audit chain. MUST be called inside the same
  * transaction as the domain mutation it records, as the LAST write in that
  * transaction (keeps advisory-lock hold time ≈ one insert). seq is derived
@@ -79,8 +92,8 @@ export async function appendAuditEvent(
     action: input.action,
     targetType: input.targetType ?? null,
     targetId: input.targetId ?? null,
-    diff: input.diff ?? null,
-    metadata: input.metadata ?? {},
+    diff: toPlainJson(input.diff),
+    metadata: toPlainJson(input.metadata) ?? {},
   };
   const hash = computeEventHash(fields, prevHash);
 
