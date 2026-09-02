@@ -299,7 +299,7 @@ apps/api/src/
 ├── sources/           # Budget document file serving
 └── telegram/          # Webhook handler, bot commands, user sync
 
-# Prisma schema lives in packages/database/prisma/schema.prisma (~90 models, pgvector, enums)
+# Prisma schema lives in packages/database/prisma/schema.prisma (~100 models, pgvector, enums)
 ```
 
 </details>
@@ -354,7 +354,9 @@ packages/source/
 ```
 apps/socials/src/
 ├── intelligence/ # Tweet discovery + DeepSeek classification, Claude draft generation
-├── platforms/    # X/Twitter integration — captured sessions, OAuth2 posting
+├── platforms/    # X/Twitter integration — captured sessions, OAuth2 posting, location scout
+├── identify/     # "Do you know your rep?" campaign tweets per state/LGA
+├── campaign/     # Tag-line helpers — append scouted location handles to campaign tweets
 ├── reply-queue/  # Human approval workflow — nothing posts without a click
 ├── scheduler/    # Roamer/drafter scheduled loops
 ├── content/      # Draft content + safety filtering

@@ -75,6 +75,16 @@ export interface SocialsEnvConfig {
   // Tweet-ID reconciler: backoff-tail UserTweets read to recover the posted id
   SOCIALS_RECONCILE_MAX_TRIES?: number;
   SOCIALS_RECONCILE_BASE_MS?: number;
+  // Location scout (state/LGA handle discovery) + campaign tagging
+  SOCIALS_SCOUT_WINDOW_MS?: number;
+  SOCIALS_SCOUT_MAX_CLASSIFY?: number;
+  SOCIALS_SCOUT_MIN_CONFIDENCE?: number;
+  SOCIALS_SCOUT_MAX_PAGES_PER_QUERY?: number;
+  SOCIALS_SCOUT_MAX_AGE_DAYS?: number;
+  SOCIALS_TAG_MAX_HANDLES?: number;
+  SOCIALS_TAG_COOLDOWN_DAYS?: number;
+  SOCIALS_TAG_DAILY_CAP?: number;
+  SOCIALS_TAG_ACTIVE_DAYS?: number;
   // Legacy (FAAC infographic cron + analytics polling)
   SOCIAL_POLL_INTERVAL_MS: number;
   SOCIAL_MAX_POSTS_DAY: number;
@@ -189,6 +199,17 @@ export function validateEnv(
     SOCIALS_X_SELF_HANDLE: (config.SOCIALS_X_SELF_HANDLE as string) || undefined,
     SOCIALS_RECONCILE_MAX_TRIES: num("SOCIALS_RECONCILE_MAX_TRIES", 5),
     SOCIALS_RECONCILE_BASE_MS: num("SOCIALS_RECONCILE_BASE_MS", 15_000),
+    SOCIALS_SCOUT_WINDOW_MS: num("SOCIALS_SCOUT_WINDOW_MS", 240_000),
+    SOCIALS_SCOUT_MAX_CLASSIFY: num("SOCIALS_SCOUT_MAX_CLASSIFY", 40),
+    SOCIALS_SCOUT_MIN_CONFIDENCE: num("SOCIALS_SCOUT_MIN_CONFIDENCE", 0.6),
+    SOCIALS_SCOUT_MAX_PAGES_PER_QUERY: num("SOCIALS_SCOUT_MAX_PAGES_PER_QUERY", 2),
+    // Only scout/keep accounts active within the last month.
+    SOCIALS_SCOUT_MAX_AGE_DAYS: num("SOCIALS_SCOUT_MAX_AGE_DAYS", 30),
+    SOCIALS_TAG_MAX_HANDLES: num("SOCIALS_TAG_MAX_HANDLES", 2),
+    SOCIALS_TAG_COOLDOWN_DAYS: num("SOCIALS_TAG_COOLDOWN_DAYS", 14),
+    SOCIALS_TAG_DAILY_CAP: num("SOCIALS_TAG_DAILY_CAP", 10),
+    // Don't tag a scouted account that's gone quiet for longer than this.
+    SOCIALS_TAG_ACTIVE_DAYS: num("SOCIALS_TAG_ACTIVE_DAYS", 30),
     SOCIAL_POLL_INTERVAL_MS: num("SOCIAL_POLL_INTERVAL_MS", 1_200_000)!,
     SOCIAL_MAX_POSTS_DAY: num("SOCIAL_MAX_POSTS_DAY", 5)!,
     SOCIAL_MAX_REPLIES_DAY: num("SOCIAL_MAX_REPLIES_DAY", 10)!,

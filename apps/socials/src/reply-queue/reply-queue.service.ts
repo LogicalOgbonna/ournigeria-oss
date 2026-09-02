@@ -7,7 +7,11 @@ import {
 import { PrismaService } from "@ournigeria/database";
 import { Prisma } from "@prisma/client";
 import { ApiResponseError } from "twitter-api-v2";
+import { ConfigService } from "@nestjs/config";
+import type { SocialsEnvConfig } from "../config/env.validation.js";
 import { TwitterPublisher } from "../platforms/twitter/twitter.publisher.js";
+import { ScoutedHandleRepo } from "../platforms/twitter/scout/scouted-handle.repo.js";
+import { parseTagLine, rebuildTagLine } from "../campaign/tag-line.js";
 
 export type DraftAction = "reply" | "quote" | "retweet";
 
@@ -118,10 +122,100 @@ export interface OriginalTweetSnapshot {
 export class ReplyQueueService {
   private readonly logger = new Logger(ReplyQueueService.name);
 
+  private readonly tagDailyCap: number;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly publisher: TwitterPublisher,
-  ) {}
+    private readonly scoutedHandles: ScoutedHandleRepo,
+    config: ConfigService<SocialsEnvConfig>,
+  ) {
+    this.tagDailyCap = config.get("SOCIALS_TAG_DAILY_CAP") ?? 10;
+  }
+
+  /**
+   * Publish-time consent + budget guard for drafts that carry scouted
+   * @-mentions (identify_seat). A draft can sit parked for days; between draft
+   * and approval a tagged person may have opted out (or been rejected), and a
+   * batch approval could burst past the daily mention ceiling — the exact
+   * bulk-mention pattern X's enforcement flags.
+   *
+   * Consent is judged by the ids PERSISTED on the draft (taggedHandleIds),
+   * never inferred from text: text inference both stripped legitimate
+   * operator-written mentions and missed edited-in ones. Text is only ever
+   * REWRITTEN when the tag line still matches the generated grammar; an
+   * operator-edited draft that we can't safely rewrite blocks with an
+   * actionable 422 instead of silently corrupting a live tweet. Mentions the
+   * operator wrote themselves (not in the persisted ids) are always kept.
+   */
+  private async revalidateTagLine(post: {
+    content: string;
+    taggedHandleIds?: string[];
+  }): Promise<{ content: string; taggedIds: string[] }> {
+    const ids = post.taggedHandleIds ?? [];
+    if (ids.length === 0) return { content: post.content, taggedIds: [] };
+
+    const rows = await this.scoutedHandles.findByIds(ids);
+    const byHandle = new Map(rows.map((r) => [r.handle.toLowerCase(), r]));
+    const revoked = rows.filter((r) => r.status !== "active");
+    // A tracked id whose row was deleted is revoked-by-absence; we can't name
+    // its handle, so it simply won't match any mention below (kept as
+    // operator text is impossible — deleted rows were appended by us, and if
+    // the operator removed the mention there's nothing to strip).
+
+    // Own-draft stamps are excluded: they were marked at draft time and would
+    // otherwise consume the publish budget (a full drafting day would strip
+    // every same-day approval).
+    const publishedLastDay = await this.scoutedHandles.taggedInLastDay(ids);
+    let budget = Math.max(0, this.tagDailyCap - publishedLastDay);
+
+    const parsed = parseTagLine(post.content);
+    if (!parsed) {
+      // Operator rewrote the draft beyond the generated grammar. If every
+      // tracked mention is still active and within budget, publish as-is;
+      // otherwise surface the conflict to the human — never silently edit
+      // text we don't understand.
+      const conflict = revoked.length > 0 || rows.length > budget;
+      if (conflict) {
+        const names = revoked.map((r) => `@${r.handle}`).join(", ");
+        throw new UnprocessableEntityException(
+          `This draft tags ${names || "scouted accounts"} but ${
+            revoked.length > 0
+              ? "their consent status changed since drafting (opted out/rejected)"
+              : "today's mention budget is exhausted"
+          }. Edit the draft to remove the mention(s), then approve again.`,
+        );
+      }
+      return { content: post.content, taggedIds: rows.map((r) => r.id) };
+    }
+
+    const keep: string[] = [];
+    const keptIds: string[] = [];
+    for (const h of parsed.handles) {
+      const row = byHandle.get(h.toLowerCase());
+      if (!row) {
+        // Not one of ours — operator-authored mention. Never stripped.
+        keep.push(h);
+        continue;
+      }
+      if (row.status !== "active") {
+        this.logger.log(
+          `stripping @${row.handle} at publish: status=${row.status}`,
+        );
+        continue;
+      }
+      if (budget <= 0) {
+        this.logger.warn(
+          `daily mention budget strips @${row.handle} at publish`,
+        );
+        continue;
+      }
+      budget--;
+      keep.push(h);
+      keptIds.push(row.id);
+    }
+    return { content: rebuildTagLine(parsed, keep), taggedIds: keptIds };
+  }
 
   async createDraft(data: {
     action: DraftAction;
@@ -231,6 +325,16 @@ export class ReplyQueueService {
       );
     }
 
+    // Consent can change while a draft sits parked — re-validate scouted
+    // mentions at the moment of publish, never trust the drafted text.
+    let publishContent = post.content;
+    let publishTaggedIds: string[] = [];
+    if (post.postType === "identify_seat") {
+      const guarded = await this.revalidateTagLine(post);
+      publishContent = guarded.content;
+      publishTaggedIds = guarded.taggedIds;
+    }
+
     let result: { id: string };
     try {
       if (
@@ -239,7 +343,7 @@ export class ReplyQueueService {
       ) {
         // A parked identify draft has no target tweet — post it as an original.
         const published = await this.publisher.publishOriginal(
-          post.content,
+          publishContent,
           "opinion_tweet",
         );
         result = published[0];
@@ -283,6 +387,8 @@ export class ReplyQueueService {
       where: { id },
       data: {
         status: "published",
+        // Store what actually went out (mentions may have been stripped).
+        content: publishContent,
         externalId: result.id,
         publishedAt: new Date(),
         reviewStatus: "approved",
@@ -298,6 +404,14 @@ export class ReplyQueueService {
         where: { socialPostId: id },
         data: { status: "posted", tweetId: result.id },
       });
+      // Re-stamp the cooldown clock at PUBLISH time for the mentions that
+      // actually went out, so the daily budget counts real bursts. Never
+      // fails the approve — the tweet is already live.
+      await this.scoutedHandles
+        .markTagged(publishTaggedIds)
+        .catch((e) =>
+          this.logger.warn(`markTagged at publish failed: ${e?.message}`),
+        );
     }
 
     if (post.postType === "proposal_verify") {

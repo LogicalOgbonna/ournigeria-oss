@@ -34,6 +34,7 @@ import {
   MessageCircle,
   Hash,
   Activity,
+  AtSign,
   Filter,
   Sparkles,
   Upload,
@@ -76,6 +77,8 @@ const communityNav = [
 const socialNav = [
   { title: "Reply Queue", href: "/dashboard/social", icon: MessageCircle },
   { title: "Topics", href: "/dashboard/social/topics", icon: Hash },
+  { title: "Handles", href: "/dashboard/social/handles", icon: AtSign },
+  { title: "Campaign", href: "/dashboard/social/campaign", icon: Megaphone },
   { title: "Sessions", href: "/dashboard/social/sessions", icon: Activity },
   { title: "Funnel", href: "/dashboard/social/funnel", icon: Filter },
   { title: "Analytics", href: "/dashboard/social/analytics", icon: BarChart3 },

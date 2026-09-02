@@ -10,6 +10,8 @@ export class SocialsSettingsService {
   static readonly AUTO_PUBLISH_INBOUND_KEY = "socials.auto_publish_inbound";
   static readonly IDENTIFY_AUTO_POST_KEY = "identify.auto_post";
   static readonly VERIFY_AUTO_POST_KEY = "verify.auto_post";
+  static readonly SCOUT_ENABLED_KEY = "socials.scout_enabled";
+  static readonly TAG_HANDLES_KEY = "socials.tag_handles";
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -115,6 +117,60 @@ export class SocialsSettingsService {
         valueType: "boolean",
         description:
           "Auto-post verify tweets; when false, drafts park in the review queue",
+      },
+      update: { value },
+    });
+    return enabled;
+  }
+
+  /** Whether the location scout roams X for taggable Nigerian accounts.
+   * Defaults to false — no scouting until an operator opts in. */
+  async getScoutEnabled(): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: SocialsSettingsService.SCOUT_ENABLED_KEY },
+    });
+    return row?.value === "true";
+  }
+
+  async setScoutEnabled(enabled: boolean): Promise<boolean> {
+    const value = enabled ? "true" : "false";
+    await this.prisma.systemSetting.upsert({
+      where: { key: SocialsSettingsService.SCOUT_ENABLED_KEY },
+      create: {
+        key: SocialsSettingsService.SCOUT_ENABLED_KEY,
+        value,
+        category: "socials",
+        valueType: "boolean",
+        description:
+          "Roam X for Nigerian accounts attributable to a state/LGA/ward (location scout)",
+      },
+      update: { value },
+    });
+    return enabled;
+  }
+
+  /** Whether campaign tweets append scouted location handles as tags
+   * (`cc @handle`). Defaults to false — tweets go out untagged until an
+   * operator opts in. Independent of scout_enabled so scouting can build the
+   * pool before any tweet tags anyone. */
+  async getTagHandles(): Promise<boolean> {
+    const row = await this.prisma.systemSetting.findUnique({
+      where: { key: SocialsSettingsService.TAG_HANDLES_KEY },
+    });
+    return row?.value === "true";
+  }
+
+  async setTagHandles(enabled: boolean): Promise<boolean> {
+    const value = enabled ? "true" : "false";
+    await this.prisma.systemSetting.upsert({
+      where: { key: SocialsSettingsService.TAG_HANDLES_KEY },
+      create: {
+        key: SocialsSettingsService.TAG_HANDLES_KEY,
+        value,
+        category: "socials",
+        valueType: "boolean",
+        description:
+          "Tag scouted location handles on campaign tweets (\"@a @b — you're from {place}, do you know who this is?\")",
       },
       update: { value },
     });

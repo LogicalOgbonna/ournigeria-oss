@@ -13,12 +13,19 @@ import { Plus, ArrowLeft } from "lucide-react";
 export default function TopicsListPage() {
   const [topics, setTopics] = useState<SocialsTopicRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function reload() {
     setLoading(true);
+    setLoadError(null);
     socialsFetch("/v1/topics")
       .then((rows: SocialsTopicRow[]) => setTopics(rows))
-      .catch(() => setTopics([]))
+      .catch((e) => {
+        // Surface failures — "no topics" and "socials service down" must not
+        // render identically.
+        setTopics([]);
+        setLoadError(e instanceof Error ? e.message : "Failed to load topics");
+      })
       .finally(() => setLoading(false));
   }
 
@@ -57,13 +64,21 @@ export default function TopicsListPage() {
         </Link>
       </div>
 
+      {loadError && (
+        <Card>
+          <CardContent className="py-4 text-sm text-red-600">
+            Failed to load topics: {loadError}
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
         </div>
-      ) : topics.length === 0 ? (
+      ) : topics.length === 0 && !loadError ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <p>No topics yet.</p>
