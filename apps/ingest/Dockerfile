@@ -16,6 +16,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml nx.json ./
 # Copy only ingest package.json
 COPY apps/ingest/package.json apps/ingest/package.json
 COPY packages/database/package.json packages/database/package.json
+COPY packages/access/package.json packages/access/package.json
 
 # Hoisted layout + install only ingest workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -26,8 +27,10 @@ FROM deps AS build
 
 COPY apps/ingest/ apps/ingest/
 COPY packages/database/ packages/database/
+COPY packages/access/ packages/access/
 
 RUN pnpm --filter @ournigeria/database run build \
+ && pnpm --filter @ournigeria/access run build \
  && pnpm --filter @ournigeria/ingest exec nest build
 
 # ── Stage 3: Prune to production deps only ──
@@ -101,10 +104,13 @@ COPY --from=build /app/packages/database/prisma/ prisma/
 COPY --from=build /app/packages/database/prisma.config.ts prisma.config.ts
 COPY --from=build /app/packages/database/dist/ packages/database/dist/
 COPY --from=build /app/packages/database/package.json packages/database/package.json
+COPY --from=build /app/packages/access/dist/ packages/access/dist/
+COPY --from=build /app/packages/access/package.json packages/access/package.json
 
-# Link workspace package so Node can resolve @ournigeria/database
+# Link workspace packages so Node can resolve @ournigeria/*
 RUN mkdir -p node_modules/@ournigeria && \
-    ln -s /app/packages/database node_modules/@ournigeria/database
+    ln -s /app/packages/database node_modules/@ournigeria/database && \
+    ln -s /app/packages/access node_modules/@ournigeria/access
 
 # Create uploads directory writable by appuser
 RUN mkdir -p /uploads && chown appuser:appgroup /uploads
