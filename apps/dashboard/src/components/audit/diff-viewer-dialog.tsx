@@ -1,14 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatDateTimeFull } from "@/lib/format";
+import { formatDateTimeSeconds, relativeTime } from "@/lib/format";
 
 /** One event from GET /api/admin/audit — mirrors the API's AuditEventView. */
 export interface AuditEventView {
@@ -77,6 +77,41 @@ function pretty(value: unknown): string {
   return JSON.stringify(replaceErased(value), null, 2);
 }
 
+/**
+ * Internal route for a target, when one exists. Officials link to the
+ * (upcoming) official-management area — the stub detail page resolves today.
+ */
+function targetHref(type: string | null, id: string | null): string | null {
+  if (!id) return null;
+  switch (type) {
+    case "official":
+      return `/dashboard/officials/${id}`;
+    case "user":
+      return `/dashboard/users/${id}`;
+    case "admin":
+      return "/dashboard/admins";
+    default:
+      return null;
+  }
+}
+
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-sm">{children}</dd>
+    </>
+  );
+}
+
 /** Top-level keys whose values differ between before and after (cheap diff). */
 function changedKeys(before: unknown, after: unknown): string[] {
   if (!isPlainObject(before) || !isPlainObject(after)) return [];
@@ -107,66 +142,115 @@ export function DiffViewerDialog({
               <DialogTitle className="font-mono text-base">
                 {event.action}
               </DialogTitle>
-              <DialogDescription>
-                {event.actorType}
-                {event.actorLabel ? (
-                  <>
-                    {" "}
-                    {event.actorLabel}
-                    {event.actorEmail && (
-                      <>
-                        {" · "}
-                        <span className="underline underline-offset-2">
-                          {event.actorEmail}
-                        </span>
-                      </>
-                    )}
-                  </>
-                ) : event.actorId ? (
-                  ` ${event.actorId}`
-                ) : (
-                  ""
-                )}{" "}
-                · {formatDateTimeFull(event.occurredAt)}
-                {event.targetLabel && (
-                  <>
-                    <br />
-                    target: {event.targetType} {event.targetLabel}
-                    {event.targetEmail && (
-                      <>
-                        {" · "}
-                        <span className="underline underline-offset-2">
-                          {event.targetEmail}
-                        </span>
-                      </>
-                    )}
-                  </>
-                )}
-              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="font-mono text-xs">
-                    seq {event.seq}
-                  </Badge>
-                  <Badge variant="outline" className="font-mono text-xs">
-                    epoch {event.epoch}
-                  </Badge>
-                  {event.ip && (
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {event.ip}
+              <dl className="grid grid-cols-[92px_1fr] items-baseline gap-x-4 gap-y-2 rounded-lg border border-border p-3">
+                <DetailRow label="Actor">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="text-xs">
+                      {event.actorType}
                     </Badge>
-                  )}
-                </div>
-                <code
-                  className="block truncate rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground"
-                  title={event.hash}
-                >
-                  {event.hash}
-                </code>
-              </div>
+                    {event.actorLabel ? (
+                      <span title={event.actorId ?? undefined}>
+                        {event.actorLabel}
+                        {event.actorEmail && (
+                          <>
+                            {" ("}
+                            <span className="underline underline-offset-2">
+                              {event.actorEmail}
+                            </span>
+                            {")"}
+                          </>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {event.actorId ?? "—"}
+                      </span>
+                    )}
+                  </span>
+                </DetailRow>
+
+                {(event.targetType || event.targetId) && (
+                  <DetailRow label="Target">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {event.targetType && (
+                        <Badge variant="outline" className="text-xs">
+                          {event.targetType}
+                        </Badge>
+                      )}
+                      {(() => {
+                        const href = targetHref(event.targetType, event.targetId);
+                        const text =
+                          event.targetLabel ?? event.targetId ?? "—";
+                        const labelled = Boolean(event.targetLabel);
+                        return href && labelled ? (
+                          <Link
+                            href={href}
+                            className="text-primary underline underline-offset-2"
+                            title={event.targetId ?? undefined}
+                          >
+                            {text}
+                          </Link>
+                        ) : (
+                          <span
+                            className={
+                              labelled
+                                ? undefined
+                                : "font-mono text-xs text-muted-foreground"
+                            }
+                            title={event.targetId ?? undefined}
+                          >
+                            {text}
+                          </span>
+                        );
+                      })()}
+                      {event.targetEmail && (
+                        <span className="text-muted-foreground">
+                          (
+                          <span className="underline underline-offset-2">
+                            {event.targetEmail}
+                          </span>
+                          )
+                        </span>
+                      )}
+                    </span>
+                  </DetailRow>
+                )}
+
+                <DetailRow label="Time">
+                  {formatDateTimeSeconds(event.occurredAt)}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {relativeTime(event.occurredAt)}
+                  </span>
+                </DetailRow>
+
+                {typeof event.metadata?.pathway === "string" && (
+                  <DetailRow label="Pathway">
+                    {String(event.metadata.pathway)}
+                  </DetailRow>
+                )}
+
+                {event.ip && (
+                  <DetailRow label="IP">
+                    <span className="font-mono text-xs">{event.ip}</span>
+                  </DetailRow>
+                )}
+
+                <DetailRow label="Chain">
+                  <span className="font-mono text-xs">
+                    seq {event.seq} · epoch {event.epoch}
+                  </span>
+                  <code
+                    className="mt-1 block truncate rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground"
+                    title={event.hash}
+                  >
+                    {event.hash}
+                  </code>
+                </DetailRow>
+              </dl>
 
               {diff ? (
                 <div className="space-y-2">

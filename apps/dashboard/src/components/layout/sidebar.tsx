@@ -37,6 +37,7 @@ import {
   Filter,
   Sparkles,
   Upload,
+  KeyRound,
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
@@ -299,6 +300,12 @@ const adminNav: NavItem[] = [
     title: "Admin Users",
     href: "/dashboard/admins",
     icon: ShieldCheck,
+    permission: "admins.manage",
+  },
+  {
+    title: "Roles & Permissions",
+    href: "/dashboard/admins/roles",
+    icon: KeyRound,
     permission: "admins.manage",
   },
   {

@@ -29,7 +29,7 @@ import {
 } from "@/components/audit/diff-viewer-dialog";
 import { adminFetch, ApiError } from "@/lib/api";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { formatDateTimeFull } from "@/lib/format";
+import { formatDateTimeSeconds } from "@/lib/format";
 
 const PAGE_SIZE = 25;
 
@@ -291,7 +291,7 @@ export function AuditTable({
                   }}
                 >
                   <TableCell className="whitespace-nowrap text-sm">
-                    {formatDateTimeFull(event.occurredAt)}
+                    {formatDateTimeSeconds(event.occurredAt)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">

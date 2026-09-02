@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/api/proposals/:path*`,
       },
       {
+        // Public read-only officials API — used by the audit-target detail stub.
+        source: "/api/officials/:path*",
+        destination: `${apiUrl}/api/officials/:path*`,
+      },
+      {
         source: "/api/ingest/:path*",
         destination: `${ingestUrl}/api/ingest/:path*`,
       },
