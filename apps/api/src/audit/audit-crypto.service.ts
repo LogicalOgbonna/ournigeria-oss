@@ -24,6 +24,8 @@ export interface EncryptedField {
 }
 
 export const ERASED_MARKER = { __erased: true } as const;
+/** Shown to audit readers who lack the targetType's decrypt permission. */
+export const REDACTED_MARKER = { __redacted: true } as const;
 
 function isEncryptedField(v: unknown): v is EncryptedField {
   return (
@@ -104,13 +106,30 @@ export class AuditCryptoService {
     }
     const dataKey = randomBytes(32);
     const wrapped = this.gcmEncrypt(this.masterKey, dataKey);
-    await tx.auditErasureKey.create({
-      data: {
-        subjectType,
-        subjectId,
-        keyCiphertext: `${wrapped.iv}.${wrapped.tag}.${wrapped.ct}`,
-      },
-    });
+    try {
+      await tx.auditErasureKey.create({
+        data: {
+          subjectType,
+          subjectId,
+          keyCiphertext: `${wrapped.iv}.${wrapped.tag}.${wrapped.ct}`,
+        },
+      });
+    } catch (err) {
+      // Two transactions racing on a subject's FIRST event: loser hits
+      // uq_erasure_subject — reuse the winner's key instead of aborting the
+      // domain mutation.
+      if ((err as { code?: string })?.code === "P2002") {
+        const winner = await tx.auditErasureKey.findUnique({
+          where: { subjectType_subjectId: { subjectType, subjectId } },
+        });
+        if (winner?.keyCiphertext && !winner.shreddedAt) {
+          const [iv, tag, ct] = winner.keyCiphertext.split(".");
+          return this.gcmDecrypt(this.masterKey, { iv, tag, ct });
+        }
+        return null;
+      }
+      throw err;
+    }
     return dataKey;
   }
 
@@ -180,6 +199,22 @@ export class AuditCryptoService {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(diff as Record<string, unknown>)) {
       out[k] = await this.decryptDiff(v);
+    }
+    return out;
+  }
+
+  /**
+   * Replace encrypted blobs with {__redacted: true} for readers who lack the
+   * targetType's decrypt permission (spec §4: auditor never sees citizen PII)
+   * — the ciphertext itself is not shipped either.
+   */
+  redactEncrypted(diff: unknown): unknown {
+    if (diff === null || typeof diff !== "object") return diff;
+    if (isEncryptedField(diff)) return { ...REDACTED_MARKER };
+    if (Array.isArray(diff)) return diff.map((v) => this.redactEncrypted(v));
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(diff as Record<string, unknown>)) {
+      out[k] = this.redactEncrypted(v);
     }
     return out;
   }

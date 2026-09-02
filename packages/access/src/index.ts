@@ -35,6 +35,11 @@ export {
   type AuditEventInput,
   type AuditTxClient,
 } from "./audit-append";
-export { SENSITIVE_DIFF_FIELDS, sensitiveFieldsFor } from "./sensitive-fields";
+export {
+  DIFF_DECRYPT_PERMISSION,
+  SENSITIVE_DIFF_FIELDS,
+  decryptPermissionFor,
+  sensitiveFieldsFor,
+} from "./sensitive-fields";
 export { redactSecrets } from "./redact";
 export { PERMISSION_KEY, RequirePermission } from "./require-permission";

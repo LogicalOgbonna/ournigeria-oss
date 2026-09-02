@@ -68,14 +68,21 @@ export class AuditAnchorService implements OnModuleInit, OnModuleDestroy {
         orderBy: { anchoredAt: "desc" },
       });
       const now = Date.now();
-      if (!lastSent || now - lastSent.anchoredAt.getTime() >= this.anchorIntervalMs) {
-        await this.anchorNow();
-      } else if (now - lastSent.anchoredAt.getTime() >= this.deadmanMs) {
+      const elapsed = lastSent
+        ? now - lastSent.anchoredAt.getTime()
+        : Number.POSITIVE_INFINITY;
+      // Dead-man BEFORE the anchor attempt: deadman (36h) > interval (24h),
+      // so it only trips when anchoring itself has been failing repeatedly —
+      // exactly the silent-failure window it exists to catch.
+      if (lastSent && elapsed >= this.deadmanMs) {
         await this.alerts.alert(
           `⚠️ <b>Audit anchor dead-man</b>: no anchor sent in over ` +
             `${Math.round(this.deadmanMs / 3_600_000)}h. Check the anchor job.`,
           { urgent: true },
         );
+      }
+      if (elapsed >= this.anchorIntervalMs) {
+        await this.anchorNow();
       }
     } catch (err) {
       console.error("audit anchor tick failed:", err);
@@ -91,7 +98,11 @@ export class AuditAnchorService implements OnModuleInit, OnModuleDestroy {
       select: { seq: true, hash: true, epoch: true },
     });
     if (!head) return null;
-    const eventCount = await this.prisma.auditEvent.count();
+    // Count up to the head we're publishing — events appended between the two
+    // reads must not make the anchor internally inconsistent.
+    const eventCount = await this.prisma.auditEvent.count({
+      where: { seq: { lte: head.seq } },
+    });
 
     const anchor = await this.prisma.auditAnchor.create({
       data: {
@@ -129,17 +140,20 @@ export class AuditAnchorService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    await this.alerts.alert(
+    // urgent: the anchor IS the external trust signal — never digest-buffer it,
+    // and record whether it actually went out.
+    const telegramSent = await this.alerts.alert(
       `⚓ <b>Audit chain anchor</b>\n` +
         `epoch ${payload.epoch} · seq ${payload.headSeq} · ${eventCount} events\n` +
         `head <code>${payload.headHash}</code>`,
+      { urgent: true },
     );
 
     await this.prisma.auditAnchor.update({
       where: { id: anchor.id },
       data: {
         status: uploaded ? "sent" : "partial",
-        receipt: { s3Key: uploaded ? key : null, telegram: true },
+        receipt: { s3Key: uploaded ? key : null, telegram: telegramSent },
       },
     });
     return { headSeq: payload.headSeq, headHash: payload.headHash };

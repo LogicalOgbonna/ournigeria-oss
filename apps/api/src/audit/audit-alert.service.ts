@@ -31,9 +31,14 @@ export class AuditAlertService {
     }
   }
 
-  /** Fire-and-forget ops alert. HTML-safe content is the caller's job. */
-  async alert(message: string, opts: { urgent?: boolean } = {}): Promise<void> {
-    if (this.chatId === null) return;
+  /**
+   * Ops alert. Returns true only when the message was sent immediately
+   * (false = disabled, buffered into the boot digest, or send failed) so
+   * callers recording receipts stay truthful. HTML-safe content is the
+   * caller's job.
+   */
+  async alert(message: string, opts: { urgent?: boolean } = {}): Promise<boolean> {
+    if (this.chatId === null) return false;
     const inBootWindow = Date.now() - this.bootAt < BOOT_DIGEST_WINDOW_MS;
     if (inBootWindow && !opts.urgent) {
       this.digest.push(message);
@@ -41,9 +46,9 @@ export class AuditAlertService {
         this.digestTimer = setTimeout(() => void this.flushDigest(), BOOT_DIGEST_WINDOW_MS);
         this.digestTimer.unref?.();
       }
-      return;
+      return false;
     }
-    await this.send(message);
+    return this.send(message);
   }
 
   private async flushDigest(): Promise<void> {
@@ -56,14 +61,16 @@ export class AuditAlertService {
     );
   }
 
-  private async send(text: string): Promise<void> {
-    if (this.chatId === null) return;
+  private async send(text: string): Promise<boolean> {
+    if (this.chatId === null) return false;
     try {
       await this.telegram.sendMessage(this.chatId, text, {
         parse_mode: "HTML",
       });
+      return true;
     } catch (err) {
       console.error("AuditAlertService: telegram send failed:", err);
+      return false;
     }
   }
 }

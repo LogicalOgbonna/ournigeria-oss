@@ -8,10 +8,12 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Request, Response } from "express";
-import { RequirePermission } from "@ournigeria/access";
+import { RequirePermission, type Permission } from "@ournigeria/access";
+import { PrismaService } from "@ournigeria/database";
 import { Public } from "../auth/decorators/public";
 import { AdminGuard } from "../admin/admin.guard";
 import { PermissionsGuard } from "../admin/permissions.guard";
+import { loadPermissions } from "../admin/roles.util";
 import { AuditQueryService, type AuditListFilters } from "./audit-query.service";
 import { AuditVerifyService } from "./audit-verify.service";
 import { AuditService, auditActorFromRequest } from "./audit.service";
@@ -48,25 +50,40 @@ export class AuditController {
     private readonly queries: AuditQueryService,
     private readonly verifier: AuditVerifyService,
     private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  private async readerPermissions(
+    req: Request,
+  ): Promise<ReadonlySet<Permission>> {
+    const adminId = (req as unknown as { adminId: string }).adminId;
+    return loadPermissions(this.prisma, "staff", adminId);
+  }
 
   @Get()
   @RequirePermission("audit.read")
   @ApiOperation({ summary: "List audit events (filterable)" })
-  async list(@Query() query: Record<string, unknown>) {
-    return this.queries.list(parseFilters(query));
+  async list(@Req() req: Request, @Query() query: Record<string, unknown>) {
+    return this.queries.list(parseFilters(query), {
+      readerPermissions: await this.readerPermissions(req),
+    });
   }
 
+  // No @RequirePermission: every authenticated admin can read their OWN trail
+  // (spec §14 "transparency cuts both ways") — even before any role is
+  // granted. Sensitive diffs still redact per the reader's permissions.
   @Get("mine")
-  @RequirePermission("audit.read.own")
   @ApiOperation({ summary: "List my own audit events" })
   async mine(@Req() req: Request, @Query() query: Record<string, unknown>) {
     const adminId = (req as unknown as { adminId: string }).adminId;
-    return this.queries.list({
-      ...parseFilters(query),
-      actorId: adminId,
-      actorType: "staff",
-    });
+    return this.queries.list(
+      {
+        ...parseFilters(query),
+        actorId: adminId,
+        actorType: "staff",
+      },
+      { readerPermissions: await this.readerPermissions(req) },
+    );
   }
 
   @Get("status")

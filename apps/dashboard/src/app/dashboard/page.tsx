@@ -6,6 +6,7 @@ import { SessionsPanel, type SessionsCounts } from "@/components/dashboard/overv
 import { adminFetch, proposalsFetch, socialsFetch } from "@/lib/api";
 import { enrichmentFetch } from "@/app/dashboard/enrichment/lib";
 import { useResource } from "@/lib/hooks/use-resource";
+import { usePermissions } from "@/lib/permissions";
 
 interface ProposalStats {
   total: number;
@@ -31,14 +32,40 @@ interface SessionsResponse {
 }
 
 export default function OverviewPage() {
-  const proposals = useResource<ProposalStats>(() => proposalsFetch("/admin/stats"), []);
-  const enrichment = useResource<EnrichmentStats>(() => enrichmentFetch("/proposals/stats"), []);
-  const feedback = useResource<FeedbackStats>(() => adminFetch("/feedback/stats"), []);
-  const replies = useResource<ReplyStats>(() => socialsFetch("/v1/replies/stats"), []);
-  const sessions = useResource<SessionsResponse>(() => socialsFetch("/v1/sessions"), []);
+  // Tiles are permission-gated: a scoped role must not land on a wall of 403
+  // error tiles for queues it can't touch. Fetchers stay dormant until the
+  // permission is confirmed held.
+  const { can, loading: permsLoading } = usePermissions();
+  const canProposals = can("proposals.review");
+  const canEnrichment = can("enrichment.review");
+  const canFeedback = can("feedback.read");
+  const canReplies = can("socials.review");
+  const canSessions = can("socials.sessions");
+
+  const proposals = useResource<ProposalStats | null>(
+    () => (canProposals ? proposalsFetch("/admin/stats") : Promise.resolve(null)),
+    [canProposals],
+  );
+  const enrichment = useResource<EnrichmentStats | null>(
+    () => (canEnrichment ? enrichmentFetch("/proposals/stats") : Promise.resolve(null)),
+    [canEnrichment],
+  );
+  const feedback = useResource<FeedbackStats | null>(
+    () => (canFeedback ? adminFetch("/feedback/stats") : Promise.resolve(null)),
+    [canFeedback],
+  );
+  const replies = useResource<ReplyStats | null>(
+    () => (canReplies ? socialsFetch("/v1/replies/stats") : Promise.resolve(null)),
+    [canReplies],
+  );
+  const sessions = useResource<SessionsResponse | null>(
+    () => (canSessions ? socialsFetch("/v1/sessions") : Promise.resolve(null)),
+    [canSessions],
+  );
 
   const sc = sessions.data?.counts;
   const sessionsTotal = sc ? sc.idle + sc.working + sc.auth_failed : 0;
+  const anyTile = canProposals || canEnrichment || canFeedback || canReplies;
 
   return (
     <div className="space-y-6">
@@ -47,7 +74,15 @@ export default function OverviewPage() {
         <p className="mt-1 text-sm text-muted-foreground">Your review queues</p>
       </div>
 
+      {!permsLoading && !anyTile && (
+        <p className="text-sm text-muted-foreground">
+          No review queues for your current roles. Use the sidebar for the
+          sections you have access to.
+        </p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {canProposals && (
         <QueueTile
           label="Proposals"
           icon={FileText}
@@ -60,7 +95,9 @@ export default function OverviewPage() {
           loading={proposals.loading}
           error={proposals.error}
         />
+        )}
 
+        {canEnrichment && (
         <QueueTile
           label="Enrichments"
           icon={Sparkles}
@@ -83,7 +120,9 @@ export default function OverviewPage() {
           loading={enrichment.loading}
           error={enrichment.error}
         />
+        )}
 
+        {canFeedback && (
         <QueueTile
           label="Feedback"
           icon={MessageCircle}
@@ -96,7 +135,9 @@ export default function OverviewPage() {
           loading={feedback.loading}
           error={feedback.error}
         />
+        )}
 
+        {canReplies && (
         <QueueTile
           label="Queued replies"
           icon={MessagesSquare}
@@ -109,14 +150,17 @@ export default function OverviewPage() {
           loading={replies.loading}
           error={replies.error}
         />
+        )}
       </div>
 
-      <SessionsPanel
-        counts={sc}
-        total={sessionsTotal}
-        loading={sessions.loading}
-        error={sessions.error}
-      />
+      {canSessions && (
+        <SessionsPanel
+          counts={sc}
+          total={sessionsTotal}
+          loading={sessions.loading}
+          error={sessions.error}
+        />
+      )}
     </div>
   );
 }

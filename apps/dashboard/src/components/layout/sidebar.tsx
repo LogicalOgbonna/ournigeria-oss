@@ -325,18 +325,16 @@ const GROUPS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 function isActive(pathname: string, href: string, items: NavItem[]) {
   if (href === "/dashboard") return pathname === "/dashboard";
-  // For top-level section links, only exact match
-  const isTopLevel = items.some(
-    (i) => i.href === href && items.indexOf(i) === 0,
+  if (pathname === href) return true;
+  if (!pathname.startsWith(href + "/")) return false;
+  // A sibling with a more specific href wins (e.g. /dashboard/audit/mine
+  // must not also highlight /dashboard/audit).
+  return !items.some(
+    (i) =>
+      i.href !== href &&
+      i.href.length > href.length &&
+      (pathname === i.href || pathname.startsWith(i.href + "/")),
   );
-  if (isTopLevel && items.length > 1) {
-    // Check if any sub-item has a more specific match
-    const hasMoreSpecific = items.some(
-      (i) => i.href !== href && pathname.startsWith(i.href),
-    );
-    if (hasMoreSpecific) return pathname === href;
-  }
-  return pathname.startsWith(href);
 }
 
 // The group whose route is currently active — always forced open.

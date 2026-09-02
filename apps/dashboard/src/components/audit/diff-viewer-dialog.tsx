@@ -42,9 +42,19 @@ function isErasedMarker(value: unknown): boolean {
   );
 }
 
+/** True for the permission-redaction marker { __redacted: true } (exactly). */
+function isRedactedMarker(value: unknown): boolean {
+  return (
+    isPlainObject(value) &&
+    Object.keys(value).length === 1 &&
+    value.__redacted === true
+  );
+}
+
 /** Recursively replace erasure markers with a readable placeholder string. */
 function replaceErased(value: unknown): unknown {
   if (isErasedMarker(value)) return "[erased — privacy]";
+  if (isRedactedMarker(value)) return "[encrypted — you lack permission to view]";
   if (Array.isArray(value)) return value.map(replaceErased);
   if (isPlainObject(value)) {
     return Object.fromEntries(

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma, PrismaService } from "@ournigeria/database";
+import { decryptPermissionFor, type Permission } from "@ournigeria/access";
 import { AuditCryptoService } from "./audit-crypto.service";
 
 export interface AuditListFilters {
@@ -60,7 +61,7 @@ export class AuditQueryService {
 
   async list(
     filters: AuditListFilters,
-    opts: { decrypt?: boolean } = {},
+    opts: { readerPermissions?: ReadonlySet<Permission> } = {},
   ): Promise<{ data: AuditEventView[]; total: number; page: number; limit: number }> {
     const page = Math.max(1, filters.page ?? 1);
     const limit = Math.min(100, Math.max(1, filters.limit ?? 25));
@@ -78,6 +79,15 @@ export class AuditQueryService {
 
     const data: AuditEventView[] = [];
     for (const row of rows) {
+      // Decryption is gated on the underlying resource permission (spec §4:
+      // audit.read alone — e.g. the auditor role — must never expose citizen
+      // PII). Unpermitted readers get {__redacted: true} markers, not
+      // ciphertext.
+      const needed = row.targetType
+        ? decryptPermissionFor(row.targetType)
+        : null;
+      const mayDecrypt =
+        needed === null || (opts.readerPermissions?.has(needed) ?? false);
       data.push({
         seq: Number(row.seq),
         id: row.id,
@@ -89,10 +99,9 @@ export class AuditQueryService {
         action: row.action,
         targetType: row.targetType,
         targetId: row.targetId,
-        diff:
-          opts.decrypt === false
-            ? row.diff
-            : await this.crypto.decryptDiff(row.diff),
+        diff: mayDecrypt
+          ? await this.crypto.decryptDiff(row.diff)
+          : this.crypto.redactEncrypted(row.diff),
         metadata: row.metadata,
         hash: row.hash,
       });

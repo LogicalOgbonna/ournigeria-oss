@@ -3,12 +3,14 @@ import { PrismaService } from "@ournigeria/database";
 import { invalidateUserAuthCache } from "../auth/auth.guard";
 import { invalidateSessionResolutionCache } from "../auth/session.service";
 import { AuditService, type AuditActor } from "../audit/audit.service";
+import { AuditCryptoService } from "../audit/audit-crypto.service";
 
 @Injectable()
 export class AdminUsersService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private crypto: AuditCryptoService,
   ) {}
 
   async listUsers(page: number, limit: number, search?: string) {
@@ -260,7 +262,7 @@ export class AdminUsersService {
   }
 
   async deleteUser(id: string, actor: AuditActor) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const before = await tx.user.findUnique({ where: { id } });
       const deleted = await tx.user.delete({ where: { id } });
       await this.audit.log(tx, actor, {
@@ -271,6 +273,19 @@ export class AdminUsersService {
       });
       return deleted;
     });
+    // Crypto-erasure (spec §9): deleting a user erases their data everywhere —
+    // shred the subject key so encrypted audit diffs (incl. the snapshot just
+    // written) become permanently unreadable while the chain stays verifiable.
+    const shredded = await this.crypto.shredSubject("user", id);
+    if (shredded) {
+      await this.audit.logBestEffort(actor, {
+        action: "audit.erasure.shred",
+        targetType: "user",
+        targetId: id,
+        metadata: { trigger: "user.deleted" },
+      });
+    }
+    return result;
   }
 
   async getUserStats() {
