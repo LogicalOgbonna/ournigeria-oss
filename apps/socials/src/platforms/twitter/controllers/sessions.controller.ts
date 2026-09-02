@@ -10,7 +10,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../guards/permissions.guard.js";
 import { RoamerIngestGuard } from "../guards/roamer-ingest.guard.js";
 import {
   BotSessionRepo,
@@ -76,7 +78,8 @@ export class SessionsController {
   }
 
   @Get()
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({ summary: "List bot sessions and their health" })
   async list() {
     const [items, counts, claimable] = await Promise.all([
@@ -106,7 +109,8 @@ export class SessionsController {
   }
 
   @Delete(":id")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({ summary: "Delete a bot session" })
   async delete(@Param("id") id: string) {
     await this.sessions.delete(id);

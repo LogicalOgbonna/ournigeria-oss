@@ -27,6 +27,7 @@
     "@nestjs/schedule": "catalog:",
     "@nestjs/swagger": "catalog:",
     "@ournigeria/content": "workspace:*",
+    "@ournigeria/access": "workspace:*",
     "@ournigeria/database": "workspace:*",
     "@ournigeria/tools": "workspace:*",
     "opossum": "catalog:",
