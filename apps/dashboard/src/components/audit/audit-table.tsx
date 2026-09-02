@@ -392,6 +392,7 @@ export function AuditTable({
         event={selected}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onReverted={() => void load()}
       />
     </div>
   );

@@ -1,14 +1,33 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+import { Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { adminFetch } from "@/lib/api";
+import { usePermissions } from "@/lib/permissions";
 import { formatDateTimeSeconds, relativeTime } from "@/lib/format";
+
+/** Mirrors REVERTIBLE_ACTIONS on the API (action -> permission needed). */
+const REVERTIBLE: Record<string, string> = {
+  "official.updated": "officials.update",
+  "official.slug.updated": "officials.slug.update",
+  "official.deleted": "officials.delete",
+  "official.restored": "officials.delete",
+  "role.granted": "roles.manage",
+  "role.revoked": "roles.manage",
+  "user.banned": "users.manage",
+  "user.unbanned": "users.manage",
+};
 
 /** One event from GET /api/admin/audit — mirrors the API's AuditEventView. */
 export interface AuditEventView {
@@ -125,13 +144,47 @@ export function DiffViewerDialog({
   event,
   open,
   onOpenChange,
+  onReverted,
 }: {
   event: AuditEventView | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onReverted?: () => void;
 }) {
   const diff = event?.diff ?? null;
   const changed = diff ? changedKeys(diff.before, diff.after) : [];
+  const { can, adminId } = usePermissions();
+  const [revertOpen, setRevertOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const revertPermission = event ? REVERTIBLE[event.action] : undefined;
+  const canRevert = Boolean(revertPermission && can(revertPermission));
+  const ownAction = Boolean(event?.actorId && event.actorId === adminId);
+
+  const submitRevert = async () => {
+    if (!event) return;
+    if (!ownAction && !reason.trim()) {
+      toast.error("A reason is required to revert another admin's action");
+      return;
+    }
+    setBusy(true);
+    try {
+      await adminFetch(`/audit/${event.seq}/revert`, {
+        method: "POST",
+        body: JSON.stringify({ reason: reason.trim() || undefined }),
+      });
+      toast.success(`Reverted seq ${event.seq} — logged as a new chain event`);
+      setRevertOpen(false);
+      setReason("");
+      onOpenChange(false);
+      onReverted?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Revert failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -307,6 +360,59 @@ export function DiffViewerDialog({
                   <p className="text-sm text-muted-foreground">—</p>
                 )}
               </div>
+
+              {canRevert && (
+                <div className="space-y-2 rounded-lg border border-border p-3">
+                  {revertOpen ? (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        {ownAction
+                          ? "Reverting your own action — a reason is optional."
+                          : "Reverting another admin's action — a reason is required and the ops channel is alerted."}{" "}
+                        This writes the previous values back as a new, attributed
+                        chain event (history is never rewritten).
+                      </p>
+                      <Textarea
+                        placeholder={
+                          ownAction
+                            ? "Reason (optional)"
+                            : "Why are you reverting this? (required)"
+                        }
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        rows={2}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => setRevertOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={busy || (!ownAction && !reason.trim())}
+                          onClick={() => void submitRevert()}
+                        >
+                          {busy ? "Reverting…" : "Confirm revert"}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRevertOpen(true)}
+                    >
+                      <Undo2 className="mr-1.5 h-3.5 w-3.5" />
+                      Revert this action
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}

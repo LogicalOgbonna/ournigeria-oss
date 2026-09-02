@@ -10,6 +10,6 @@ import { CompletenessModule } from "../completeness/completeness.module";
   imports: [EvidenceModule, CompletenessModule],
   controllers: [OfficialsController, AdminOfficialsController],
   providers: [OfficialsService, AdminOfficialsService],
-  exports: [OfficialsService],
+  exports: [OfficialsService, AdminOfficialsService],
 })
 export class OfficialsModule {}

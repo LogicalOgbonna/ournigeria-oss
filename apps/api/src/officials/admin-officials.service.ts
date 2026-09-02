@@ -10,7 +10,7 @@ import { AuditService, type AuditActor } from "../audit/audit.service";
 import { CompletenessService } from "../completeness/completeness.service";
 
 /** Scalar profile fields editable from the dashboard (spec 62 §12). */
-const EDITABLE_FIELDS = [
+export const EDITABLE_FIELDS = [
   "name",
   "officialType",
   "imageUrl",
