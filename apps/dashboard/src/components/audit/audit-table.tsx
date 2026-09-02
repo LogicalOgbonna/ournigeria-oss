@@ -298,12 +298,21 @@ export function AuditTable({
                       <Badge variant="outline" className="text-xs">
                         {event.actorType}
                       </Badge>
-                      <span
-                        className="font-mono text-xs text-muted-foreground"
-                        title={event.actorId ?? undefined}
-                      >
-                        {truncateId(event.actorId)}
-                      </span>
+                      {event.actorLabel ? (
+                        <span
+                          className="max-w-48 truncate text-sm"
+                          title={`${event.actorLabel} · ${event.actorId ?? ""}`}
+                        >
+                          {event.actorLabel}
+                        </span>
+                      ) : (
+                        <span
+                          className="font-mono text-xs text-muted-foreground"
+                          title={event.actorId ?? undefined}
+                        >
+                          {truncateId(event.actorId)}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -318,12 +327,21 @@ export function AuditTable({
                     {event.targetType ? (
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm">{event.targetType}</span>
-                        <span
-                          className="font-mono text-xs text-muted-foreground"
-                          title={event.targetId ?? undefined}
-                        >
-                          {truncateId(event.targetId)}
-                        </span>
+                        {event.targetLabel ? (
+                          <span
+                            className="max-w-48 truncate text-sm text-muted-foreground"
+                            title={`${event.targetLabel} · ${event.targetId ?? ""}`}
+                          >
+                            {event.targetLabel}
+                          </span>
+                        ) : (
+                          <span
+                            className="font-mono text-xs text-muted-foreground"
+                            title={event.targetId ?? undefined}
+                          >
+                            {truncateId(event.targetId)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>

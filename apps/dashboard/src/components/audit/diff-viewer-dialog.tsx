@@ -18,10 +18,14 @@ export interface AuditEventView {
   epoch: number;
   actorType: string;
   actorId: string | null;
+  /** Resolved staff name/email (null when unresolvable). */
+  actorLabel: string | null;
   ip: string | null;
   action: string;
   targetType: string | null;
   targetId: string | null;
+  /** Resolved target label; citizen user targets resolve only with users.read. */
+  targetLabel: string | null;
   /** May contain { __erased: true } markers for privacy-erased fields. */
   diff: { before?: unknown; after?: unknown } | null;
   /** May contain `pathway`. */
@@ -101,8 +105,12 @@ export function DiffViewerDialog({
               </DialogTitle>
               <DialogDescription>
                 {event.actorType}
-                {event.actorId ? ` ${event.actorId}` : ""} ·{" "}
-                {formatDateTimeFull(event.occurredAt)}
+                {event.actorLabel
+                  ? ` ${event.actorLabel}`
+                  : event.actorId
+                    ? ` ${event.actorId}`
+                    : ""}{" "}
+                · {formatDateTimeFull(event.occurredAt)}
               </DialogDescription>
             </DialogHeader>
 

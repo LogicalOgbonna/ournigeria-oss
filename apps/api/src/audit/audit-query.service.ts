@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma, PrismaService } from "@ournigeria/database";
+import { Prisma, PrismaService, UUID_RE } from "@ournigeria/database";
 import { decryptPermissionFor, type Permission } from "@ournigeria/access";
 import { AuditCryptoService } from "./audit-crypto.service";
 
@@ -24,10 +24,17 @@ export interface AuditEventView {
   epoch: number;
   actorType: string;
   actorId: string | null;
+  /** Resolved display name/email for staff actors (null if unresolvable). */
+  actorLabel: string | null;
   ip: string | null;
   action: string;
   targetType: string | null;
   targetId: string | null;
+  /**
+   * Resolved display label for the target. Citizen `user` targets resolve
+   * ONLY for readers holding users.read (same PII gate as diff decryption).
+   */
+  targetLabel: string | null;
   diff: unknown;
   metadata: unknown;
   hash: string;
@@ -77,6 +84,8 @@ export class AuditQueryService {
       this.prisma.auditEvent.count({ where }),
     ]);
 
+    const labels = await this.resolveLabels(rows, opts.readerPermissions);
+
     const data: AuditEventView[] = [];
     for (const row of rows) {
       // Decryption is gated on the underlying resource permission (spec §4:
@@ -95,10 +104,18 @@ export class AuditQueryService {
         epoch: row.epoch,
         actorType: row.actorType,
         actorId: row.actorId,
+        actorLabel:
+          row.actorType === "staff" && row.actorId
+            ? (labels.admins.get(row.actorId) ?? null)
+            : null,
         ip: row.ip,
         action: row.action,
         targetType: row.targetType,
         targetId: row.targetId,
+        targetLabel:
+          row.targetType && row.targetId
+            ? (labels.targets.get(`${row.targetType}:${row.targetId}`) ?? null)
+            : null,
         diff: mayDecrypt
           ? await this.crypto.decryptDiff(row.diff)
           : this.crypto.redactEncrypted(row.diff),
@@ -107,6 +124,71 @@ export class AuditQueryService {
       });
     }
     return { data, total, page, limit };
+  }
+
+  /**
+   * Batch-resolve display labels for a page of events. Staff actors and
+   * admin/official targets are not citizen PII — resolvable by any audit
+   * reader. Citizen `user` targets resolve only with users.read (spec §4 —
+   * otherwise a name next to a user target would leak the PII that diff
+   * redaction just withheld). Deleted rows simply stay unresolved.
+   */
+  private async resolveLabels(
+    rows: Array<{
+      actorType: string;
+      actorId: string | null;
+      targetType: string | null;
+      targetId: string | null;
+    }>,
+    readerPermissions?: ReadonlySet<Permission>,
+  ): Promise<{ admins: Map<string, string>; targets: Map<string, string> }> {
+    const adminIds = new Set<string>();
+    const officialIds = new Set<string>();
+    const userIds = new Set<string>();
+    const mayResolveUsers = readerPermissions?.has("users.read") ?? false;
+
+    for (const row of rows) {
+      if (row.actorType === "staff" && row.actorId && UUID_RE.test(row.actorId)) {
+        adminIds.add(row.actorId);
+      }
+      if (!row.targetType || !row.targetId || !UUID_RE.test(row.targetId)) continue;
+      if (row.targetType === "admin") adminIds.add(row.targetId);
+      else if (row.targetType === "official") officialIds.add(row.targetId);
+      else if (row.targetType === "user" && mayResolveUsers) userIds.add(row.targetId);
+    }
+
+    const [admins, officials, users] = await Promise.all([
+      adminIds.size
+        ? this.prisma.adminUser.findMany({
+            where: { id: { in: [...adminIds] } },
+            select: { id: true, name: true, email: true },
+          })
+        : [],
+      officialIds.size
+        ? this.prisma.nigerianOfficial.findMany({
+            where: { id: { in: [...officialIds] } },
+            select: { id: true, name: true },
+          })
+        : [],
+      userIds.size
+        ? this.prisma.user.findMany({
+            where: { id: { in: [...userIds] } },
+            select: { id: true, name: true, phoneNumber: true },
+          })
+        : [],
+    ]);
+
+    const adminLabels = new Map(
+      admins.map((a) => [a.id, a.name ? `${a.name} (${a.email})` : a.email]),
+    );
+    const targets = new Map<string, string>();
+    for (const [id, label] of adminLabels) targets.set(`admin:${id}`, label);
+    for (const o of officials) targets.set(`official:${o.id}`, o.name);
+    for (const u of users) {
+      const label = u.name ?? u.phoneNumber;
+      if (label) targets.set(`user:${u.id}`, label);
+    }
+    return { admins: adminLabels, targets };
   }
 
   async status(): Promise<{
