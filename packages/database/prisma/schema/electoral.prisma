@@ -1,0 +1,54 @@
+// ============================================================
+// Electoral boundaries: constituencies + senatorial/constituency junctions
+// ============================================================
+
+model NigerianConstituency {
+  code      String  @id @db.VarChar(80)
+  name      String  @db.VarChar(200)
+  type      String  @db.VarChar(20)
+  stateCode String  @map("state_code") @db.VarChar(30)
+  pcode     String? @db.VarChar(20)
+
+  state             NigerianState           @relation(fields: [stateCode], references: [code])
+  lgaMappings       SenatorialDistrictLga[]
+  wardMappings      ConstituencyWard[]
+  officialPositions OfficialPosition[]
+  officialElections OfficialElection[]
+
+  @@index([stateCode, type], map: "idx_constituencies_state_type")
+  @@map("nigerian_constituencies")
+}
+
+
+model SenatorialDistrictLga {
+  senatorialDistrictCode String    @map("senatorial_district_code") @db.VarChar(80)
+  lgaCode                String    @map("lga_code") @db.VarChar(60)
+  source                 String    @db.VarChar(30)
+  sourceUrl              String?   @map("source_url") @db.Text
+  sourceDate             DateTime? @map("source_date") @db.Date
+  confidence             String    @default("high") @db.VarChar(10)
+
+  senatorialDistrict NigerianConstituency @relation(fields: [senatorialDistrictCode], references: [code])
+  lga                NigerianLga          @relation(fields: [lgaCode], references: [code])
+
+  @@id([senatorialDistrictCode, lgaCode])
+  @@index([lgaCode], map: "idx_senatorial_lga_lga")
+  @@map("senatorial_district_lgas")
+}
+
+
+model ConstituencyWard {
+  constituencyCode String    @map("constituency_code") @db.VarChar(80)
+  wardCode         String    @map("ward_code") @db.VarChar(100)
+  source           String    @db.VarChar(30)
+  sourceUrl        String?   @map("source_url") @db.Text
+  sourceDate       DateTime? @map("source_date") @db.Date
+  confidence       String    @default("medium") @db.VarChar(10)
+
+  constituency NigerianConstituency @relation(fields: [constituencyCode], references: [code])
+  ward         NigerianWard         @relation(fields: [wardCode], references: [code])
+
+  @@id([constituencyCode, wardCode])
+  @@index([wardCode], map: "idx_constituency_ward_ward")
+  @@map("constituency_wards")
+}

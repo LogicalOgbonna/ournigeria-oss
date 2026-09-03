@@ -1,0 +1,16 @@
+// ============================================================
+// Geopolitical zones (6 zones grouping states)
+// ============================================================
+
+// ============================================================
+// Nigerian administrative geography (zones, states, LGAs, wards, constituencies)
+// ============================================================
+
+model GeopoliticalZone {
+  code String @id @db.VarChar(20)
+  name String @unique @db.VarChar(30)
+
+  states NigerianState[]
+
+  @@map("geopolitical_zones")
+}

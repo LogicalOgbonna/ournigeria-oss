@@ -1,0 +1,184 @@
+// ============================================================
+// Civic crowdsource: data/change proposals, imports & enrichment
+// ============================================================
+
+model DataProposal {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId    String    @map("official_id") @db.Uuid
+  positionId    String?   @map("position_id") @db.Uuid
+  proposerPhone String?   @map("proposer_phone") @db.VarChar(60)
+  proposerIp    String?   @map("proposer_ip") @db.VarChar(60)
+  trust         String    @default("verified") @map("trust") @db.VarChar(20)
+  targetField   String    @map("target_field") @db.VarChar(50)
+  proposedValue Json      @map("proposed_value") @db.JsonB
+  sourceUrl     String?   @map("source_url") @db.Text
+  status        String    @default("submitted") @db.VarChar(20)
+  voteScore     Int       @default(0) @map("vote_score")
+  upvoteCount   Int       @default(0) @map("upvote_count")
+  downvoteCount Int       @default(0) @map("downvote_count")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+
+  official NigerianOfficial  @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  position OfficialPosition? @relation(fields: [positionId], references: [id])
+  votes    ProposalVote[]
+
+  @@index([officialId, status], map: "idx_proposals_official_status")
+  @@index([status, createdAt(sort: Desc)], map: "idx_proposals_status_date")
+  @@index([proposerPhone, createdAt(sort: Desc)], map: "idx_proposals_phone_date")
+  @@index([proposerIp, createdAt(sort: Desc)], map: "idx_proposals_ip_date")
+  @@map("data_proposals")
+}
+
+
+model ProposalVote {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proposalId String   @map("proposal_id") @db.Uuid
+  voterPhone String?  @map("voter_phone") @db.VarChar(60)
+  voterIp    String?  @map("voter_ip") @db.VarChar(60)
+  direction  Int      @db.SmallInt
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  proposal DataProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, voterPhone], map: "uq_vote_proposal_voter")
+  @@unique([proposalId, voterIp], map: "uq_vote_proposal_voter_ip")
+  @@index([voterPhone, createdAt(sort: Desc)], map: "idx_votes_phone_date")
+  @@index([voterIp, createdAt(sort: Desc)], map: "idx_votes_ip_date")
+  @@map("proposal_votes")
+}
+
+
+model ActivityLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(30)
+  targetType String   @map("target_type") @db.VarChar(30)
+  targetId   String   @map("target_id") @db.Uuid
+  metadata   Json     @default("{}") @db.JsonB
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([createdAt(sort: Desc)], map: "idx_activity_date")
+  @@index([targetType, targetId], map: "idx_activity_target")
+  @@map("activity_log")
+}
+
+
+// ============================================================
+// Agent Data Enrichment (agent proposes, owner approves)
+// Distinct from citizen DataProposal/ProposalVote above.
+// ============================================================
+
+model ChangeProposal {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetTable   String    @map("target_table") @db.VarChar(63)
+  targetPk      String?   @map("target_pk") @db.VarChar(255)
+  targetField   String    @map("target_field") @db.VarChar(63)
+  currentValue  Json?     @map("current_value") @db.JsonB
+  proposedValue Json      @map("proposed_value") @db.JsonB
+  changeKind    String    @map("change_kind") @db.VarChar(20) // fill | correction | create
+  status        String    @default("pending") @db.VarChar(30) // pending | needs_human | approved | rejected | needs_more_sources
+  confidence    String    @default("medium") @db.VarChar(10)  // low | medium | high
+  // Denormalized, normalized entity bucket (governor|senator|…|unknown) so the dashboard can
+  // filter by entity server-side. Set at write-time by the agent; backfilled for old rows.
+  entityRole    String?   @map("entity_role") @db.VarChar(20)
+  reasoning     String?   @db.Text
+  agentRunId    String?   @map("agent_run_id") @db.Uuid
+  reviewedBy    String?   @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime? @map("reviewed_at") @db.Timestamptz()
+  reviewNote    String?   @map("review_note") @db.Text
+  appliedAt     DateTime? @map("applied_at") @db.Timestamptz()
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  sources ProposalSource[]
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_change_proposals_status_date")
+  @@index([targetTable, targetPk], map: "idx_change_proposals_target")
+  @@index([agentRunId], map: "idx_change_proposals_run")
+  @@map("change_proposals")
+}
+
+
+model ProposalSource {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  proposalId  String   @map("proposal_id") @db.Uuid
+  url         String   @db.Text
+  archiveUrl  String?  @map("archive_url") @db.Text
+  publisher   String   @db.VarChar(255)
+  snippet     String   @db.Text
+  format      String   @db.VarChar(20)  // xlsx | pdf | docx | html | ...
+  locator     String?  @db.Text         // e.g. Sheet "Net FAAC"!B12, p.34 §3.2
+  sourceTier  String   @map("source_tier") @db.VarChar(20) // canonical | official | web
+  confidence  String   @default("medium") @db.VarChar(10)
+  retrievedAt DateTime @map("retrieved_at") @db.Timestamptz()
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  proposal ChangeProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId], map: "idx_proposal_sources_proposal")
+  @@map("proposal_sources")
+}
+
+
+/// Audit log for curated bulk-import runs. One row per invocation of the
+/// import pipeline (parties, officials, etc.). Tracks counts and outcome.
+model ImportRun {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  dataset       String    @db.VarChar(63)
+  adminId       String?   @map("admin_id") @db.Uuid
+  status        String    @default("running") @db.VarChar(20) // running | done | failed
+  createdCount  Int       @default(0) @map("created_count")
+  updatedCount  Int       @default(0) @map("updated_count")
+  skippedCount  Int       @default(0) @map("skipped_count")
+  errorCount    Int       @default(0) @map("error_count")
+  notes         String?   @db.Text
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+
+  @@index([dataset, startedAt], map: "idx_import_runs_dataset")
+  @@map("import_runs")
+}
+
+
+// ============================================================
+// Autonomous enrichment sweeper — OPERATIONAL tables (not live
+// domain data). The sweeper (control plane) reads/writes these to
+// run a durable, deduped, budget-capped gap queue. enrichment_agent
+// is granted INSERT/UPDATE here (migration SQL) — never on domain data.
+// ============================================================
+
+/// One row per (official, category) the sweeper has considered. Durable queue
+/// cursor + dedup + re-check timer + audit trail. `category` matches the agent
+/// category catalog (education/career/election/.../legal_case/corruption/...).
+model EnrichmentAttempt {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  category       String    @db.VarChar(40)
+  status         String    @default("pending") @db.VarChar(20) // pending|filled|nothing_found|error
+  proposalCount  Int       @default(0) @map("proposal_count")
+  note           String?   @db.Text
+  lastAttemptedAt DateTime @default(now()) @map("last_attempted_at") @db.Timestamptz()
+  nextEligibleAt DateTime  @default(now()) @map("next_eligible_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@unique([officialId, category], map: "uq_enrichment_attempt_official_category")
+  @@index([status, nextEligibleAt], map: "idx_enrichment_attempts_status_eligible")
+  @@map("enrichment_attempts")
+}
+
+
+/// Daily spend ledger — the sweeper's hard budget ceiling lives here (one row
+/// per UTC date). Deterministic cap, enforced by the control plane.
+model EnrichmentBudget {
+  day         DateTime @id @db.Date
+  invocations Int      @default(0)
+  estCostUsd  Decimal  @default(0) @map("est_cost_usd") @db.Decimal(10, 4)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("enrichment_budget")
+}

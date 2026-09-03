@@ -1,0 +1,98 @@
+// ============================================================
+// Chat: conversations, messages & extracted user memory
+// ============================================================
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum MessageRole {
+  user
+  assistant
+  system
+
+  @@map("message_role")
+}
+
+
+enum ConversationStatus {
+  active
+  archived
+  deleted
+
+  @@map("conversation_status")
+}
+
+
+enum ConversationVisibility {
+  private
+  public
+
+  @@map("conversation_visibility")
+}
+
+
+model UserMemory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  key       String   @db.VarChar(100)
+  value     String   @db.Text
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId], map: "idx_user_memory_user")
+  @@map("user_memories")
+}
+
+
+model Conversation {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                 @map("user_id") @db.Uuid
+  title           String                 @default("New Conversation") @db.VarChar(200)
+  status          ConversationStatus     @default(active)
+  visibility      ConversationVisibility @default(private)
+  slug            String?                @unique @db.VarChar(250)
+  sharedAt        DateTime?              @map("shared_at") @db.Timestamptz()
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  mentionedStates String[]               @default([]) @map("mentioned_states")
+  mentionedYears  Int[]                  @default([]) @map("mentioned_years") @db.SmallInt
+  summary         String?                @db.Text
+  summaryUpTo     Int?                   @map("summary_up_to")
+  lastAgentType   String?                @map("last_agent_type") @db.VarChar(20)
+  source          String                 @default("web") @db.VarChar(20)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId, status, createdAt(sort: Desc)], map: "idx_conversations_user_active")
+  @@index([userId, status, updatedAt(sort: Desc)], map: "idx_conversations_user_updated")
+  @@index([visibility, status], map: "idx_conversations_public")
+  @@map("conversations")
+}
+
+
+model Message {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId   String      @map("conversation_id") @db.Uuid
+  sequenceNumber   Int         @map("sequence_number")
+  role             MessageRole
+  content          String      @db.Text
+  richContent      Json?       @map("rich_content") @db.JsonB
+  modelUsed        String?     @map("model_used") @db.VarChar(50)
+  promptTokens     Int?        @map("prompt_tokens")
+  completionTokens Int?        @map("completion_tokens")
+  totalTokens      Int?        @map("total_tokens")
+  processingTimeMs Int?        @map("processing_time_ms")
+  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz()
+
+  conversation     Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sourceReferences SourceReference[]
+  queryAnalytics   QueryAnalytic[]
+
+  @@unique([conversationId, sequenceNumber])
+  @@index([createdAt(sort: Desc)], map: "idx_messages_created")
+  @@map("messages")
+}

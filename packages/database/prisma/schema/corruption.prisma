@@ -1,0 +1,135 @@
+// ============================================================
+// Corruption case dataset (cases, parties, updates, evidence)
+// ============================================================
+
+// ============================================================
+// Corruption case dataset (Plan 45) — independent domain.
+// Deliberately NOT coupled to officials: parties link via a
+// polymorphic subject (subjectType + subjectId + subjectName)
+// so future appointed officials / companies need zero rework.
+// ============================================================
+
+model CorruptionCase {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug           String    @unique @db.VarChar(160)
+  title          String    @db.VarChar(300)
+  summary        String?   @db.Text
+  caseType       String    @map("case_type") @db.VarChar(30)
+  status         String    @db.VarChar(30)
+  forum          String?   @db.VarChar(30)
+  amountInvolved Decimal?  @map("amount_involved") @db.Decimal(18, 2)
+  amountRecovered Decimal? @map("amount_recovered") @db.Decimal(18, 2)
+  currency       String    @default("NGN") @db.VarChar(10)
+  stateCode      String?   @map("state_code") @db.VarChar(30)
+  sector         String?   @db.VarChar(50)
+  openedDate     DateTime? @map("opened_date") @db.Date
+  chargeDate     DateTime? @map("charge_date") @db.Date
+  verdictDate    DateTime? @map("verdict_date") @db.Date
+  outcome        String?   @db.Text
+  sentence       String?   @db.Text
+  isLandmark     Boolean   @default(false) @map("is_landmark")
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  state      NigerianState?         @relation(fields: [stateCode], references: [code])
+  parties    CorruptionCaseParty[]
+  updates    CorruptionCaseUpdate[]
+  legalCases OfficialLegalCase[]
+
+  @@index([status], map: "idx_corruption_cases_status")
+  @@index([stateCode], map: "idx_corruption_cases_state")
+  @@map("corruption_cases")
+}
+
+
+/// Polymorphic subject: subjectId resolves to nigerian_officials when
+/// subjectType='official'; future types (appointed_official, company…) resolve
+/// to their own tables later. subjectName is ALWAYS set (denormalized display)
+/// so parties without an internal record still render.
+model CorruptionCaseParty {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caseId         String    @map("case_id") @db.Uuid
+  subjectType    String    @map("subject_type") @db.VarChar(20)
+  subjectId      String?   @map("subject_id") @db.Uuid
+  subjectName    String    @map("subject_name") @db.VarChar(255)
+  partyType      String    @default("person") @map("party_type") @db.VarChar(20)
+  role           String    @db.VarChar(30)
+  outcome        String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  case CorruptionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId], map: "idx_case_parties_case")
+  @@index([subjectType, subjectId], map: "idx_case_parties_subject")
+  @@map("corruption_case_parties")
+}
+
+
+/// Dated event log — corruption cases run for years; the timeline is the story.
+model CorruptionCaseUpdate {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caseId         String    @map("case_id") @db.Uuid
+  eventDate      DateTime  @map("event_date") @db.Date
+  eventType      String    @map("event_type") @db.VarChar(30)
+  description    String    @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  case CorruptionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, eventDate], map: "idx_case_updates_case_date")
+  @@map("corruption_case_updates")
+}
+
+
+// ============================================================
+// Shared evidence (Plan 45) — polymorphic, cross-domain.
+// (entryType, entryId) points at any fact row (officials, corruption,
+// future domains). NO DB-level FK — cascade is owned by EvidenceService
+// in the API layer; every fact-delete path must call deleteFor().
+// Snapshot fields hold our own S3 copy so evidence survives takedowns.
+// ============================================================
+
+model Evidence {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entryType          String    @map("entry_type") @db.VarChar(30)
+  entryId            String    @map("entry_id") @db.Uuid
+  /// Only for entryType='official_field' (biography, legacy education text…)
+  field              String?   @db.VarChar(63)
+  url                String    @db.Text
+  archiveUrl         String?   @map("archive_url") @db.Text
+  publisher          String    @db.VarChar(255)
+  snippet            String    @db.Text
+  format             String    @db.VarChar(20)
+  locator            String?   @db.Text
+  sourceTier         String    @map("source_tier") @db.VarChar(20)
+  confidence         String    @default("medium") @db.VarChar(10)
+  retrievedAt        DateTime  @map("retrieved_at") @db.Timestamptz()
+  snapshotKey        String?   @map("snapshot_key") @db.Text
+  snapshotStatus     String    @default("pending") @map("snapshot_status") @db.VarChar(20)
+  capturedAt         DateTime? @map("captured_at") @db.Timestamptz()
+  contentHash        String?   @map("content_hash") @db.VarChar(64)
+  byteSize           Int?      @map("byte_size")
+  originalAccessible Boolean   @default(true) @map("original_accessible")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([entryType, entryId], map: "idx_evidence_entry")
+  @@index([entryId], map: "idx_evidence_entry_id")
+  @@map("evidence")
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env npx tsx
 /**
- * Create a new Prisma migration by diffing the current DB against schema.prisma.
+ * Create a new Prisma migration by diffing the current DB against the schema
+ * (the multi-file schema folder at prisma/schema/).
  *
  * Usage:
  *   npx tsx scripts/create-migration.ts <migration-name>
@@ -8,7 +9,7 @@
  *   pnpm prisma:migrate:create <migration-name>
  *
  * What it does:
- *   1. Runs `prisma migrate diff` to generate SQL (current DB → schema.prisma)
+ *   1. Runs `prisma migrate diff` to generate SQL (current DB → prisma/schema)
  *   2. Filters out operations on Mastra-managed chunk tables
  *   3. Creates a timestamped migration directory with the SQL
  *   4. Applies the SQL to the dev database
@@ -133,10 +134,10 @@ if (!name) {
 
 const slug = name.replace(/[^a-z0-9_]/gi, "_").toLowerCase();
 
-console.log("Generating diff (current DB → schema.prisma)...");
+console.log("Generating diff (current DB → prisma/schema)...");
 
 const { stdout: rawSql, ok } = runSilent(
-  `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script`
+  `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema --script`
 );
 
 if (!ok && !rawSql.trim()) {

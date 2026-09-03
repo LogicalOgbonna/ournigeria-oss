@@ -1,0 +1,20 @@
+// ============================================================
+// Local Government Areas (774 LGAs)
+// ============================================================
+
+model NigerianLga {
+  code      String @id @db.VarChar(60)
+  name      String @db.VarChar(100)
+  stateCode String @map("state_code") @db.VarChar(30)
+
+  state              NigerianState           @relation(fields: [stateCode], references: [code])
+  fiscalEntity       FiscalEntity?
+  wards              NigerianWard[]
+  senatorialMappings SenatorialDistrictLga[]
+  officialPositions  OfficialPosition[]
+  budgetLocations    BudgetLocation[]
+  officialElections  OfficialElection[]
+
+  @@index([stateCode], map: "idx_lgas_state")
+  @@map("nigerian_lgas")
+}

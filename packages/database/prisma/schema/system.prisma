@@ -1,0 +1,237 @@
+// ============================================================
+// Ops & system: notifications, banners, settings, feedback, donations, backups
+// ============================================================
+
+enum NotificationType {
+  incident
+  announcement
+  info
+  warning
+
+  @@map("notification_type")
+}
+
+
+enum BannerType {
+  incident
+  announcement
+  warning
+
+  @@map("banner_type")
+}
+
+
+enum FeedbackStatus {
+  new
+  reviewing
+  resolved
+  archived
+
+  @@map("feedback_status")
+}
+
+
+enum FeedbackCategory {
+  bug
+  feature
+  general
+  data_issue
+
+  @@map("feedback_category")
+}
+
+
+enum DonationProvider {
+  PAYSTACK
+  FLUTTERWAVE
+
+  @@map("donation_provider")
+}
+
+
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+
+  @@map("donation_status")
+}
+
+
+enum BackupStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+
+enum BackupType {
+  FULL
+  RELATIONAL
+}
+
+
+// ============================================================
+// Notifications
+// ============================================================
+
+model Notification {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  message   String           @db.Text
+  read      Boolean          @default(false)
+  linkText  String?          @map("link_text") @db.VarChar(100)
+  linkUrl   String?          @map("link_url") @db.VarChar(500)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt(sort: Desc)], map: "idx_notifications_user_unread")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_notifications_user_date")
+  @@map("notifications")
+}
+
+
+model SystemBanner {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        BannerType
+  title       String     @db.VarChar(200)
+  message     String     @db.Text
+  linkText    String?    @map("link_text") @db.VarChar(100)
+  linkUrl     String?    @map("link_url") @db.VarChar(500)
+  dismissible Boolean    @default(true)
+  active      Boolean    @default(true)
+  expiresAt   DateTime?  @map("expires_at") @db.Timestamptz()
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+
+  dismissals BannerDismissal[]
+
+  @@index([active, expiresAt], map: "idx_banners_active")
+  @@map("system_banners")
+}
+
+
+model BannerDismissal {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  bannerId    String   @map("banner_id") @db.Uuid
+  dismissedAt DateTime @default(now()) @map("dismissed_at") @db.Timestamptz()
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  banner SystemBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bannerId])
+  @@map("banner_dismissals")
+}
+
+
+// ============================================================
+// System Settings
+// ============================================================
+
+model SystemSetting {
+  key         String   @id @db.VarChar(100)
+  value       String   @db.Text
+  encrypted   Boolean  @default(false)
+  description String?  @db.VarChar(500)
+  category    String   @db.VarChar(50)
+  valueType   String   @default("string") @map("value_type") @db.VarChar(20)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  @@index([category], map: "idx_settings_category")
+  @@map("system_settings")
+}
+
+
+// ============================================================
+// Feedback
+// ============================================================
+
+model Feedback {
+  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  category   FeedbackCategory @default(general)
+  subject    String           @db.VarChar(200)
+  message    String           @db.Text
+  status     FeedbackStatus   @default(new)
+  adminNotes String?          @map("admin_notes") @db.Text
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments FeedbackAttachment[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_feedback_user_date")
+  @@index([status, createdAt(sort: Desc)], map: "idx_feedback_status_date")
+  @@map("feedback")
+}
+
+
+model FeedbackAttachment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feedbackId    String   @map("feedback_id") @db.Uuid
+  fileName      String   @map("file_name") @db.VarChar(255)
+  fileType      String   @map("file_type") @db.VarChar(50)
+  fileSizeBytes Int      @map("file_size_bytes")
+  s3Key         String   @map("s3_key") @db.VarChar(500)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId], map: "idx_feedback_attachments_feedback")
+  @@map("feedback_attachments")
+}
+
+
+// ============================================================
+// Donations
+// ============================================================
+
+model Donation {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference        String           @unique @db.VarChar(100)
+  amount           Int
+  currency         String           @default("NGN") @db.VarChar(3)
+  email            String           @db.VarChar(255)
+  donorName        String?          @map("donor_name") @db.VarChar(200)
+  provider         DonationProvider
+  status           DonationStatus   @default(PENDING)
+  isRecurring      Boolean          @default(false) @map("is_recurring")
+  subscriptionCode String?          @map("subscription_code") @db.VarChar(200)
+  providerRef      String?          @map("provider_ref") @db.VarChar(200)
+  userId           String?          @map("user_id") @db.Uuid
+  metadata         Json?            @db.JsonB
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)], map: "idx_donations_status_date")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_donations_user_date")
+  @@index([provider, status], map: "idx_donations_provider_status")
+  @@map("donations")
+}
+
+
+model BackupJob {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status           BackupStatus @default(PENDING)
+  type             BackupType
+  s3Bucket         String?      @map("s3_bucket") @db.VarChar(255)
+  s3Key            String?      @map("s3_key") @db.VarChar(512)
+  sizeBytes        BigInt?      @map("size_bytes")
+  error            String?      @db.Text
+  createdByAdminId String?      @map("created_by_admin_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz()
+  startedAt        DateTime?    @map("started_at") @db.Timestamptz()
+  finishedAt       DateTime?    @map("finished_at") @db.Timestamptz()
+  deletedAt        DateTime?    @map("deleted_at") @db.Timestamptz()
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("backup_jobs")
+}

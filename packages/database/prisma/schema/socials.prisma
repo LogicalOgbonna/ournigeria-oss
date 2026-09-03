@@ -1,0 +1,407 @@
+// ============================================================
+// X/Twitter socials automation (roamer, drafts, scout, campaigns)
+// ============================================================
+
+// ============================================================
+// Social Intelligence
+// ============================================================
+
+model SocialPost {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platform       String    @db.VarChar(20) // 'twitter'
+  postType       String    @map("post_type") @db.VarChar(30) // 'thread', 'opinion_tweet', 'reply'
+  externalId     String?   @map("external_id") @db.VarChar(100) // Twitter tweet ID after posting
+  content        String    @db.Text // Full post content (JSON for threads)
+  triggerTopic   String?   @map("trigger_topic") @db.VarChar(200) // What trend/keyword triggered this
+  dataDomain     String?   @map("data_domain") @db.VarChar(20) // 'budget', 'corruption', 'faac', 'govspend'
+  dataQuery      String?   @map("data_query") @db.Text // The query sent to data tools
+  status         String    @default("drafted") @db.VarChar(20) // drafted, published, failed, rejected
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz()
+  engagementData Json?     @map("engagement_data") @db.JsonB // {likes, retweets, replies, bookmarks}
+  // socials_scouted_handle ids whose @-mentions were appended to this draft.
+  // The publish-time consent guard validates THESE ids (never text inference)
+  // before an approved draft goes out.
+  taggedHandleIds String[] @default([]) @map("tagged_handle_ids") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  // Reply-specific fields
+  inReplyToId   String?   @map("in_reply_to_id") @db.VarChar(100) // Twitter ID of tweet being replied to
+  inReplyToText String?   @map("in_reply_to_text") @db.Text // Text of original tweet
+  inReplyToUser String?   @map("in_reply_to_user") @db.VarChar(100) // Username of original tweeter
+  confidence    Float? // 0-1 composite score
+  reviewStatus       String?   @map("review_status") @db.VarChar(20) // 'pending', 'approved', 'rejected', 'edited'
+  reviewedBy         String?   @map("reviewed_by") @db.Uuid // Admin user ID who approved/rejected
+  reviewedAt         DateTime? @map("reviewed_at") @db.Timestamptz()
+  telegramNotifiedAt DateTime? @map("telegram_notified_at") @db.Timestamptz()
+
+  // Telegram manual-posting relay
+  telegramCardedAt      DateTime? @map("telegram_carded_at") @db.Timestamptz()
+  telegramPostChatId    String?   @map("telegram_post_chat_id") @db.VarChar(64)
+  telegramPostMessageId String?   @map("telegram_post_message_id") @db.VarChar(64)
+  telegramClaimedBy     String?   @map("telegram_claimed_by") @db.VarChar(120)
+  telegramClaimedAt     DateTime? @map("telegram_claimed_at") @db.Timestamptz()
+  telegramActor         String?   @map("telegram_actor") @db.VarChar(120)
+  dispatchedAt          DateTime? @map("dispatched_at") @db.Timestamptz()
+  reconcileStatus       String?   @map("reconcile_status") @db.VarChar(20)
+
+  // Quote/draft pipeline fields (roamer + drafter)
+  quotedTweetId         String? @map("quoted_tweet_id") @db.VarChar(100) // Twitter ID of quoted tweet
+  originalTweetSnapshot Json?   @map("original_tweet_snapshot") @db.JsonB // Frozen author+tweet payload for preview
+  safetyWarnings        Json?   @map("safety_warnings") @db.JsonB // string[] from SafetyFilter
+  agentConfidence       Float?  @map("agent_confidence") // 0-1, agent's self-rated confidence
+  agentReasoning        String? @map("agent_reasoning") @db.Text
+  classifierScore       Float?  @map("classifier_score")
+  classifierIntent      String? @map("classifier_intent") @db.VarChar(50)
+  discoveredTweetId     String? @unique @map("discovered_tweet_id") @db.VarChar(100)
+  // Mirrors SocialsDiscoveredTweet.source onto the draft: 'roam' |
+  // 'inbound_reply' | 'mention'. Lets the dashboard badge/filter by source and
+  // the roamer funnel/analytics exclude inbound. Null on legacy rows.
+  source                String? @map("source") @db.VarChar(20)
+
+  discoveredTweet SocialsDiscoveredTweet? @relation(fields: [discoveredTweetId], references: [id], onDelete: SetNull)
+
+  @@index([platform, status], map: "idx_social_posts_platform_status")
+  @@index([platform, createdAt(sort: Desc)], map: "idx_social_posts_platform_date")
+  @@index([reviewStatus], map: "idx_social_posts_review_status")
+  @@index([telegramNotifiedAt, createdAt(sort: Desc)], map: "idx_social_posts_telegram_notified")
+  @@index([platform, status, telegramCardedAt], map: "idx_social_posts_telegram_carded")
+  @@map("social_posts")
+}
+
+
+/// Cluster-singleton lock + audit for the identify campaign. One row per
+/// (windowDate, windowSlot); the first socials node to INSERT it owns that
+/// window (blue/green safe — replaces the FAAC cron's in-process boolean).
+model IdentifyCampaignRun {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  windowDate    DateTime @map("window_date") @db.Date
+  windowSlot    Int      @map("window_slot")
+  claimedByPid  Int      @map("claimed_by_pid")
+  claimedByHost String   @map("claimed_by_host") @db.VarChar(120)
+  startedAt     DateTime @default(now()) @map("started_at") @db.Timestamptz()
+  postedCount   Int      @default(0) @map("posted_count")
+
+  @@unique([windowDate, windowSlot], map: "uq_identify_run_window")
+  @@map("identify_campaign_runs")
+}
+
+
+/// The without-replacement ledger — one row per seat we've tweeted (or parked
+/// a draft for). Its existence removes the seat from future selection. `status`
+/// is "posted" (auto-posted or human-approved) or "drafted" (parked).
+model IdentifyCampaignTarget {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category     String   @db.VarChar(20)
+  seatColumn   String   @map("seat_column") @db.VarChar(20)
+  seatCode     String   @map("seat_code") @db.VarChar(100)
+  stateCode    String   @map("state_code") @db.VarChar(30)
+  positionId   String?  @map("position_id") @db.Uuid
+  socialPostId String?  @map("social_post_id") @db.Uuid
+  tweetId      String?  @map("tweet_id") @db.VarChar(100)
+  status       String   @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([category, seatCode], map: "uq_identify_target_seat")
+  @@index([category, status], map: "idx_identify_target_category_status")
+  @@map("identify_campaign_targets")
+}
+
+
+model ProposalVerifyPost {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anchorType   String   @map("anchor_type") @db.VarChar(20)
+  anchorId     String   @map("anchor_id") @db.VarChar(100)
+  proposalId   String   @map("proposal_id") @db.Uuid
+  kind         String   @db.VarChar(20)
+  socialPostId String?  @map("social_post_id") @db.Uuid
+  tweetId      String?  @map("tweet_id") @db.VarChar(100)
+  status       String   @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@unique([anchorType, anchorId], map: "uq_proposal_verify_anchor")
+  @@index([status], map: "idx_proposal_verify_status")
+  @@map("proposal_verify_posts")
+}
+
+
+// ============================================================
+// Socials Roamer (Twitter discovery + drafting pipeline)
+// ============================================================
+// Browser-session scraping of Twitter SearchTimeline GraphQL,
+// per-tweet LLM classification, decoupled drafter worker.
+// Tables prefixed `socials_` to keep ownership boundary clear.
+
+model SocialsBotSession {
+  id                     String    @id @default(uuid()) @db.Uuid
+  cookie                 String    @db.Text
+  csrfToken              String    @map("csrf_token") @db.Text
+  authorization          String    @db.Text
+  xClientTransactionId   String    @map("x_client_transaction_id") @db.Text
+  xClientUuid            String    @map("x_client_uuid") @db.Text
+  userName               String    @map("user_name") @db.VarChar(100)
+  path                   String    @db.VarChar(200)
+  searchTimelineOpHash   String?   @map("search_timeline_op_hash") @db.VarChar(100)
+  tweetDetailOpHash      String?   @map("tweet_detail_op_hash") @db.VarChar(100)
+  createTweetOpHash      String?   @map("create_tweet_op_hash") @db.VarChar(100)
+  userTweetsOpHash       String?   @map("user_tweets_op_hash") @db.VarChar(100)
+  status                 String    @default("idle") @db.VarChar(20) // idle | working | auth_failed
+  cooldownUntil          DateTime? @map("cooldown_until") @db.Timestamptz()
+  // Separate from cooldownUntil (the roamer's SearchTimeline pacing): a
+  // TweetDetail 429 backs off conversation reads WITHOUT sidelining the session
+  // from roaming, and vice versa.
+  tweetDetailCooldownUntil DateTime? @map("tweet_detail_cooldown_until") @db.Timestamptz()
+  startedWorkingAt       DateTime? @map("started_working_at") @db.Timestamptz()
+  stoppedWorkingAt       DateTime? @map("stopped_working_at") @db.Timestamptz()
+  lastUsedAt             DateTime  @map("last_used_at") @db.Timestamptz()
+  lastError              String?   @map("last_error") @db.Text
+  consecutiveErrors      Int       @default(0) @map("consecutive_errors")
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  runs SocialsSessionRun[]
+
+  @@unique([userName, path], map: "uq_socials_bot_session_user_path")
+  @@index([status, cooldownUntil], map: "idx_socials_bot_session_claimable")
+  @@map("socials_bot_session")
+}
+
+
+model SocialsTopic {
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String    @unique @db.VarChar(150)
+  query            String    @db.Text
+  enabled          Boolean   @default(false)
+  cursor           String?   @db.Text
+  description      String    @db.Text
+  positiveExamples String[]  @default([]) @map("positive_examples")
+  negativeExamples String[]  @default([]) @map("negative_examples")
+  domain           String    @db.VarChar(20) // budget | corruption | govspend | faac | general
+  threshold        Float     @default(0.7)
+  minFollowers     Int       @default(1000) @map("min_followers")
+  maxFollowers     Int       @default(500000) @map("max_followers")
+  lang             String    @default("en") @db.VarChar(10)
+  minTextLength    Int       @default(20) @map("min_text_length")
+  maxAgeHours      Int       @default(48) @map("max_age_hours")
+  lastRunAt        DateTime? @map("last_run_at") @db.Timestamptz()
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  classifications SocialsTweetClassification[]
+  seen            SocialsTweetSeen[]
+  runs            SocialsSessionRun[]
+
+  @@index([enabled, lastRunAt], map: "idx_socials_topic_stale")
+  @@map("socials_topic")
+}
+
+
+model SocialsDiscoveredTweet {
+  id                    String   @id @db.VarChar(100) // X tweet id (string, not uuid)
+  authorRestId          String   @map("author_rest_id") @db.VarChar(100)
+  authorScreenName      String   @map("author_screen_name") @db.VarChar(100)
+  authorName            String   @map("author_name") @db.VarChar(200)
+  authorBio             String   @map("author_bio") @db.Text
+  authorFollowers       Int      @map("author_followers")
+  authorProfileImageUrl String?  @map("author_profile_image_url") @db.Text
+  text                  String   @db.Text
+  lang                  String?  @db.VarChar(10)
+  replyCount            Int      @default(0) @map("reply_count")
+  quoteCount            Int      @default(0) @map("quote_count")
+  retweetCount          Int      @default(0) @map("retweet_count")
+  likeCount             Int      @default(0) @map("like_count")
+  isQuote               Boolean  @default(false) @map("is_quote")
+  isReply               Boolean  @default(false) @map("is_reply")
+  // Thread context (Phase 2): parent tweet + conversation root so the drafter
+  // can read the tweets above a reply, and the quoted tweet's text so it can see
+  // what a quote-tweet is quoting — both captured at discovery.
+  inReplyToTweetId      String?  @map("in_reply_to_tweet_id") @db.VarChar(100)
+  conversationId        String?  @map("conversation_id") @db.VarChar(100)
+  quotedText            String?  @map("quoted_text") @db.Text
+  quotedAuthorHandle    String?  @map("quoted_author_handle") @db.VarChar(100)
+  // Phase 3 reply inbox: where this tweet came from. 'roam' = discovered via
+  // topic search (default); 'inbound_reply' = a reply under one of our posts;
+  // 'mention' = an @ mention of the account. ourPostId links an inbound_reply
+  // back to the SocialPost it sits under (null for roam/mention).
+  source                String   @default("roam") @map("source") @db.VarChar(20)
+  ourPostId             String?  @map("our_post_id") @db.VarChar(100)
+  tweetCreatedAt        DateTime @map("tweet_created_at") @db.Timestamptz()
+  draftStatus           String?  @map("draft_status") @db.VarChar(20) // null | drafted | error | skipped
+  draftAttempts         Int      @default(0) @map("draft_attempts")
+  draftError            String?  @map("draft_error") @db.Text
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  classifications SocialsTweetClassification[]
+  draft           SocialPost?
+
+  @@index([authorRestId], map: "idx_socials_discovered_tweet_author")
+  @@index([draftStatus, createdAt], map: "idx_socials_discovered_tweet_draft_status")
+  @@map("socials_discovered_tweet")
+}
+
+
+model SocialsTweetClassification {
+  tweetId         String   @map("tweet_id") @db.VarChar(100)
+  topicId         String   @map("topic_id") @db.Uuid
+  modelVersion    String   @map("model_version") @db.VarChar(50)
+  score           Float
+  reason          String   @db.Text
+  intent          String   @db.VarChar(50)
+  passedThreshold Boolean  @map("passed_threshold")
+  classifiedAt    DateTime @default(now()) @map("classified_at") @db.Timestamptz()
+
+  tweet SocialsDiscoveredTweet @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  topic SocialsTopic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([tweetId, topicId, modelVersion])
+  @@index([topicId, passedThreshold, classifiedAt], map: "idx_socials_tweet_classification_topic_passed")
+  @@map("socials_tweet_classification")
+}
+
+
+model SocialsTweetSeen {
+  tweetId         String   @map("tweet_id") @db.VarChar(100)
+  topicId         String   @map("topic_id") @db.Uuid
+  classifiedAt    DateTime @default(now()) @map("classified_at") @db.Timestamptz()
+  passedThreshold Boolean  @map("passed_threshold")
+
+  topic SocialsTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([tweetId, topicId])
+  @@index([classifiedAt], map: "idx_socials_tweet_seen_classified_at")
+  @@map("socials_tweet_seen")
+}
+
+
+model SocialsSessionRun {
+  id                String    @id @default(uuid()) @db.Uuid
+  sessionId         String    @map("session_id") @db.Uuid
+  topicId           String    @map("topic_id") @db.Uuid
+  startedAt         DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt        DateTime? @map("finished_at") @db.Timestamptz()
+  stopReason        String?   @map("stop_reason") @db.VarChar(50)
+  tweetsScanned     Int       @default(0) @map("tweets_scanned")
+  tweetsFiltered    Int       @default(0) @map("tweets_filtered")
+  tweetsClassified  Int       @default(0) @map("tweets_classified")
+  matchesStored     Int       @default(0) @map("matches_stored")
+  errorMessage      String?   @map("error_message") @db.Text
+
+  session SocialsBotSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  topic   SocialsTopic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([startedAt], map: "idx_socials_session_run_started_at")
+  @@map("socials_session_run")
+}
+
+
+model SocialsRoamState {
+  id                  Int       @id @default(1) // single-row table, always id=1
+  pid                 Int?
+  host                String?   @db.VarChar(200)
+  heartbeatAt         DateTime? @map("heartbeat_at") @db.Timestamptz()
+  alertNoSessions     Boolean   @default(false) @map("alert_no_sessions")
+  alertNoTopics       Boolean   @default(false) @map("alert_no_topics")
+  agentBudgetAlert    Boolean   @default(false) @map("agent_budget_alert")
+  drafterBacklogAlert Boolean   @default(false) @map("drafter_backlog_alert")
+
+  @@map("socials_roam_state")
+}
+
+
+model SocialsXOauthTokens {
+  id           Int      @id @default(1) // single-row table, always id=1
+  accessToken  String   @map("access_token") @db.Text
+  refreshToken String   @map("refresh_token") @db.Text
+  username     String?  @map("username") @db.Text // X handle of the connected account (nullable for pre-existing rows)
+  rotatedAt    DateTime @default(now()) @map("rotated_at") @db.Timestamptz()
+
+  @@map("socials_x_oauth_tokens")
+}
+
+
+/// Singleton row (id=1): Telegram getUpdates leader lease + update offset so
+/// only one blue/green node polls and the offset survives restarts.
+model SocialsTelegramPollState {
+  id           Int       @id @default(1)
+  updateOffset BigInt    @default(0) @map("update_offset")
+  leaderHost   String?   @map("leader_host") @db.VarChar(120)
+  leaderPid    Int?      @map("leader_pid")
+  leaseUntil   DateTime? @map("lease_until") @db.Timestamptz()
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@map("socials_telegram_poll_state")
+}
+
+
+/// X accounts scouted as identifiably Nigerian + attributable to a state (and,
+/// when the bio/tweet allows, an LGA/ward). Campaign tweets for a location tag
+/// up to N of these handles to push the post into their notifications.
+model SocialsScoutedHandle {
+  id              String    @id @default(uuid()) @db.Uuid
+  restId          String    @unique @map("rest_id") @db.VarChar(100) // X user rest_id — stable across renames
+  handle          String    @db.VarChar(100) // screen_name, refreshed on re-sight
+  name            String    @db.VarChar(200)
+  bio             String    @db.Text
+  followers       Int       @default(0)
+  profileImageUrl String?   @map("profile_image_url") @db.Text
+  stateCode       String    @map("state_code") @db.VarChar(30) // nigerian_states.code slug — REQUIRED (no state = no row)
+  lgaCode         String?   @map("lga_code") @db.VarChar(60)
+  wardCode        String?   @map("ward_code") @db.VarChar(100)
+  confidence      Float
+  evidence        String    @db.Text // classifier's one-line justification
+  sourceTweetId   String?   @map("source_tweet_id") @db.VarChar(100)
+  sourceTweetText String?   @map("source_tweet_text") @db.Text
+  // Deny-by-default: a row nobody explicitly vouched for must never be
+  // taggable. The scout stores pending (human activates); createManual sets
+  // active explicitly (the operator IS the vouch).
+  status          String    @default("pending") @db.VarChar(20) // pending | active | rejected | opted_out
+  timesTagged     Int       @default(0) @map("times_tagged")
+  lastTaggedAt    DateTime? @map("last_tagged_at") @db.Timestamptz()
+  // The created_at of the tweet we last discovered them through — an activity
+  // proxy. Scout only stores/keeps accounts whose last activity is within the
+  // recency window, and tagging skips accounts that have gone quiet.
+  lastActiveAt    DateTime? @map("last_active_at") @db.Timestamptz()
+  lastSeenAt      DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@index([stateCode, status], map: "idx_socials_scouted_handle_state_status")
+  @@index([lgaCode], map: "idx_socials_scouted_handle_lga")
+  @@index([lastActiveAt], map: "idx_socials_scouted_handle_active")
+  @@map("socials_scouted_handle")
+}
+
+
+/// Per-state scouting rotation bookkeeping (stalest state scouted next).
+model SocialsScoutState {
+  stateCode    String    @id @map("state_code") @db.VarChar(30)
+  lastRunAt    DateTime? @map("last_run_at") @db.Timestamptz()
+  handlesFound Int       @default(0) @map("handles_found")
+
+  @@map("socials_scout_state")
+}
+
+
+/// Cluster-singleton ledger for scout windows: the first node to INSERT a
+/// (window_date, window_hour) row owns that window (blue/green safe) — same
+/// pattern as identify_campaign_runs.
+model SocialsScoutRun {
+  id            String    @id @default(uuid()) @db.Uuid
+  windowDate    DateTime  @map("window_date") @db.Date
+  windowHour    Int       @map("window_hour")
+  stateCode     String?   @map("state_code") @db.VarChar(30)
+  claimedByPid  Int       @map("claimed_by_pid")
+  claimedByHost String    @map("claimed_by_host") @db.VarChar(200)
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  finishedAt    DateTime? @map("finished_at") @db.Timestamptz()
+  stopReason    String?   @map("stop_reason") @db.VarChar(50)
+  tweetsScanned Int       @default(0) @map("tweets_scanned")
+  authorsSeen   Int       @default(0) @map("authors_seen")
+  classified    Int       @default(0)
+  stored        Int       @default(0)
+  errorMessage  String?   @map("error_message") @db.Text
+
+  @@unique([windowDate, windowHour], map: "uq_socials_scout_run_window")
+  @@index([startedAt], map: "idx_socials_scout_run_started_at")
+  @@map("socials_scout_run")
+}

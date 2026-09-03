@@ -1,0 +1,21 @@
+// ============================================================
+// Federal (national) government body
+// ============================================================
+
+model FederalGovernment {
+  code                String   @id @db.VarChar(10) // always 'federal'
+  name                String   @db.VarChar(100)
+  capital             String   @db.VarChar(50)
+  presidentName       String?  @map("president_name") @db.VarChar(200)
+  vicePresidentName   String?  @map("vice_president_name") @db.VarChar(200)
+  senatePresidentName String?  @map("senate_president_name") @db.VarChar(200)
+  speakerName         String?  @map("speaker_name") @db.VarChar(200)
+  sgfName             String?  @map("sgf_name") @db.VarChar(200)
+  chiefJusticeName    String?  @map("chief_justice_name") @db.VarChar(200)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  fiscalEntity FiscalEntity?
+
+  @@map("federal_government")
+}
