@@ -7,15 +7,19 @@ import {
   Param,
   Body,
   Query,
+  Req,
   Res,
   HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
-import { Response } from "express";
+import { Request, Response } from "express";
 import { z } from "zod";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminNotificationsService } from "./admin-notifications.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 import { validateLinkUrl } from "../lib/url-validation";
 
@@ -57,11 +61,15 @@ const updateBannerSchema = z.object({
 });
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("notifications.write")
 @ApiTags("Admin - Notifications")
 @Controller("admin/notifications")
 export class AdminNotificationsController {
-  constructor(private service: AdminNotificationsService) {}
+  constructor(
+    private service: AdminNotificationsService,
+    private audit: AuditService,
+  ) {}
 
   // ── Notifications ────────────────────────────────────
 
@@ -88,7 +96,11 @@ export class AdminNotificationsController {
 
   @Post()
   @ApiOperation({ summary: "Create notification (single user or broadcast)" })
-  async createNotification(@Body() body: unknown, @Res() res: Response) {
+  async createNotification(
+    @Body() body: unknown,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const parsed = createNotificationSchema.safeParse(body);
       if (!parsed.success) {
@@ -109,6 +121,13 @@ export class AdminNotificationsController {
         ? await this.service.broadcastNotification(data)
         : await this.service.createNotification(userId!, data);
 
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "notification.created",
+        targetType: "notification",
+        targetId: (result as { id?: string }).id ?? null,
+        metadata: broadcast ? { broadcast: true } : { userId },
+      });
+
       return res.status(HttpStatus.CREATED).json(result);
     } catch (err) {
       console.error("admin create-notification error:", err);
@@ -120,9 +139,18 @@ export class AdminNotificationsController {
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete a notification" })
-  async deleteNotification(@Param("id") id: string, @Res() res: Response) {
+  async deleteNotification(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       await this.service.deleteNotification(id);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "notification.deleted",
+        targetType: "notification",
+        targetId: id,
+      });
       return res.json({ success: true });
     } catch (err) {
       console.error("admin delete-notification error:", err);
@@ -150,7 +178,11 @@ export class AdminNotificationsController {
 
   @Post("banners")
   @ApiOperation({ summary: "Create a system banner" })
-  async createBanner(@Body() body: unknown, @Res() res: Response) {
+  async createBanner(
+    @Body() body: unknown,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const parsed = createBannerSchema.safeParse(body);
       if (!parsed.success) {
@@ -160,6 +192,11 @@ export class AdminNotificationsController {
       }
 
       const banner = await this.service.createBanner(parsed.data);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "banner.created",
+        targetType: "banner",
+        targetId: banner.id,
+      });
       return res.status(HttpStatus.CREATED).json(banner);
     } catch (err) {
       console.error("admin create-banner error:", err);
@@ -174,6 +211,7 @@ export class AdminNotificationsController {
   async updateBanner(
     @Param("id") id: string,
     @Body() body: unknown,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
@@ -185,6 +223,11 @@ export class AdminNotificationsController {
       }
 
       const banner = await this.service.updateBanner(id, parsed.data);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "banner.updated",
+        targetType: "banner",
+        targetId: id,
+      });
       return res.json(banner);
     } catch (err) {
       console.error("admin update-banner error:", err);
@@ -196,9 +239,18 @@ export class AdminNotificationsController {
 
   @Delete("banners/:id")
   @ApiOperation({ summary: "Delete a system banner" })
-  async deleteBanner(@Param("id") id: string, @Res() res: Response) {
+  async deleteBanner(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       await this.service.deleteBanner(id);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "banner.deleted",
+        targetType: "banner",
+        targetId: id,
+      });
       return res.json({ success: true });
     } catch (err) {
       console.error("admin delete-banner error:", err);

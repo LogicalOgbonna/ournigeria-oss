@@ -7,6 +7,7 @@ import { getCreatableEntity } from "./creatable.registry";
 import type { CouncilorProposedEntity } from "./agent/profile.types";
 import { ImageStorageService } from "../images/image-storage.service";
 import { CompletenessService } from "../completeness/completeness.service";
+import { AuditService } from "../audit/audit.service";
 
 /** All-zero uuid, used as a placeholder target_id for non-uuid-keyed tables. */
 const NIL_UUID = "00000000-0000-0000-0000-000000000000";
@@ -15,13 +16,31 @@ function isUuid(v: string): boolean {
   return UUID_RE.test(v);
 }
 
+/**
+ * Audit-chain targetType convention: nigerian_officials rows are logged as
+ * "official" everywhere else (proposals, admin CRUD, label resolution, the
+ * dashboard's targetType filter) — enrichment must match or its events render
+ * unlabeled and vanish from per-official audit filters.
+ */
+function auditTargetType(table: string): string {
+  return table === "nigerian_officials" ? "official" : table;
+}
+
 @Injectable()
 export class EnrichmentApplyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly imageStorage: ImageStorageService,
     private readonly completeness: CompletenessService,
-  ) {}
+    // Optional so existing manual-construction tests keep working; injected by
+    // Nest in the real app (AuditModule is @Global).
+    private readonly audit?: AuditService,
+  ) {
+    if (!this.audit && process.env.NODE_ENV === "production") {
+      // Applies must never mutate live data unaudited (plan 62 §8).
+      throw new Error("EnrichmentApplyService: AuditService missing in production");
+    }
+  }
 
   /** Apply an approved proposal to live data, transactionally, as enrichment_apply. */
   async apply(proposalId: string, adminId: string): Promise<void> {
@@ -157,6 +176,24 @@ export class EnrichmentApplyService {
           },
         },
       });
+
+      // Chain-of-trust audit (plan 62): same-transaction, last write in the tx.
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "enrichment.applied",
+          targetType: auditTargetType(proposal.targetTable),
+          targetId: targetPk,
+          diff: { before: null, after: { [proposal.targetField]: value ?? null } },
+          metadata: {
+            pathway: "enrichment",
+            proposalId,
+            field: proposal.targetField,
+            changeKind: proposal.changeKind,
+          },
+        },
+      );
     });
 
     // Post-commit by design (Plan 45c Fix #4): a crashed recompute leaves a
@@ -226,6 +263,18 @@ export class EnrichmentApplyService {
           },
         },
       });
+
+      // Chain-of-trust audit (plan 62): same-transaction, last write in the tx.
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "enrichment.fact_created",
+          targetType: auditTargetType(proposal.targetTable),
+          targetId: created.id,
+          metadata: { pathway: "enrichment", proposalId: proposal.id },
+        },
+      );
     });
 
     if (officialId) {
@@ -309,6 +358,18 @@ export class EnrichmentApplyService {
           metadata: { proposalId: proposal.id, wardCode: pos.wardCode, role: "councilor" },
         },
       });
+
+      // Chain-of-trust audit (plan 62): same-transaction, last write in the tx.
+      await this.audit?.log(
+        tx,
+        { actorType: "staff", actorId: adminId },
+        {
+          action: "enrichment.official_created",
+          targetType: "official",
+          targetId: officialId,
+          metadata: { pathway: "enrichment", proposalId: proposal.id, role: "councilor" },
+        },
+      );
     });
 
     if (officialId) {

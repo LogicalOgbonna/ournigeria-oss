@@ -46,6 +46,8 @@ function makeSvc() {
       create: officialCreate,
     },
     activityLog: { create: vi.fn(async () => ({})) },
+    // approve() flips the proposal to approved inside the tx (plan 62 same-tx audit)
+    dataProposal: { update: vi.fn(async () => ({})) },
   } as any;
   const prisma = {
     dataProposal: {

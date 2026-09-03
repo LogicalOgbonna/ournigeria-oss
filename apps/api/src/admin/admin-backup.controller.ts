@@ -13,8 +13,11 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminBackupService, BackupTypeInput } from "./admin-backup.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 
 // JSON can't serialize BigInt — stringify sizeBytes.
@@ -24,11 +27,15 @@ function serialize(job: Record<string, unknown> | null) {
 }
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("backups.manage")
 @ApiTags("Admin - Backups")
 @Controller("admin/backups")
 export class AdminBackupController {
-  constructor(private readonly service: AdminBackupService) {}
+  constructor(
+    private readonly service: AdminBackupService,
+    private audit: AuditService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: "Trigger a database backup" })
@@ -42,6 +49,12 @@ export class AdminBackupController {
     }
     try {
       const job = await this.service.createBackup(type, req.adminId);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "backup.created",
+        targetType: "backup",
+        targetId: job.id,
+        metadata: { type },
+      });
       return res.status(HttpStatus.ACCEPTED).json(serialize(job));
     } catch (err) {
       if ((err as Error).message?.includes("already running")) {
@@ -82,9 +95,18 @@ export class AdminBackupController {
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete a backup" })
-  async remove(@Param("id") id: string, @Res() res: Response) {
+  async remove(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       await this.service.deleteBackup(id);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "backup.deleted",
+        targetType: "backup",
+        targetId: id,
+      });
       return res.json({ ok: true });
     } catch (err) {
       // S3 removal failed (e.g. missing s3:DeleteObject permission) — report it

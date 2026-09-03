@@ -6,20 +6,28 @@ import {
   Param,
   Query,
   Body,
+  Req,
   Res,
   HttpStatus,
   UseGuards,
 } from "@nestjs/common";
-import { Response } from "express";
+import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminFeedbackService } from "./admin-feedback.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("feedback.read")
 @Controller("admin/feedback")
 export class AdminFeedbackController {
-  constructor(private service: AdminFeedbackService) {}
+  constructor(
+    private service: AdminFeedbackService,
+    private audit: AuditService,
+  ) {}
 
   @Get("stats")
   async getStats(@Res() res: Response) {
@@ -79,13 +87,21 @@ export class AdminFeedbackController {
   }
 
   @Patch(":id")
+  @RequirePermission("feedback.write")
   async updateFeedback(
     @Param("id") id: string,
     @Body() body: { status?: string; adminNotes?: string },
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
       const updated = await this.service.updateFeedback(id, body);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "feedback.updated",
+        targetType: "feedback",
+        targetId: id,
+        metadata: {},
+      });
       return res.json(updated);
     } catch (err) {
       console.error("admin update-feedback error:", err);
@@ -96,9 +112,19 @@ export class AdminFeedbackController {
   }
 
   @Delete(":id")
-  async deleteFeedback(@Param("id") id: string, @Res() res: Response) {
+  @RequirePermission("feedback.write")
+  async deleteFeedback(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       await this.service.deleteFeedback(id);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "feedback.deleted",
+        targetType: "feedback",
+        targetId: id,
+      });
       return res.json({ success: true });
     } catch (err) {
       console.error("admin delete-feedback error:", err);

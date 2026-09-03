@@ -14,6 +14,9 @@ const breadcrumbMap: Record<string, string> = {
   new: "New Run",
   history: "History",
   records: "Records",
+  admins: "Admin Users",
+  audit: "Audit Log",
+  mine: "My Activity",
 };
 
 export function Header() {

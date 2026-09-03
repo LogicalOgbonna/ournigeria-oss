@@ -7,7 +7,9 @@ import { RoamerModule } from "./roamer/roamer.module.js";
 import { InboxModule } from "./inbox/inbox.module.js";
 import { ScoutModule } from "./scout/scout.module.js";
 import { AdminAuthGuard } from "./guards/admin-auth.guard.js";
+import { PermissionsGuard } from "./guards/permissions.guard.js";
 import { RoamerIngestGuard } from "./guards/roamer-ingest.guard.js";
+import { AuditWriterService } from "../../audit/audit-writer.service.js";
 import { SessionsController } from "./controllers/sessions.controller.js";
 import { TopicsController } from "./controllers/topics.controller.js";
 import { RoamController } from "./controllers/roam.controller.js";
@@ -23,7 +25,9 @@ import { ScoutController } from "./controllers/scout.controller.js";
     TwitterAdapter,
     TwitterPublisher,
     AdminAuthGuard,
+    PermissionsGuard,
     RoamerIngestGuard,
+    AuditWriterService,
   ],
   controllers: [
     SessionsController,
@@ -33,6 +37,15 @@ import { ScoutController } from "./controllers/scout.controller.js";
     XOauthController,
     ScoutController,
   ],
-  exports: [TwitterAdapter, TwitterPublisher, XTokenRepo, RoamerModule, ScoutModule, AdminAuthGuard],
+  exports: [
+    TwitterAdapter,
+    TwitterPublisher,
+    XTokenRepo,
+    RoamerModule,
+    ScoutModule,
+    AdminAuthGuard,
+    PermissionsGuard,
+    AuditWriterService,
+  ],
 })
 export class TwitterModule {}

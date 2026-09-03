@@ -1,11 +1,14 @@
 import { Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../guards/permissions.guard.js";
 import { InboxService } from "../inbox/inbox.service.js";
 
 @ApiTags("Roamer / Inbox")
 @Controller("v1/inbox")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
+@RequirePermission("socials.sessions")
 export class InboxController {
   constructor(private readonly inbox: InboxService) {}
 

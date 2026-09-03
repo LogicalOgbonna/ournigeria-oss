@@ -31,7 +31,8 @@ describe("ImportsController", () => {
   const prisma = {
     importRun: { findMany: vi.fn().mockResolvedValue([]) },
   } as any;
-  const ctrl = new ImportsController(svc, prisma);
+  const audit = { log: vi.fn(async () => ({ seq: 1 })) } as any;
+  const ctrl = new ImportsController(svc, prisma, audit);
   // AdminGuard sets request.adminId (a plain string)
   const req = { adminId: "admin-1" } as any;
 

@@ -8,10 +8,17 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
+import { RequirePermission } from "@ournigeria/access";
+import {
+  AdminAuthGuard,
+  type AuthedRequest,
+} from "../guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../guards/permissions.guard.js";
+import { AuditWriterService } from "../../../audit/audit-writer.service.js";
 import { TelegramService } from "../../../notifications/telegram.service.js";
 import { BotSessionRepo } from "../roamer/bot-session.repo.js";
 import { TopicRepo } from "../roamer/topic.repo.js";
@@ -45,13 +52,15 @@ const VALID_DOMAINS = ["budget", "corruption", "faac", "govspend", "general"];
 
 @ApiTags("Roamer / Topics")
 @Controller("v1/topics")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
+@RequirePermission("socials.topics")
 export class TopicsController {
   constructor(
     private readonly topics: TopicRepo,
     private readonly sessions: BotSessionRepo,
     private readonly search: TwitterSearchService,
     private readonly telegram: TelegramService,
+    private readonly audit: AuditWriterService,
   ) {}
 
   @Get()
@@ -62,9 +71,9 @@ export class TopicsController {
 
   @Post()
   @ApiOperation({ summary: "Create a topic" })
-  async create(@Body() body: TopicWriteBody) {
+  async create(@Body() body: TopicWriteBody, @Req() req: AuthedRequest) {
     this.assertValidDomain(body.domain);
-    return this.topics.create({
+    const topic = await this.topics.create({
       name: body.name,
       query: body.query,
       description: body.description,
@@ -79,6 +88,12 @@ export class TopicsController {
       maxAgeHours: body.maxAgeHours ?? 48,
       enabled: body.enabled ?? false,
     });
+    await this.audit.log(req.adminId, {
+      action: "socials.topic.created",
+      targetType: "socials_topic",
+      targetId: topic.id,
+    });
+    return topic;
   }
 
   @Get(":id")
@@ -91,15 +106,30 @@ export class TopicsController {
 
   @Patch(":id")
   @ApiOperation({ summary: "Update a topic" })
-  async update(@Param("id") id: string, @Body() body: Partial<TopicWriteBody>) {
+  async update(
+    @Param("id") id: string,
+    @Body() body: Partial<TopicWriteBody>,
+    @Req() req: AuthedRequest,
+  ) {
     if (body.domain) this.assertValidDomain(body.domain);
-    return this.topics.update(id, body);
+    const topic = await this.topics.update(id, body);
+    await this.audit.log(req.adminId, {
+      action: "socials.topic.updated",
+      targetType: "socials_topic",
+      targetId: id,
+    });
+    return topic;
   }
 
   @Delete(":id")
   @ApiOperation({ summary: "Delete a topic" })
-  async delete(@Param("id") id: string) {
+  async delete(@Param("id") id: string, @Req() req: AuthedRequest) {
     await this.topics.delete(id);
+    await this.audit.log(req.adminId, {
+      action: "socials.topic.deleted",
+      targetType: "socials_topic",
+      targetId: id,
+    });
     return { ok: true };
   }
 

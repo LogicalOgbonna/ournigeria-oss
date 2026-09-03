@@ -13,9 +13,14 @@ import {
 
 const ADMIN_COOKIE = "on_admin_session";
 
-/** Legacy stateless HMAC admin tokens (and x-admin-key) honoured only during the window. */
+/**
+ * Legacy stateless HMAC admin tokens: DEFAULT OFF since the RBAC rollout
+ * (plan 62 §7 — an unattributable static credential is incompatible with the
+ * audit chain). Set LEGACY_ADMIN_SESSIONS=true only as an emergency rollback.
+ * Opaque `ons_` tokens still work via cookie or x-admin-key header.
+ */
 function legacyAdminSessionsEnabled(): boolean {
-  return process.env.LEGACY_ADMIN_SESSIONS !== "false";
+  return process.env.LEGACY_ADMIN_SESSIONS === "true";
 }
 
 @Injectable()

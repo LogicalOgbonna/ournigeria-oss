@@ -11,7 +11,9 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthGuard } from "../guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../guards/permissions.guard.js";
 import { XOauthService, XOauthError } from "../x-oauth.service.js";
 import { SocialsSettingsService } from "../../../config/socials-settings.service.js";
 
@@ -34,7 +36,8 @@ export class XOauthController {
   ) {}
 
   @Post("start")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({ summary: "Begin X account authorization; returns the consent URL" })
   start(): { url: string } {
     return this.xOauth.startAuthorization();
@@ -70,14 +73,16 @@ export class XOauthController {
   }
 
   @Get("status")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({ summary: "Current X connection status" })
   status() {
     return this.xOauth.getStatus();
   }
 
   @Delete()
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({ summary: "Disconnect the X account (clears stored tokens)" })
   async disconnect(): Promise<{ ok: true }> {
     await this.xOauth.disconnect();
@@ -85,7 +90,8 @@ export class XOauthController {
   }
 
   @Get("auto-publish")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({
     summary: "Whether recommended drafts auto-publish without approval",
   })
@@ -94,7 +100,8 @@ export class XOauthController {
   }
 
   @Post("auto-publish")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({
     summary: "Toggle auto-publish of recommended drafts (DB-backed, live)",
   })
@@ -105,7 +112,8 @@ export class XOauthController {
   }
 
   @Get("auto-publish-inbound")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({
     summary:
       "Whether recommended INBOUND drafts (replies to us / mentions) auto-publish",
@@ -115,7 +123,8 @@ export class XOauthController {
   }
 
   @Post("auto-publish-inbound")
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminAuthGuard, PermissionsGuard)
+  @RequirePermission("socials.sessions")
   @ApiOperation({
     summary:
       "Toggle auto-publish of recommended inbound drafts (DB-backed, live)",

@@ -110,7 +110,9 @@ All dev commands use `infisical run --env dev` to inject secrets (scoped per-ser
 
 ## Testing
 
-**No unit test framework.** The codebase uses two testing strategies:
+The codebase uses three testing strategies:
+
+0. **Vitest unit/integration suites** (per-package, no root aggregate script): `apps/api` (run from `apps/api`: `DATABASE_URL=postgresql://spending:spending@localhost:5432/spending npx vitest run --no-file-parallelism`; some enrichment suites additionally need `ENRICHMENT_AGENT_DATABASE_URL`), `apps/socials`, `packages/access` (RBAC catalog + audit hash chain — DB integration tests use a throwaway schema), `packages/database`. Run the relevant suite for anything you touch.
 
 1. **E2E tests** (`packages/e2e/`): Playwright with 4 projects (web auth setup, dashboard auth setup, web-chromium desktop, web-mobile Pixel 5). Tests are tagged `@web`, `@dashboard`, `@human`. Config at `packages/e2e/playwright.config.ts`.
 

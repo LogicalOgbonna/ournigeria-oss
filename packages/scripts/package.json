@@ -8,6 +8,11 @@
     "populate-corruption-cases": "node populate-corruption-cases/populate-corruption-cases.mjs"
   },
   "dependencies": {
+    "@ournigeria/access": "workspace:*",
+    "pg": "^8.13.0",
     "playwright": "1.58.2"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.0"
   }
 }

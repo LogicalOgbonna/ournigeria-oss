@@ -157,6 +157,97 @@ model AdminSession {
   @@map("admin_sessions")
 }
 
+// ============================================================
+// RBAC + chain-of-trust audit logging (plan 62).
+// Role DEFINITIONS live in code (@ournigeria/access); these tables
+// hold assignments and the tamper-evident audit chain.
+// ============================================================
+
+/// Principal-keyed role assignment. principalType "staff" = AdminUser today;
+/// "member" reserved for invited external researchers (phase 2). Revoked rows
+/// are history — never deleted. Active-uniqueness is a partial index in the
+/// migration SQL: uq_role_assignment_active WHERE revoked_at IS NULL.
+model RoleAssignment {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  principalType String    @map("principal_type") @db.VarChar(10)
+  principalId   String    @map("principal_id") @db.Uuid
+  role          String    @db.VarChar(40)
+  /// Reserved for scoped access (e.g. {"states":["kano"]}). Null = global.
+  /// Guards ignore it until a scope semantic is defined (spec §6).
+  scope         Json?     @db.JsonB
+  grantedById   String?   @map("granted_by_id") @db.Uuid
+  grantedAt     DateTime  @default(now()) @map("granted_at") @db.Timestamptz()
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz()
+  revokedById   String?   @map("revoked_by_id") @db.Uuid
+  reason        String?   @db.VarChar(500)
+
+  @@index([principalType, principalId], map: "idx_role_assignment_principal")
+  @@map("role_assignments")
+}
+
+/// Append-only, hash-chained admin audit log (spec .agent/plans/62.*.md).
+/// NEVER update/delete rows — a DB trigger rejects both. Write ONLY via
+/// appendAuditEvent() from @ournigeria/access, inside the same transaction as
+/// the domain mutation, as the last write in that transaction. seq is derived
+/// head+1 under an advisory lock (NOT a sequence — rollback gaps would look
+/// like deletions).
+model AuditEvent {
+  seq        BigInt   @id
+  id         String   @unique(map: "uq_audit_events_id") @db.Uuid
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz()
+  epoch      Int      @default(1)
+  actorType  String   @map("actor_type") @db.VarChar(10)
+  actorId    String?  @map("actor_id") @db.VarChar(64)
+  sessionId  String?  @map("session_id") @db.Uuid
+  ip         String?  @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.VarChar(400)
+  action     String   @db.VarChar(60)
+  targetType String?  @map("target_type") @db.VarChar(30)
+  targetId   String?  @map("target_id") @db.VarChar(200)
+  diff       Json?    @db.JsonB
+  metadata   Json     @default("{}") @db.JsonB
+  prevHash   String   @map("prev_hash") @db.Char(64)
+  hash       String   @unique(map: "uq_audit_events_hash") @db.Char(64)
+
+  @@index([occurredAt(sort: Desc)], map: "idx_audit_events_date")
+  @@index([actorType, actorId], map: "idx_audit_events_actor")
+  @@index([action], map: "idx_audit_events_action")
+  @@index([targetType, targetId], map: "idx_audit_events_target")
+  @@map("audit_events")
+}
+
+/// External checkpoint receipts for the chain head (spec §10). Status is
+/// mutable (pending -> sent) — anchors are receipts, not chain rows.
+model AuditAnchor {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  anchoredAt  DateTime @default(now()) @map("anchored_at") @db.Timestamptz()
+  epoch       Int
+  headSeq     BigInt   @map("head_seq")
+  headHash    String   @map("head_hash") @db.Char(64)
+  eventCount  BigInt   @map("event_count")
+  destination String   @db.VarChar(20)
+  status      String   @default("pending") @db.VarChar(20)
+  receipt     Json     @default("{}") @db.JsonB
+
+  @@index([anchoredAt(sort: Desc)], map: "idx_audit_anchors_date")
+  @@map("audit_anchors")
+}
+
+/// Crypto-erasure (spec §9): per-subject data keys wrapping sensitive diff
+/// fields. Mutable BY DESIGN — shredding the key (null ciphertext +
+/// shreddedAt) is the erasure mechanism; the chain stays verifiable.
+model AuditErasureKey {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subjectType   String    @map("subject_type") @db.VarChar(30)
+  subjectId     String    @map("subject_id") @db.VarChar(64)
+  keyCiphertext String?   @map("key_ciphertext") @db.VarChar(400)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  shreddedAt    DateTime? @map("shredded_at") @db.Timestamptz()
+
+  @@unique([subjectType, subjectId], map: "uq_erasure_subject")
+  @@map("audit_erasure_keys")
+}
+
 model GeopoliticalZone {
   code String @id @db.VarChar(20)
   name String @unique @db.VarChar(30)
@@ -293,6 +384,13 @@ model NigerianOfficial {
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
   completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
+
+  /// Soft delete (spec §12): hard delete does not exist as an API — on a
+  /// transparency platform, vanishing an official's record is the attack to
+  /// prevent. Public reads filter deletedAt IS NULL.
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
+  deletedById    String?   @map("deleted_by_id") @db.Uuid
+  deletionReason String?   @map("deletion_reason") @db.VarChar(500)
 
   positions OfficialPosition[]
   proposals DataProposal[]
