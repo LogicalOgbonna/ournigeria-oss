@@ -167,7 +167,7 @@ Remotion CLI that queries the DB for real budget/corruption/FAAC data, validates
 
 ## Database (packages/database/)
 
-Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/prisma/schema.prisma`. ~100 models spanning several domains:
+Prisma v7 with PostgreSQL 16 + pgvector extension. The schema is a **multi-file folder** at `packages/database/prisma/schema/`, split by domain (`budget.prisma`, `officials.prisma`, `socials.prisma`, `auth.prisma`, `audit.prisma`, …) — not a single `schema.prisma`. Prisma is pointed at the folder via `schema: "prisma/schema"` in `prisma.config.ts`, and any CLI call needs `--schema=./prisma/schema`. ~100 models spanning several domains:
 
 - **Chat/auth**: `AdminUser`, `User`, `UserMemory`, `OtpVerification`, `Conversation`, `Message`, `TelegramLoginRequest`, `ProviderConnection`.
 - **Documents/ingestion**: `Document`, `SourceReference`, `IngestionRecord`, `IngestionRun`, `QueryAnalytic`, `GraphExtractionJob`.
