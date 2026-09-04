@@ -39,7 +39,8 @@ export class OfficialsService {
     const { stateCode, lgaCode, role, party, search, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    // Soft-deleted officials never surface publicly (plan 62 §12).
+    const where: any = { deletedAt: null };
     const positionWhere: any = { status: "active" };
 
     if (stateCode) positionWhere.stateCode = stateCode;
@@ -162,7 +163,8 @@ export class OfficialsService {
       }
     }
 
-    if (!official) {
+    if (!official || official.deletedAt) {
+      // Soft-deleted officials are hidden from the public API (plan 62 §12).
       throw new NotFoundException("Official not found");
     }
 
@@ -375,6 +377,7 @@ export class OfficialsService {
         where: {
           role: "mha",
           status: "active",
+          official: { deletedAt: null },
           constituencyCode: { startsWith: `state_${stateCode}_` },
         },
         include: { official: true, party: true, constituency: true, term: true },
@@ -431,6 +434,7 @@ export class OfficialsService {
           role: "rep",
           status: "active",
           constituencyCode: { startsWith: `fed_${stateCode}_` },
+          official: { deletedAt: null },
         },
         include: { official: true, party: true, constituency: true, term: true },
       });
@@ -486,6 +490,7 @@ export class OfficialsService {
           role: "senator",
           status: "active",
           constituencyCode: { startsWith: `sen_${stateCode}_` },
+          official: { deletedAt: null },
         },
         include: { official: true, party: true, constituency: true, term: true },
       });
@@ -526,7 +531,8 @@ export class OfficialsService {
     scope: { stateCode?: string; constituencyCode?: string; lgaCode?: string; wardCode?: string },
   ) {
     const position = await this.prisma.officialPosition.findFirst({
-      where: { role, status: "active", ...scope },
+      // official.deletedAt filter: soft-deleted officials never surface (plan 62 §12)
+      where: { role, status: "active", official: { deletedAt: null }, ...scope },
       include: {
         official: true,
         party: true,
@@ -570,7 +576,12 @@ export class OfficialsService {
     // For senators, find via senatorial district LGA mapping
     if (role === "senator" && scope.stateCode) {
       const positions = await this.prisma.officialPosition.findMany({
-        where: { role, status: "active", stateCode: scope.stateCode },
+        where: {
+          role,
+          status: "active",
+          stateCode: scope.stateCode,
+          official: { deletedAt: null },
+        },
         include: {
           official: true,
           party: true,
@@ -608,6 +619,7 @@ export class OfficialsService {
           role,
           status: "active",
           stateCode: scope.stateCode,
+          official: { deletedAt: null },
         },
         include: {
           official: true,
@@ -626,7 +638,12 @@ export class OfficialsService {
     // For MHAs, find via ward
     if (role === "mha" && scope.wardCode) {
       const positions = await this.prisma.officialPosition.findMany({
-        where: { role, status: "active", wardCode: scope.wardCode },
+        where: {
+          role,
+          status: "active",
+          wardCode: scope.wardCode,
+          official: { deletedAt: null },
+        },
         include: {
           official: true,
           party: true,

@@ -28,6 +28,7 @@ import { EnrichmentModule } from "./enrichment/enrichment.module";
 import { CorruptionCasesModule } from "./corruption-cases/corruption-cases.module";
 import { OkfModule } from "./okf/okf.module";
 import { ImportsModule } from "./admin/imports/imports.module";
+import { AuditModule } from "./audit/audit.module";
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ImportsModule } from "./admin/imports/imports.module";
     CorruptionCasesModule,
     OkfModule,
     ImportsModule,
+    AuditModule,
     ...(process.env.NODE_ENV !== "production" ? [DevAuthModule] : []),
   ],
   providers: [

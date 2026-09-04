@@ -21,8 +21,8 @@ export type AuthedRequest = Request & { adminId: string };
  * Authorises admin requests using the shared `on_admin_session` cookie.
  * Primary scheme is an opaque, server-stored session token (prefix `ons_`)
  * looked up in `admin_sessions` with expiry + revocation. The legacy stateless
- * HMAC scheme (`adminId:nonce:sig`) is accepted only during the migration
- * window (LEGACY_ADMIN_SESSIONS !== "false"). On success, attaches
+ * HMAC scheme (`adminId:nonce:sig`) is OFF by default since the RBAC rollout
+ * (opt back in with LEGACY_ADMIN_SESSIONS === "true"). On success, attaches
  * `request.adminId` so controllers can audit the actor.
  */
 @Injectable()
@@ -74,7 +74,9 @@ export class AdminAuthGuard implements CanActivate {
   }
 
   private legacyEnabled(): boolean {
-    return process.env.LEGACY_ADMIN_SESSIONS !== "false";
+    // Default OFF since the RBAC rollout (plan 62 Task I1) — the legacy HMAC
+    // token is unattributable in the audit chain. Explicit opt-in only.
+    return process.env.LEGACY_ADMIN_SESSIONS === "true";
   }
 
   private tokenFromCookies(req: Request): string | null {

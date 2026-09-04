@@ -4,6 +4,7 @@ import {
   Get,
   Body,
   Query,
+  Req,
   Res,
   UploadedFiles,
   UseInterceptors,
@@ -18,16 +19,23 @@ import {
 } from "@nestjs/swagger";
 import { diskStorage } from "multer";
 import * as path from "node:path";
-import { Response } from "express";
+import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
+import { AuditWriterService } from "../audit/audit-writer.service";
 import { IngestionService } from "./ingestion.service";
 import { LogEntry } from "./log-emitter.service";
 
 @ApiTags("Ingestion")
 @Controller("api/ingest")
+@RequirePermission("ingestion.read")
 export class IngestionController {
-  constructor(private readonly ingestionService: IngestionService) {}
+  constructor(
+    private readonly ingestionService: IngestionService,
+    private readonly audit: AuditWriterService,
+  ) {}
 
   @Post("run")
+  @RequirePermission("ingestion.run")
   @ApiOperation({ summary: "Start an ingestion pipeline (runs in background)" })
   @ApiBody({
     schema: {
@@ -39,15 +47,26 @@ export class IngestionController {
       },
     },
   })
-  async run(@Body() body: { pipeline: string; concurrency?: number }) {
-    return this.ingestionService.runPipeline(
+  async run(
+    @Body() body: { pipeline: string; concurrency?: number },
+    @Req() req: Request & { adminId?: string },
+  ) {
+    const result = await this.ingestionService.runPipeline(
       body.pipeline,
       "manual",
       body.concurrency,
     );
+    await this.audit.log(req.adminId as string, {
+      action: "ingestion.run.started",
+      targetType: "ingestion_run",
+      targetId: result.runId,
+      metadata: { pipeline: body.pipeline, trigger: "manual" },
+    });
+    return result;
   }
 
   @Post("upload")
+  @RequirePermission("ingestion.run")
   @ApiOperation({ summary: "Upload files and run a pipeline" })
   @ApiConsumes("multipart/form-data")
   @ApiBody({
@@ -82,11 +101,22 @@ export class IngestionController {
   async upload(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() body: { pipeline: string; metadata?: string },
+    @Req() req: Request & { adminId?: string },
   ) {
     const result = await this.ingestionService.runPipeline(
       body.pipeline,
       "upload",
     );
+    await this.audit.log(req.adminId as string, {
+      action: "ingestion.upload",
+      targetType: "ingestion_run",
+      targetId: result.runId,
+      metadata: {
+        pipeline: body.pipeline,
+        files: files.map((f) => f.originalname),
+        size: files.reduce((sum, f) => sum + f.size, 0),
+      },
+    });
     return {
       uploadedFiles: files.map((f) => f.originalname),
       ...result,
@@ -94,6 +124,7 @@ export class IngestionController {
   }
 
   @Post("stop")
+  @RequirePermission("ingestion.run")
   @ApiOperation({ summary: "Stop a running ingestion pipeline" })
   @ApiBody({
     schema: {
@@ -104,8 +135,18 @@ export class IngestionController {
       },
     },
   })
-  async stop(@Body() body: { pipeline: string }) {
-    return this.ingestionService.stopPipeline(body.pipeline);
+  async stop(
+    @Body() body: { pipeline: string },
+    @Req() req: Request & { adminId?: string },
+  ) {
+    const result = this.ingestionService.stopPipeline(body.pipeline);
+    await this.audit.log(req.adminId as string, {
+      action: "ingestion.run.stopped",
+      targetType: "ingestion_run",
+      targetId: result.runId,
+      metadata: { pipeline: body.pipeline },
+    });
+    return result;
   }
 
   @Get("active")

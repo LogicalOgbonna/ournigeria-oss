@@ -1,7 +1,10 @@
 import { BadRequestException, Body, Controller, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
+import { RequirePermission } from "@ournigeria/access";
 import { Public } from "../auth/decorators/public";
 import { AdminGuard } from "../admin/admin.guard";
+import { PermissionsGuard } from "../admin/permissions.guard";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { EnrichmentApplyService } from "./enrichment-apply.service";
 import { ChangeProposalService } from "./change-proposal.service";
 import { ENTITY_ROLE_BUCKETS } from "./entity-role";
@@ -19,12 +22,14 @@ function parseCsv(value: string | undefined, allowed: (v: string) => boolean): s
 
 @Public()
 @Controller("admin/enrichment/proposals")
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("enrichment.review")
 export class AdminEnrichmentController {
   constructor(
     private readonly applySvc: EnrichmentApplyService,
     private readonly query: ChangeProposalService,
     private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
   ) {}
 
   @Get()
@@ -62,10 +67,12 @@ export class AdminEnrichmentController {
    * a shared note. Per-item try/catch — one bad item never aborts the batch.
    */
   @Post("bulk")
+  @RequirePermission("enrichment.apply")
   async bulk(
     @Body() body: { ids?: string[]; action?: string; note?: string },
     @Req() req: any,
   ) {
+    const actor = auditActorFromRequest(req);
     const ids = body?.ids;
     const action = body?.action;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -86,18 +93,27 @@ export class AdminEnrichmentController {
         } else {
           // Only un-reviewed proposals may be rejected/bounced — never flip an already-applied
           // proposal to 'rejected' (its data is live), which would desync status from reality.
-          const updated = await this.prisma.changeProposal.updateMany({
-            where: { id, status: { in: ["pending", "needs_human", "needs_more_sources"] } },
-            data: {
-              status: action === "reject" ? "rejected" : "needs_more_sources",
-              reviewNote: body.note,
-              reviewedBy: req.adminId,
-              reviewedAt: new Date(),
-            },
+          // Same-transaction audit: the status flip and its chain event commit together.
+          await this.prisma.$transaction(async (tx) => {
+            const updated = await tx.changeProposal.updateMany({
+              where: { id, status: { in: ["pending", "needs_human", "needs_more_sources"] } },
+              data: {
+                status: action === "reject" ? "rejected" : "needs_more_sources",
+                reviewNote: body.note,
+                reviewedBy: req.adminId,
+                reviewedAt: new Date(),
+              },
+            });
+            if (updated.count === 0) {
+              throw new BadRequestException("proposal not found or not in a reviewable status");
+            }
+            await this.audit.log(tx, actor, {
+              action: action === "reject" ? "enrichment.rejected" : "enrichment.needs_more",
+              targetType: "change_proposal",
+              targetId: id,
+              metadata: { pathway: "enrichment", bulk: true },
+            });
           });
-          if (updated.count === 0) {
-            throw new BadRequestException("proposal not found or not in a reviewable status");
-          }
         }
         results.push({ id, status: "ok" });
       } catch (e) {
@@ -108,25 +124,52 @@ export class AdminEnrichmentController {
   }
 
   @Post(":id/approve")
+  @RequirePermission("enrichment.apply")
   async approve(@Param("id") id: string, @Req() req: any) {
-    // AdminGuard sets request.adminId as a plain string
+    // AdminGuard sets request.adminId as a plain string. Marks req audited —
+    // the apply service writes the same-transaction chain event itself.
+    auditActorFromRequest(req);
     await this.applySvc.apply(id, req.adminId);
     return { ok: true };
   }
 
   @Post(":id/reject")
+  @RequirePermission("enrichment.apply")
   async reject(@Param("id") id: string, @Body() body: { note?: string }, @Req() req: any) {
-    return this.prisma.changeProposal.update({
-      where: { id },
-      data: { status: "rejected", reviewNote: body.note, reviewedBy: req.adminId, reviewedAt: new Date() },
+    const actor = auditActorFromRequest(req);
+    // Same-transaction audit: the rejection and its chain event commit together.
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.changeProposal.update({
+        where: { id },
+        data: { status: "rejected", reviewNote: body.note, reviewedBy: req.adminId, reviewedAt: new Date() },
+      });
+      await this.audit.log(tx, actor, {
+        action: "enrichment.rejected",
+        targetType: "change_proposal",
+        targetId: id,
+        metadata: { pathway: "enrichment" },
+      });
+      return result;
     });
   }
 
   @Post(":id/request-more")
+  @RequirePermission("enrichment.apply")
   async requestMore(@Param("id") id: string, @Body() body: { note?: string }, @Req() req: any) {
-    return this.prisma.changeProposal.update({
-      where: { id },
-      data: { status: "needs_more_sources", reviewNote: body.note, reviewedBy: req.adminId, reviewedAt: new Date() },
+    const actor = auditActorFromRequest(req);
+    // Same-transaction audit: the bounce and its chain event commit together.
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.changeProposal.update({
+        where: { id },
+        data: { status: "needs_more_sources", reviewNote: body.note, reviewedBy: req.adminId, reviewedAt: new Date() },
+      });
+      await this.audit.log(tx, actor, {
+        action: "enrichment.needs_more",
+        targetType: "change_proposal",
+        targetId: id,
+        metadata: { pathway: "enrichment" },
+      });
+      return result;
     });
   }
 }

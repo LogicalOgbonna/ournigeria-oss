@@ -26,6 +26,7 @@ import type {
   ProvFields,
   ElectionRecord,
 } from "@/lib/api";
+import { roleLabel } from "@/lib/roles";
 
 /* ---------- palette (Figma tokens) ---------- */
 
@@ -39,17 +40,6 @@ const ACCENT = "#43ee94";
 
 /* ---------- labels + formatters (same semantics as V9) ---------- */
 
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State Assembly Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Councilor",
-};
-
 const TYPE_LABELS: Record<string, string> = {
   elected: "Elected Official",
   appointed: "Appointed Official",
@@ -62,11 +52,6 @@ const TYPE_LABELS: Record<string, string> = {
 
 function yearOf(iso: string | null): string | null {
   return iso ? iso.split("-")[0] : null;
-}
-
-function roleLabel(role?: string | null): string {
-  if (!role) return "Official";
-  return ROLE_LABELS[role] ?? role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function yearRange(start: number | null, end: number | null): string {

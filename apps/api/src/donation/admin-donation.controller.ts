@@ -5,13 +5,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { RequirePermission } from '@ournigeria/access';
 import { Public } from '../auth/decorators/public';
 import { AdminGuard } from '../admin/admin.guard';
+import { PermissionsGuard } from '../admin/permissions.guard';
 import { DonationService } from './donation.service';
 import { DonationProvider, DonationStatus } from '@prisma/client';
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission('donations.read')
 @ApiTags('Admin - Donations')
 @Controller('admin/donations')
 export class AdminDonationController {

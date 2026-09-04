@@ -7,7 +7,12 @@ function svc(post: any) {
     update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...post, ...data })),
   };
   const prisma = { socialPost } as any;
-  const s = new ReplyQueueService(prisma, {} as any);
+  const s = new ReplyQueueService(
+    prisma,
+    {} as any,
+    {} as any,
+    { get: () => 10 } as any,
+  );
   return { s, socialPost };
 }
 

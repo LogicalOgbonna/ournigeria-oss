@@ -30,8 +30,15 @@ function makeController(opts: {
   const telegram = {
     notify: vi.fn().mockResolvedValue(undefined),
   } as any;
+  const audit = { log: async () => {} } as any;
 
-  const controller = new TopicsController(topics, sessions, search, telegram);
+  const controller = new TopicsController(
+    topics,
+    sessions,
+    search,
+    telegram,
+    audit,
+  );
   return { controller, sessions, search, telegram };
 }
 

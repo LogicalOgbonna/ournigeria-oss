@@ -10,9 +10,12 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import { RequirePermission } from "@ournigeria/access";
 import { PrismaService } from "@ournigeria/database";
+import { AuditService, auditActorFromRequest } from "../../audit/audit.service";
 import { Public } from "../../auth/decorators/public";
 import { AdminGuard } from "../admin.guard";
+import { PermissionsGuard } from "../permissions.guard";
 import { BulkImportService } from "./bulk-import.service";
 import { listImporters } from "./importer.registry";
 import type { ImportDiff, ImportResult } from "./importer.types";
@@ -40,12 +43,17 @@ function parseJsonFile(file: Express.Multer.File | undefined): unknown {
  * out of the global user AuthGuard so AdminGuard (HMAC admin session) governs.
  */
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+// ANY-of: budget_manager must not be locked out of the imports surface its
+// bundle advertises (imports.budget). Per-dataset permission split is a
+// follow-up once budget importers exist in the registry.
+@RequirePermission("imports.candidates", "imports.budget")
 @Controller("admin/imports")
 export class ImportsController {
   constructor(
     private readonly svc: BulkImportService,
     private readonly prisma: PrismaService,
+    private audit: AuditService,
   ) {}
 
   /** Each registered importer + its most-recent import_runs row (or null). */
@@ -94,6 +102,19 @@ export class ImportsController {
     @Req() req: any,
   ): Promise<ImportResult> {
     // AdminGuard sets request.adminId as a plain string.
-    return this.svc.apply(name, parseJsonFile(file), req.adminId);
+    const result = await this.svc.apply(name, parseJsonFile(file), req.adminId);
+    await this.audit.log(null, auditActorFromRequest(req), {
+      action: "import.applied",
+      targetType: "import_run",
+      targetId: result.runId,
+      metadata: {
+        type: name,
+        created: result.created,
+        updated: result.updated,
+        skipped: result.skipped,
+        errors: result.errors.length,
+      },
+    });
+    return result;
   }
 }

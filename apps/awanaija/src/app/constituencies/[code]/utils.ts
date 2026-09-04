@@ -15,15 +15,7 @@ export function typeLabel(type: string): string {
   }
 }
 
-export const ROLE_LABELS: Record<string, string> = {
-  senator: "Senator",
-  rep: "Federal Representative",
-  representative: "Federal Representative",
-  mha: "State House of Assembly Member",
-};
-
-export const roleLabel = (role: string) =>
-  ROLE_LABELS[role] ?? role.replaceAll("_", " ");
+export { ROLE_LABELS, roleLabel } from "@/lib/roles";
 
 export async function fetchConstituency(
   code: string,

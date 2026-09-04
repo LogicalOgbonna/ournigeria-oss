@@ -1,8 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
 import { PrismaService } from "@ournigeria/database";
 import { cache } from "@ournigeria/cache";
+import { appendAuditEvent } from "@ournigeria/access";
+import { bustRolesCache } from "./roles.util";
 
 const SALT_ROUNDS = 10;
 
@@ -170,16 +172,38 @@ export class AdminAuthService {
     };
   }
 
-  /** Revoke a single admin session by its raw token (used on logout). */
-  async revokeSession(token: string): Promise<void> {
-    if (!AdminAuthService.isSessionToken(token)) return;
+  /**
+   * Revoke a single admin session by its raw token (used on logout).
+   *
+   * Returns the owning admin + session row so the (@Public) logout route can
+   * attribute the auth.logout audit event — without this the event has no
+   * actor and never shows up in /audit/mine. Unknown/invalid tokens resolve
+   * to { adminId: null, sessionId: null }; legacy HMAC tokens are stateless,
+   * so only the verified adminId is returned (sessionId null).
+   */
+  async revokeSession(
+    token: string,
+  ): Promise<{ adminId: string | null; sessionId: string | null }> {
+    if (!AdminAuthService.isSessionToken(token)) {
+      // Legacy stateless HMAC token — nothing stored server-side to revoke,
+      // but a valid signature still identifies the admin for audit.
+      return { adminId: AdminAuthService.verifyLegacyToken(token), sessionId: null };
+    }
     const tokenHash = this.hash(token);
+    const session = await this.prisma.adminSession.findUnique({
+      where: { tokenHash },
+      select: { id: true, adminId: true },
+    });
     await this.prisma.adminSession.updateMany({
       where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
     // Immediate on this instance; other instances age out within the cache TTL.
     await adminSessionCache.del(tokenHash);
+    return {
+      adminId: session?.adminId ?? null,
+      sessionId: session?.id ?? null,
+    };
   }
 
   async getAdmin(id: string) {
@@ -232,11 +256,43 @@ export class AdminAuthService {
     });
   }
 
-  async deleteAdmin(id: string) {
-    const result = await this.prisma.adminUser.delete({ where: { id } });
+  async deleteAdmin(id: string, deletedById?: string) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Last-super-admin protection (spec §13): deleting an admin implicitly
+      // revokes their roles — the platform must never end up with zero super
+      // admins. FOR UPDATE serializes concurrent deletes/revokes.
+      const holders = await tx.$queryRawUnsafe<Array<{ principal_id: string }>>(
+        `SELECT principal_id FROM role_assignments
+           WHERE role = 'super_admin' AND revoked_at IS NULL FOR UPDATE`,
+      );
+      const isHolder = holders.some((h) => h.principal_id === id);
+      if (isHolder && holders.every((h) => h.principal_id === id)) {
+        throw new ConflictException("Cannot delete the last active super_admin");
+      }
+      // Revoke (not delete) role history before removing the account.
+      await tx.roleAssignment.updateMany({
+        where: { principalType: "staff", principalId: id, revokedAt: null },
+        data: {
+          revokedAt: new Date(),
+          revokedById: deletedById ?? null,
+          reason: "admin deleted",
+        },
+      });
+      const deleted = await tx.adminUser.delete({ where: { id } });
+      await appendAuditEvent(tx, {
+        actorType: "staff",
+        actorId: deletedById ?? null,
+        action: "admin.deleted",
+        targetType: "admin",
+        targetId: id,
+        metadata: { email: deleted.email, name: deleted.name },
+      });
+      return deleted;
+    });
     // Sessions cascade-deleted with the row; drop any cached resolutions too so
     // the deleted admin's token dies now, not at cache expiry.
     await adminSessionCache.clear();
+    await bustRolesCache("staff", id);
     return result;
   }
 
@@ -253,11 +309,21 @@ export class AdminAuthService {
     }
 
     const hash = await bcrypt.hash(seedPassword, SALT_ROUNDS);
-    await this.prisma.adminUser.create({
+    const created = await this.prisma.adminUser.create({
       data: {
         email: process.env.ADMIN_SEED_EMAIL || "admin@ournigeria.ng",
         passwordHash: hash,
         name: "Admin",
+      },
+    });
+    // The bootstrap admin must be able to run the platform (plan 62 rollout).
+    await this.prisma.roleAssignment.create({
+      data: {
+        principalType: "staff",
+        principalId: created.id,
+        role: "super_admin",
+        grantedById: created.id,
+        reason: "default admin seed",
       },
     });
     console.log("Default admin created. Change the password immediately.");

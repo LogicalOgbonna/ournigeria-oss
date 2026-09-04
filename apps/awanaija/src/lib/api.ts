@@ -168,6 +168,42 @@ export async function getPartyDirectory(init?: RequestInit) {
   return apiFetch<PartyListItem[]>("/parties", init);
 }
 
+/** acronym → logoUrl map for party flag discs (fail-soft: {} on error).
+ *
+ * Only https URLs pass: logo_url is writable via the enrichment pipeline
+ * (AI-proposed, human-approved), so it is not strictly hand-curated — http
+ * URLs would be mixed-content-blocked anyway and data: URIs are unwanted.
+ * Bounded by a timeout so a hung /parties can't stall SSR for a decorative
+ * 16px disc (the fetch itself continues and still populates the Next cache). */
+export async function getPartyLogoMap(): Promise<Record<string, string>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const request = getPartyDirectory({ next: { revalidate: 3600 } });
+    request.catch(() => {}); // may lose the race below; don't leave an unhandled rejection
+    const parties = await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("/parties timed out after 2500ms")), 2500);
+      }),
+    ]);
+    return Object.fromEntries(
+      parties
+        .filter(
+          (p) =>
+            typeof p.acronym === "string" &&
+            typeof p.logoUrl === "string" &&
+            p.logoUrl.startsWith("https://"),
+        )
+        .map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
+    );
+  } catch (err) {
+    console.error("getPartyLogoMap: party logos unavailable, falling back to acronyms", err);
+    return {};
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function getPartyByAcronym(acronym: string, init?: RequestInit) {
   return apiFetch<PartyDetail>(`/parties/${encodeURIComponent(acronym)}`, init);
 }

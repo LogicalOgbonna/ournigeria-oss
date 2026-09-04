@@ -8,12 +8,15 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminEvalService } from "./admin-eval.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("ai.manage")
 @ApiTags("Admin - Evaluation")
 @Controller("admin/eval")
 export class AdminEvalController {

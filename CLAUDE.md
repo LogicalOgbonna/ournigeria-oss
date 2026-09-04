@@ -67,11 +67,11 @@ pnpm prisma:migrate       # Run migrations (requires Infisical)
 pnpm prisma:studio        # Open Prisma Studio
 
 # Start services
-pnpm api:dev              # NestJS API on :3000 use  dev: https://spending-api.arinze.online/api. prod: https://api.ournigeria.ng/api to test the API (OCI box; api.example.invalid is the legacy box, stale code)
-pnpm web:dev              # Next.js frontend on :3001 use dev: https://spending.arinze.online. prod: https://app.ournigeria.ng to test the frontend
-pnpm ingest:dev           # Ingestion pipeline on :3002 use dev: https://ingest.arinze.online/api/ingest. prod: https://ingest.ournigeria.ng/api/ingest to test the ingestion pipeline (OCI box; ingest.example.invalid is the legacy box)
-pnpm awanaija:dev         # Landing page on :3003 use dev: https://ounigeria.arinze.online. prod: https://ournigeria.ng to test the landing page
-pnpm dashboard:dev        # Admin dashboard on :3004 use dev: https://dashboard.arinze.online. prod: https://dashboard.ournigeria.ng to test the dashboard
+pnpm api:dev              # NestJS API — dev: http://localhost:3000/api. prod: https://api.ournigeria.ng/api to test the API (OCI box; api.example.invalid is the legacy box, stale code)
+pnpm web:dev              # Next.js frontend — dev: http://localhost:3001. prod: https://app.ournigeria.ng to test the frontend
+pnpm ingest:dev           # Ingestion pipeline — dev: http://localhost:3002/api/ingest. prod: https://ingest.ournigeria.ng/api/ingest to test the ingestion pipeline (OCI box; ingest.example.invalid is the legacy box)
+pnpm awanaija:dev         # Landing page — dev: http://localhost:3003. prod: https://ournigeria.ng to test the landing page
+pnpm dashboard:dev        # Admin dashboard — dev: http://localhost:3004. prod: https://dashboard.ournigeria.ng to test the dashboard
 pnpm socials:dev          # X/Twitter automation on :3005 (internal service — no public domain; review drafts in the dashboard reply queue; prod runs on the OCI `ournigeria-prod` box)
 pnpm videos:dev           # Remotion Studio (interactive video composition editor)
 
@@ -106,11 +106,13 @@ docker compose up -d
 
 All dev commands use `infisical run --env dev` to inject secrets (scoped per-service paths: `/api`, `/ingest`, `/web`, `/dashboard`, `/socials`). Build commands do not.
 
-> **Dev vs prod URLs:** the `*.arinze.online` dev domains are tunnels that point at whatever `pnpm <app>:dev` you have running **locally** — they are not a separate deployed environment. The `*.ournigeria.ng` prod domains are the live OCI deployment (`ournigeria-prod` box) for the backend apps; `awanaija` and `dashboard` deploy to Vercel. Only a merge to `main` → `prod` advances production.
+> **Dev vs prod URLs:** dev runs **locally** — hit each app on its `localhost` port from `pnpm <app>:dev` (there is no separate deployed dev environment). The `*.ournigeria.ng` prod domains are the live OCI deployment (`ournigeria-prod` box) for the backend apps; `awanaija` and `dashboard` deploy to Vercel. Only a merge to `main` → `prod` advances production.
 
 ## Testing
 
-**No unit test framework.** The codebase uses two testing strategies:
+The codebase uses three testing strategies:
+
+0. **Vitest unit/integration suites** (per-package, no root aggregate script): `apps/api` (run from `apps/api`: `DATABASE_URL=postgresql://spending:spending@localhost:5432/spending npx vitest run --no-file-parallelism`; some enrichment suites additionally need `ENRICHMENT_AGENT_DATABASE_URL`), `apps/socials`, `packages/access` (RBAC catalog + audit hash chain — DB integration tests use a throwaway schema), `packages/database`. Run the relevant suite for anything you touch.
 
 1. **E2E tests** (`packages/e2e/`): Playwright with 4 projects (web auth setup, dashboard auth setup, web-chromium desktop, web-mobile Pixel 5). Tests are tagged `@web`, `@dashboard`, `@human`. Config at `packages/e2e/playwright.config.ts`.
 
@@ -152,6 +154,9 @@ NestJS service that grows the OurNigeria X/Twitter presence with a human always 
 - **Roamer** — discovers civic-domain tweets via SearchTimeline on captured browser sessions, classifies each with DeepSeek per topic profile.
 - **Drafter** — Claude agent (with the same budget/corruption/govspend/FAAC RAG tools) drafts quote/reply candidates with safety filters.
 - **Reply queue** — every draft lands in `social_posts` as `drafted`; a human approves/edits/rejects in the dashboard before anything posts via X OAuth2.
+- **Location scout** — roams X for accounts attributable to a state/LGA (DeepSeek geo-classifier), lands them in `socials_scouted_handle` as `pending`; off by default (`socials.scout_enabled` setting). Env knobs: `SOCIALS_SCOUT_*` / `SOCIALS_TAG_*` in `env.validation.ts`.
+- **Campaign tagging** — the identify campaign cron appends operator-activated scouted handles as @-tags ("you're from {place}, do you know who this is?"); draft-time selection enforces 14-day per-handle cooldowns, and a publish-time guard in the reply queue re-checks consent (strips non-active handles) and the daily mention cap. Off by default (`socials.tag_handles` setting).
+- **Handles dashboard** — scouted accounts are curated at `/dashboard/social/handles` (activate/reject/opt-out, manual adds); only `active` handles can be tagged, and re-activating an `opted_out` account requires explicit confirmation. The scout/tagging toggles are flipped via `PATCH /v1/scout/settings` (no dashboard UI yet); `POST /v1/scout/run` triggers a manual scout window.
 - A Chrome extension captures x.com sessions and POSTs them to `/v1/sessions` (guarded by `X-Roamer-Key`). Telegram ops alerts on auth/rate-limit failures.
 
 Known gotchas (see memory): the roamer leader-election loop dies after each blue/green deploy (recover via `POST /v1/roam/start`); X refresh tokens are single-use/rotating (re-auth via `pnpm x-oauth-authorize`); socials needs `EMBEDDING_BASE_URL` in its `/socials` Infisical path or RAG silently fails.
@@ -162,13 +167,13 @@ Remotion CLI that queries the DB for real budget/corruption/FAAC data, validates
 
 ## Database (packages/database/)
 
-Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/prisma/schema.prisma`. ~90 models spanning several domains:
+Prisma v7 with PostgreSQL 16 + pgvector extension. Schema at `packages/database/prisma/schema.prisma`. ~100 models spanning several domains:
 
 - **Chat/auth**: `AdminUser`, `User`, `UserMemory`, `OtpVerification`, `Conversation`, `Message`, `TelegramLoginRequest`, `ProviderConnection`.
 - **Documents/ingestion**: `Document`, `SourceReference`, `IngestionRecord`, `IngestionRun`, `QueryAnalytic`, `GraphExtractionJob`.
 - **Officials & politics**: `NigerianOfficial`, `OfficialPosition`, `PoliticalParty`, `NigerianState`, `NigerianLga`, `NigerianConstituency`, `NigerianWard`, `CorruptionCase` (+ parties/updates/evidence), and the data-proposal/change-proposal review workflow.
 - **Budget/fiscal**: `BudgetLineItem`, `BudgetProject`, `BudgetMetadata`, `BudgetActual`, `FederalSpending`, `FaacDisbursement` (+ state/LGA allocations), `IgrRecord`, `DebtRecord`, `GdpRecord`.
-- **Socials**: `SocialPost`, `SocialsBotSession`, `SocialsTopic`, `SocialsDiscoveredTweet`, `SocialsXOauthTokens`, etc.
+- **Socials**: `SocialPost`, `SocialsBotSession`, `SocialsTopic`, `SocialsDiscoveredTweet`, `SocialsXOauthTokens`, `SocialsScoutedHandle` (+ scout state/run), etc.
 - **Ops/system**: `Notification`, `SystemBanner`, `SystemSetting`, `Feedback`, `BackupJob`, `Donation`.
 
 Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_vectors` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
@@ -224,24 +229,24 @@ All features and new code MUST be tested using the dev test user. To authenticat
 
 ```bash
 # Authenticate as test user (dev only — endpoint doesn't exist in production)
-curl -X POST https://spending-api.arinze.online/api/auth/dev-login -c cookies.txt
+curl -X POST http://localhost:3000/api/auth/dev-login -c cookies.txt
 
 # Use the cookie for subsequent API requests
-curl https://spending-api.arinze.online/api/auth/profile -b cookies.txt
+curl http://localhost:3000/api/auth/profile -b cookies.txt
 ```
 
-To browse the web UI with `/browse` or Playwright, cookies must be set on **both** domains (web domain for Next.js middleware, API domain for cross-origin API calls):
+To browse the web UI with `/browse` or Playwright, cookies must be set on **both** origins (web origin for Next.js middleware, API origin for cross-origin API calls):
 
 ```javascript
 // Run this JS on the login page to set both cookies:
 (async () => {
-  await fetch('https://spending-api.arinze.online/api/auth/dev-login', { method: 'POST', credentials: 'include' });
+  await fetch('http://localhost:3000/api/auth/dev-login', { method: 'POST', credentials: 'include' });
   await fetch('/api/auth/dev-login', { method: 'POST', credentials: 'include' });
   window.location.href = '/';
 })();
 ```
 
-With `/browse`: navigate to `spending.arinze.online/login`, run the fetch above via `$B js`, then navigate to `/`.
+With `/browse`: navigate to `localhost:3001/login`, run the fetch above via `$B js`, then navigate to `/`.
 
 The test user has phone number `+2340000000000` and is created automatically on first dev-login. Use this user for all automated testing, evaluation runs, and feature validation. The `/api/auth/dev-login` endpoint is conditionally registered and does not exist in production builds (`NODE_ENV=production`).
 

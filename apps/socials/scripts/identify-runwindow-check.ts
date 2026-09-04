@@ -5,14 +5,16 @@ import { IdentifyCampaignService } from "../src/identify/identify-campaign.servi
 import { SafetyFilter } from "../src/intelligence/safety-filter.js";
 import { SocialsSettingsService } from "../src/config/socials-settings.service.js";
 import { CampaignTemplateProvider } from "../src/campaign/campaign-template.provider.js";
+import { ScoutedHandleRepo } from "../src/platforms/twitter/scout/scouted-handle.repo.js";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) }) as any;
 const publisher: any = { publishOriginal: () => { throw new Error("publishOriginal must NOT be called in automated tests"); } };
+const config: any = { get: (k: string) => ({ SOCIALS_TAG_MAX_HANDLES: 2, SOCIALS_TAG_COOLDOWN_DAYS: 14, SOCIALS_TAG_DAILY_CAP: 10, SOCIALS_TAG_ACTIVE_DAYS: 30 } as any)[k] };
 function assert(c: boolean, m: string) { if (!c) { console.error("FAIL:", m); process.exit(1); } }
 
 async function main() {
   const settings = new SocialsSettingsService(prisma);
-  const svc = new IdentifyCampaignService(prisma, publisher, new SafetyFilter(), settings, new CampaignTemplateProvider(prisma));
+  const svc = new IdentifyCampaignService(config, prisma, publisher, new SafetyFilter(), settings, new CampaignTemplateProvider(prisma), new ScoutedHandleRepo(prisma));
 
   // (1) dryRun for lga_chairman (has a local pool) — no publish, no writes
   const preview = await svc.postOneCategory("lga_chairman", 0, { dryRun: true });

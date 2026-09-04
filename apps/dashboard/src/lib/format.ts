@@ -36,6 +36,19 @@ export function formatDateTimeFull(iso: string | null | undefined): string {
   });
 }
 
+/** Second-precision timestamp for audit surfaces, e.g. "5 Aug 2026, 02:14:37 PM". */
+export function formatDateTimeSeconds(iso: string | null | undefined): string {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleString(LOCALE, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 /** Human byte sizes, e.g. "1.5 MB". Matches ingestion/files:48. */
 export function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 B";

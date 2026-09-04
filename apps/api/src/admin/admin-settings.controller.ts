@@ -12,16 +12,23 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminSettingsService } from "./admin-settings.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("settings.write")
 @ApiTags("Admin - Settings")
 @Controller("admin/settings")
 export class AdminSettingsController {
-  constructor(private service: AdminSettingsService) {}
+  constructor(
+    private service: AdminSettingsService,
+    private audit: AuditService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "Get all settings grouped by category" })
@@ -92,6 +99,12 @@ export class AdminSettingsController {
     try {
       const adminId = (req as any).adminId as string;
       await this.service.bulkUpsert(body.settings, adminId);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "settings.bulk_updated",
+        targetType: "setting",
+        targetId: "bulk",
+        metadata: { keys: (body.settings ?? []).map((s) => s.key) },
+      });
       return res.json({ success: true });
     } catch (err) {
       console.error("admin settings bulkUpsert error:", err);
@@ -131,6 +144,12 @@ export class AdminSettingsController {
     try {
       const adminId = (req as any).adminId as string;
       const setting = await this.service.upsert(key, body.value, adminId);
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "settings.updated",
+        targetType: "setting",
+        targetId: key,
+        metadata: {},
+      });
       return res.json(setting);
     } catch (err) {
       console.error("admin settings upsert error:", err);

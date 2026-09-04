@@ -8,12 +8,15 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminDocumentsService } from "./admin-documents.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("documents.read")
 @ApiTags("Admin - Documents")
 @Controller("admin/documents")
 export class AdminDocumentsController {

@@ -22,6 +22,7 @@
     "@nestjs/platform-express": "catalog:",
     "@nestjs/schedule": "catalog:",
     "@nestjs/swagger": "catalog:",
+    "@ournigeria/access": "workspace:*",
     "@ournigeria/database": "workspace:*",
     "ai": "catalog:",
     "cookie-parser": "catalog:",

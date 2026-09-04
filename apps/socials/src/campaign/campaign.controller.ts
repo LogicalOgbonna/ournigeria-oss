@@ -7,7 +7,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminAuthGuard } from "../platforms/twitter/guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../platforms/twitter/guards/permissions.guard.js";
 import { SocialsSettingsService } from "../config/socials-settings.service.js";
 import { CampaignTemplateProvider } from "./campaign-template.provider.js";
 import type { IdentifyCategory } from "../identify/identify-content.js";
@@ -44,7 +46,8 @@ interface UpdateTemplatesBody {
 
 @ApiTags("Campaign Admin")
 @Controller("v1/campaign")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
+@RequirePermission("socials.topics")
 export class CampaignController {
   constructor(
     private readonly settings: SocialsSettingsService,

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ProfileV10 } from "@/components/official/ProfileV10";
-import type { Official } from "@/lib/api";
+import { getPartyLogoMap, type Official } from "@/lib/api";
 
 /**
  * INTERNAL PREVIEW ROUTE — not linked anywhere, not in the sitemap, noindex.
@@ -28,20 +28,6 @@ async function getOfficial(idOrSlug: string): Promise<Official | null> {
   }
 }
 
-/** acronym → logoUrl map so Party Affiliations rows can show the party flag. */
-async function getPartyLogos(): Promise<Record<string, string>> {
-  try {
-    const res = await fetch(`${API_URL}/api/parties`, { next: { revalidate: 3600 } });
-    if (!res.ok) return {};
-    const parties = (await res.json()) as { acronym: string; logoUrl: string | null }[];
-    return Object.fromEntries(
-      parties.filter((p) => p.logoUrl).map((p) => [p.acronym.toUpperCase(), p.logoUrl!]),
-    );
-  } catch {
-    return {};
-  }
-}
-
 // Keep this route out of search indexes regardless of how it's reached.
 export const metadata: Metadata = {
   title: "Profile preview (internal)",
@@ -54,7 +40,7 @@ export default async function OfficialPreviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const [official, partyLogos] = await Promise.all([getOfficial(slug), getPartyLogos()]);
+  const [official, partyLogos] = await Promise.all([getOfficial(slug), getPartyLogoMap()]);
   if (!official) notFound();
 
   return (

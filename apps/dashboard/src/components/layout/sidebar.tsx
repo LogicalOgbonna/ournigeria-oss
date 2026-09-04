@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -34,10 +34,13 @@ import {
   MessageCircle,
   Hash,
   Activity,
+  AtSign,
   Filter,
   Sparkles,
   Upload,
+  KeyRound,
   ChevronRight,
+  type LucideIcon,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
 import {
@@ -52,86 +55,279 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePermissions } from "@/lib/permissions";
 import { logoutAction } from "@/app/login/actions";
 
+interface NavItem {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  /** RBAC permission required to see this item; omit for always-visible. */
+  permission?: string;
+}
+
 // Pinned, ungrouped home link rendered above all collapsible sections.
-const overviewItem = {
+const overviewItem: NavItem = {
   title: "Overview",
   href: "/dashboard",
   icon: LayoutDashboard,
 };
 
-const communityNav = [
-  { title: "Users", href: "/dashboard/users", icon: Users },
+const communityNav: NavItem[] = [
+  {
+    title: "Users",
+    href: "/dashboard/users",
+    icon: Users,
+    permission: "users.read",
+  },
   {
     title: "Conversations",
     href: "/dashboard/conversations",
     icon: MessageSquare,
+    permission: "conversations.read",
   },
-  { title: "Proposals", href: "/dashboard/proposals", icon: MessageSquare },
-  { title: "Feedback", href: "/dashboard/feedback", icon: MessageSquare },
-  { title: "Donations", href: "/dashboard/donations", icon: Heart },
+  {
+    title: "Proposals",
+    href: "/dashboard/proposals",
+    icon: MessageSquare,
+    permission: "proposals.review",
+  },
+  {
+    title: "Feedback",
+    href: "/dashboard/feedback",
+    icon: MessageSquare,
+    permission: "feedback.read",
+  },
+  {
+    title: "Donations",
+    href: "/dashboard/donations",
+    icon: Heart,
+    permission: "donations.read",
+  },
 ];
 
-const socialNav = [
-  { title: "Reply Queue", href: "/dashboard/social", icon: MessageCircle },
-  { title: "Topics", href: "/dashboard/social/topics", icon: Hash },
-  { title: "Sessions", href: "/dashboard/social/sessions", icon: Activity },
-  { title: "Funnel", href: "/dashboard/social/funnel", icon: Filter },
-  { title: "Analytics", href: "/dashboard/social/analytics", icon: BarChart3 },
+const socialNav: NavItem[] = [
+  {
+    title: "Reply Queue",
+    href: "/dashboard/social",
+    icon: MessageCircle,
+    permission: "socials.review",
+  },
+  {
+    title: "Topics",
+    href: "/dashboard/social/topics",
+    icon: Hash,
+    permission: "socials.review",
+  },
+  {
+    title: "Handles",
+    href: "/dashboard/social/handles",
+    icon: AtSign,
+    permission: "socials.review",
+  },
+  {
+    title: "Campaign",
+    href: "/dashboard/social/campaign",
+    icon: Megaphone,
+    permission: "socials.review",
+  },
+  {
+    title: "Sessions",
+    href: "/dashboard/social/sessions",
+    icon: Activity,
+    permission: "socials.review",
+  },
+  {
+    title: "Funnel",
+    href: "/dashboard/social/funnel",
+    icon: Filter,
+    permission: "socials.review",
+  },
+  {
+    title: "Analytics",
+    href: "/dashboard/social/analytics",
+    icon: BarChart3,
+    permission: "socials.review",
+  },
 ];
 
-const knowledgeNav = [
-  { title: "Documents", href: "/dashboard/documents", icon: FolderOpen },
-  { title: "Coverage", href: "/dashboard/documents/coverage", icon: Map },
-  { title: "Enrichment", href: "/dashboard/enrichment", icon: Sparkles },
-  { title: "Imports", href: "/dashboard/imports", icon: Upload },
-  { title: "Pipelines", href: "/dashboard/ingestion", icon: Database },
-  { title: "S3 Files", href: "/dashboard/ingestion/files", icon: FolderOpen },
-  { title: "New Run", href: "/dashboard/ingestion/new", icon: Plus },
-  { title: "History", href: "/dashboard/ingestion/history", icon: History },
-  { title: "Records", href: "/dashboard/ingestion/records", icon: FileText },
+const knowledgeNav: NavItem[] = [
+  {
+    title: "Documents",
+    href: "/dashboard/documents",
+    icon: FolderOpen,
+    permission: "documents.read",
+  },
+  {
+    title: "Coverage",
+    href: "/dashboard/documents/coverage",
+    icon: Map,
+    permission: "documents.read",
+  },
+  {
+    title: "Enrichment",
+    href: "/dashboard/enrichment",
+    icon: Sparkles,
+    permission: "enrichment.review",
+  },
+  {
+    title: "Imports",
+    href: "/dashboard/imports",
+    icon: Upload,
+    permission: "imports.candidates",
+  },
+  {
+    title: "Pipelines",
+    href: "/dashboard/ingestion",
+    icon: Database,
+    permission: "ingestion.read",
+  },
+  {
+    title: "S3 Files",
+    href: "/dashboard/ingestion/files",
+    icon: FolderOpen,
+    permission: "ingestion.read",
+  },
+  {
+    title: "New Run",
+    href: "/dashboard/ingestion/new",
+    icon: Plus,
+    permission: "ingestion.read",
+  },
+  {
+    title: "History",
+    href: "/dashboard/ingestion/history",
+    icon: History,
+    permission: "ingestion.read",
+  },
+  {
+    title: "Records",
+    href: "/dashboard/ingestion/records",
+    icon: FileText,
+    permission: "ingestion.read",
+  },
 ];
 
-const aiEngineNav = [
-  { title: "Query Analytics", href: "/dashboard/ai", icon: BarChart3 },
-  { title: "Citations", href: "/dashboard/ai/citations", icon: FileSearch },
-  { title: "Agent Config", href: "/dashboard/ai/agents", icon: Bot },
-  { title: "Test Query", href: "/dashboard/ai/test", icon: FlaskConical },
-  { title: "Embeddings", href: "/dashboard/vectors", icon: Boxes },
+const aiEngineNav: NavItem[] = [
+  {
+    title: "Query Analytics",
+    href: "/dashboard/ai",
+    icon: BarChart3,
+    permission: "ai.manage",
+  },
+  {
+    title: "Citations",
+    href: "/dashboard/ai/citations",
+    icon: FileSearch,
+    permission: "ai.manage",
+  },
+  {
+    title: "Agent Config",
+    href: "/dashboard/ai/agents",
+    icon: Bot,
+    permission: "ai.manage",
+  },
+  {
+    title: "Test Query",
+    href: "/dashboard/ai/test",
+    icon: FlaskConical,
+    permission: "ai.manage",
+  },
+  {
+    title: "Embeddings",
+    href: "/dashboard/vectors",
+    icon: Boxes,
+    permission: "vectors.manage",
+  },
   {
     title: "Similarity Search",
     href: "/dashboard/vectors/search",
     icon: Search,
+    permission: "vectors.manage",
   },
   {
     title: "Evaluation",
     href: "/dashboard/vectors/evaluation",
     icon: FlaskConical,
+    permission: "vectors.manage",
   },
 ];
 
-const notificationNav = [
-  { title: "Notifications", href: "/dashboard/notifications", icon: Bell },
+const notificationNav: NavItem[] = [
+  {
+    title: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+    permission: "notifications.write",
+  },
   {
     title: "Banners",
     href: "/dashboard/notifications/banners",
     icon: Megaphone,
+    permission: "notifications.write",
   },
-  { title: "Alerts", href: "/dashboard/alerts", icon: Bell },
+  {
+    title: "Alerts",
+    href: "/dashboard/alerts",
+    icon: Bell,
+    permission: "alerts.read",
+  },
 ];
 
-const systemNav = [
-  { title: "Health", href: "/dashboard/system", icon: Server },
-  { title: "Live Logs", href: "/dashboard/system/logs", icon: ScrollText },
-  { title: "Jobs", href: "/dashboard/system/jobs", icon: Briefcase },
-  { title: "Backups", href: "/dashboard/system/backups", icon: HardDrive },
-  { title: "Settings", href: "/dashboard/settings", icon: Settings },
+const systemNav: NavItem[] = [
+  {
+    title: "Health",
+    href: "/dashboard/system",
+    icon: Server,
+    permission: "system.write",
+  },
+  {
+    title: "Live Logs",
+    href: "/dashboard/system/logs",
+    icon: ScrollText,
+    permission: "system.write",
+  },
+  {
+    title: "Jobs",
+    href: "/dashboard/system/jobs",
+    icon: Briefcase,
+    permission: "system.write",
+  },
+  {
+    title: "Backups",
+    href: "/dashboard/system/backups",
+    icon: HardDrive,
+    permission: "system.write",
+  },
+  {
+    title: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    permission: "settings.write",
+  },
 ];
 
-const adminNav = [
-  { title: "Admin Users", href: "/dashboard/admins", icon: ShieldCheck },
-  { title: "Audit Log", href: "/dashboard/audit", icon: ClipboardList },
+const adminNav: NavItem[] = [
+  {
+    title: "Admin Users",
+    href: "/dashboard/admins",
+    icon: ShieldCheck,
+    permission: "admins.manage",
+  },
+  {
+    title: "Roles & Permissions",
+    href: "/dashboard/admins/roles",
+    icon: KeyRound,
+    permission: "admins.manage",
+  },
+  {
+    title: "Audit Log",
+    href: "/dashboard/audit",
+    icon: ClipboardList,
+    permission: "audit.read",
+  },
+  { title: "My Activity", href: "/dashboard/audit/mine", icon: History },
 ];
 
 const navGroups = [
@@ -147,25 +343,26 @@ const navGroups = [
 const GROUPS_COOKIE_NAME = "dashboard_sidebar_groups";
 const GROUPS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
-function isActive(pathname: string, href: string, items: typeof communityNav) {
+function isActive(pathname: string, href: string, items: NavItem[]) {
   if (href === "/dashboard") return pathname === "/dashboard";
-  // For top-level section links, only exact match
-  const isTopLevel = items.some(
-    (i) => i.href === href && items.indexOf(i) === 0,
+  if (pathname === href) return true;
+  if (!pathname.startsWith(href + "/")) return false;
+  // A sibling with a more specific href wins (e.g. /dashboard/audit/mine
+  // must not also highlight /dashboard/audit).
+  return !items.some(
+    (i) =>
+      i.href !== href &&
+      i.href.length > href.length &&
+      (pathname === i.href || pathname.startsWith(i.href + "/")),
   );
-  if (isTopLevel && items.length > 1) {
-    // Check if any sub-item has a more specific match
-    const hasMoreSpecific = items.some(
-      (i) => i.href !== href && pathname.startsWith(i.href),
-    );
-    if (hasMoreSpecific) return pathname === href;
-  }
-  return pathname.startsWith(href);
 }
 
 // The group whose route is currently active — always forced open.
-function activeGroupLabel(pathname: string): string | null {
-  for (const group of navGroups) {
+function activeGroupLabel(
+  pathname: string,
+  groups: typeof navGroups,
+): string | null {
+  for (const group of groups) {
     if (group.items.some((item) => isActive(pathname, item.href, group.items))) {
       return group.label;
     }
@@ -176,11 +373,27 @@ function activeGroupLabel(pathname: string): string | null {
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { can, loading } = usePermissions();
+
+  // RBAC-filtered nav: items with no permission are always visible; while
+  // permissions load we keep the full structure (rendered as skeletons below)
+  // so nothing flashes in and then disappears.
+  const filteredNavGroups = useMemo(() => {
+    if (loading) return navGroups;
+    return navGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) => !item.permission || can(item.permission),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [can, loading]);
 
   // Deterministic initial state (server + first client render): only the
   // section containing the active route is open. A cookie sync runs after mount.
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const active = activeGroupLabel(pathname);
+    const active = activeGroupLabel(pathname, navGroups);
     return new Set(active ? [active] : []);
   });
 
@@ -190,7 +403,7 @@ export function AppSidebar() {
     const match = document.cookie
       .split("; ")
       .find((row) => row.startsWith(`${GROUPS_COOKIE_NAME}=`));
-    const active = activeGroupLabel(pathname);
+    const active = activeGroupLabel(pathname, filteredNavGroups);
     setOpenGroups((prev) => {
       const next = match
         ? new Set(
@@ -203,7 +416,7 @@ export function AppSidebar() {
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, filteredNavGroups]);
 
   function toggleGroup(label: string, open: boolean) {
     setOpenGroups((prev) => {
@@ -265,53 +478,77 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {navGroups.map((group) => {
-          const isOpen = openGroups.has(group.label);
-          return (
-            <Collapsible.Root
-              key={group.label}
-              open={isOpen}
-              onOpenChange={(open) => toggleGroup(group.label, open)}
-              asChild
-            >
-              <SidebarGroup>
-                <Collapsible.Trigger asChild>
-                  <SidebarGroupLabel className="cursor-pointer select-none pr-1 hover:text-sidebar-foreground">
-                    <span className="flex-1">{group.label}</span>
-                    <ChevronRight
-                      className={`size-3.5 shrink-0 transition-transform duration-200 ${
-                        isOpen ? "rotate-90" : ""
-                      }`}
-                    />
-                  </SidebarGroupLabel>
-                </Collapsible.Trigger>
-                <Collapsible.Content>
+        {loading
+          ? // Skeleton placeholders while permissions load — mirrors the nav
+            // structure without flashing items the admin may not hold.
+            navGroups.map((group) => (
+              <SidebarGroup key={group.label}>
+                <SidebarGroupLabel className="pr-1">
+                  <Skeleton className="h-3 w-24" />
+                </SidebarGroupLabel>
+                {openGroups.has(group.label) && (
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {group.items.map((item) => (
                         <SidebarMenuItem key={item.href}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={isActive(
-                              pathname,
-                              item.href,
-                              group.items,
-                            )}
-                          >
-                            <Link href={item.href}>
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </Link>
-                          </SidebarMenuButton>
+                          <div className="flex h-8 items-center gap-2 px-2">
+                            <Skeleton className="h-4 w-4 rounded-sm" />
+                            <Skeleton className="h-3.5 w-28" />
+                          </div>
                         </SidebarMenuItem>
                       ))}
                     </SidebarMenu>
                   </SidebarGroupContent>
-                </Collapsible.Content>
+                )}
               </SidebarGroup>
-            </Collapsible.Root>
-          );
-        })}
+            ))
+          : filteredNavGroups.map((group) => {
+              const isOpen = openGroups.has(group.label);
+              return (
+                <Collapsible.Root
+                  key={group.label}
+                  open={isOpen}
+                  onOpenChange={(open) => toggleGroup(group.label, open)}
+                  asChild
+                >
+                  <SidebarGroup>
+                    <Collapsible.Trigger asChild>
+                      <SidebarGroupLabel className="cursor-pointer select-none pr-1 hover:text-sidebar-foreground">
+                        <span className="flex-1">{group.label}</span>
+                        <ChevronRight
+                          className={`size-3.5 shrink-0 transition-transform duration-200 ${
+                            isOpen ? "rotate-90" : ""
+                          }`}
+                        />
+                      </SidebarGroupLabel>
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          {group.items.map((item) => (
+                            <SidebarMenuItem key={item.href}>
+                              <SidebarMenuButton
+                                asChild
+                                isActive={isActive(
+                                  pathname,
+                                  item.href,
+                                  group.items,
+                                )}
+                              >
+                                <Link href={item.href}>
+                                  <item.icon className="h-4 w-4" />
+                                  <span>{item.title}</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </Collapsible.Content>
+                  </SidebarGroup>
+                </Collapsible.Root>
+              );
+            })}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>

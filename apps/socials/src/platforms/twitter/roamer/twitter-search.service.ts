@@ -61,6 +61,8 @@ export interface RawTweet {
   authorBio: string;
   authorFollowers: number;
   authorProfileImageUrl: string | null;
+  /** Free-text profile location ("Lagos, Nigeria") — new-schema only; "" when absent. */
+  authorLocation: string;
 }
 
 export interface FetchPageResult {
@@ -288,20 +290,27 @@ export function parseTweetResult(resultRaw: unknown): RawTweet | null {
   )?.user_results?.result as
     | {
         rest_id?: string;
-        // X moved name/screen_name out of `legacy` into a nested `core`
-        // object, and the avatar into `avatar.image_url`. Read both so the
-        // parser survives whichever schema the session is served.
+        // X has been emptying `legacy` field by field. Current schema (observed
+        // live 2026-09-01, legacy served as {}): name/screen_name in `core`,
+        // avatar in `avatar.image_url`, bio in `profile_bio.description`,
+        // followers in `relationship_counts.followers`, profile location in
+        // `location.location`. Read new locations first, fall back to legacy so
+        // the parser survives whichever schema a session is served.
         core?: {
           screen_name?: string;
           name?: string;
         };
         avatar?: { image_url?: string };
+        profile_bio?: { description?: string };
+        relationship_counts?: { followers?: number };
+        location?: { location?: string };
         legacy?: {
           screen_name?: string;
           name?: string;
           description?: string;
           followers_count?: number;
           profile_image_url_https?: string;
+          location?: string;
           id_str?: string;
         };
       }
@@ -352,8 +361,14 @@ export function parseTweetResult(resultRaw: unknown): RawTweet | null {
     authorRestId: userResult.rest_id ?? userLegacy?.id_str ?? "",
     authorScreenName: screenName,
     authorName: name,
-    authorBio: userLegacy?.description ?? "",
-    authorFollowers: userLegacy?.followers_count ?? 0,
+    authorBio:
+      userResult.profile_bio?.description ?? userLegacy?.description ?? "",
+    authorFollowers:
+      userResult.relationship_counts?.followers ??
+      userLegacy?.followers_count ??
+      0,
     authorProfileImageUrl: profileImageUrl,
+    authorLocation:
+      userResult.location?.location ?? userLegacy?.location ?? "",
   };
 }

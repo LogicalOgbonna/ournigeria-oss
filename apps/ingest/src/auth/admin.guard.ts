@@ -13,9 +13,12 @@ const ADMIN_COOKIE = "on_admin_session";
 // New opaque admin session token prefix — see apps/api admin-auth.service.ts.
 const ADMIN_SESSION_PREFIX = "ons_";
 
-/** Legacy stateless HMAC admin tokens honoured only during the migration window. */
+/**
+ * Legacy stateless HMAC admin tokens: DEFAULT OFF since the RBAC rollout
+ * (plan 62 §7). Set LEGACY_ADMIN_SESSIONS=true only as an emergency rollback.
+ */
 function legacyAdminSessionsEnabled(): boolean {
-  return process.env.LEGACY_ADMIN_SESSIONS !== "false";
+  return process.env.LEGACY_ADMIN_SESSIONS === "true";
 }
 
 /** Verify a legacy HMAC token (format adminId:nonce:sig). */

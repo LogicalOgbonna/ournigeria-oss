@@ -18,6 +18,7 @@ COPY packages/database/package.json packages/database/package.json
 COPY packages/content/package.json packages/content/package.json
 COPY packages/tools/package.json packages/tools/package.json
 COPY packages/cache/package.json packages/cache/package.json
+COPY packages/access/package.json packages/access/package.json
 
 # Hoisted layout + install only socials workspace
 RUN echo "node-linker=hoisted" > .npmrc \
@@ -31,9 +32,11 @@ COPY packages/database/ packages/database/
 COPY packages/content/ packages/content/
 COPY packages/tools/ packages/tools/
 COPY packages/cache/ packages/cache/
+COPY packages/access/ packages/access/
 
 RUN pnpm --filter @ournigeria/database run build \
  && pnpm --filter @ournigeria/cache run build \
+ && pnpm --filter @ournigeria/access run build \
  && pnpm --filter @ournigeria/tools run build \
  && pnpm --filter @ournigeria/socials exec nest build
 
@@ -80,6 +83,8 @@ COPY --from=build /app/packages/database/dist/ packages/database/dist/
 COPY --from=build /app/packages/database/package.json packages/database/package.json
 COPY --from=build /app/packages/cache/dist/ packages/cache/dist/
 COPY --from=build /app/packages/cache/package.json packages/cache/package.json
+COPY --from=build /app/packages/access/dist/ packages/access/dist/
+COPY --from=build /app/packages/access/package.json packages/access/package.json
 COPY --from=build /app/packages/tools/dist/ packages/tools/dist/
 COPY --from=build /app/packages/tools/package.json packages/tools/package.json
 # content has no JS build (exports raw .ts); ship source so @ournigeria/content resolves.
@@ -91,6 +96,7 @@ COPY --from=build /app/packages/content/ packages/content/
 RUN mkdir -p node_modules/@ournigeria && \
     ln -s /app/packages/database node_modules/@ournigeria/database && \
     ln -s /app/packages/cache node_modules/@ournigeria/cache && \
+    ln -s /app/packages/access node_modules/@ournigeria/access && \
     ln -s /app/packages/tools node_modules/@ournigeria/tools && \
     ln -s /app/packages/content node_modules/@ournigeria/content
 

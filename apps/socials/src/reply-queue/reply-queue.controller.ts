@@ -10,10 +10,13 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { RequirePermission } from "@ournigeria/access";
 import {
   AdminAuthGuard,
   type AuthedRequest,
 } from "../platforms/twitter/guards/admin-auth.guard.js";
+import { PermissionsGuard } from "../platforms/twitter/guards/permissions.guard.js";
+import { AuditWriterService } from "../audit/audit-writer.service.js";
 import {
   DraftAction,
   ReplyQueueService,
@@ -21,9 +24,13 @@ import {
 
 @ApiTags("Reply Queue")
 @Controller("v1/replies")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
+@RequirePermission("socials.review")
 export class ReplyQueueController {
-  constructor(private readonly service: ReplyQueueService) {}
+  constructor(
+    private readonly service: ReplyQueueService,
+    private readonly audit: AuditWriterService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: "List drafts (replies + quotes) by review status" })
@@ -79,18 +86,34 @@ export class ReplyQueueController {
   }
 
   @Post(":id/approve")
+  @RequirePermission("socials.publish")
   @ApiOperation({ summary: "Approve and publish a draft" })
   async approve(@Param("id") id: string, @Req() req: AuthedRequest) {
-    return this.service.approve(id, req.adminId);
+    const result = await this.service.approve(id, req.adminId);
+    await this.audit.log(req.adminId, {
+      action: "socials.reply.approved",
+      targetType: "social_post",
+      targetId: id,
+      metadata: { pathway: "direct" },
+    });
+    return result;
   }
 
   @Post(":id/reject")
   @ApiOperation({ summary: "Reject a draft" })
   async reject(@Param("id") id: string, @Req() req: AuthedRequest) {
-    return this.service.reject(id, req.adminId);
+    const result = await this.service.reject(id, req.adminId);
+    await this.audit.log(req.adminId, {
+      action: "socials.reply.rejected",
+      targetType: "social_post",
+      targetId: id,
+      metadata: { pathway: "direct" },
+    });
+    return result;
   }
 
   @Post(":id/mark-posted")
+  @RequirePermission("socials.publish")
   @ApiOperation({
     summary:
       "Mark a draft as posted manually (via X Web Intent) without calling the X API",
@@ -100,12 +123,30 @@ export class ReplyQueueController {
     @Req() req: AuthedRequest,
     @Body("externalId") externalId?: string,
   ) {
-    return this.service.markPosted(id, req.adminId, externalId);
+    const result = await this.service.markPosted(id, req.adminId, externalId);
+    await this.audit.log(req.adminId, {
+      action: "socials.reply.posted",
+      targetType: "social_post",
+      targetId: id,
+      metadata: { pathway: "direct" },
+    });
+    return result;
   }
 
   @Patch(":id")
   @ApiOperation({ summary: "Edit a draft's text" })
-  async edit(@Param("id") id: string, @Body("content") content: string) {
-    return this.service.editAndSave(id, content);
+  async edit(
+    @Param("id") id: string,
+    @Body("content") content: string,
+    @Req() req: AuthedRequest,
+  ) {
+    const result = await this.service.editAndSave(id, content);
+    await this.audit.log(req.adminId, {
+      action: "socials.reply.edited",
+      targetType: "social_post",
+      targetId: id,
+      metadata: { pathway: "direct" },
+    });
+    return result;
   }
 }

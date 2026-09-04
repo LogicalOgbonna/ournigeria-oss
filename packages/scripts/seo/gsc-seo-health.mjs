@@ -29,6 +29,13 @@ const SITEMAP_URL = 'https://ournigeria.ng/sitemap.xml';
 // non-browser client regardless of what real Googlebot sees) and the edge cache.
 const ORIGIN = process.env.SEO_HEALTH_ORIGIN
   || 'https://ournigeria-awanaija-logical-ogbonnas-projects.vercel.app';
+// Vercel Authentication (Standard Protection) covers the generated prod URL,
+// so origin fetches need the project's Protection Bypass for Automation secret;
+// without it every request 302s to vercel.com/login — which returns 200 and
+// would silently blind the redirect-following HEAD checks below.
+const BYPASS_SECRET = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || '';
+const ORIGIN_HEADERS = BYPASS_SECRET ? { 'x-vercel-protection-bypass': BYPASS_SECRET } : {};
+const offOrigin = (res) => new URL(res.url).host !== new URL(ORIGIN).host;
 // 100-URL sample: a 6% orphaning event (the Aug 2026 one was 795/13k) trips the
 // >=3 threshold with ~94% probability per run; 25 would only catch it ~19%.
 const HEAD_SAMPLE = Number(process.env.HEAD_SAMPLE || 100);
@@ -184,7 +191,11 @@ async function checkDeadUrls(sitemapUrls) {
   // project, DNS), fail loudly instead of letting every sample fetch error out
   // and the check silently degrade into a permanent pass.
   try {
-    const canary = await fetch(`${ORIGIN}/`, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const canary = await fetch(`${ORIGIN}/`, { method: 'HEAD', redirect: 'follow', headers: ORIGIN_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (offOrigin(canary)) {
+      fail(`origin canary redirected off-origin to ${new URL(canary.url).host} — deployment protection is blocking ${ORIGIN} (missing/rotated VERCEL_AUTOMATION_BYPASS_SECRET?)`);
+      return;
+    }
     if (!canary.ok) {
       fail(`origin canary ${ORIGIN}/ returned ${canary.status} — dead-URL check cannot run (deployment protection? renamed project?)`);
       return;
@@ -199,7 +210,7 @@ async function checkDeadUrls(sitemapUrls) {
   await Promise.all(sample.map(async (url) => {
     const path = new URL(url).pathname;
     try {
-      const res = await fetch(`${ORIGIN}${path}`, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      const res = await fetch(`${ORIGIN}${path}`, { method: 'HEAD', redirect: 'follow', headers: ORIGIN_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (res.status === 404 || res.status === 410) dead.push(path);
       else if (!res.ok) errors++;
     } catch { errors++; }
@@ -223,7 +234,13 @@ async function checkCanonicals() {
   let bad = false;
   for (const [path, expected] of expectations) {
     try {
-      const html = await (await fetch(`${ORIGIN}${path}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })).text();
+      const res = await fetch(`${ORIGIN}${path}`, { headers: ORIGIN_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      if (offOrigin(res)) {
+        bad = true;
+        fail(`${path} redirected off-origin to ${new URL(res.url).host} — deployment protection blocking (missing/rotated VERCEL_AUTOMATION_BYPASS_SECRET?)`);
+        continue;
+      }
+      const html = await res.text();
       // Attribute-order-insensitive; collect ALL canonical tags so a regression
       // that adds a second, conflicting one is caught too.
       const tags = [...html.matchAll(/<link\b[^>]*rel="canonical"[^>]*>/g)];

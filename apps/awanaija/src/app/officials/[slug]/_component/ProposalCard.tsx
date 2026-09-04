@@ -7,17 +7,7 @@ import type { Proposal } from "@/lib/api";
 import { voteOnProposal } from "@/lib/api";
 import { Show } from "@/components/ui/Show";
 import { FIELD_LABELS } from "./constants";
-
-const ROLE_LABELS: Record<string, string> = {
-  governor: "Governor",
-  deputy_governor: "Deputy Governor",
-  senator: "Senator",
-  representative: "Federal Representative",
-  rep: "Federal Representative",
-  mha: "State House Member",
-  lga_chairman: "LGA Chairman",
-  councilor: "Councilor",
-};
+import { roleLabel } from "@/lib/roles";
 
 function str(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
@@ -74,7 +64,7 @@ export function ProposalCard({ proposal }: { proposal: Proposal }) {
   const education = str(proposalValue?.education);
   const dateOfBirth = str(proposalValue?.dateOfBirth);
   const identifyDetails = [
-    roleKey ? ROLE_LABELS[roleKey] ?? roleKey : null,
+    roleKey ? roleLabel(roleKey) : null,
     partyAcronym ? `Party: ${partyAcronym}` : null,
     identifyScope ? `Scope: ${identifyScope}` : null,
     email ? `Email: ${email}` : null,

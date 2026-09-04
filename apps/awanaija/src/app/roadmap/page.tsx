@@ -6,9 +6,19 @@ const TITLE = "Roadmap — Coming to Your Ward | OurNigeria";
 const DESCRIPTION =
   "Today we can tell you who represents you. Here is everything else we are building, in the order we are building it — elections first, then the security chain, then what is actually inside your ward.";
 
-// og:image / twitter:image come from ./opengraph-image.tsx; declaring openGraph
-// here keeps the title, description and canonical URL correct for this page
-// rather than inheriting the site-wide ones from the root layout.
+// The card is a static PNG baked from the Figma design (bake source:
+// scripts/og-roadmap/ — edit card.html, screenshot #stage at 1200x630, replace
+// public/og/roadmap.png and bump OG_IMAGE's `v`). Declared explicitly rather
+// than via the opengraph-image file convention because the dev server resolves
+// static metadata files against its own localhost origin, ignoring
+// metadataBase — a relative URL here resolves correctly in every environment.
+const OG_IMAGE = {
+  url: "/og/roadmap.png?v=4",
+  width: 1200,
+  height: 630,
+  alt: "OurNigeria roadmap — the road to accountability runs ward by ward: 8,807 wards mapped, 774 local govts, 2,317 seats mapped.",
+};
+
 export const metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -20,11 +30,13 @@ export const metadata = {
     siteName: "OurNigeria",
     type: "article" as const,
     locale: "en_NG",
+    images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image" as const,
     title: TITLE,
     description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 

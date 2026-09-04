@@ -7,22 +7,30 @@ import {
   Param,
   Query,
   Body,
+  Req,
   Res,
   HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation } from "@nestjs/swagger";
-import { Response } from "express";
+import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminUsersService } from "./admin-users.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("users.read")
 @ApiTags("Admin - Users")
 @Controller("admin/users")
 export class AdminUsersController {
-  constructor(private service: AdminUsersService) {}
+  constructor(
+    private service: AdminUsersService,
+    private audit: AuditService,
+  ) {}
 
   @Get("stats")
   @ApiOperation({ summary: "Get user statistics" })
@@ -61,7 +69,11 @@ export class AdminUsersController {
 
   @Get(":id")
   @ApiOperation({ summary: "Get user details" })
-  async getUser(@Param("id") id: string, @Res() res: Response) {
+  async getUser(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const user = await this.service.getUser(id);
       if (!user) {
@@ -69,6 +81,11 @@ export class AdminUsersController {
           .status(HttpStatus.NOT_FOUND)
           .json({ error: "User not found" });
       }
+      void this.audit.logBestEffort(auditActorFromRequest(req as any), {
+        action: "user.viewed",
+        targetType: "user",
+        targetId: id,
+      });
       return res.json(user);
     } catch (err) {
       console.error("admin get-user error:", err);
@@ -80,9 +97,18 @@ export class AdminUsersController {
 
   @Get(":id/conversations")
   @ApiOperation({ summary: "Get user conversations" })
-  async getUserConversations(@Param("id") id: string, @Res() res: Response) {
+  async getUserConversations(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const data = await this.service.getUserConversations(id);
+      void this.audit.logBestEffort(auditActorFromRequest(req as any), {
+        action: "user.conversations.viewed",
+        targetType: "user",
+        targetId: id,
+      });
       return res.json(data);
     } catch (err) {
       console.error("admin user-conversations error:", err);
@@ -94,9 +120,18 @@ export class AdminUsersController {
 
   @Get(":id/memories")
   @ApiOperation({ summary: "Get user memories" })
-  async getUserMemories(@Param("id") id: string, @Res() res: Response) {
+  async getUserMemories(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
       const data = await this.service.getUserMemories(id);
+      void this.audit.logBestEffort(auditActorFromRequest(req as any), {
+        action: "user.memories.viewed",
+        targetType: "user",
+        targetId: id,
+      });
       return res.json(data);
     } catch (err) {
       console.error("admin user-memories error:", err);
@@ -121,10 +156,12 @@ export class AdminUsersController {
   }
 
   @Patch(":id")
+  @RequirePermission("users.manage")
   @ApiOperation({ summary: "Update user preferences" })
   async updateUser(
     @Param("id") id: string,
     @Body() body: { preferences?: Record<string, unknown> },
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
@@ -136,6 +173,7 @@ export class AdminUsersController {
       const updated = await this.service.updateUserPreferences(
         id,
         body.preferences,
+        auditActorFromRequest(req as any),
       );
       return res.json(updated);
     } catch (err) {
@@ -147,14 +185,20 @@ export class AdminUsersController {
   }
 
   @Post(":id/ban")
+  @RequirePermission("users.manage")
   @ApiOperation({ summary: "Ban a user" })
   async banUser(
     @Param("id") id: string,
     @Body() body: { reason?: string },
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
-      const result = await this.service.banUser(id, body.reason);
+      const result = await this.service.banUser(
+        id,
+        body.reason,
+        auditActorFromRequest(req as any),
+      );
       return res.json(result);
     } catch (err) {
       console.error("admin ban-user error:", err);
@@ -165,10 +209,18 @@ export class AdminUsersController {
   }
 
   @Post(":id/unban")
+  @RequirePermission("users.manage")
   @ApiOperation({ summary: "Unban a user" })
-  async unbanUser(@Param("id") id: string, @Res() res: Response) {
+  async unbanUser(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
-      const result = await this.service.unbanUser(id);
+      const result = await this.service.unbanUser(
+        id,
+        auditActorFromRequest(req as any),
+      );
       return res.json(result);
     } catch (err) {
       console.error("admin unban-user error:", err);
@@ -179,10 +231,15 @@ export class AdminUsersController {
   }
 
   @Delete(":id")
+  @RequirePermission("users.manage")
   @ApiOperation({ summary: "Delete a user and all their data" })
-  async deleteUser(@Param("id") id: string, @Res() res: Response) {
+  async deleteUser(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     try {
-      await this.service.deleteUser(id);
+      await this.service.deleteUser(id, auditActorFromRequest(req as any));
       return res.json({ success: true });
     } catch (err) {
       console.error("admin delete-user error:", err);

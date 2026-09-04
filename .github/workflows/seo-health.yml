@@ -10,6 +10,9 @@ name: SEO health
 #
 # Secrets: GOOGLE_SA_JSON (required — service account with GSC access, same value
 # as Infisical /analytics), CLOUDFLARE_API_TOKEN (optional, zone read),
+# VERCEL_AUTOMATION_BYPASS_SECRET (required while Vercel Authentication covers the
+# generated prod URL — the awanaija project's Protection Bypass for Automation
+# secret; rotate in Vercel project settings and update the repo secret together),
 # TELEGRAM_BOT_TOKEN + TELEGRAM_DEPLOY_CHAT_ID (optional alerting, already set).
 
 on:
@@ -30,6 +33,7 @@ jobs:
         env:
           GOOGLE_SA_JSON: ${{ secrets.GOOGLE_SA_JSON }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           set -uo pipefail
           if [ -z "${GOOGLE_SA_JSON}" ]; then

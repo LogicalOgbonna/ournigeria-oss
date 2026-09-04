@@ -2,11 +2,17 @@ import { Controller, Get, Post, Patch, Param, Query, Body, Req, Res, HttpStatus,
 import { Request, Response } from "express";
 import { Public } from "../auth/decorators/public";
 import { AdminGuard } from "../admin/admin.guard";
+import { PermissionsGuard } from "../admin/permissions.guard";
+import { RequirePermission } from "@ournigeria/access";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { ProposalsService } from "./proposals.service";
 
 @Controller("proposals")
 export class ProposalsController {
-  constructor(private service: ProposalsService) {}
+  constructor(
+    private service: ProposalsService,
+    private audit: AuditService,
+  ) {}
 
   @Public()
   @Post()
@@ -286,7 +292,8 @@ export class ProposalsController {
 
   // Admin endpoints — @Public() bypasses global user AuthGuard; AdminGuard handles admin auth
   @Public()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("proposals.review")
   @Get("admin/queue")
   async adminQueue(
     @Query("status") status: string | undefined,
@@ -308,7 +315,8 @@ export class ProposalsController {
   }
 
   @Public()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("proposals.review")
   @Get("admin/queue/grouped")
   async adminQueueGrouped(
     @Query("page") page: string | undefined,
@@ -328,7 +336,8 @@ export class ProposalsController {
   }
 
   @Public()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("proposals.review")
   @Get("admin/stats")
   async adminStats(@Res() res: Response) {
     try {
@@ -340,7 +349,8 @@ export class ProposalsController {
   }
 
   @Public()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("proposals.approve")
   @Patch("admin/:id")
   async adminAction(
     @Param("id") id: string,
@@ -355,6 +365,9 @@ export class ProposalsController {
   ) {
     try {
       const adminId = (req as any).adminId;
+      // Marks req audited (backstop suppression) — the service logs the
+      // domain-rich chain events itself.
+      const actor = auditActorFromRequest(req as any);
       let result;
       if (body.action === "approve") {
         result = await this.service.approve(id, adminId, {
@@ -365,7 +378,21 @@ export class ProposalsController {
       } else if (body.action === "reject") {
         result = await this.service.reject(id, adminId);
       } else if (body.action === "needs_evidence") {
-        await this.prismaUpdateStatus(id, "needs_evidence", adminId);
+        // Same-transaction audit: the status flip and its chain event commit
+        // or roll back together.
+        const prisma = (this.service as any).prisma;
+        await prisma.$transaction(async (tx: any) => {
+          await tx.dataProposal.update({
+            where: { id },
+            data: { status: "needs_evidence", reviewedAt: new Date(), reviewedBy: adminId },
+          });
+          await this.audit.log(tx, actor, {
+            action: "proposal.needs_evidence",
+            targetType: "proposal",
+            targetId: id,
+            metadata: { pathway: "proposal" },
+          });
+        });
         result = { status: "needs_evidence" };
       } else {
         return res.status(HttpStatus.BAD_REQUEST).json({ error: "Invalid action" });
@@ -381,7 +408,8 @@ export class ProposalsController {
   }
 
   @Public()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, PermissionsGuard)
+  @RequirePermission("proposals.approve")
   @Post("admin/bulk")
   async adminBulk(
     @Body() body: { ids: string[]; action: "approve" | "reject" },
@@ -390,6 +418,7 @@ export class ProposalsController {
   ) {
     try {
       const adminId = (req as any).adminId;
+      auditActorFromRequest(req as any); // backstop suppression; per-item events come from the service
       if (!Array.isArray(body.ids) || body.ids.length === 0) {
         return res.status(HttpStatus.BAD_REQUEST).json({ error: "ids array is required" });
       }

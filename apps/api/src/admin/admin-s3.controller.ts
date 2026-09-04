@@ -4,6 +4,7 @@ import {
   Post,
   Query,
   Body,
+  Req,
   Res,
   HttpStatus,
   UseGuards,
@@ -11,16 +12,23 @@ import {
   UploadedFile,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Response } from "express";
+import { Request, Response } from "express";
+import { RequirePermission } from "@ournigeria/access";
 import { AdminGuard } from "./admin.guard";
+import { PermissionsGuard } from "./permissions.guard";
 import { AdminS3Service } from "./admin-s3.service";
+import { AuditService, auditActorFromRequest } from "../audit/audit.service";
 import { Public } from "../auth/decorators/public";
 
 @Public()
-@UseGuards(AdminGuard)
+@UseGuards(AdminGuard, PermissionsGuard)
+@RequirePermission("documents.write")
 @Controller("admin/s3")
 export class AdminS3Controller {
-  constructor(private service: AdminS3Service) {}
+  constructor(
+    private service: AdminS3Service,
+    private audit: AuditService,
+  ) {}
 
   @Get("browse")
   async browse(@Query("prefix") prefix = "", @Res() res: Response) {
@@ -41,6 +49,7 @@ export class AdminS3Controller {
   @Post("folder")
   async createFolder(
     @Body() body: { prefix: string; folderName: string },
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
@@ -53,6 +62,11 @@ export class AdminS3Controller {
         body.prefix || "",
         body.folderName.trim(),
       );
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "s3.folder_created",
+        targetType: "s3",
+        targetId: result.prefix,
+      });
       return res.json({ success: true, ...result });
     } catch (err: any) {
       if (err.status === 400) {
@@ -74,6 +88,7 @@ export class AdminS3Controller {
   async upload(
     @UploadedFile() file: Express.Multer.File,
     @Body("prefix") prefix: string,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
@@ -96,6 +111,12 @@ export class AdminS3Controller {
         file.buffer,
         file.mimetype,
       );
+      await this.audit.log(null, auditActorFromRequest(req as any), {
+        action: "s3.uploaded",
+        targetType: "s3",
+        targetId: s3Key,
+        metadata: { size: file.size },
+      });
       return res.json({ success: true, ...result });
     } catch (err: any) {
       if (err.status === 400) {
