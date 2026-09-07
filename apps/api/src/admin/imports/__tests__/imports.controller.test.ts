@@ -9,6 +9,7 @@ describe("imports registry wiring", () => {
       .map((i) => i.name)
       .sort();
     expect(names).toEqual([
+      "campaigns",
       "party-candidates",
       "party-officers",
       "party-profiles",

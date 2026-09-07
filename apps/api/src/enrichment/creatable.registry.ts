@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
-import { slugifyName } from "@ournigeria/database";
+import { ensureTicketElections, slugifyName } from "@ournigeria/database";
+import type { Prisma } from "@ournigeria/database";
 import { resolveStateSlug } from "./state-codes";
 import {
   coerceEnum,
@@ -896,6 +897,192 @@ export const assemblyMemberEntity: CreatableEntity = {
   },
 };
 
+
+/**
+ * campaigns create — the bulk-import path for election tickets (campaign
+ * dashboard sub-plan 1, Task 14). The tx handed to insert() is the Prisma
+ * transaction client (RawTx is its raw subset), so the multi-row write uses
+ * the Prisma API; the role is still enrichment_apply (grants in
+ * 20260908090100_campaigns_enrichment_apply_grants). Rows land as DRAFT +
+ * unreviewed and enter the review queue — this path never publishes.
+ *
+ * People: an existing official whose slug is slugifyName(name) is reused;
+ * otherwise a candidate-typed (official_type NULL) row is created under a
+ * per-race slug hint, so a same-name stranger never gets the ticket. Linking
+ * to a different existing official is a dashboard job.
+ */
+const CDN_BASE = (process.env.CDN_BASE_URL ?? "https://cdn.ournigeria.ng").replace(/\/+$/, "");
+const cdnKey = (key: unknown): string | null =>
+  typeof key === "string" && key ? `${CDN_BASE}/${key.replace(/^\/+/, "")}` : null;
+
+interface ImportPerson {
+  name: string;
+  shortName?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  poster?: string;
+  card?: string;
+}
+
+function campaignEntity(): CreatableEntity {
+  return {
+    targetTable: "campaigns",
+    evidenceEntryType: null, // evidence rows are per official/position, not per ticket
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      for (const k of ["slug", "party", "electionType", "year", "candidate"]) {
+        if (p[k] === undefined || p[k] === null) throw new BadRequestException(`${k} is required`);
+      }
+      if (typeof p.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.slug)) {
+        throw new BadRequestException("slug must be lower-case kebab");
+      }
+      if (!Number.isInteger(p.year)) throw new BadRequestException("year must be an integer");
+      const cand = p.candidate as Partial<ImportPerson>;
+      if (typeof cand !== "object" || typeof cand.name !== "string" || !cand.name.trim()) {
+        throw new BadRequestException("candidate.name is required");
+      }
+      return p;
+    },
+    async preflight(tx, payload) {
+      const exists = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM campaigns WHERE slug = $1`, payload.slug);
+      if (exists.length) throw new BadRequestException(`campaign ${payload.slug} already exists`);
+      const party = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        String(payload.party).toUpperCase(),
+      );
+      if (!party.length) throw new BadRequestException(`unknown party ${payload.party}`);
+    },
+    async insert(rawTx, payload, ctx) {
+      const tx = rawTx as unknown as Prisma.TransactionClient;
+      const year = Number(payload.year);
+      const party = String(payload.party).toUpperCase();
+
+      const person = async (p: ImportPerson | null) => {
+        if (!p) return null;
+        const imageUrl = cdnKey(p.card ?? p.poster);
+        const plain = slugifyName(p.name);
+        const existing = await tx.nigerianOfficial.findFirst({
+          where: { slug: plain, deletedAt: null },
+          select: { id: true },
+        });
+        if (existing) return { id: existing.id, name: p.name, imageUrl };
+        const id = await findOrCreateOfficial(rawTx, {
+          name: p.name,
+          imageUrl,
+          gender: p.gender ?? null,
+          dateOfBirth: p.dateOfBirth ?? null,
+          officialType: null, // a candidate is not an office-holder (plan 60 §4.3)
+          slug: `${plain}-${year}-${party.toLowerCase()}`,
+        });
+        return { id, name: p.name, imageUrl };
+      };
+
+      const cand = (await person(payload.candidate as ImportPerson))!;
+      const mateInput = (payload.runningMate as ImportPerson | null | undefined) ?? null;
+      const mate = await person(mateInput);
+      const c = payload.candidate as ImportPerson;
+      const blurbs = (payload.documentBlurbs as Record<string, string> | undefined) ?? {};
+      const art = payload.posterArt as
+        | { urlColor?: string; candidate: object; mate?: object; chip?: object; scrim?: object }
+        | undefined;
+
+      const media: { type: string; url: string; metadata?: object; displayOrder: number }[] = [];
+      const push = (type: string, key: unknown, metadata?: object) => {
+        const url = cdnKey(key);
+        if (url) media.push({ type, url, metadata, displayOrder: media.length });
+      };
+      push(
+        "poster_candidate",
+        c.poster,
+        art ? { box: art.candidate, chip: art.chip ?? null, scrim: art.scrim ?? null, urlColor: art.urlColor ?? null } : undefined,
+      );
+      push("poster_mate", mateInput?.poster, art?.mate ? { box: art.mate } : undefined);
+      push("card_candidate", c.card);
+      push("card_mate", mateInput?.card);
+      push("quote_photo", payload.quotePhoto);
+      push("bio_photo", payload.bioPhoto);
+      push("logo", payload.logo);
+
+      type Doc = { kind: string; subject: string; title: string; blurb?: string; cover?: string; file?: string; pageCount?: number };
+      const documents = ((payload.documents as Doc[] | undefined) ?? []).map((d) => ({
+        kind: d.kind,
+        subject: d.subject,
+        title: d.title,
+        blurb: d.blurb ?? blurbs[d.kind] ?? null,
+        coverUrl: cdnKey(d.cover),
+        fileUrl: cdnKey(d.file),
+        pageCount: d.pageCount ?? null,
+        confidence: ctx.confidence,
+        sourceType: "import",
+      }));
+
+      const row = await tx.campaign.create({
+        data: {
+          slug: String(payload.slug),
+          electionType: String(payload.electionType),
+          year,
+          partyAcronym: party,
+          stateCode: (payload.stateCode as string | null) ?? null,
+          constituencyCode: (payload.constituencyCode as string | null) ?? null,
+          lgaCode: (payload.lgaCode as string | null) ?? null,
+          candidateOfficialId: cand.id,
+          candidateName: cand.name,
+          candidateShortName: c.shortName ?? null,
+          candidateImageUrl: cand.imageUrl,
+          runningMateOfficialId: mate?.id ?? null,
+          runningMateName: mate?.name ?? null,
+          runningMateImageUrl: mate?.imageUrl ?? null,
+          candidateBio: (payload.candidateBio as string | null) ?? null,
+          visionLine: (payload.visionLine as string | null) ?? null,
+          fineprint: (payload.fineprint as string | null) ?? null,
+          pullQuote: (payload.pullQuote as string | null) ?? null,
+          pullQuoteBg: (payload.pullQuoteBg as string | null) ?? null,
+          brandColor: (payload.brandColor as string | null) ?? null,
+          factionLabel: (payload.factionLabel as string | null) ?? null,
+          isDisputed: Boolean(payload.isDisputed),
+          status: "draft",
+          reviewStatus: "unreviewed",
+          reviewRequestedAt: new Date(),
+          reviewRequestedBy: ctx.adminId,
+          confidence: ctx.confidence,
+          sourceType: "import",
+          sourceUrl: (payload.sourceUrl as string | null) ?? null,
+          documents: { create: documents },
+          media: { create: media },
+        },
+        select: {
+          id: true,
+          electionType: true,
+          year: true,
+          partyAcronym: true,
+          stateCode: true,
+          constituencyCode: true,
+          lgaCode: true,
+          candidateOfficialId: true,
+          candidateName: true,
+          runningMateOfficialId: true,
+          runningMateName: true,
+          officialElectionId: true,
+        },
+      });
+      const confidence = ctx.confidence === "high" || ctx.confidence === "low" ? ctx.confidence : "medium";
+      const anchor = await ensureTicketElections(tx, row, {
+        result: "pending",
+        reviewedBy: ctx.adminId,
+        sourceType: "import",
+        confidence,
+      });
+      if (anchor.candidateElectionId) {
+        await tx.campaign.update({ where: { id: row.id }, data: { officialElectionId: anchor.candidateElectionId } });
+      }
+      return { id: row.id, officialId: cand.id };
+    },
+  };
+}
+
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   official_education: officialFactEntity("official_education", "education", [
     { key: "institution", column: "institution", type: "string", required: true },
@@ -1045,6 +1232,8 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   // Assembly member (State House of Assembly, role 'mha'): find-or-create official,
   // upsert active mha position for the seat, atomic downgrade of other holders.
   assembly_member: assemblyMemberEntity,
+  // Election tickets (bulk import): draft campaign + media + documents + anchor.
+  campaigns: campaignEntity(),
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {
