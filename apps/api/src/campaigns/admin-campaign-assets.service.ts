@@ -309,7 +309,8 @@ export class AdminCampaignAssetsService {
   }
 
   /** A recorded URL is replayable only while it is ours and still stored. */
-  private async assertObjectSurvives(url: string) {
+  /** Revert guard: the URL is ours AND its object still exists (not purged). */
+  async assertObjectSurvives(url: string) {
     if (!this.images.isStoredUrl(url)) throw new BadRequestException("previous URL is not in our storage");
     const key = this.store.keyFor(url);
     if (!key || !(await this.store.head(key))) {
@@ -343,7 +344,7 @@ export class AdminCampaignAssetsService {
     // deletes the avatar of a live council member. Each key is checked as a
     // family, and a key is refused when any member of its family is referenced.
     const family = new Map(input.keys.map((k) => [k, [k, ...siblingKeys(k)]]));
-    const lookupUrls = [...new Set([...family.values()].flat())].map((k) => this.store.urlFor(k));
+    const lookupUrls = [...new Set([...family.values()].flat())].flatMap((k) => this.store.urlsFor(k));
     const [media, docs, council] = await Promise.all([
       this.prisma.campaignMedia.findMany({ where: { url: { in: lookupUrls } }, select: { url: true } }),
       this.prisma.campaignDocument.findMany({ where: { OR: [{ fileUrl: { in: lookupUrls } }, { coverUrl: { in: lookupUrls } }] }, select: { fileUrl: true, coverUrl: true } }),
@@ -352,7 +353,7 @@ export class AdminCampaignAssetsService {
     const referenced = new Set<string>([...media.map((m) => m.url), ...docs.flatMap((d) => [d.fileUrl, d.coverUrl]).filter((u): u is string => Boolean(u)), ...council.map((c) => c.imageUrl).filter((u): u is string => Boolean(u))]);
     const blocked = input.keys
       .map((k) => {
-        const hit = family.get(k)!.find((s) => referenced.has(this.store.urlFor(s)));
+        const hit = family.get(k)!.find((s) => this.store.urlsFor(s).some((u) => referenced.has(u)));
         if (!hit) return null;
         return hit === k ? k : `${k} (its variant ${hit} is still referenced)`;
       })

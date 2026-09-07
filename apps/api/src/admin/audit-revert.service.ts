@@ -400,6 +400,8 @@ export class AuditRevertService {
         if (Object.keys(fields).length === 0) {
           throw new BadRequestException("Event diff has no revertible fields");
         }
+        // A photo re-point must not resurrect a purged object.
+        if (typeof fields.imageUrl === "string") await this.assets.assertObjectSurvives(fields.imageUrl);
         await this.council.patchMember(actor, campaignId, targetId, { ...fields, reason: effectiveReason } as never);
         return "campaign.council.updated";
       }

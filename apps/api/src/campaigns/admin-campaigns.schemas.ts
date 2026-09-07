@@ -252,5 +252,11 @@ export const DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"] as cons
 export const councilPhotoSchema = z.object({ stagingKey, reason: text(500).optional() });
 export type CouncilPhotoInput = z.infer<typeof councilPhotoSchema>;
 
-export const purgeSchema = z.object({ keys: z.array(z.string().min(1).max(500)).min(1).max(100), reason: text(500).min(3) });
+const objectKey = z
+  .string()
+  .min(1)
+  .max(500)
+  .regex(/^[a-z0-9][a-z0-9._\/-]*$/i, "key must be a plain object key")
+  .refine((k) => !k.includes("..") && !k.includes("//"), "key must not contain .. or //");
+export const purgeSchema = z.object({ keys: z.array(objectKey).min(1).max(100), reason: text(500).min(3) });
 export type PurgeInput = z.infer<typeof purgeSchema>;

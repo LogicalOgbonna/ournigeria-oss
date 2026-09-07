@@ -49,7 +49,7 @@ describe("AdminCampaignAssetsService", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    store = new MemoryObjectStore("https://cdn.test");
+    store = new MemoryObjectStore("https://cdn.test", ["https://bucket.s3.test"]);
     const images = {
       isStoredUrl: (u: string) => u.startsWith("https://cdn.test/"),
       storeAsset: async (input: Buffer, prefix: string, opts: { type: string }) => {
@@ -332,5 +332,15 @@ describe("AdminCampaignAssetsService", () => {
     const res = await assets.purge(actor(reviewer), draftId, { keys: [large], reason: "takedown" });
     expect(res.deleted.sort()).toEqual([large, small].sort());
     expect(store.objects.has(small)).toBe(false);
+  });
+
+  it("purge refuses a key whose object a row references under the raw bucket URL form", async () => {
+    const k = await stage(draftId, await png(320, 320), "image/png");
+    const m = await assets.commitMedia(actor(writer), draftId, { stagingKey: k, type: "photo", caption: "s3-form" });
+    const key = store.keyFor(m.url)!;
+    // A seed/import that wrote the bucket URL instead of the CDN URL.
+    await prisma.campaignMedia.update({ where: { id: m.id }, data: { url: `https://bucket.s3.test/${key}` } });
+    await expect(assets.purge(actor(reviewer), draftId, { keys: [key], reason: "takedown" })).rejects.toThrow(/still referenced/);
+    await prisma.campaignMedia.delete({ where: { id: m.id } });
   });
 });

@@ -73,7 +73,7 @@ describe("AuditRevertService campaign cases (mocked)", () => {
     const alerts = { alert: vi.fn(async () => true) };
     const campaigns = { patch: vi.fn(async () => ({})), order: vi.fn(async () => ({ ranked: 2 })) };
     const council = { patchMember: vi.fn(async () => ({})), reinstateMember: vi.fn(async () => ({})) };
-    const assets = { restoreMedia: vi.fn(async () => ({})), restoreDocument: vi.fn(async () => ({})) };
+    const assets = { assertObjectSurvives: vi.fn(async () => undefined), restoreMedia: vi.fn(async () => ({})), restoreDocument: vi.fn(async () => ({})) };
     const svc = new AuditRevertService(
       prisma as never,
       audit as never,

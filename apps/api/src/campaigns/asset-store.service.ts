@@ -37,8 +37,10 @@ export interface ObjectStore {
   delete(key: string): Promise<void>;
   /** Public URL for a stored key (CDN when configured). */
   urlFor(key: string): string;
-  /** Inverse of urlFor for our own URLs; null for anything else. */
+  /** Inverse of urlFor for our own URLs (any origin form we ever wrote); null for anything else. */
   keyFor(url: string): string | null;
+  /** Every public URL form a key may have been stored under (CDN, virtual-hosted, path-style). */
+  urlsFor(key: string): string[];
 }
 
 export const OBJECT_STORE = Symbol("OBJECT_STORE");
@@ -48,6 +50,8 @@ export class S3ObjectStore implements ObjectStore {
   private readonly s3: S3Client;
   private readonly bucket: string;
   private readonly baseUrl: string;
+  /** baseUrl first, then the raw bucket forms isStoredUrl also accepts. */
+  private readonly bases: string[];
 
   constructor(config: ConfigService) {
     this.bucket = config.getOrThrow<string>("S3_BUCKET");
@@ -61,6 +65,13 @@ export class S3ObjectStore implements ObjectStore {
     });
     const cdn = config.get<string>("CDN_BASE_URL")?.replace(/\/+$/, "");
     this.baseUrl = cdn || `https://${this.bucket}.s3.${region}.amazonaws.com`;
+    this.bases = [
+      ...new Set([
+        this.baseUrl,
+        `https://${this.bucket}.s3.${region}.amazonaws.com`,
+        `https://s3.${region}.amazonaws.com/${this.bucket}`,
+      ]),
+    ];
   }
 
   async presignPut(input: PresignPutInput) {
@@ -119,7 +130,15 @@ export class S3ObjectStore implements ObjectStore {
   }
 
   keyFor(url: string) {
-    return keyFromUrl(this.baseUrl, url);
+    for (const base of this.bases) {
+      const key = keyFromUrl(base, url);
+      if (key) return key;
+    }
+    return null;
+  }
+
+  urlsFor(key: string) {
+    return this.bases.map((b) => `${b}/${key}`);
   }
 }
 

@@ -49,4 +49,21 @@ describe("S3ObjectStore", () => {
     // is advisory: the uploader could stream anything at the signed URL.
     expect(signed).toContain("content-length");
   });
+
+  it("keyFor accepts every origin form isStoredUrl accepts, and urlsFor lists them", async () => {
+    const config = {
+      getOrThrow: (k: string) => ({ S3_BUCKET: "test-bucket", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "AKIATEST", AWS_SECRET_ACCESS_KEY: "secret" })[k],
+      get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.test" : undefined),
+    };
+    const store = new S3ObjectStore(config as never);
+    expect(store.keyFor("https://cdn.test/a/b.webp")).toBe("a/b.webp");
+    expect(store.keyFor("https://test-bucket.s3.eu-west-1.amazonaws.com/a/b.webp")).toBe("a/b.webp");
+    expect(store.keyFor("https://s3.eu-west-1.amazonaws.com/test-bucket/a/b.webp")).toBe("a/b.webp");
+    expect(store.keyFor("https://cdn.test.evil.com/a/b.webp")).toBeNull();
+    expect(store.urlsFor("a/b.webp")).toEqual([
+      "https://cdn.test/a/b.webp",
+      "https://test-bucket.s3.eu-west-1.amazonaws.com/a/b.webp",
+      "https://s3.eu-west-1.amazonaws.com/test-bucket/a/b.webp",
+    ]);
+  });
 });

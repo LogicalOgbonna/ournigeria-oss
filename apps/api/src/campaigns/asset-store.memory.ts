@@ -4,7 +4,8 @@ import { keyFromUrl, type ObjectStore, type PresignPutInput, type PutOptions } f
 export class MemoryObjectStore implements ObjectStore {
   readonly objects = new Map<string, { body: Buffer; opts: PutOptions }>();
   readonly deleted: string[] = [];
-  constructor(private readonly baseUrl: string) {}
+  /** `aliases` = extra public bases the same object may be referenced under (tests for purge). */
+  constructor(private readonly baseUrl: string, private readonly aliases: string[] = []) {}
 
   async presignPut(input: PresignPutInput) {
     return {
@@ -32,6 +33,14 @@ export class MemoryObjectStore implements ObjectStore {
     return `${this.baseUrl}/${key}`;
   }
   keyFor(url: string) {
-    return keyFromUrl(this.baseUrl, url);
+    for (const base of [this.baseUrl, ...this.aliases]) {
+      const key = keyFromUrl(base, url);
+      if (key) return key;
+    }
+    return null;
+  }
+
+  urlsFor(key: string) {
+    return [this.baseUrl, ...this.aliases].map((b) => `${b}/${key}`);
   }
 }
