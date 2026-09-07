@@ -72,6 +72,14 @@ const PROTECTED_ARTIFACTS = [
   "uq_population_ward_year",
   // Socials — partial index on discovered tweets
   "idx_socials_discovered_tweet_source",
+  // Campaigns — one ticket per (race, party, faction), NULLS NOT DISTINCT; and one
+  // active council seat per (campaign, official, role). 20260907024312_campaigns_ticket_council_documents_media
+  "uq_campaigns_race_party_faction",
+  "uq_campaign_council_active_official",
+  // Campaigns — one ticket per rank within a race (partial, NULLS NOT DISTINCT). 20260907130000_campaigns_display_order_unique
+  "uq_campaigns_race_display_order",
+  // Campaigns — review queue partial index. 20260908090000_campaigns_draft_review
+  "idx_campaigns_review_queue",
 ];
 
 /** SQL verbs that destroy data or invariants. Never auto-applied unreviewed. */

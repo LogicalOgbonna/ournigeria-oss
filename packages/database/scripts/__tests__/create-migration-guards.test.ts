@@ -171,3 +171,23 @@ describe("filterChunkTableOps", () => {
     expect(sql).toBe("");
   });
 });
+
+describe("campaigns partial race-key index stays protected", () => {
+  it("keeps uq_campaigns_race_party_faction and idx_campaigns_review_queue when the diff wants to drop them", () => {
+    const diff = `-- DropIndex
+DROP INDEX "uq_campaigns_race_party_faction";
+
+-- DropIndex
+DROP INDEX "idx_campaigns_review_queue";
+
+-- AlterTable
+ALTER TABLE "campaigns" ADD COLUMN "review_note" TEXT;`;
+
+    const { sql, kept } = stripProtectedDrops(diff);
+
+    expect(sql).not.toContain("DROP INDEX");
+    expect(kept).toContain("uq_campaigns_race_party_faction");
+    expect(kept).toContain("idx_campaigns_review_queue");
+    expect(findDestructiveOps(sql)).toEqual([]);
+  });
+});
