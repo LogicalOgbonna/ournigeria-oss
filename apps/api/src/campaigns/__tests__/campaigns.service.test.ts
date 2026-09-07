@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaService } from "@ournigeria/database";
+import { GeoSeatResolver } from "../../election/geo-seat-resolver";
 import { CampaignsService } from "../campaigns.service";
 
 /**
@@ -36,7 +37,7 @@ describe("CampaignsService", () => {
     if (!DB) throw new Error("DATABASE_URL not set");
     prisma = new PrismaService();
     await prisma.onModuleInit();
-    svc = new CampaignsService(prisma);
+    svc = new CampaignsService(prisma, new GeoSeatResolver(prisma));
 
     const a = await prisma.campaign.create({
       data: {
@@ -92,6 +93,16 @@ describe("CampaignsService", () => {
       data: { ...base("unreviewed", "u"), reviewStatus: "unreviewed" },
     });
     ids.push(unreviewed.id);
+
+    const gov = await prisma.campaign.create({
+      data: {
+        ...base("gov", "gov"),
+        electionType: "gubernatorial",
+        stateCode: "lagos",
+        displayOrder: 1,
+      },
+    });
+    ids.push(gov.id);
   });
 
   afterAll(async () => {
@@ -182,5 +193,24 @@ describe("CampaignsService", () => {
     await expect(
       prisma.campaign.create({ data: { ...dup, slug: `zzz-test-dup2-${tag}` } }),
     ).rejects.toThrow();
+  });
+
+  it("ballot returns the presidential and the state governor race for a Lagos viewer, omitting empty races", async () => {
+    const races = await svc.ballot({ state: "lagos", year: YEAR });
+    const offices = races.map((r) => r.office);
+    expect(offices[0]).toBe("president");
+    expect(offices).toContain("governor");
+    // No senate/hor/assembly tickets were seeded for 2099 → omitted, not empty.
+    expect(offices).not.toContain("senate");
+    const governor = races.find((r) => r.office === "governor")!;
+    expect(governor.seatLabel).toBe("Governor of Lagos");
+    expect(governor.seatCode).toBe("lagos");
+    expect(governor.tickets.map((t) => t.slug)).toEqual([`zzz-test-gov-${tag}`]);
+    expect(governor.tickets[0].media).toEqual([]);
+  });
+
+  it("ballot honours an offices filter", async () => {
+    const races = await svc.ballot({ state: "lagos", year: YEAR, offices: ["governor"] });
+    expect(races.map((r) => r.office)).toEqual(["governor"]);
   });
 });

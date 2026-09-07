@@ -1,6 +1,7 @@
 import { Controller, Get, HttpStatus, Param, Query, Res } from "@nestjs/common";
 import { Response } from "express";
 import { Public } from "../auth/decorators/public";
+import { Office, OFFICES } from "../election/office-map";
 import {
   CAMPAIGN_ELECTION_TYPES,
   CampaignElectionType,
@@ -50,6 +51,38 @@ export class CampaignsController {
       return res.json(campaigns);
     } catch (err) {
       console.error("campaigns list error:", err);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    }
+  }
+
+  /**
+   * GET /api/campaigns/ballot?state=lagos&lga=ikeja&ward=…&year=2027&offices=governor,senate
+   * Every race the viewer can vote in that has public tickets, rail order.
+   */
+  @Public()
+  @Get("ballot")
+  async ballot(
+    @Query("state") state: string | undefined,
+    @Query("lga") lga: string | undefined,
+    @Query("ward") ward: string | undefined,
+    @Query("year") rawYear: string | undefined,
+    @Query("offices") rawOffices: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!state?.trim()) return res.status(HttpStatus.BAD_REQUEST).json({ error: "state is required" });
+    if (!rawYear || !/^\d{4}$/.test(rawYear)) {
+      return res.status(HttpStatus.BAD_REQUEST).json({ error: "year must be a four-digit year" });
+    }
+    let offices: Office[] | undefined;
+    if (rawOffices) {
+      offices = rawOffices.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean) as Office[];
+      const bad = offices.filter((o) => !(OFFICES as readonly string[]).includes(o));
+      if (bad.length) return res.status(HttpStatus.BAD_REQUEST).json({ error: `unknown office ${bad.join(", ")}` });
+    }
+    try {
+      return res.json(await this.service.ballot({ state, lga, ward, year: Number(rawYear), offices }));
+    } catch (err) {
+      console.error("campaigns ballot error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
   }

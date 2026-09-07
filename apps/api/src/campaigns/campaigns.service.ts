@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, PrismaService } from "@ournigeria/database";
+import { GeoSeatResolver } from "../election/geo-seat-resolver";
+import { Office, OFFICE_ELECTION_TYPE, OFFICE_LABEL, OFFICE_ORDER } from "../election/office-map";
 
 /**
  * Public read model for `campaigns` — one ticket in one race, with its
@@ -68,9 +70,31 @@ export interface CampaignListFilters {
   readonly lga?: string;
 }
 
+export interface BallotParams {
+  readonly state: string;
+  readonly lga?: string;
+  readonly ward?: string;
+  readonly year: number;
+  /** Subset of offices to resolve; default = every office. */
+  readonly offices?: readonly Office[];
+}
+
+export interface BallotRace {
+  office: Office;
+  electionType: string;
+  seatLabel: string;
+  seatCode: string | null;
+  tickets: CampaignSummary[];
+}
+
+export type CampaignSummary = ReturnType<CampaignsService["summary"]>;
+
 @Injectable()
 export class CampaignsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private resolver: GeoSeatResolver,
+  ) {}
 
   /** The where-clause every public read goes through. One place, not four. */
   private publicWhere(): Prisma.CampaignWhereInput {
@@ -215,7 +239,52 @@ export class CampaignsService {
     };
   }
 
-  private summary(r: SummaryRow) {
+  /**
+   * The races a viewer at (state, lga, ward) can vote in, each with its public
+   * tickets in rail order. Seat resolution is GeoSeatResolver's (the same code
+   * /api/election/ballot uses), so senate/hor resolve from an LGA and assembly
+   * from a ward. A race with zero public tickets is omitted — the homepage
+   * dropdown must not offer an empty rail.
+   */
+  async ballot(params: BallotParams): Promise<BallotRace[]> {
+    const state = params.state.trim().toLowerCase();
+    const wanted = params.offices?.length ? params.offices : OFFICE_ORDER;
+    const stateName =
+      (await this.prisma.nigerianState.findUnique({ where: { code: state }, select: { name: true } }))?.name ?? state;
+
+    const races = await Promise.all(
+      wanted.map(async (office) => {
+        const scope = await this.resolver.resolveOne(office, state, stateName, params.lga, params.ward);
+        if (!scope) return null;
+        // councillor seats key on ward_code, which campaigns does not model.
+        if (scope.column === "wardCode") return null;
+        const electionType = OFFICE_ELECTION_TYPE[office];
+        const rows = await this.prisma.campaign.findMany({
+          where: {
+            ...this.publicWhere(),
+            electionType,
+            year: params.year,
+            ...(scope.column === "stateCode" ? { stateCode: scope.code } : {}),
+            ...(scope.column === "constituencyCode" ? { constituencyCode: scope.code } : {}),
+            ...(scope.column === "lgaCode" ? { lgaCode: scope.code } : {}),
+          },
+          include: summaryInclude,
+          orderBy: [{ displayOrder: { sort: "asc", nulls: "last" } }, { partyAcronym: "asc" }, { slug: "asc" }],
+        });
+        if (rows.length === 0) return null;
+        return {
+          office,
+          electionType,
+          seatLabel: scope.label || OFFICE_LABEL[office],
+          seatCode: scope.code,
+          tickets: rows.map((r) => this.summary(r)),
+        } satisfies BallotRace;
+      }),
+    );
+    return races.filter((r): r is BallotRace => r !== null);
+  }
+
+  summary(r: SummaryRow) {
     return {
       id: r.id,
       slug: r.slug,
