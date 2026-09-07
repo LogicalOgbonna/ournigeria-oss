@@ -359,12 +359,15 @@ export class AdminCampaignAssetsService {
       .filter((x): x is string => x !== null);
     if (blocked.length) throw new ConflictException(`keys still referenced by a row (delete the row first): ${blocked.join(", ")}`);
 
-    const urls = input.keys.map((k) => this.store.urlFor(k));
-    await this.audit.log(null, actor, { action: "campaign.assets.purge_requested", targetType: "campaign", targetId: campaignId, metadata: { keys: input.keys, reason: input.reason } });
-    for (const k of input.keys) await this.store.delete(k);
+    // Take down the whole variant family: a square portrait is two objects and a
+    // takedown that leaves the -128 avatar live is not a takedown.
+    const keys = [...new Set([...family.values()].flat())];
+    const urls = keys.map((k) => this.store.urlFor(k));
+    await this.audit.log(null, actor, { action: "campaign.assets.purge_requested", targetType: "campaign", targetId: campaignId, metadata: { keys, requested: input.keys, reason: input.reason } });
+    for (const k of keys) await this.store.delete(k);
     const cdn = await this.cdn.purge(urls);
-    await this.audit.logBestEffort(actor, { action: "campaign.assets.purged", targetType: "campaign", targetId: campaignId, metadata: { keys: input.keys, cdn, reason: input.reason } });
-    return { deleted: input.keys, cdn };
+    await this.audit.logBestEffort(actor, { action: "campaign.assets.purged", targetType: "campaign", targetId: campaignId, metadata: { keys, cdn, reason: input.reason } });
+    return { deleted: keys, cdn };
   }
 
   // ---------- helpers ----------

@@ -297,4 +297,40 @@ describe("AdminCampaignAssetsService", () => {
     expect(events[1].metadata).toMatchObject({ keys: [orphan], reason: "takedown", cdn: { purged: false } });
     await expect(assets.purge(actor(reviewer), draftId, { keys: ["officials/someone/x.webp"], reason: "no" })).rejects.toThrow(/outside this ticket/);
   });
+  it("commitMedia clears caption/sourceUrl on an explicit null and inherits them when absent", async () => {
+    const k1 = await stage(draftId, await png(640, 480), "image/png");
+    const first = await assets.commitMedia(actor(writer), draftId, { stagingKey: k1, type: "quote_photo", caption: "keep me", sourceUrl: "https://example.org/src" });
+    expect(first.caption).toBe("keep me");
+    const k2 = await stage(draftId, await png(641, 480), "image/png");
+    const inherited = await assets.commitMedia(actor(writer), draftId, { stagingKey: k2, type: "quote_photo" });
+    expect(inherited.caption).toBe("keep me");
+    expect(inherited.sourceUrl).toBe("https://example.org/src");
+    const k3 = await stage(draftId, await png(642, 480), "image/png");
+    const cleared = await assets.commitMedia(actor(writer), draftId, { stagingKey: k3, type: "quote_photo", caption: null, sourceUrl: null });
+    expect(cleared.caption).toBeNull();
+    expect(cleared.sourceUrl).toBeNull();
+  });
+
+  it("a writer who deleted a child asset since the last review cannot approve the ticket", async () => {
+    const k = await stage(liveId, await png(300, 300), "image/png");
+    const m = await assets.commitMedia(actor(writer), liveId, { stagingKey: k, type: "photo", caption: "temp", reason: "add" });
+    await campaigns.approve(actor(reviewer), reviewer, liveId, "settle the state");
+    await assets.deleteMedia(actor(writer), liveId, m.id, "remove it");
+    // The deleted row no longer exists to join on; metadata.campaignId must still count the writer as an editor.
+    await expect(campaigns.approve(actor(writer), writer, liveId, "self")).rejects.toThrow(/cannot approve/);
+    await expect(campaigns.approve(actor(reviewer), reviewer, liveId, "reviewer ok")).resolves.toMatchObject({ reviewStatus: "reviewed" });
+  });
+
+  it("purge takes down the whole -600/-128 family of an unreferenced portrait", async () => {
+    const member = await council.addMember(actor(writer), draftId, { roleCode: "member", name: "Zzz Family Person", scopeLevel: "national" });
+    const k = await stage(draftId, await png(500, 500), "image/png");
+    const updated = await assets.commitCouncilPhoto(actor(writer), draftId, member.id, { stagingKey: k });
+    const large = store.keyFor(updated.imageUrl!)!;
+    const small = large.replace("-600.webp", "-128.webp");
+    await store.put(small, Buffer.from("avatar"), { contentType: "image/webp" });
+    await council.removeMember(actor(writer), draftId, member.id);
+    const res = await assets.purge(actor(reviewer), draftId, { keys: [large], reason: "takedown" });
+    expect(res.deleted.sort()).toEqual([large, small].sort());
+    expect(store.objects.has(small)).toBe(false);
+  });
 });
