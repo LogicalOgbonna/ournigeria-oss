@@ -17,6 +17,9 @@ import {
 import { RolesAdminService } from "./roles-admin.service";
 import { AdminUsersService } from "./admin-users.service";
 import { loadPermissions } from "./roles.util";
+import { AdminCampaignsService } from "../campaigns/admin-campaigns.service";
+import { AdminCampaignCouncilService } from "../campaigns/admin-campaign-council.service";
+import type { CampaignElectionType } from "../campaigns/campaigns.service";
 
 /**
  * Phase-A audit playback (plan 62 follow-up): revert a whitelisted,
@@ -37,6 +40,13 @@ export const REVERTIBLE_ACTIONS: Record<string, Permission> = {
   "role.revoked": "roles.manage",
   "user.banned": "users.manage",
   "user.unbanned": "users.manage",
+  // Election tickets: reverting is a review act, whatever the original
+  // permission was (spec 2026-09-07 campaign dashboard, R6). Media/document
+  // reverts arrive with sub-plan 2.
+  "campaign.updated": "campaigns.review",
+  "campaign.council.updated": "campaigns.review",
+  "campaign.council.ended": "campaigns.review",
+  "campaign.reordered": "campaigns.review",
 };
 
 interface DiffShape {
@@ -60,6 +70,8 @@ export class AuditRevertService {
     private readonly officials: AdminOfficialsService,
     private readonly roles: RolesAdminService,
     private readonly users: AdminUsersService,
+    private readonly campaigns: AdminCampaignsService,
+    private readonly council: AdminCampaignCouncilService,
   ) {}
 
   async revert(
@@ -226,6 +238,73 @@ export class AuditRevertService {
         await this.assertUserBanState(targetId, false);
         await this.users.banUser(targetId, effectiveReason, actor);
         return "user.banned";
+      }
+
+      case "campaign.updated": {
+        const before = diff.before ?? {};
+        const after = diff.after ?? {};
+        const row = await this.prisma.campaign.findUnique({ where: { id: targetId } });
+        if (!row) throw new NotFoundException("Campaign not found");
+        const current = row as unknown as Record<string, unknown>;
+        const input: Record<string, unknown> = {};
+        for (const field of Object.keys(before)) {
+          if (!sameValue(current[field], after[field])) {
+            throw new ConflictException(
+              `Cannot revert: "${field}" has been changed again since this event`,
+            );
+          }
+          input[field] = before[field] ?? null;
+        }
+        if (Object.keys(input).length === 0) {
+          throw new BadRequestException("Event diff has no revertible fields");
+        }
+        // patch() re-flags a public ticket for review — a revert is an edit.
+        await this.campaigns.patch(actor, targetId, { ...input, reason: effectiveReason } as never);
+        return "campaign.updated";
+      }
+
+      case "campaign.council.updated": {
+        const before = diff.before as Record<string, unknown> | null;
+        const campaignId = metadata.campaignId;
+        if (!before || typeof campaignId !== "string") {
+          throw new BadRequestException("Event has no council diff");
+        }
+        // Only the columns memberPatchSchema exposes; ids/timestamps/status are not patchable.
+        const REVERTIBLE = ["roleCode", "officialId", "name", "imageUrl", "scopeLevel", "stateCode", "lgaCode", "startDate", "displayOrder", "confidence", "sourceUrl"];
+        const fields: Record<string, unknown> = {};
+        for (const f of REVERTIBLE) {
+          if (f in before) fields[f] = f === "startDate" && before[f] ? String(before[f]).slice(0, 10) : (before[f] ?? null);
+        }
+        await this.council.patchMember(actor, campaignId, targetId, { ...fields, reason: effectiveReason } as never);
+        return "campaign.council.updated";
+      }
+
+      case "campaign.council.ended": {
+        const campaignId = metadata.campaignId;
+        if (typeof campaignId !== "string") throw new BadRequestException("Event has no campaignId");
+        await this.council.reinstateMember(actor, campaignId, targetId, effectiveReason);
+        return "campaign.council.reinstated";
+      }
+
+      case "campaign.reordered": {
+        const before = diff.before as Record<string, number | null> | null;
+        if (!before) throw new BadRequestException("Event has no order diff");
+        // targetId = "<electionType>:<year>:<state>:<constituency>:<lga>" (empty = null)
+        const [electionType, year, stateCode, constituencyCode, lgaCode] = targetId.split(":");
+        const ids = Object.entries(before)
+          .filter((e): e is [string, number] => e[1] !== null)
+          .sort((a, b) => a[1] - b[1])
+          .map(([id]) => id);
+        if (ids.length === 0) throw new BadRequestException("Event diff has no ranked rows to restore");
+        await this.campaigns.order(actor, {
+          electionType: electionType as CampaignElectionType,
+          year: Number(year),
+          stateCode: stateCode || null,
+          constituencyCode: constituencyCode || null,
+          lgaCode: lgaCode || null,
+          ids,
+        });
+        return "campaign.reordered";
       }
 
       default:

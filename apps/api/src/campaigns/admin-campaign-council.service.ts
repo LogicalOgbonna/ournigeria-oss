@@ -146,6 +146,32 @@ export class AdminCampaignCouncilService {
     });
   }
 
+  /**
+   * Undo an `end`: the member is active again with no end reason/date. Used by
+   * the audit revert of `campaign.council.ended`; a domain write, so it flags
+   * a published ticket for re-review and audits like every other change.
+   */
+  async reinstateMember(actor: AuditActor, campaignId: string, memberId: string, reason: string) {
+    const campaign = await this.mustCampaign(campaignId);
+    const before = await this.loadChild(campaignId, memberId);
+    if (before.status !== "ended") throw new ConflictException("Member is not ended");
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.campaignCouncilMember.update({
+        where: { id: memberId },
+        data: { status: "active", endReason: null, endDate: null },
+      });
+      await this.flag(tx, campaign, actor);
+      await this.audit.log(tx, actor, {
+        action: "campaign.council.reinstated",
+        targetType: "campaign_council_member",
+        targetId: memberId,
+        diff: { before: { status: before.status, endReason: before.endReason }, after: { status: "active", endReason: null } },
+        metadata: { campaignId, reason },
+      });
+      return row;
+    });
+  }
+
   async removeMember(actor: AuditActor, campaignId: string, memberId: string) {
     const campaign = await this.mustCampaign(campaignId);
     const before = await this.loadChild(campaignId, memberId);
