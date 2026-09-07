@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { socialsFetch } from "@/lib/api";
+import { TONE_CLASS, type Tone } from "@/lib/tone";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 interface ScoutedHandleRow {
@@ -39,13 +40,12 @@ interface GeoOption {
   name: string;
 }
 
-const STATUS_BADGE: Record<ScoutedHandleRow["status"], string> = {
-  pending: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
-  active:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  rejected:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  opted_out: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+/** Curation states mapped onto the shared dashboard tones (same rendered colours). */
+const STATUS_TONE: Record<ScoutedHandleRow["status"], Tone> = {
+  pending: "info",
+  active: "success",
+  rejected: "warning",
+  opted_out: "danger",
 };
 
 const PAGE_SIZE = 50;
@@ -367,7 +367,7 @@ export default function ScoutedHandlesPage() {
                       {r.lgaCode && (
                         <Badge variant="outline">{r.lgaCode}</Badge>
                       )}
-                      <Badge className={STATUS_BADGE[r.status]}>
+                      <Badge className={TONE_CLASS[STATUS_TONE[r.status]]}>
                         {r.status.replace("_", " ")}
                       </Badge>
                       {r.restId.startsWith("manual:") && (

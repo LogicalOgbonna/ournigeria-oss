@@ -1,4 +1,5 @@
 import { adminFetch } from "@/lib/api";
+import type { Tone } from "@/lib/tone";
 
 // `errorMessage` lives next to ApiError in lib/api.ts; re-exported here so
 // campaign pages can keep importing everything they need from one module.
@@ -61,6 +62,77 @@ export const CONSTITUENCY_TYPE: Partial<
   house_of_reps: "federal",
   state_assembly: "state",
 };
+
+/**
+ * The state a seat code belongs to. LGA codes are `<state>_<lga>`
+ * (`akwa_ibom_abak`) and constituency codes are `sen_|fed_|state_` +
+ * `<state>_<seat>` (`sen_abia_abia_north`) — but state codes themselves contain
+ * underscores, so the owner is found by longest matching prefix against the
+ * real state list, never by splitting on "_". Used to seed the state selector
+ * when an existing ticket is opened for edit: the API stores only the seat code
+ * for constituency/LGA races (raceScopeFor rejects a second scope column).
+ */
+export function seatStateCode(
+  seatCode: string | null | undefined,
+  stateCodes: readonly string[],
+): string | null {
+  if (!seatCode) return null;
+  const code = seatCode.toLowerCase();
+  const candidates = [code];
+  for (const prefix of ["sen_", "fed_", "state_"]) {
+    if (code.startsWith(prefix)) candidates.push(code.slice(prefix.length));
+  }
+  let best: string | null = null;
+  for (const state of stateCodes) {
+    const sc = state.toLowerCase();
+    const hit = candidates.some((c) => c === sc || c.startsWith(`${sc}_`));
+    if (hit && (best === null || sc.length > best.length)) best = state;
+  }
+  return best;
+}
+
+// ---------- status chip ----------
+
+// The tones live in lib/tone.ts with their chip classes (shared with the
+// socials surfaces); re-exported so campaign pages keep one import.
+export type { Tone };
+
+/**
+ * One human label for the (status, reviewStatus, reviewRequestedAt) triple the
+ * API actually stores. Mirrors admin-campaigns.service.ts:
+ *   - `submit` stamps reviewFlagData() → unreviewed + reviewRequestedAt (in review)
+ *   - `request-changes` sets reviewStatus "disputed" and LEAVES reviewRequestedAt set
+ *   - `approve` sets reviewed and clears reviewRequestedAt
+ *   - `PATCH` on any non-draft re-runs reviewFlagData(), pushing a live/concluded
+ *     ticket back into the queue while it stays publicly visible
+ *   - `unpublish` only moves status → suspended, so review fields say nothing there
+ */
+export function statusLabel(c: {
+  status: CampaignStatus;
+  reviewStatus: ReviewStatus;
+  reviewRequestedAt: string | null;
+}): { label: string; tone: Tone } {
+  if (c.status === "draft") {
+    if (c.reviewStatus === "disputed") return { label: "Changes requested", tone: "warning" };
+    return c.reviewRequestedAt
+      ? { label: "In review", tone: "info" }
+      : { label: "Draft", tone: "neutral" };
+  }
+  if (c.status === "active" || c.status === "concluded") {
+    const base = c.status === "active" ? "Live" : "Concluded";
+    // Public but edited since the last approval — the reviewer needs to see it.
+    if (c.reviewStatus !== "reviewed") return { label: `${base} · re-review`, tone: "warning" };
+    return { label: base, tone: c.status === "active" ? "success" : "neutral" };
+  }
+  if (c.status === "suspended") return { label: "Hidden", tone: "danger" };
+  if (c.status === "withdrawn") return { label: "Withdrawn", tone: "danger" };
+  if (c.status === "dissolved") return { label: "Dissolved", tone: "danger" };
+  // Compile-time exhaustiveness: a new campaign_status in the API breaks the
+  // build here. At runtime it degrades to a neutral chip rather than throwing
+  // inside a table row.
+  const unhandled: never = c.status;
+  return { label: String(unhandled), tone: "neutral" };
+}
 
 export const MEDIA_SLOT_TYPES = [
   "poster_candidate",

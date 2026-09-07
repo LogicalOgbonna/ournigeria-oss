@@ -49,6 +49,10 @@ function makeClient({ prefix, label }: Service) {
 }
 
 const admin = makeClient({ prefix: "/api/admin", label: "Admin" });
+// Public, unprefixed reads (geo lists, officials search, parties) proxied by the
+// Next rewrites. Same error extraction as the admin client, so a Nest `message`
+// surfaces verbatim through errorMessage() instead of a bare status code.
+const publicApi = makeClient({ prefix: "", label: "Public" });
 const socials = makeClient({ prefix: "/api/socials", label: "Socials" });
 const ingest = makeClient({ prefix: "/api/ingest", label: "Ingest" });
 const proposals = makeClient({ prefix: "/api/proposals", label: "Proposals" });
@@ -59,6 +63,7 @@ export const adminUpload = admin.upload;
 export const socialsFetch = socials.json;
 export const ingestFetch = ingest.json;
 export const proposalsFetch = proposals.json;
+export const publicFetch = publicApi.json;
 
 /**
  * Human-facing text from a thrown API error: drops the
