@@ -1,7 +1,7 @@
 "use client";
 
 import { publicFetch, errorMessage } from "@/lib/api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /** A `{ code, name }` row from any of the public /api/geo lists. */
 export interface GeoOption {
@@ -31,18 +31,23 @@ export function loadGeo(url: string): Promise<GeoOption[]> {
 }
 
 /**
- * A name-sorted geo list, cached per URL. Pass `null` to hold off (no scope
- * picked yet, permissions still resolving) — the hook then reports an empty,
- * settled list rather than fetching.
+ * The rows/loading/error/retry shape every cached picker list in the dashboard
+ * uses. `loader` must be a STABLE reference (a module-level function, or one
+ * memoised on whatever it closes over) — it is an effect dependency, so a fresh
+ * closure per render would refetch forever. Pass `null` to hold off (no scope
+ * picked yet, permissions still resolving): the hook then reports an empty,
+ * settled list rather than calling the loader.
  */
-export function useGeoList(url: string | null) {
-  const [rows, setRows] = useState<GeoOption[]>([]);
-  const [loading, setLoading] = useState(false);
+export function useAsyncList<T>(loader: (() => Promise<T[]>) | null) {
+  const [rows, setRows] = useState<T[]>([]);
+  // Held-off lists are settled from the first frame; a real load starts busy so
+  // the field draws its skeleton instead of flashing "nothing found".
+  const [loading, setLoading] = useState(loader !== null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    if (!url) {
+    if (!loader) {
       setRows([]);
       setLoading(false);
       setError(null);
@@ -51,7 +56,7 @@ export function useGeoList(url: string | null) {
     let alive = true;
     setLoading(true);
     setError(null);
-    loadGeo(url)
+    loader()
       .then((res) => {
         if (!alive) return;
         setRows(res);
@@ -66,7 +71,13 @@ export function useGeoList(url: string | null) {
     return () => {
       alive = false;
     };
-  }, [url, nonce]);
+  }, [loader, nonce]);
 
   return { rows, loading, error, retry: () => setNonce((n) => n + 1) };
+}
+
+/** A name-sorted geo list, cached per URL. `null` holds off, as above. */
+export function useGeoList(url: string | null) {
+  const loader = useMemo(() => (url ? () => loadGeo(url) : null), [url]);
+  return useAsyncList<GeoOption>(loader);
 }

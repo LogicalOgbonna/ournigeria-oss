@@ -26,6 +26,8 @@ const breadcrumbMap: Record<string, string> = {
  * page at /dashboard/admins/roles), so they are keyed by path, not segment.
  */
 const breadcrumbPathMap: Record<string, string> = {
+  // Bare `new` means the ingestion pipeline's "New Run" in the map above.
+  "/dashboard/campaigns/new": "New Ticket",
   "/dashboard/campaigns/queue": "Review Queue",
   "/dashboard/campaigns/order": "Rail Order",
   "/dashboard/campaigns/roles": "Council Roles",
