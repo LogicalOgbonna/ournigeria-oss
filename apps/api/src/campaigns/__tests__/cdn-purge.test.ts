@@ -28,4 +28,10 @@ describe("CdnPurgeService", () => {
     const svc = new CdnPurgeService(cfg({ CLOUDFLARE_ZONE_ID: "z", CLOUDFLARE_API_TOKEN: "t" }), fetchImpl as never);
     expect(await svc.purge(["https://cdn.test/a"])).toEqual({ purged: false, reason: "cloudflare responded 403" });
   });
+
+  it("reports a rejected fetch (network error) without throwing", async () => {
+    const fetchImpl = vi.fn(async () => { throw new TypeError("fetch failed"); });
+    const svc = new CdnPurgeService(cfg({ CLOUDFLARE_ZONE_ID: "z", CLOUDFLARE_API_TOKEN: "t" }), fetchImpl as never);
+    expect(await svc.purge(["https://cdn.test/a"])).toEqual({ purged: false, reason: "cloudflare purge failed: fetch failed" });
+  });
 });

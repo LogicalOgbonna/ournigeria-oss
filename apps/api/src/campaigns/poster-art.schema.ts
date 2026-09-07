@@ -9,7 +9,12 @@ import { z } from "zod";
  */
 const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 const RGBA = /^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(?:,\s*(?:0|1|0?\.\d+)\s*)?\)$/i;
-export const colourSchema = z.string().refine((v) => HEX.test(v) || RGBA.test(v), "colour must be #rgb, #rrggbb or rgb(a)()");
+export const colourSchema = z.string().refine((v) => {
+  if (HEX.test(v)) return true;
+  if (!RGBA.test(v)) return false;
+  // \d{1,3} admits 300; clamp semantics belong to the browser, not to stored data.
+  return v.match(/\d{1,3}/g)!.slice(0, 3).every((c) => Number(c) <= 255);
+}, "colour must be #rgb, #rrggbb or rgb(a)() with channels 0-255");
 
 const coord = z.number().finite().min(-1000).max(2000);
 const size = z.number().finite().min(0).max(2000);

@@ -28,6 +28,9 @@ describe("sniff + asserts", () => {
   it("assertPdfBytes enforces magic and size", () => {
     expect(() => assertPdfBytes(Buffer.from("%PDF-1.4 x"))).not.toThrow();
     expect(() => assertPdfBytes(Buffer.from("PK"))).toThrow(/not a PDF/);
+    // BOM / printer junk before the header, as some exporters emit and Acrobat accepts.
+    expect(() => assertPdfBytes(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("%PDF-1.5\n")]))).not.toThrow();
+    expect(() => assertPdfBytes(Buffer.concat([Buffer.alloc(2000, 0x20), Buffer.from("%PDF-1.5")]))).toThrow(/not a PDF/);
     expect(() => assertPdfBytes(Buffer.alloc(PDF_MAX_BYTES + 1, 0x25))).toThrow(/exceeds/);
   });
 });
@@ -56,6 +59,8 @@ describe("posterArtSchema", () => {
   it("rejects class strings, url() colours and out-of-range numbers", () => {
     expect(posterArtSchema.safeParse({ box, chip: { x: 1, y: 1, w: 1, h: 1, radius: "rounded-l-[11px]" } }).success).toBe(false);
     expect(posterArtSchema.safeParse({ box, scrim: { x: 0, y: 0, w: 1, h: 1, color: "url(https://x)" } }).success).toBe(false);
+    expect(posterArtSchema.safeParse({ box, scrim: { x: 0, y: 0, w: 1, h: 1, color: "rgb(300, 0, 0)" } }).success).toBe(false);
+    expect(posterArtSchema.safeParse({ box, scrim: { x: 0, y: 0, w: 1, h: 1, color: "rgba(255, 0, 0, 0.5)" } }).success).toBe(true);
     expect(posterArtSchema.safeParse({ box: { ...box, x: -5000 } }).success).toBe(false);
     expect(posterArtSchema.safeParse({ box, extra: 1 }).success).toBe(false);
   });
