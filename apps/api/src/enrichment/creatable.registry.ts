@@ -1028,10 +1028,11 @@ function campaignEntity(): CreatableEntity {
       if (typeof cand !== "object" || typeof cand.name !== "string" || !cand.name.trim()) {
         throw new BadRequestException("candidate.name is required");
       }
-      // Geo codes: the dataset may carry ISO-style ("LA") or full-name ("Lagos
-      // State") state codes; the column is a slug. Constituency/LGA codes are
-      // lower-case slugs in their reference tables. Normalise here so preflight
-      // checks — and the row itself — use exactly what the FK expects.
+      // Geo codes: the dataset may carry ISO-style ("LA") state codes or the
+      // slug itself ("lagos"); the column is a slug. Anything resolveStateSlug
+      // cannot map is kept lower-cased as-is so preflight fails loudly on it
+      // (a full name like "Lagos State" is NOT normalised). Constituency/LGA
+      // codes are lower-case slugs in their reference tables.
       if (p.stateCode !== undefined && p.stateCode !== null) {
         // Keep an unresolvable value rather than nulling it: preflight turns it
         // into a named 400 instead of silently dropping the ticket's scope.
@@ -1099,6 +1100,7 @@ function campaignEntity(): CreatableEntity {
           `SELECT slug FROM campaigns
             WHERE candidate_official_id = $1::uuid
               AND election_type = $2 AND year = $3::int AND party_acronym = $4
+              AND status NOT IN ('withdrawn', 'dissolved')
             LIMIT 1`,
           existingCandidate,
           String(payload.electionType),
