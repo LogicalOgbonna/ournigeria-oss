@@ -47,6 +47,7 @@ function makeService(overrides: {
     users as never,
     {} as never,
     {} as never,
+    {} as never,
   );
   return { svc, prisma, audit, alerts, officials, roles, users };
 }

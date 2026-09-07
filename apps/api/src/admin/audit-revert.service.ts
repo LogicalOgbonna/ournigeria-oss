@@ -19,6 +19,7 @@ import { AdminUsersService } from "./admin-users.service";
 import { loadPermissions } from "./roles.util";
 import { AdminCampaignsService } from "../campaigns/admin-campaigns.service";
 import { AdminCampaignCouncilService } from "../campaigns/admin-campaign-council.service";
+import { AdminCampaignAssetsService } from "../campaigns/admin-campaign-assets.service";
 import type { CampaignElectionType } from "../campaigns/campaigns.service";
 import { memberPatchSchema, patchSchema } from "../campaigns/admin-campaigns.schemas";
 
@@ -42,12 +43,15 @@ export const REVERTIBLE_ACTIONS: Record<string, Permission> = {
   "user.banned": "users.manage",
   "user.unbanned": "users.manage",
   // Election tickets: reverting is a review act, whatever the original
-  // permission was (spec 2026-09-07 campaign dashboard, R6). Media/document
-  // reverts arrive with sub-plan 2.
+  // permission was (spec 2026-09-07 campaign dashboard, R6).
   "campaign.updated": "campaigns.review",
   "campaign.council.updated": "campaigns.review",
   "campaign.council.ended": "campaigns.review",
   "campaign.reordered": "campaigns.review",
+  // Replacements only: `added`/`deleted` events carry a null side and are
+  // compensated (delete / re-upload), never replayed.
+  "campaign.media.replaced": "campaigns.review",
+  "campaign.document.replaced": "campaigns.review",
 };
 
 interface DiffShape {
@@ -111,6 +115,44 @@ function raceKeyFromTargetId(targetId: string): RevertRaceKey {
   };
 }
 
+/**
+ * Unpack an asset event: both sides of the diff plus the parent ticket id the
+ * assets service writes on `metadata.campaignId`. A `null` before-side is a
+ * first-time upload (`replaced` doubles as the document create event) — there
+ * is nothing to put back, so it is not revertible.
+ */
+function assetDiff(
+  diff: DiffShape,
+  metadata: Record<string, unknown>,
+  what: "media" | "document",
+): { before: Record<string, unknown>; after: Record<string, unknown>; campaignId: string } {
+  const before = diff.before as Record<string, unknown> | null;
+  const campaignId = metadata.campaignId;
+  if (!before || typeof campaignId !== "string") {
+    throw new BadRequestException(`Event has no ${what} diff to restore`);
+  }
+  return { before, after: (diff.after ?? {}) as Record<string, unknown>, campaignId };
+}
+
+/**
+ * Whole-row diffs: every column the event recorded must still hold its `after`
+ * value, so an edit that only touched a column this revert would not itself
+ * rewrite still blocks the replay.
+ */
+function assertUnchanged(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  current: Record<string, unknown>,
+): void {
+  for (const field of Object.keys(before)) {
+    if (!sameValue(current[field], after[field])) {
+      throw new ConflictException(
+        `Cannot revert: "${field}" has been changed again since this event`,
+      );
+    }
+  }
+}
+
 /** ISO-normalized comparison (DB Dates vs diff ISO strings). */
 function sameValue(current: unknown, recorded: unknown): boolean {
   const norm = (v: unknown): unknown =>
@@ -129,6 +171,7 @@ export class AuditRevertService {
     private readonly users: AdminUsersService,
     private readonly campaigns: AdminCampaignsService,
     private readonly council: AdminCampaignCouncilService,
+    private readonly assets: AdminCampaignAssetsService,
   ) {}
 
   async revert(
@@ -414,6 +457,56 @@ export class AuditRevertService {
           ids,
         });
         return "campaign.reordered";
+      }
+
+      case "campaign.media.replaced": {
+        const { before, after, campaignId } = assetDiff(diff, metadata, "media");
+        const row = await this.prisma.campaignMedia.findFirst({
+          where: { id: targetId, campaignId },
+        });
+        if (!row) throw new NotFoundException("Media not found on this campaign");
+        assertUnchanged(before, after, row as unknown as Record<string, unknown>);
+        // The object behind `before.url` may since have been purged — the
+        // assets service refuses in that case (409) rather than re-pointing
+        // the row at a dead key.
+        await this.assets.restoreMedia(
+          actor,
+          campaignId,
+          targetId,
+          {
+            url: String(before.url ?? ""),
+            caption: (before.caption ?? null) as string | null,
+            displayOrder: Number(before.displayOrder ?? 0),
+            metadata: before.metadata ?? null,
+            sourceUrl: (before.sourceUrl ?? null) as string | null,
+          },
+          effectiveReason,
+        );
+        return "campaign.media.replaced";
+      }
+
+      case "campaign.document.replaced": {
+        const { before, after, campaignId } = assetDiff(diff, metadata, "document");
+        const row = await this.prisma.campaignDocument.findFirst({
+          where: { id: targetId, campaignId },
+        });
+        if (!row) throw new NotFoundException("Document not found on this campaign");
+        assertUnchanged(before, after, row as unknown as Record<string, unknown>);
+        await this.assets.restoreDocument(
+          actor,
+          campaignId,
+          targetId,
+          {
+            title: String(before.title ?? ""),
+            blurb: (before.blurb ?? null) as string | null,
+            coverUrl: (before.coverUrl ?? null) as string | null,
+            fileUrl: (before.fileUrl ?? null) as string | null,
+            pageCount: before.pageCount === null || before.pageCount === undefined ? null : Number(before.pageCount),
+            sourceUrl: (before.sourceUrl ?? null) as string | null,
+          },
+          effectiveReason,
+        );
+        return "campaign.document.replaced";
       }
 
       default:

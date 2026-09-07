@@ -22,6 +22,25 @@ import {
 const PRESIGN_TTL_SECONDS = 600;
 const PDF_CACHE = "public, max-age=86400";
 
+/** The columns an audit `campaign.media.replaced` diff can put back. */
+export interface MediaRestoreInput {
+  url: string;
+  caption: string | null;
+  displayOrder: number;
+  metadata: unknown;
+  sourceUrl: string | null;
+}
+
+/** The columns an audit `campaign.document.replaced` diff can put back. */
+export interface DocumentRestoreInput {
+  title: string;
+  blurb: string | null;
+  coverUrl: string | null;
+  fileUrl: string | null;
+  pageCount: number | null;
+  sourceUrl: string | null;
+}
+
 /*
  * Upload flow (spec §4 "Assets", R9):
  *
@@ -218,6 +237,70 @@ export class AdminCampaignAssetsService {
     });
     await this.store.delete(input.stagingKey).catch(() => undefined);
     return row;
+  }
+
+  // ---------- revert helpers (audit playback) ----------
+
+  /**
+   * Put a media row back to a recorded state. Only the audit revert calls this:
+   * the URL must be one of ours AND the object must still exist, because
+   * `purge` deletes for real and re-pointing a row at a purged key would serve
+   * a 404 image forever. Emits a normal forward `campaign.media.replaced`.
+   */
+  async restoreMedia(actor: AuditActor, campaignId: string, mediaId: string, before: MediaRestoreInput, reason: string) {
+    const campaign = await mustCampaign(this.prisma, campaignId);
+    const current = await this.loadMedia(campaignId, mediaId);
+    await this.assertObjectSurvives(before.url);
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.campaignMedia.update({
+        where: { id: mediaId },
+        data: {
+          url: before.url,
+          caption: before.caption,
+          displayOrder: before.displayOrder,
+          metadata: (before.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+          sourceUrl: before.sourceUrl,
+        },
+      });
+      await this.flag(tx, campaign, actor);
+      await this.audit.log(tx, actor, {
+        action: "campaign.media.replaced",
+        targetType: "campaign_media",
+        targetId: mediaId,
+        diff: { before: pick(current), after: pick(row) },
+        metadata: { campaignId, reason, revert: true },
+      });
+      return row;
+    });
+  }
+
+  /** Same contract as `restoreMedia`, for the file/cover/title of a document row. */
+  async restoreDocument(actor: AuditActor, campaignId: string, documentId: string, before: DocumentRestoreInput, reason: string) {
+    const campaign = await mustCampaign(this.prisma, campaignId);
+    const current = await this.prisma.campaignDocument.findFirst({ where: { id: documentId, campaignId } });
+    if (!current) throw new NotFoundException("Document not found on this campaign");
+    for (const url of [before.fileUrl, before.coverUrl]) if (url) await this.assertObjectSurvives(url);
+    return this.prisma.$transaction(async (tx) => {
+      const row = await tx.campaignDocument.update({ where: { id: documentId }, data: { ...before } });
+      await this.flag(tx, campaign, actor);
+      await this.audit.log(tx, actor, {
+        action: "campaign.document.replaced",
+        targetType: "campaign_document",
+        targetId: documentId,
+        diff: { before: pickDoc(current), after: pickDoc(row) },
+        metadata: { campaignId, reason, revert: true },
+      });
+      return row;
+    });
+  }
+
+  /** A recorded URL is replayable only while it is ours and still stored. */
+  private async assertObjectSurvives(url: string) {
+    if (!this.images.isStoredUrl(url)) throw new BadRequestException("previous URL is not in our storage");
+    const key = this.store.keyFor(url);
+    if (!key || !(await this.store.head(key))) {
+      throw new ConflictException("Cannot revert: the previous object was purged");
+    }
   }
 
   // ---------- purge (reviewer) ----------

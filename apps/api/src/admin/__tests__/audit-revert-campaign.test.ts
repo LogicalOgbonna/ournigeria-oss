@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import sharp from "sharp";
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { AuditRevertService, REVERTIBLE_ACTIONS } from "../audit-revert.service";
@@ -7,6 +8,10 @@ import { AuditCryptoService } from "../../audit/audit-crypto.service";
 import { bustRolesCache } from "../roles.util";
 import { AdminCampaignsService } from "../../campaigns/admin-campaigns.service";
 import { AdminCampaignCouncilService } from "../../campaigns/admin-campaign-council.service";
+import { AdminCampaignAssetsService } from "../../campaigns/admin-campaign-assets.service";
+import { MemoryObjectStore } from "../../campaigns/asset-store.memory";
+import { STAGING_PREFIX } from "../../campaigns/asset-store.service";
+import { CdnPurgeService } from "../../campaigns/cdn-purge.service";
 
 const actorOf = (id: string): AuditActor => ({ actorType: "staff", actorId: id });
 
@@ -19,8 +24,14 @@ describe("campaign events in the revert whitelist", () => {
     expect(REVERTIBLE_ACTIONS["campaign.council.updated"]).toBe("campaigns.review");
     expect(REVERTIBLE_ACTIONS["campaign.council.ended"]).toBe("campaigns.review");
     expect(REVERTIBLE_ACTIONS["campaign.reordered"]).toBe("campaigns.review");
+    expect(REVERTIBLE_ACTIONS["campaign.media.replaced"]).toBe("campaigns.review");
+    expect(REVERTIBLE_ACTIONS["campaign.document.replaced"]).toBe("campaigns.review");
     // Publishing verbs are compensated (unpublish/approve), never replayed.
     expect(REVERTIBLE_ACTIONS["campaign.published"]).toBeUndefined();
+    // A first upload / a deletion has a null diff side: compensate, don't replay.
+    expect(REVERTIBLE_ACTIONS["campaign.media.added"]).toBeUndefined();
+    expect(REVERTIBLE_ACTIONS["campaign.media.deleted"]).toBeUndefined();
+    expect(REVERTIBLE_ACTIONS["campaign.document.deleted"]).toBeUndefined();
   });
 });
 
@@ -35,6 +46,10 @@ describe("AuditRevertService campaign cases (mocked)", () => {
     campaignRow?: Record<string, unknown> | null;
     /** Current council member row (null = deleted/moved). */
     member?: Record<string, unknown> | null;
+    /** Current media row (null = deleted since the event). */
+    media?: Record<string, unknown> | null;
+    /** Current document row (null = deleted since the event). */
+    document?: Record<string, unknown> | null;
     /** Current {id, displayOrder} rows in the race, for campaign.reordered. */
     inRace?: { id: string; displayOrder: number | null }[];
     roles?: string[];
@@ -48,6 +63,8 @@ describe("AuditRevertService campaign cases (mocked)", () => {
         findMany: vi.fn(async () => opts.inRace ?? []),
       },
       campaignCouncilMember: { findFirst: vi.fn(async () => opts.member ?? null) },
+      campaignMedia: { findFirst: vi.fn(async () => opts.media ?? null) },
+      campaignDocument: { findFirst: vi.fn(async () => opts.document ?? null) },
       roleAssignment: {
         findMany: vi.fn(async () => (opts.roles ?? ["review_manager"]).map((role) => ({ role }))),
       },
@@ -56,6 +73,7 @@ describe("AuditRevertService campaign cases (mocked)", () => {
     const alerts = { alert: vi.fn(async () => true) };
     const campaigns = { patch: vi.fn(async () => ({})), order: vi.fn(async () => ({ ranked: 2 })) };
     const council = { patchMember: vi.fn(async () => ({})), reinstateMember: vi.fn(async () => ({})) };
+    const assets = { restoreMedia: vi.fn(async () => ({})), restoreDocument: vi.fn(async () => ({})) };
     const svc = new AuditRevertService(
       prisma as never,
       audit as never,
@@ -65,8 +83,9 @@ describe("AuditRevertService campaign cases (mocked)", () => {
       {} as never,
       campaigns as never,
       council as never,
+      assets as never,
     );
-    return { svc, prisma, campaigns, council };
+    return { svc, prisma, campaigns, council, assets };
   }
 
   it("campaign.updated replays `before` through patch with a reason, and refuses when changed again", async () => {
@@ -325,6 +344,53 @@ describe("AuditRevertService campaign cases (mocked)", () => {
     expect(council.patchMember).not.toHaveBeenCalled();
   });
 
+  // ---------- assets ----------
+
+  it("campaign.media.replaced re-points the row at the previous object through the assets service, 409 if changed again", async () => {
+    const MEDIA = "ffffffff-0000-0000-0000-00000000000f";
+    const before = { url: "https://cdn.test/e/poster_candidate-old.webp", caption: null, displayOrder: 0, metadata: null, sourceUrl: null };
+    const after = { ...before, url: "https://cdn.test/e/poster_candidate-new.webp" };
+    const event = { seq: BigInt(20), action: "campaign.media.replaced", actorId: REVIEWER, targetType: "campaign_media", targetId: MEDIA, diff: { before, after }, metadata: { campaignId: CAMPAIGN } };
+    const ok = make(event, { media: { id: MEDIA, campaignId: CAMPAIGN, ...after } });
+    await ok.svc.revert(REVIEWER, actorOf(REVIEWER), 20);
+    expect(ok.prisma.campaignMedia.findFirst).toHaveBeenCalledWith({ where: { id: MEDIA, campaignId: CAMPAIGN } });
+    expect(ok.assets.restoreMedia).toHaveBeenCalledWith(expect.anything(), CAMPAIGN, MEDIA, before, expect.stringContaining("seq 20"));
+
+    const stale = make(event, { media: { id: MEDIA, campaignId: CAMPAIGN, ...after, url: "https://cdn.test/e/poster_candidate-newer.webp" } });
+    await expect(stale.svc.revert(REVIEWER, actorOf(REVIEWER), 20)).rejects.toThrow(/changed again/);
+    expect(stale.assets.restoreMedia).not.toHaveBeenCalled();
+  });
+
+  it("campaign.media.replaced 404s when the row is gone from the campaign, and refuses a first upload", async () => {
+    const MEDIA = "ffffffff-0000-0000-0000-00000000000f";
+    const after = { url: "https://cdn.test/e/logo-new.webp", caption: null, displayOrder: 0, metadata: null, sourceUrl: null };
+    const gone = make(
+      { seq: BigInt(20), action: "campaign.media.replaced", actorId: REVIEWER, targetType: "campaign_media", targetId: MEDIA, diff: { before: { ...after, url: "https://cdn.test/e/logo-old.webp" }, after }, metadata: { campaignId: CAMPAIGN } },
+      { media: null },
+    );
+    await expect(gone.svc.revert(REVIEWER, actorOf(REVIEWER), 20)).rejects.toThrow(NotFoundException);
+    // An `added`-shaped diff (no before) has nothing to put back.
+    const first = make(
+      { seq: BigInt(20), action: "campaign.media.replaced", actorId: REVIEWER, targetType: "campaign_media", targetId: MEDIA, diff: { before: null, after }, metadata: { campaignId: CAMPAIGN } },
+      { media: { id: MEDIA, campaignId: CAMPAIGN, ...after } },
+    );
+    await expect(first.svc.revert(REVIEWER, actorOf(REVIEWER), 20)).rejects.toThrow(/no media diff/);
+    expect(first.assets.restoreMedia).not.toHaveBeenCalled();
+  });
+
+  it("campaign.document.replaced restores the previous file/cover/title through the assets service", async () => {
+    const DOC = "abababab-0000-0000-0000-0000000000ab";
+    const before = { title: "Manifesto", blurb: null, coverUrl: null, fileUrl: "https://cdn.test/e/manifesto-ticket-old.pdf", pageCount: 80, sourceUrl: null };
+    const after = { ...before, fileUrl: "https://cdn.test/e/manifesto-ticket-new.pdf", pageCount: 82 };
+    const { svc, assets } = make(
+      { seq: BigInt(21), action: "campaign.document.replaced", actorId: REVIEWER, targetType: "campaign_document", targetId: DOC, diff: { before, after }, metadata: { campaignId: CAMPAIGN } },
+      { document: { id: DOC, campaignId: CAMPAIGN, ...after } },
+    );
+    await svc.revert(REVIEWER, actorOf(REVIEWER), 21);
+    expect(assets.restoreMedia).not.toHaveBeenCalled();
+    expect(assets.restoreDocument).toHaveBeenCalledWith(expect.anything(), CAMPAIGN, DOC, before, expect.stringContaining("seq 21"));
+  });
+
   it("a campaign_manager cannot revert a campaign event (needs campaigns.review)", async () => {
     // Distinct admin id: loadPermissions caches per principal for 15s.
     const WRITER = "eeeeeeee-0000-0000-0000-00000000000e";
@@ -351,6 +417,8 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
   let prisma: PrismaService;
   let campaigns: AdminCampaignsService;
   let council: AdminCampaignCouncilService;
+  let assets: AdminCampaignAssetsService;
+  let store: MemoryObjectStore;
   let revert: AuditRevertService;
   let linkedOfficialId: string | null = null;
   const tag = Date.now().toString(36);
@@ -377,8 +445,20 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
     campaigns = new AdminCampaignsService(prisma, audit, imageStub);
     council = new AdminCampaignCouncilService(prisma, audit, imageStub);
+    // Real assets service over an in-memory object store: the revert must be
+    // able to see (and miss) the object behind a recorded URL.
+    store = new MemoryObjectStore("https://cdn.test");
+    const assetImages = {
+      isStoredUrl: (u: string) => u.startsWith("https://cdn.test/"),
+      storeAsset: async (input: Buffer, prefix: string, opts: { type: string }) => {
+        const key = `${prefix}/${opts.type}-${input.length.toString(16).padStart(16, "0")}.webp`;
+        await store.put(key, input, { contentType: "image/webp" });
+        return { url: store.urlFor(key), width: 1, height: 1 };
+      },
+    } as never;
+    assets = new AdminCampaignAssetsService(prisma, audit, assetImages, store, new CdnPurgeService({ get: () => undefined } as never));
     const alerts = { alert: vi.fn(async () => true) };
-    revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council);
+    revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council, assets);
     writer = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");
   });
@@ -456,5 +536,53 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     const after = await prisma.campaignCouncilMember.findUniqueOrThrow({ where: { id: member.id } });
     expect(after.displayOrder).toBe(1);
     expect(after.officialId).toBe(official.id);
+  });
+
+  /** Stage bytes the way a presigned browser upload would. */
+  async function stage(bytes: Buffer) {
+    const key = `${STAGING_PREFIX}${crypto.randomUUID()}`;
+    await store.put(key, bytes, { contentType: "image/png" });
+    return key;
+  }
+  const png = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: "#e31e25" } }).png().toBuffer();
+
+  async function latestSeq(action: string, targetId: string) {
+    const ev = await prisma.auditEvent.findFirst({ where: { action, targetId }, orderBy: { seq: "desc" }, select: { seq: true } });
+    expect(ev).not.toBeNull();
+    return Number(ev!.seq);
+  }
+
+  let mediaId: string;
+  let firstUrl: string;
+
+  it("reverts campaign.media.replaced back to the previous object", async () => {
+    const first = await assets.commitMedia(actorOf(writer), campaignId, { stagingKey: await stage(await png(800, 1200)), type: "poster_candidate", reason: "first poster" });
+    firstUrl = first.url;
+    mediaId = first.id;
+    const second = await assets.commitMedia(actorOf(writer), campaignId, { stagingKey: await stage(await png(900, 1300)), type: "poster_candidate", reason: "better poster" });
+    expect(second.id).toBe(mediaId);
+    expect(second.url).not.toBe(firstUrl);
+
+    const res = await revert.revert(reviewer, actorOf(reviewer), await latestSeq("campaign.media.replaced", mediaId), "wrong poster");
+    expect(res.resultingAction).toBe("campaign.media.replaced");
+    const row = await prisma.campaignMedia.findUniqueOrThrow({ where: { id: mediaId } });
+    expect(row.url).toBe(firstUrl);
+    // The replaced object is kept, so the revert is itself revertible.
+    expect(store.objects.has(store.keyFor(second.url)!)).toBe(true);
+  });
+
+  it("409s when the previous object has been purged since the event", async () => {
+    const third = await assets.commitMedia(actorOf(writer), campaignId, { stagingKey: await stage(await png(1000, 1400)), type: "poster_candidate", reason: "third poster" });
+    expect(third.url).not.toBe(firstUrl);
+    const seq = await latestSeq("campaign.media.replaced", mediaId);
+
+    // A reviewer takes the old poster down for real; the audit diff still names it.
+    const purgedKey = store.keyFor(firstUrl)!;
+    await assets.purge(actorOf(reviewer), campaignId, { keys: [purgedKey], reason: "takedown" });
+    expect(store.objects.has(purgedKey)).toBe(false);
+
+    await expect(revert.revert(reviewer, actorOf(reviewer), seq, "put it back")).rejects.toThrow(/previous object was purged/);
+    const row = await prisma.campaignMedia.findUniqueOrThrow({ where: { id: mediaId } });
+    expect(row.url).toBe(third.url); // untouched
   });
 });
