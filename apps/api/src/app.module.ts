@@ -18,6 +18,7 @@ import { DonationModule } from "./donation/donation.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 import { OfficialsModule } from "./officials/officials.module";
 import { PartiesModule } from "./parties/parties.module";
+import { CampaignsModule } from "./campaigns/campaigns.module";
 import { ProposalsModule } from "./proposals/proposals.module";
 import { GeoModule } from "./geo/geo.module";
 import { ElectionModule } from "./election/election.module";
@@ -53,6 +54,7 @@ import { AuditModule } from "./audit/audit.module";
     HealthModule,
     OfficialsModule,
     PartiesModule,
+    CampaignsModule,
     ProposalsModule,
     GeoModule,
     ElectionModule,
