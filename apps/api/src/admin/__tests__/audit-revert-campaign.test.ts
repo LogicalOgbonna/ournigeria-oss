@@ -270,6 +270,45 @@ describe("AuditRevertService campaign cases (mocked)", () => {
     });
   });
 
+  it("campaign.council.updated omits name/imageUrl for an official-linked member", async () => {
+    const OFFICIAL = "eeeeeeee-0000-0000-0000-00000000000e";
+    const linkedRow = { ...councilRow, officialId: OFFICIAL, name: "From Official", imageUrl: "https://nass.gov.ng/x.jpg", displayOrder: 5 };
+    const event = {
+      ...councilEvent,
+      diff: {
+        before: { ...linkedRow, displayOrder: 3 },
+        after: { ...linkedRow },
+      },
+    };
+    const { svc, council } = make(event, { member: linkedRow });
+    await svc.revert(REVIEWER, actorOf(REVIEWER), 10);
+    const payload = (council.patchMember as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][3] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("name");
+    expect(payload).not.toHaveProperty("imageUrl");
+    expect(payload).toMatchObject({ officialId: OFFICIAL, displayOrder: 3 });
+  });
+
+  it("campaign.reordered keeps tickets ranked after the event behind the restored order", async () => {
+    const A = "11111111-0000-0000-0000-000000000001";
+    const B = "22222222-0000-0000-0000-000000000002";
+    const NEW = "44444444-0000-0000-0000-000000000004";
+    const { svc, campaigns } = make(
+      {
+        seq: BigInt(12),
+        action: "campaign.reordered",
+        actorId: REVIEWER,
+        targetType: "campaign_race",
+        targetId: "presidential:2027:::",
+        diff: { before: { [A]: 2, [B]: 1 }, after: { [A]: 1, [B]: 2 } },
+        metadata: {},
+      },
+      // NEW was appended at rank 3 by a later reorder that left A/B's ranks intact.
+      { inRace: [{ id: A, displayOrder: 1 }, { id: B, displayOrder: 2 }, { id: NEW, displayOrder: 3 }] },
+    );
+    await svc.revert(REVIEWER, actorOf(REVIEWER), 12);
+    expect(campaigns.order).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ ids: [B, A, NEW] }));
+  });
+
   it("campaign.council.updated refuses when the member changed again", async () => {
     const { svc, council } = make(councilEvent, {
       member: { ...councilRow, roleCode: "spokesperson" },
@@ -311,7 +350,9 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
   const DB = process.env.DATABASE_URL;
   let prisma: PrismaService;
   let campaigns: AdminCampaignsService;
+  let council: AdminCampaignCouncilService;
   let revert: AuditRevertService;
+  let linkedOfficialId: string | null = null;
   const tag = Date.now().toString(36);
   const adminIds: string[] = [];
   let writer: string;
@@ -335,7 +376,7 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
     campaigns = new AdminCampaignsService(prisma, audit, imageStub);
-    const council = new AdminCampaignCouncilService(prisma, audit, imageStub);
+    council = new AdminCampaignCouncilService(prisma, audit, imageStub);
     const alerts = { alert: vi.fn(async () => true) };
     revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council);
     writer = await mkAdmin("campaign_manager");
@@ -352,6 +393,7 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
       await prisma.officialElection.deleteMany({ where: { officialId: { in: officials } } });
       await prisma.nigerianOfficial.deleteMany({ where: { id: { in: officials } } });
     }
+    if (linkedOfficialId) await prisma.nigerianOfficial.deleteMany({ where: { id: linkedOfficialId } });
     await prisma.roleAssignment.deleteMany({ where: { principalId: { in: adminIds } } });
     await prisma.adminUser.deleteMany({ where: { id: { in: adminIds } } });
     await prisma.onModuleDestroy();
@@ -388,5 +430,31 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     expect(after.status).toBe("active");
     expect(after.reviewStatus).toBe("unreviewed");
     expect(after.reviewRequestedBy).toBe(reviewer);
+  });
+  it("reverts a council edit on an official-linked member without replaying the official's name", async () => {
+    const official = await prisma.nigerianOfficial.create({
+      data: { name: `Zzz Linked Official ${tag}`, slug: `zzz-revert-linked-${tag}`, imageUrl: "https://nass.gov.ng/legacy-photo.jpg" },
+      select: { id: true },
+    });
+    linkedOfficialId = official.id;
+    const member = await council.addMember(actorOf(writer), campaignId, {
+      roleCode: "spokesperson",
+      officialId: official.id,
+      scopeLevel: "national",
+      displayOrder: 1,
+      reason: "appointed",
+    });
+    await council.patchMember(actorOf(writer), campaignId, member.id, { displayOrder: 9, reason: "moved" });
+    const ev = await prisma.auditEvent.findFirst({
+      where: { action: "campaign.council.updated", targetId: member.id },
+      orderBy: { seq: "desc" },
+      select: { seq: true },
+    });
+    expect(ev).not.toBeNull();
+    const res = await revert.revert(reviewer, actorOf(reviewer), Number(ev!.seq), "undo the move");
+    expect(res.resultingAction).toBe("campaign.council.updated");
+    const after = await prisma.campaignCouncilMember.findUniqueOrThrow({ where: { id: member.id } });
+    expect(after.displayOrder).toBe(1);
+    expect(after.officialId).toBe(official.id);
   });
 });

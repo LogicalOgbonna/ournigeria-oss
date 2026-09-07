@@ -345,8 +345,14 @@ export class AuditRevertService {
         }
         // Only the columns the member patch body exposes; ids/timestamps/status are not patchable.
         const fields: Record<string, unknown> = {};
+        // A member linked to an official takes name/imageUrl from the official
+        // (patchMember rejects a supplied name, and the copied imageUrl may
+        // predate the stored-URL gate) — those two are never part of the replay.
+        const linked = Boolean(before.officialId);
         for (const f of COUNCIL_REVERTIBLE) {
-          if (f in before) fields[f] = f === "startDate" && before[f] ? String(before[f]).slice(0, 10) : (before[f] ?? null);
+          if (!(f in before)) continue;
+          if (linked && (f === "name" || f === "imageUrl")) continue;
+          fields[f] = f === "startDate" && before[f] ? String(before[f]).slice(0, 10) : (before[f] ?? null);
         }
         if (Object.keys(fields).length === 0) {
           throw new BadRequestException("Event diff has no revertible fields");
@@ -389,10 +395,18 @@ export class AuditRevertService {
             );
           }
         }
-        const ids = Object.entries(before)
+        const restored = Object.entries(before)
           .filter((e): e is [string, number] => e[1] !== null)
           .sort((a, b) => a[1] - b[1])
           .map(([id]) => id);
+        // Tickets ranked AFTER this event (not in `before`) keep their relative
+        // order behind the restored ranks instead of being silently unranked by
+        // order()'s null-then-assign.
+        const newer = inRace
+          .filter((r) => !(r.id in before) && r.displayOrder !== null)
+          .sort((a, b) => (a.displayOrder as number) - (b.displayOrder as number))
+          .map((r) => r.id);
+        const ids = [...restored, ...newer];
         if (ids.length === 0) throw new BadRequestException("Event diff has no ranked rows to restore");
         await this.campaigns.order(actor, {
           ...raceKey,

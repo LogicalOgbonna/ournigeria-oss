@@ -119,7 +119,8 @@ export class AdminCampaignCouncilService {
         ? await resolvePerson(this.prisma, this.images, {
             officialId,
             name: input.name ?? before.name,
-            imageUrl: input.imageUrl === undefined ? before.imageUrl : input.imageUrl,
+            // Only a caller-supplied URL is gated; the stored row's value is never re-validated.
+            imageUrl: input.imageUrl,
           })
         : null;
     // Only a move of the (official, role) pair can hit the partial unique index.
