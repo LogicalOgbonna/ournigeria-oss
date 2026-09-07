@@ -164,8 +164,11 @@ describe("AdminCampaignsService", () => {
     const live = await prisma.campaign.findUniqueOrThrow({ where: { slug: `zzz-adm-d-${tag}` } });
     const hidden = await svc.unpublish(actor(reviewer), live.id, "pause");
     expect(hidden.status).toBe("suspended");
+    // the anchor must follow the ticket off the ballot, not stay 'won'
+    expect((await prisma.officialElection.findUniqueOrThrow({ where: { id: live.officialElectionId! } })).result).toBe("pending");
     const back = await svc.approve(actor(reviewer), reviewer, live.id, "resume");
     expect(back.status).toBe("active");
+    expect((await prisma.officialElection.findUniqueOrThrow({ where: { id: live.officialElectionId! } })).result).toBe("won");
     const gone = await svc.withdraw(actor(reviewer), live.id, "candidate withdrew");
     expect(gone.status).toBe("withdrawn");
     const anchor = await prisma.officialElection.findUniqueOrThrow({ where: { id: live.officialElectionId! } });

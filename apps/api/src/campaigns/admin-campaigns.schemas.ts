@@ -13,6 +13,8 @@ export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const colour = z.string().regex(HEX_COLOUR, "colour must be #rgb or #rrggbb");
 const text = (max: number) => z.string().trim().max(max);
+/** z.string().url() happily accepts javascript: and data: — pin the scheme. */
+const httpUrl = (max: number) => z.string().url().max(max).regex(/^https?:\/\//i, "must be an http(s) URL");
 
 export const raceKeySchema = z.object({
   electionType: z.enum(CAMPAIGN_ELECTION_TYPES),
@@ -64,7 +66,7 @@ export const personSchema = z
   .object({
     officialId: z.string().uuid().nullish(),
     name: text(200).min(2).nullish(),
-    imageUrl: z.string().url().max(500).nullish(),
+    imageUrl: httpUrl(500).nullish(),
   })
   .refine((p) => Boolean(p.officialId || p.name), { message: "officialId or name is required" });
 
@@ -79,7 +81,7 @@ const copyFields = {
   factionLabel: text(100).nullish(),
   isDisputed: z.boolean().optional(),
   confidence: z.enum(["high", "medium", "low"]).optional(),
-  sourceUrl: z.string().url().max(2_000).nullish(),
+  sourceUrl: httpUrl(2_000).nullish(),
 };
 
 export const createSchema = raceKeySchema.extend({
@@ -96,8 +98,8 @@ export const patchSchema = z.object({
   reason: text(500).min(3).optional(),
   candidateName: text(200).min(2).optional(),
   runningMateName: text(200).min(2).nullish(),
-  candidateImageUrl: z.string().url().max(500).nullish(),
-  runningMateImageUrl: z.string().url().max(500).nullish(),
+  candidateImageUrl: httpUrl(500).nullish(),
+  runningMateImageUrl: httpUrl(500).nullish(),
   ...copyFields,
 });
 export type PatchInput = z.infer<typeof patchSchema>;

@@ -19,6 +19,12 @@ describe("admin campaign schemas", () => {
     expect(patchSchema.safeParse({ brandColor: "#E31E25" }).success).toBe(true);
   });
 
+  it("urls must be http(s) — javascript: is rejected", () => {
+    expect(patchSchema.safeParse({ sourceUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(patchSchema.safeParse({ candidateImageUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(patchSchema.safeParse({ sourceUrl: "https://ournigeria.ng/x" }).success).toBe(true);
+  });
+
   it("raceScopeFor demands exactly the scope column the race needs", () => {
     expect(raceScopeFor({ electionType: "gubernatorial", year: 2027 })).toEqual({ error: "gubernatorial needs stateCode" });
     expect(raceScopeFor({ electionType: "presidential", year: 2027, stateCode: "lagos" })).toEqual({ error: "presidential must not carry a scope" });

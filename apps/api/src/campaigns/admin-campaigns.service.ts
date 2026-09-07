@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, PrismaService, ensureTicketElections, slugifyName } from "@ournigeria/database";
+import { Prisma, PrismaService, ensureTicketElections, slugifyName, type AnchorConfidence } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
 import { loadActiveRoles, loadPermissions } from "../admin/roles.util";
 import {
@@ -65,6 +65,11 @@ const EDITABLE = [
   "confidence",
   "sourceUrl",
 ] as const;
+
+/** campaigns.confidence is a free string column; official_elections takes the 3-value enum. */
+function anchorConfidence(value: string): AnchorConfidence {
+  return value === "high" || value === "low" ? value : "medium";
+}
 
 function pick(row: Record<string, unknown>, fields: readonly string[]) {
   const out: Record<string, unknown> = {};
@@ -187,7 +192,7 @@ export class AdminCampaignsService {
         result: "pending",
         reviewedBy: actor.actorId ?? "dashboard",
         sourceType: "manual",
-        confidence: row.confidence,
+        confidence: anchorConfidence(row.confidence),
       });
       const withAnchor = anchor.candidateElectionId
         ? await tx.campaign.update({ where: { id: row.id }, data: { officialElectionId: anchor.candidateElectionId } })
@@ -310,7 +315,7 @@ export class AdminCampaignsService {
           reviewNote: null,
         },
       });
-      await ensureTicketElections(tx, updated, { result: "won", reviewedBy: actorAdminId, sourceType: "manual", confidence: updated.confidence });
+      await ensureTicketElections(tx, updated, { result: "won", reviewedBy: actorAdminId, sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
       if (selfApproved) {
         await this.audit.log(tx, actor, { action: "campaign.self_approved", targetType: "campaign", targetId: id, metadata: { reason } });
       }
@@ -325,10 +330,26 @@ export class AdminCampaignsService {
     });
   }
 
+  /**
+   * Hide a public ticket. The anchor goes back to 'pending' with it — leaving
+   * it 'won' would keep the candidate on the party page and the ballot while
+   * the campaign row is suspended.
+   */
   async unpublish(actor: AuditActor, id: string, reason: string) {
     const row = await this.mustGet(id);
     this.assertFrom(row.status, ["active", "concluded"], "unpublish");
-    return this.transition(actor, id, "campaign.unpublished", { status: "suspended" }, { reason });
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.campaign.update({ where: { id }, data: { status: "suspended" } });
+      await ensureTicketElections(tx, updated, { result: "pending", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
+      await this.audit.log(tx, actor, {
+        action: "campaign.unpublished",
+        targetType: "campaign",
+        targetId: id,
+        diff: { before: { status: row.status, reviewStatus: row.reviewStatus }, after: { status: updated.status, reviewStatus: updated.reviewStatus } },
+        metadata: { reason },
+      });
+      return updated;
+    });
   }
 
   async conclude(actor: AuditActor, id: string, reason: string) {
@@ -350,7 +371,7 @@ export class AdminCampaignsService {
     this.assertFrom(row.status, ["active", "concluded", "suspended"], status);
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status } });
-      await ensureTicketElections(tx, updated, { result: "withdrawn", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: updated.confidence });
+      await ensureTicketElections(tx, updated, { result: "withdrawn", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
       await this.audit.log(tx, actor, { action: `campaign.${status}`, targetType: "campaign", targetId: id, diff: { before: { status: row.status }, after: { status } }, metadata: { reason } });
       return updated;
     });
