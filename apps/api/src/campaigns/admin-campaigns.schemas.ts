@@ -137,3 +137,56 @@ export function parseOrThrow<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, bod
   }
   return parsed.data;
 }
+
+// ---------- council: role catalog + members ----------
+
+export const roleSchema = z.object({
+  code: z.string().regex(/^[a-z][a-z0-9_]{1,59}$/),
+  label: text(100).min(2),
+  sortOrder: z.number().int().min(0).max(1000).default(0),
+  isActive: z.boolean().default(true),
+});
+export type RoleInput = z.input<typeof roleSchema>;
+export const rolePatchSchema = roleSchema.omit({ code: true }).partial();
+export type RolePatch = z.infer<typeof rolePatchSchema>;
+
+/**
+ * Base object kept separate from the refine: `.refine()` returns a ZodEffects,
+ * which cannot be `.partial()`-ed, and the patch body needs every field
+ * optional (a patch that only moves displayOrder must not demand a name).
+ */
+const memberBaseSchema = z.object({
+  roleCode: z.string().max(60),
+  officialId: z.string().uuid().nullish(),
+  name: text(200).min(2).optional(),
+  imageUrl: httpUrl(500).nullish(),
+  scopeLevel: z.enum(["national", "state", "lga"]).default("national"),
+  stateCode: text(30).nullish(),
+  lgaCode: text(60).nullish(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
+  displayOrder: z.number().int().min(0).optional(),
+  confidence: z.enum(["high", "medium", "low"]).optional(),
+  sourceUrl: httpUrl(2_000).nullish(),
+  reason: text(500).optional(),
+});
+
+export const memberSchema = memberBaseSchema.refine((m) => Boolean(m.officialId || m.name), {
+  message: "officialId or name is required",
+});
+/** Input side: `scopeLevel` carries a default, so callers may omit it. */
+export type MemberInput = z.input<typeof memberSchema>;
+export const memberPatchSchema = memberBaseSchema.partial();
+export type MemberPatch = z.infer<typeof memberPatchSchema>;
+
+export const endMemberSchema = z.object({
+  endReason: z.enum(["resigned", "removed", "reshuffled", "deceased", "campaign_ended"]),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish(),
+  reason: text(500).min(1),
+});
+export type EndMemberInput = z.infer<typeof endMemberSchema>;

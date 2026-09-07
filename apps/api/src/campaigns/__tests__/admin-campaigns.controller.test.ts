@@ -20,4 +20,11 @@ describe("AdminCampaignsController permissions", () => {
       expect(perms(h), h).toEqual(["campaigns.review"]);
     }
   });
+
+  it("the council catalog reads with campaigns.read and writes with campaigns.write", () => {
+    expect(perms("listRoles")).toEqual(["campaigns.read"]);
+    for (const h of ["createRole", "patchRole", "deleteRole", "addMember", "patchMember", "endMember", "removeMember"]) {
+      expect(perms(h), h).toEqual(["campaigns.write"]);
+    }
+  });
 });

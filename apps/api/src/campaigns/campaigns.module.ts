@@ -5,11 +5,12 @@ import { CampaignsController } from "./campaigns.controller";
 import { CampaignsService } from "./campaigns.service";
 import { AdminCampaignsService } from "./admin-campaigns.service";
 import { AdminCampaignsController } from "./admin-campaigns.controller";
+import { AdminCampaignCouncilService } from "./admin-campaign-council.service";
 
 @Module({
   imports: [AuditModule, ElectionModule],
   controllers: [CampaignsController, AdminCampaignsController],
-  providers: [CampaignsService, AdminCampaignsService],
-  exports: [CampaignsService, AdminCampaignsService],
+  providers: [CampaignsService, AdminCampaignsService, AdminCampaignCouncilService],
+  exports: [CampaignsService, AdminCampaignsService, AdminCampaignCouncilService],
 })
 export class CampaignsModule {}
