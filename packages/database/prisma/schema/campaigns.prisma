@@ -69,9 +69,9 @@ model Campaign {
   isDisputed   Boolean @default(false) @map("is_disputed")
 
   /// Position on the landing-page rail within one race (electionType, year,
-  /// scope), first = 1. Written by seed-campaigns.ts from the dataset order on
-  /// EVERY run — until a dashboard reorder exists the dataset is the only
-  /// writer. NULL = unranked, sorts last. Sibling *_order columns are
+  /// scope), first = 1. Owned by the dashboard (PUT /api/admin/campaigns/order);
+  /// seed-campaigns.ts writes dataset positions only when it creates a race
+  /// nobody has ranked yet. NULL = unranked, sorts last. Sibling *_order columns are
   /// `Int @default(0)`; this one is nullable because 0 would sort FIRST.
   /// MIGRATION SQL: uq_campaigns_race_display_order — partial unique on
   /// (election_type, year, state_code, constituency_code, lga_code,
