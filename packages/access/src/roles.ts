@@ -46,12 +46,16 @@ export const ROLE_BUNDLES: Record<
     "elections.write",
     "imports.candidates",
     "content.write",
+    "campaigns.read",
+    "campaigns.write",
   ],
   review_manager: [
     "proposals.review",
     "proposals.approve",
     "enrichment.review",
     "enrichment.apply",
+    "campaigns.read",
+    "campaigns.review",
   ],
   socials_manager: [
     "socials.review",
@@ -74,18 +78,24 @@ export const ROLE_BUNDLES: Record<
     "budget.read",
     "documents.read",
     "officials.read",
+    "campaigns.read",
     "donations.read",
     "alerts.read",
   ],
-  researcher: ["documents.read", "budget.read", "officials.read"],
+  researcher: [
+    "documents.read",
+    "budget.read",
+    "officials.read",
+    "campaigns.read",
+  ],
 };
 
 /** Human labels + one-line description for role-management UIs. */
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   super_admin: "Everything, including admin and role management",
   budget_manager: "Budget data, documents, ingestion and budget imports",
-  campaign_manager: "Officials, parties, elections and candidate imports",
-  review_manager: "Citizen proposals and enrichment review/approval",
+  campaign_manager: "Officials, parties, elections, candidate imports and election tickets",
+  review_manager: "Citizen proposals, enrichment review/approval and election-ticket publishing",
   socials_manager: "X/Twitter reply queue, topics, sessions and publishing",
   community_support: "Users, conversations, feedback, donations, notifications",
   auditor: "Read-only oversight without citizen PII, plus the audit log",
