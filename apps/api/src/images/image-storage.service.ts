@@ -8,6 +8,8 @@ import { safeFetchBytes } from "./safe-fetch";
 /** Stored variant sizes (square, px). Avatar = card photos; large = profile/OG/seal. */
 export const AVATAR_PX = 128;
 export const LARGE_PX = 600;
+/** Long-edge cap for non-square assets (posters are 404×695 at 1×; 4× is plenty). */
+export const ASSET_MAX_EDGE = 1600;
 /** Remote image sources are capped well above any real portrait. */
 const MAX_REMOTE_BYTES = 15 * 1024 * 1024;
 
@@ -95,6 +97,43 @@ export class ImageStorageService {
     await Promise.all([this.put(keyLarge, large), this.put(keySmall, small)]);
 
     return { url: `${this.baseUrl}/${keyLarge}`, urlSmall: `${this.baseUrl}/${keySmall}` };
+  }
+
+  /**
+   * Store a non-square asset (poster, card, banner, photo…): aspect kept, long
+   * edge capped at `maxEdge` (never upscaled), webp q82, EXIF honoured,
+   * metadata stripped. Key = `<keyPrefix>/<type>-<hash16>.webp`, immutable.
+   */
+  async storeAsset(
+    input: Buffer,
+    keyPrefix: string,
+    opts: { type: string; maxEdge?: number },
+  ): Promise<{ url: string; width: number; height: number }> {
+    const maxEdge = opts.maxEdge ?? ASSET_MAX_EDGE;
+    let body: Buffer;
+    let width: number;
+    let height: number;
+    try {
+      const out = await sharp(input, { limitInputPixels: 50_000_000, sequentialRead: true })
+        .rotate()
+        .resize(maxEdge, maxEdge, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer({ resolveWithObject: true });
+      body = out.data;
+      width = out.info.width;
+      height = out.info.height;
+    } catch {
+      throw new BadRequestException("source is not a decodable image");
+    }
+    const hash = createHash("sha256").update(body).digest("hex").slice(0, 16);
+    const key = `${keyPrefix.replace(/\/+$/, "")}/${opts.type}-${hash}.webp`;
+    await this.put(key, body);
+    return { url: `${this.baseUrl}/${key}`, width, height };
+  }
+
+  /** Public base for a stored key (CDN when configured, else the bucket URL). */
+  urlFor(key: string): string {
+    return `${this.baseUrl}/${key}`;
   }
 
   private toWebp(input: Buffer, px: number): Promise<Buffer> {
