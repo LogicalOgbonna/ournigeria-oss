@@ -1,0 +1,137 @@
+import { BadRequestException } from "@nestjs/common";
+import { z } from "zod";
+import { CAMPAIGN_ELECTION_TYPES } from "./campaigns.service";
+
+/**
+ * Every admin body is a WHITELIST. status, review_*, display_order,
+ * source_type and official_election_id are never body fields — they move only
+ * through verbs, PUT /order, and the services themselves.
+ */
+
+export const HEX_COLOUR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+const colour = z.string().regex(HEX_COLOUR, "colour must be #rgb or #rrggbb");
+const text = (max: number) => z.string().trim().max(max);
+
+export const raceKeySchema = z.object({
+  electionType: z.enum(CAMPAIGN_ELECTION_TYPES),
+  year: z.number().int().min(1999).max(2100),
+  stateCode: text(30).nullish(),
+  constituencyCode: text(80).nullish(),
+  lgaCode: text(60).nullish(),
+});
+export type RaceKeyInput = z.infer<typeof raceKeySchema>;
+
+export interface RaceKey {
+  electionType: string;
+  year: number;
+  stateCode: string | null;
+  constituencyCode: string | null;
+  lgaCode: string | null;
+}
+
+/** Which scope column a race type needs; null = national. */
+const SCOPE_COLUMN: Record<string, "stateCode" | "constituencyCode" | "lgaCode" | null> = {
+  presidential: null,
+  gubernatorial: "stateCode",
+  senatorial: "constituencyCode",
+  house_of_reps: "constituencyCode",
+  state_assembly: "constituencyCode",
+  lga_chairman: "lgaCode",
+  councilor: "lgaCode",
+  other: null,
+};
+
+/** Validate the scope arc for a race type and normalise codes to lower case. */
+export function raceScopeFor(input: RaceKeyInput): { key: RaceKey } | { error: string } {
+  const need = SCOPE_COLUMN[input.electionType];
+  const given = (["stateCode", "constituencyCode", "lgaCode"] as const).filter((c) => input[c]);
+  if (need === null && given.length > 0) return { error: `${input.electionType} must not carry a scope` };
+  if (need !== null && (given.length !== 1 || given[0] !== need)) return { error: `${input.electionType} needs ${need}` };
+  return {
+    key: {
+      electionType: input.electionType,
+      year: input.year,
+      stateCode: input.stateCode?.toLowerCase() ?? null,
+      constituencyCode: input.constituencyCode?.toLowerCase() ?? null,
+      lgaCode: input.lgaCode?.toLowerCase() ?? null,
+    },
+  };
+}
+
+export const personSchema = z
+  .object({
+    officialId: z.string().uuid().nullish(),
+    name: text(200).min(2).nullish(),
+    imageUrl: z.string().url().max(500).nullish(),
+  })
+  .refine((p) => Boolean(p.officialId || p.name), { message: "officialId or name is required" });
+
+const copyFields = {
+  candidateShortName: text(60).nullish(),
+  candidateBio: text(10_000).nullish(),
+  visionLine: text(2_000).nullish(),
+  fineprint: text(1_000).nullish(),
+  pullQuote: text(1_000).nullish(),
+  pullQuoteBg: colour.nullish(),
+  brandColor: colour.nullish(),
+  factionLabel: text(100).nullish(),
+  isDisputed: z.boolean().optional(),
+  confidence: z.enum(["high", "medium", "low"]).optional(),
+  sourceUrl: z.string().url().max(2_000).nullish(),
+};
+
+export const createSchema = raceKeySchema.extend({
+  partyAcronym: text(20).min(1),
+  slug: z.string().regex(SLUG_RE).min(2).max(160).optional(),
+  candidate: personSchema,
+  runningMate: personSchema.nullish(),
+  ...copyFields,
+});
+export type CreateInput = z.infer<typeof createSchema>;
+
+/** Unknown keys such as status are dropped (zod object default = strip) — the test pins this. */
+export const patchSchema = z.object({
+  reason: text(500).min(3).optional(),
+  candidateName: text(200).min(2).optional(),
+  runningMateName: text(200).min(2).nullish(),
+  candidateImageUrl: z.string().url().max(500).nullish(),
+  runningMateImageUrl: z.string().url().max(500).nullish(),
+  ...copyFields,
+});
+export type PatchInput = z.infer<typeof patchSchema>;
+
+export const slugSchema = z.object({ slug: z.string().regex(SLUG_RE).min(2).max(160), reason: text(500).optional() });
+export const reasonSchema = z.object({ reason: text(500).min(3) });
+export const noteSchema = z.object({ note: text(2_000).min(3) });
+
+export const orderSchema = raceKeySchema
+  .extend({ ids: z.array(z.string().uuid()).min(1).max(500) })
+  .refine((o) => new Set(o.ids).size === o.ids.length, { message: "ids must be unique" });
+export type OrderInput = z.infer<typeof orderSchema>;
+
+export const listQuerySchema = z.object({
+  year: z.coerce.number().int().optional(),
+  type: z.enum(CAMPAIGN_ELECTION_TYPES).optional(),
+  state: text(30).optional(),
+  constituency: text(80).optional(),
+  lga: text(60).optional(),
+  party: text(20).optional(),
+  status: z.enum(["draft", "active", "suspended", "withdrawn", "dissolved", "concluded"]).optional(),
+  reviewStatus: z.enum(["unreviewed", "reviewed", "disputed"]).optional(),
+  q: text(100).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type ListQuery = z.infer<typeof listQuerySchema>;
+
+export function parseOrThrow<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, body: unknown): T {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue.path.length ? `${issue.path.join(".")}: ` : "";
+    throw new BadRequestException(`${path}${issue.message}`);
+  }
+  return parsed.data;
+}
