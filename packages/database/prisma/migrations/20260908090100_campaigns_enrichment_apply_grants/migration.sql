@@ -8,3 +8,4 @@ GRANT SELECT, INSERT, UPDATE ON TABLE official_elections TO enrichment_apply;
 GRANT SELECT, INSERT, UPDATE ON TABLE nigerian_officials TO enrichment_apply;
 GRANT SELECT ON TABLE political_parties, nigerian_states, nigerian_constituencies, nigerian_lgas TO enrichment_apply;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO enrichment_apply;
+GRANT INSERT ON TABLE audit_events TO enrichment_apply; -- the apply tx logs its chain event under this role; the append-only trigger still blocks UPDATE/DELETE

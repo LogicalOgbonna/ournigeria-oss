@@ -364,7 +364,9 @@ export class AdminCampaignsService {
     this.assertFrom(row.status, ["active", "concluded"], "unpublish");
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status: "suspended" } });
-      await ensureTicketElections(tx, updated, { result: "pending", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
+      // The only legitimate won → pending path: the ticket is being pulled from
+      // public view, so the primary win it asserted no longer stands.
+      await ensureTicketElections(tx, updated, { result: "pending", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence), allowResultDowngrade: true });
       await this.audit.log(tx, actor, {
         action: "campaign.unpublished",
         targetType: "campaign",

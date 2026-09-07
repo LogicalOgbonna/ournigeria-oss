@@ -35,6 +35,22 @@ export interface AnchorContext {
   sourceType: 'manual' | 'import';
   confidence: AnchorConfidence;
   notes?: string | null;
+  /**
+   * review_status stamped on CREATE. Defaults to 'reviewed' — a human verb on
+   * the dashboard *is* the review. Bulk import passes 'unreviewed': nobody has
+   * looked at a machine-created anchor yet, and claiming otherwise launders
+   * unverified rows into the reviewed pool. On UPDATE this is ignored; the
+   * existing non-downgrade rule (only 'unreviewed' rises) stays in force.
+   */
+  reviewStatus?: 'unreviewed' | 'reviewed';
+  /**
+   * Allow the UPDATE path to move an existing 'won' back to 'pending'. Off by
+   * default so a re-import or a draft re-save can never erase a recorded
+   * primary win. The one legitimate won→pending path is
+   * AdminCampaignsService.unpublish (the ticket is being pulled from public
+   * view, so the win it asserted no longer stands).
+   */
+  allowResultDowngrade?: boolean;
 }
 
 export interface AnchorResult {
@@ -61,8 +77,10 @@ export interface AnchorResult {
  * The UPDATE path is deliberately narrow: it writes result / winner_name /
  * last_verified_at, fills scope columns only when the ticket actually carries
  * them, and never downgrades provenance (review_status only rises out of
- * 'unreviewed', confidence only rises, source_type is left alone). The full
- * audit block is written on CREATE only.
+ * 'unreviewed', confidence only rises, source_type is left alone) nor the
+ * result ('won' → 'pending' needs ctx.allowResultDowngrade). The full audit
+ * block is written on CREATE only, where ctx.reviewStatus (default 'reviewed')
+ * decides whether the new row enters the reviewed pool.
  *
  *   ticket ──candidateOfficialId──▶ official_elections (electionType, is_primary, result)
  *          └─runningMateOfficialId─▶ official_elections (MATE type, not primary, pending|withdrawn)
@@ -81,7 +99,13 @@ export async function ensureTicketElections(
   };
   const now = new Date();
 
-  const EXISTING_SELECT = { id: true, officialId: true, reviewStatus: true, confidence: true } as const;
+  const EXISTING_SELECT = {
+    id: true,
+    officialId: true,
+    reviewStatus: true,
+    confidence: true,
+    result: true,
+  } as const;
 
   async function ensure(
     officialId: string,
@@ -109,11 +133,15 @@ export async function ensureTicketElections(
 
     if (existing) {
       const raise = CONFIDENCE_RANK[ctx.confidence] > (CONFIDENCE_RANK[existing.confidence] ?? 0);
+      // Never silently erase a recorded win: only an explicit
+      // allowResultDowngrade (unpublish) may take 'won' back to 'pending'.
+      const nextResult =
+        existing.result === 'won' && result === 'pending' && !ctx.allowResultDowngrade ? 'won' : result;
       await tx.officialElection.update({
         where: { id: existing.id },
         data: {
-          result,
-          winnerName: result === 'won' ? winnerName : null,
+          result: nextResult,
+          winnerName: nextResult === 'won' ? winnerName : null,
           lastVerifiedAt: now,
           ...scopeIfKnown,
           ...(raise ? { confidence: ctx.confidence } : {}),
@@ -136,7 +164,7 @@ export async function ensureTicketElections(
         notes: ctx.notes ?? null,
         confidence: ctx.confidence,
         sourceType: ctx.sourceType,
-        reviewStatus: 'reviewed',
+        reviewStatus: ctx.reviewStatus ?? 'reviewed',
         reviewedBy: ctx.reviewedBy,
         lastVerifiedAt: now,
       },

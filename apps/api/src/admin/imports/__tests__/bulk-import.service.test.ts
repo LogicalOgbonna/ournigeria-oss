@@ -2,6 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "@ournigeria/database";
 import { EnrichmentApplyService } from "../../../enrichment/enrichment-apply.service";
+import { AuditService } from "../../../audit/audit.service";
+import { AuditCryptoService } from "../../../audit/audit-crypto.service";
 import { CompletenessService } from "../../../completeness/completeness.service";
 import type { ImageStorageService } from "../../../images/image-storage.service";
 import { BulkImportService } from "../bulk-import.service";
@@ -304,5 +306,127 @@ describe("BulkImportService — political_parties CREATE apply path (integration
     expect(result.created).toBe(0);
     expect(result.skipped).toBe(1);
     expect(result.errors).toHaveLength(0);
+  });
+});
+
+/**
+ * CRITICAL grant regression: the apply transaction runs as
+ * `SET LOCAL ROLE enrichment_apply` and AuditService.log is its LAST write, so
+ * the role needs INSERT on `audit_events`. Without it (the state before
+ * migration 20260908090100 grew that GRANT) every campaigns import 500s and
+ * rolls back — but only when an AuditService is actually wired, which the
+ * other fixtures here deliberately skip. This one constructs the real thing.
+ *
+ * Asserts the ticket committed AND that its chain event landed.
+ */
+const CAMPAIGN_FIXTURE = "test-fixture-campaign-create";
+const CAMPAIGN_TAG = Date.now().toString(36);
+const CAMPAIGN_SLUG = `zzz-bulk-campaign-${CAMPAIGN_TAG}`;
+const CAMPAIGN_YEAR = 2098;
+const CANDIDATE_NAME = `Zzz Bulk Campaign ${CAMPAIGN_TAG}`;
+
+const campaignCreateFixture: DatasetImporter = {
+  name: CAMPAIGN_FIXTURE,
+  label: "test campaign create fixture",
+  description: "test campaign create fixture",
+  autoApprove: true,
+  validate(json: unknown) {
+    if (typeof json !== "object" || json === null) throw new Error("bad shape");
+  },
+  async diff(_json, prisma) {
+    const existing = await prisma.campaign.findUnique({ where: { slug: CAMPAIGN_SLUG } });
+    if (existing) return { creates: [], updates: [], unchangedCount: 1, sample: [] };
+    return {
+      updates: [],
+      unchangedCount: 0,
+      creates: [
+        {
+          targetTable: "campaigns",
+          changeKind: "create",
+          proposedValue: {
+            slug: CAMPAIGN_SLUG,
+            party: "APC",
+            electionType: "gubernatorial",
+            year: CAMPAIGN_YEAR,
+            stateCode: "lagos",
+            candidate: { name: CANDIDATE_NAME },
+            runningMate: null,
+            visionLine: "audited import",
+          },
+          confidence: "high",
+          sources: [
+            { url: "https://example.org/ticket", publisher: "example.org", snippet: "ticket", format: "html" },
+          ],
+          label: `${CAMPAIGN_SLUG} (APC)`,
+        },
+      ],
+      sample: [{ kind: "create", label: `${CAMPAIGN_SLUG} (APC)`, detail: CANDIDATE_NAME }],
+    };
+  },
+};
+
+describe("BulkImportService — campaigns CREATE with a real AuditService (integration)", () => {
+  let prisma: PrismaService;
+  let svc: BulkImportService;
+  let campaignId: string | null = null;
+
+  beforeAll(async () => {
+    prisma = new PrismaService();
+    await prisma.onModuleInit();
+    // The whole point of this suite: a REAL AuditService, so the apply tx
+    // actually inserts into audit_events as enrichment_apply.
+    const audit = new AuditService(prisma, new AuditCryptoService(prisma));
+    const apply = new EnrichmentApplyService(prisma, imageStub, new CompletenessService(prisma), audit);
+    svc = new BulkImportService(prisma, apply);
+    IMPORTERS[CAMPAIGN_FIXTURE] = campaignCreateFixture;
+  });
+
+  afterAll(async () => {
+    const row = await prisma.campaign.findUnique({
+      where: { slug: CAMPAIGN_SLUG },
+      select: { id: true, candidateOfficialId: true, runningMateOfficialId: true },
+    });
+    if (row) {
+      await prisma.campaign.delete({ where: { id: row.id } }).catch(() => {});
+      const officials = [row.candidateOfficialId, row.runningMateOfficialId].filter((x): x is string => Boolean(x));
+      await prisma.officialElection.deleteMany({ where: { officialId: { in: officials } } }).catch(() => {});
+      await prisma.nigerianOfficial.deleteMany({ where: { id: { in: officials } } }).catch(() => {});
+    }
+    await prisma.proposalSource
+      .deleteMany({ where: { proposal: { targetTable: "campaigns", proposedValue: { path: ["slug"], equals: CAMPAIGN_SLUG } } } })
+      .catch(() => {});
+    await prisma.changeProposal
+      .deleteMany({ where: { targetTable: "campaigns", proposedValue: { path: ["slug"], equals: CAMPAIGN_SLUG } } })
+      .catch(() => {});
+    if (campaignId) {
+      await prisma.activityLog
+        .deleteMany({ where: { targetType: "campaigns", targetId: campaignId } })
+        .catch(() => {});
+    }
+    await prisma.importRun.deleteMany({ where: { dataset: CAMPAIGN_FIXTURE } }).catch(() => {});
+    delete IMPORTERS[CAMPAIGN_FIXTURE];
+    // audit_events is append-only by trigger — the chain row stays.
+    await prisma.onModuleDestroy();
+  });
+
+  it("commits the ticket and its audit_events chain row under the enrichment_apply role", async () => {
+    const result = await svc.apply(CAMPAIGN_FIXTURE, {}, ADMIN);
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created).toBe(1);
+
+    // The ticket committed — proves the audit INSERT did not roll the tx back.
+    const campaign = await prisma.campaign.findUnique({ where: { slug: CAMPAIGN_SLUG } });
+    expect(campaign).toBeTruthy();
+    expect(campaign?.status).toBe("draft");
+    expect(campaign?.reviewStatus).toBe("unreviewed");
+    campaignId = campaign!.id;
+
+    // …and the chain event for it exists.
+    const events = await prisma.$queryRaw<{ action: string; target_id: string }[]>`
+      SELECT action, target_id FROM audit_events
+      WHERE action = 'enrichment.fact_created' AND target_id = ${campaignId}
+    `;
+    expect(events).toHaveLength(1);
   });
 });

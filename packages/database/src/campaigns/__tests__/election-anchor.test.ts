@@ -164,6 +164,46 @@ describe("ensureTicketElections", () => {
     expect(after).toMatchObject({ result: "won", partyAcronym: "PDP" });
   });
 
+  it("creates the row unreviewed when the caller says so (bulk import)", async () => {
+    const officialId = await mkOfficial("unreviewed");
+    const res = await prisma.$transaction((tx) =>
+      ensureTicketElections(
+        tx,
+        { ...ticket(), candidateOfficialId: officialId, runningMateOfficialId: null },
+        { ...ctx("pending"), sourceType: "import", reviewStatus: "unreviewed" },
+      ),
+    );
+    const row = await prisma.officialElection.findUniqueOrThrow({ where: { id: res.candidateElectionId! } });
+    expect(row.reviewStatus).toBe("unreviewed");
+    expect(row.sourceType).toBe("import");
+  });
+
+  it("refuses to downgrade won → pending by default, and allows it with the flag", async () => {
+    const officialId = await mkOfficial("downgrade");
+    const won = await prisma.$transaction((tx) =>
+      ensureTicketElections(tx, { ...ticket(), candidateOfficialId: officialId, runningMateOfficialId: null }, ctx("won")),
+    );
+    // Default: a re-import / draft re-save must not erase the recorded win.
+    await prisma.$transaction((tx) =>
+      ensureTicketElections(tx, { ...ticket(), candidateOfficialId: officialId, runningMateOfficialId: null }, ctx("pending")),
+    );
+    const kept = await prisma.officialElection.findUniqueOrThrow({ where: { id: won.candidateElectionId! } });
+    expect(kept.result).toBe("won");
+    expect(kept.winnerName).toBe(`Zzz Anchor Cand ${tag}`);
+
+    // unpublish opts in explicitly.
+    await prisma.$transaction((tx) =>
+      ensureTicketElections(
+        tx,
+        { ...ticket(), candidateOfficialId: officialId, runningMateOfficialId: null },
+        { ...ctx("pending"), allowResultDowngrade: true },
+      ),
+    );
+    const after = await prisma.officialElection.findUniqueOrThrow({ where: { id: won.candidateElectionId! } });
+    expect(after.result).toBe("pending");
+    expect(after.winnerName).toBeNull();
+  });
+
   it("maps every ticketed race to its mate type", () => {
     expect(MATE_ELECTION_TYPE.presidential).toBe("vice_presidential");
     expect(MATE_ELECTION_TYPE.gubernatorial).toBe("deputy_gubernatorial");

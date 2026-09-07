@@ -26,6 +26,15 @@
  * Images are NOT uploaded: every key in the JSON already exists in S3 (see
  * _meta.images). URLs are `${CDN_BASE_URL}/${key}`.
  *
+ * DUPLICATION IS DELIBERATE: the campaign/media/document row-builder below is a
+ * second copy of the one in `campaignEntity` (apps/api/src/enrichment/
+ * creatable.registry.ts), the dashboard bulk-import path for the same dataset
+ * shape. This script is a standalone CLI outside the API's dependency graph (a
+ * raw PrismaClient over its own pg pool, no Nest app), so neither side can
+ * import the other. **Change both together** — a field added to the dataset on
+ * one path and not the other silently drops on the other. The same note is
+ * repeated in campaignEntity's header.
+ *
  * Usage:
  *   DATABASE_URL=… npx tsx scripts/seed-campaigns.ts [--file data/x.json] [--dry-run] [--force]
  *   (--force re-applies editorial copy to rows that already exist; it never
