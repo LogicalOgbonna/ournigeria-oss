@@ -3,11 +3,13 @@ import { ConfigService } from "@nestjs/config";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createHash } from "crypto";
 import sharp from "sharp";
+import { safeFetchBytes } from "./safe-fetch";
 
 /** Stored variant sizes (square, px). Avatar = card photos; large = profile/OG/seal. */
 export const AVATAR_PX = 128;
 export const LARGE_PX = 600;
-const FETCH_TIMEOUT_MS = 15_000;
+/** Remote image sources are capped well above any real portrait. */
+const MAX_REMOTE_BYTES = 15 * 1024 * 1024;
 
 /**
  * Single home for storing official/state images. Resolves a source (remote URL,
@@ -111,21 +113,8 @@ export class ImageStorageService {
     }
 
     if (/^https?:\/\//i.test(source)) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      try {
-        const res = await fetch(source, {
-          signal: controller.signal,
-          headers: { "User-Agent": "OurNigeriaBot/1.0 (+https://ournigeria.ng)" },
-        });
-        if (!res.ok) throw new BadRequestException(`could not fetch image (HTTP ${res.status})`);
-        return Buffer.from(await res.arrayBuffer());
-      } catch (err) {
-        if (err instanceof BadRequestException) throw err;
-        throw new BadRequestException("could not fetch image source");
-      } finally {
-        clearTimeout(timer);
-      }
+      // SSRF guard: single vetted resolution, pinned connect, capped body.
+      return safeFetchBytes(source, MAX_REMOTE_BYTES);
     }
 
     throw new BadRequestException("unsupported image source");
