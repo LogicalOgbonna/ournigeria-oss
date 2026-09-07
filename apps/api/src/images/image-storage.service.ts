@@ -84,7 +84,11 @@ export class ImageStorageService {
   }
 
   private toWebp(input: Buffer, px: number): Promise<Buffer> {
-    return sharp(input)
+    // Decompression-bomb ceiling: MAX_REMOTE_BYTES caps the *compressed* source,
+    // but a few-KB PNG can declare a 50000x50000 canvas and blow up the heap on
+    // decode. 50MP is far above any real portrait and well under sharp's default
+    // (0x3FFFFFFF). sequentialRead keeps peak memory down on large sources.
+    return sharp(input, { limitInputPixels: 50_000_000, sequentialRead: true })
       .rotate() // honor EXIF orientation
       .resize(px, px, { fit: "cover", position: "attention" }) // square crop, favor faces
       .webp({ quality: 80 })
