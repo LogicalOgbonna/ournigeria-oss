@@ -107,6 +107,8 @@ export type PatchInput = z.infer<typeof patchSchema>;
 export const slugSchema = z.object({ slug: z.string().regex(SLUG_RE).min(2).max(160), reason: text(500).optional() });
 export const reasonSchema = z.object({ reason: text(500).min(3) });
 export const noteSchema = z.object({ note: text(2_000).min(3) });
+/** DELETE bodies carry nothing but an optional audit reason (and may be absent entirely). */
+export const reasonOnlySchema = z.object({ reason: text(500).optional() });
 
 export const orderSchema = raceKeySchema
   .extend({ ids: z.array(z.string().uuid()).min(1).max(500) })

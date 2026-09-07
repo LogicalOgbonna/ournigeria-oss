@@ -27,4 +27,11 @@ describe("AdminCampaignsController permissions", () => {
       expect(perms(h), h).toEqual(["campaigns.write"]);
     }
   });
+
+  it("asset routes: uploads/media/documents/council photo need campaigns.write, purge needs campaigns.review", () => {
+    for (const h of ["presign", "commitMedia", "patchMedia", "deleteMedia", "putDocument", "deleteDocument", "councilPhoto"]) {
+      expect(perms(h), h).toEqual(["campaigns.write"]);
+    }
+    expect(perms("purge")).toEqual(["campaigns.review"]);
+  });
 });

@@ -8,16 +8,24 @@ import { PermissionsGuard } from "../admin/permissions.guard";
 import { auditActorFromRequest } from "../audit/audit.service";
 import { AdminCampaignsService } from "./admin-campaigns.service";
 import { AdminCampaignCouncilService } from "./admin-campaign-council.service";
+import { AdminCampaignAssetsService } from "./admin-campaign-assets.service";
 import {
+  councilPhotoSchema,
   createSchema,
+  documentPutSchema,
   endMemberSchema,
   listQuerySchema,
+  mediaCommitSchema,
+  mediaPatchSchema,
   memberPatchSchema,
   memberSchema,
   noteSchema,
   orderSchema,
   parseOrThrow,
   patchSchema,
+  presignSchema,
+  purgeSchema,
+  reasonOnlySchema,
   reasonSchema,
   rolePatchSchema,
   roleSchema,
@@ -34,6 +42,7 @@ export class AdminCampaignsController {
   constructor(
     private readonly svc: AdminCampaignsService,
     private readonly council: AdminCampaignCouncilService,
+    private readonly assets: AdminCampaignAssetsService,
   ) {}
 
   @Get()
@@ -181,5 +190,73 @@ export class AdminCampaignsController {
   @RequirePermission("campaigns.write")
   removeMember(@Req() req: AdminReq, @Param("id") id: string, @Param("memberId") memberId: string) {
     return this.council.removeMember(auditActorFromRequest(req), id, memberId);
+  }
+
+  // ---------- assets: staging uploads, media, documents, council photos, purge ----------
+
+  @Post(":id/uploads")
+  @RequirePermission("campaigns.write")
+  @ApiOperation({ summary: "Presigned staging PUT for an image or PDF" })
+  presign(@Req() req: AdminReq, @Param("id") id: string, @Body() body: unknown) {
+    return this.assets.presign(auditActorFromRequest(req), id, parseOrThrow(presignSchema, body));
+  }
+
+  @Post(":id/media")
+  @RequirePermission("campaigns.write")
+  @ApiOperation({ summary: "Commit a staged image into a media row (slot types replace, append types add)" })
+  commitMedia(@Req() req: AdminReq, @Param("id") id: string, @Body() body: unknown) {
+    return this.assets.commitMedia(auditActorFromRequest(req), id, parseOrThrow(mediaCommitSchema, body));
+  }
+
+  @Patch(":id/media/:mediaId")
+  @RequirePermission("campaigns.write")
+  patchMedia(@Req() req: AdminReq, @Param("id") id: string, @Param("mediaId") mediaId: string, @Body() body: unknown) {
+    return this.assets.patchMedia(auditActorFromRequest(req), id, mediaId, parseOrThrow(mediaPatchSchema, body));
+  }
+
+  @Delete(":id/media/:mediaId")
+  @RequirePermission("campaigns.write")
+  deleteMedia(@Req() req: AdminReq, @Param("id") id: string, @Param("mediaId") mediaId: string, @Body() body: unknown) {
+    const { reason } = parseOrThrow(reasonOnlySchema, body ?? {});
+    return this.assets.deleteMedia(auditActorFromRequest(req), id, mediaId, reason);
+  }
+
+  @Put(":id/documents/:kind/:subject")
+  @RequirePermission("campaigns.write")
+  @ApiOperation({ summary: "Commit a staged PDF (and optional cover) as this ticket's document for kind + subject" })
+  putDocument(
+    @Req() req: AdminReq,
+    @Param("id") id: string,
+    @Param("kind") kind: string,
+    @Param("subject") subject: string,
+    @Body() body: unknown,
+  ) {
+    return this.assets.commitDocument(auditActorFromRequest(req), id, kind, subject, parseOrThrow(documentPutSchema, body));
+  }
+
+  @Delete(":id/documents/:kind/:subject")
+  @RequirePermission("campaigns.write")
+  deleteDocument(
+    @Req() req: AdminReq,
+    @Param("id") id: string,
+    @Param("kind") kind: string,
+    @Param("subject") subject: string,
+    @Body() body: unknown,
+  ) {
+    const { reason } = parseOrThrow(reasonOnlySchema, body ?? {});
+    return this.assets.deleteDocument(auditActorFromRequest(req), id, kind, subject, reason);
+  }
+
+  @Post(":id/council/:memberId/photo")
+  @RequirePermission("campaigns.write")
+  councilPhoto(@Req() req: AdminReq, @Param("id") id: string, @Param("memberId") memberId: string, @Body() body: unknown) {
+    return this.assets.commitCouncilPhoto(auditActorFromRequest(req), id, memberId, parseOrThrow(councilPhotoSchema, body));
+  }
+
+  @Post(":id/purge")
+  @RequirePermission("campaigns.review")
+  @ApiOperation({ summary: "Purge CDN keys for this ticket" })
+  purge(@Req() req: AdminReq, @Param("id") id: string, @Body() body: unknown) {
+    return this.assets.purge(auditActorFromRequest(req), id, parseOrThrow(purgeSchema, body));
   }
 }
