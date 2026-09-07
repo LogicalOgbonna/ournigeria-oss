@@ -17,6 +17,18 @@ const breadcrumbMap: Record<string, string> = {
   admins: "Admin Users",
   audit: "Audit Log",
   mine: "My Activity",
+  campaigns: "Election Tickets",
+};
+
+/**
+ * Full-path wins over the per-segment map: `queue`/`order`/`roles` are generic
+ * words that mean something else under another section (e.g. the RBAC roles
+ * page at /dashboard/admins/roles), so they are keyed by path, not segment.
+ */
+const breadcrumbPathMap: Record<string, string> = {
+  "/dashboard/campaigns/queue": "Review Queue",
+  "/dashboard/campaigns/order": "Rail Order",
+  "/dashboard/campaigns/roles": "Council Roles",
 };
 
 export function Header() {
@@ -25,7 +37,7 @@ export function Header() {
 
   const crumbs = segments.map((segment, i) => {
     const href = "/" + segments.slice(0, i + 1).join("/");
-    const label = breadcrumbMap[segment] || segment;
+    const label = breadcrumbPathMap[href] || breadcrumbMap[segment] || segment;
     return { href, label };
   });
 

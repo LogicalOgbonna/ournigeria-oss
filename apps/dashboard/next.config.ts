@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/api/officials/:path*`,
       },
       {
+        // Public read-only endpoints the campaign pages need for pickers and previews.
+        source: "/api/geo/:path*",
+        destination: `${apiUrl}/api/geo/:path*`,
+      },
+      {
+        source: "/api/parties/:path*",
+        destination: `${apiUrl}/api/parties/:path*`,
+      },
+      {
+        source: "/api/campaigns/:path*",
+        destination: `${apiUrl}/api/campaigns/:path*`,
+      },
+      {
         source: "/api/ingest/:path*",
         destination: `${ingestUrl}/api/ingest/:path*`,
       },

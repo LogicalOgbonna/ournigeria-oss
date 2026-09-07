@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { adminFetch } from "@/lib/api";
+import { revertAuditEvent } from "@/lib/api";
 import { usePermissions } from "@/lib/permissions";
 import { formatDateTimeSeconds, relativeTime } from "@/lib/format";
 
@@ -27,6 +27,12 @@ const REVERTIBLE: Record<string, string> = {
   "role.revoked": "roles.manage",
   "user.banned": "users.manage",
   "user.unbanned": "users.manage",
+  "campaign.updated": "campaigns.review",
+  "campaign.council.updated": "campaigns.review",
+  "campaign.council.ended": "campaigns.review",
+  "campaign.reordered": "campaigns.review",
+  "campaign.media.replaced": "campaigns.review",
+  "campaign.document.replaced": "campaigns.review",
 };
 
 /** One event from GET /api/admin/audit — mirrors the API's AuditEventView. */
@@ -170,10 +176,7 @@ export function DiffViewerDialog({
     }
     setBusy(true);
     try {
-      await adminFetch(`/audit/${event.seq}/revert`, {
-        method: "POST",
-        body: JSON.stringify({ reason: reason.trim() || undefined }),
-      });
+      await revertAuditEvent(event.seq, reason.trim() || undefined);
       toast.success(`Reverted seq ${event.seq} — logged as a new chain event`);
       setRevertOpen(false);
       setReason("");

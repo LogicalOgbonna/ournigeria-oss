@@ -1,0 +1,485 @@
+import { adminFetch } from "@/lib/api";
+
+// `errorMessage` lives next to ApiError in lib/api.ts; re-exported here so
+// campaign pages can keep importing everything they need from one module.
+export { errorMessage } from "@/lib/api";
+
+// ---------- types (mirror apps/api/src/campaigns/*) ----------
+
+export type CampaignStatus =
+  | "draft"
+  | "active"
+  | "suspended"
+  | "withdrawn"
+  | "dissolved"
+  | "concluded";
+export type ReviewStatus = "unreviewed" | "reviewed" | "disputed";
+export type ElectionType =
+  | "presidential"
+  | "gubernatorial"
+  | "senatorial"
+  | "house_of_reps"
+  | "state_assembly"
+  | "lga_chairman"
+  | "councilor"
+  | "other";
+export const ELECTION_TYPES: ElectionType[] = [
+  "presidential",
+  "gubernatorial",
+  "senatorial",
+  "house_of_reps",
+  "state_assembly",
+  "lga_chairman",
+  "councilor",
+  "other",
+];
+export const ELECTION_TYPE_LABEL: Record<ElectionType, string> = {
+  presidential: "Presidential",
+  gubernatorial: "Governor",
+  senatorial: "Senate",
+  house_of_reps: "House of Reps",
+  state_assembly: "State Assembly",
+  lga_chairman: "LGA Chairman",
+  councilor: "Councillor",
+  other: "Other",
+};
+/** Which scope picker a race type needs (mirrors raceScopeFor in the API). */
+export const SCOPE_FOR: Record<ElectionType, "state" | "constituency" | "lga" | null> = {
+  presidential: null,
+  gubernatorial: "state",
+  senatorial: "constituency",
+  house_of_reps: "constituency",
+  state_assembly: "constituency",
+  lga_chairman: "lga",
+  councilor: "lga",
+  other: null,
+};
+export const CONSTITUENCY_TYPE: Partial<
+  Record<ElectionType, "senatorial" | "federal" | "state">
+> = {
+  senatorial: "senatorial",
+  house_of_reps: "federal",
+  state_assembly: "state",
+};
+
+export const MEDIA_SLOT_TYPES = [
+  "poster_candidate",
+  "poster_mate",
+  "card_candidate",
+  "card_mate",
+  "quote_photo",
+  "bio_photo",
+  "logo",
+] as const;
+export const MEDIA_APPEND_TYPES = ["banner", "photo"] as const;
+export type MediaType =
+  | (typeof MEDIA_SLOT_TYPES)[number]
+  | (typeof MEDIA_APPEND_TYPES)[number];
+export const MEDIA_TYPE_LABEL: Record<MediaType, string> = {
+  poster_candidate: "Poster — candidate",
+  poster_mate: "Poster — running mate",
+  card_candidate: "Card — candidate",
+  card_mate: "Card — running mate",
+  quote_photo: "Quote photo",
+  bio_photo: "Bio photo",
+  logo: "Party logo",
+  banner: "Banner",
+  photo: "Gallery photo",
+};
+export const DOCUMENT_KINDS = ["manifesto", "cv", "achievements"] as const;
+export const DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"] as const;
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+export type DocumentSubject = (typeof DOCUMENT_SUBJECTS)[number];
+
+export interface CampaignRow {
+  id: string;
+  slug: string;
+  electionType: ElectionType;
+  year: number;
+  status: CampaignStatus;
+  reviewStatus: ReviewStatus;
+  reviewRequestedAt: string | null;
+  reviewRequestedBy: string | null;
+  reviewNote: string | null;
+  reviewedBy: string | null;
+  partyAcronym: string | null;
+  party: { acronym: string; name: string } | null;
+  stateCode: string | null;
+  constituencyCode: string | null;
+  lgaCode: string | null;
+  candidateName: string;
+  candidateShortName: string | null;
+  candidateImageUrl: string | null;
+  candidateBio: string | null;
+  candidateOfficialId: string | null;
+  runningMateName: string | null;
+  runningMateImageUrl: string | null;
+  runningMateOfficialId: string | null;
+  visionLine: string | null;
+  fineprint: string | null;
+  pullQuote: string | null;
+  pullQuoteBg: string | null;
+  brandColor: string | null;
+  factionLabel: string | null;
+  isDisputed: boolean;
+  displayOrder: number | null;
+  confidence: "high" | "medium" | "low";
+  sourceType: string;
+  sourceUrl: string | null;
+  /** Only `list()` includes this (the poster thumbnail); `queue()` never does. */
+  media?: { url: string }[];
+}
+export interface Media {
+  id: string;
+  type: MediaType;
+  url: string;
+  caption: string | null;
+  displayOrder: number;
+  metadata: unknown;
+  sourceUrl: string | null;
+}
+export interface CampaignDocument {
+  id: string;
+  kind: DocumentKind;
+  subject: DocumentSubject;
+  title: string;
+  blurb: string | null;
+  coverUrl: string | null;
+  fileUrl: string | null;
+  pageCount: number | null;
+}
+/**
+ * The bare `campaign_council_members` row every member mutation returns — the
+ * `role`/`official` relations are included only by `GET /campaigns/:id`.
+ */
+export interface CouncilMemberRow {
+  id: string;
+  roleCode: string;
+  officialId: string | null;
+  name: string;
+  imageUrl: string | null;
+  scopeLevel: "national" | "state" | "lga";
+  stateCode: string | null;
+  lgaCode: string | null;
+  status: "active" | "ended";
+  endReason: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  displayOrder: number;
+}
+/** A member as `CampaignDetail.council` carries it: row + resolved relations. */
+export interface CouncilMember extends CouncilMemberRow {
+  role: { code: string; label: string };
+  official: {
+    id: string;
+    slug: string | null;
+    name: string;
+    imageUrl: string | null;
+  } | null;
+}
+export interface AuditEvent {
+  seq: number;
+  occurredAt: string;
+  actorId: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown>;
+}
+export interface CampaignDetail extends Omit<CampaignRow, "media"> {
+  media: Media[];
+  documents: CampaignDocument[];
+  council: CouncilMember[];
+  audit: AuditEvent[];
+  candidateOfficial: {
+    id: string;
+    slug: string | null;
+    name: string;
+    imageUrl: string | null;
+  } | null;
+  runningMate: {
+    id: string;
+    slug: string | null;
+    name: string;
+    imageUrl: string | null;
+  } | null;
+  // The detail query also includes the resolved scope rows (admin-campaigns.service `get`).
+  state: { code: string; name: string } | null;
+  constituency: { code: string; name: string; type: string } | null;
+  lga: { code: string; name: string } | null;
+}
+export interface CouncilRole {
+  code: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+/** Mirrors listQuerySchema in admin-campaigns.schemas.ts. */
+export interface CampaignListParams {
+  year?: number;
+  type?: ElectionType;
+  state?: string | null;
+  constituency?: string | null;
+  lga?: string | null;
+  party?: string | null;
+  status?: CampaignStatus;
+  reviewStatus?: ReviewStatus;
+  q?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
+// ---------- fetchers ----------
+
+/** Drops null/undefined/empty values so a cleared filter leaves the query string. */
+const q = (
+  params: Record<string, string | number | boolean | null | undefined>,
+): string =>
+  new URLSearchParams(
+    Object.entries(params)
+      .filter(([, v]) => v != null && v !== "")
+      .map(([k, v]) => [k, String(v)]),
+  ).toString();
+
+/** Verb bodies are not interchangeable — the API validates each one separately. */
+interface CampaignVerbFn {
+  (id: string, verb: "submit"): Promise<CampaignRow>;
+  (id: string, verb: "request-changes", body: { note: string }): Promise<CampaignRow>;
+  (
+    id: string,
+    verb: "approve" | "unpublish" | "conclude" | "withdraw" | "dissolve",
+    body: { reason: string },
+  ): Promise<CampaignRow>;
+}
+
+const verb: CampaignVerbFn = (
+  id: string,
+  v: string,
+  body: Record<string, string> = {},
+) =>
+  adminFetch(`/campaigns/${id}/${v}`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  }) as Promise<CampaignRow>;
+
+export const campaignsApi = {
+  list: (params: CampaignListParams) =>
+    adminFetch(`/campaigns?${q({ ...params })}`) as Promise<{
+      total: number;
+      rows: CampaignRow[];
+    }>,
+  queue: () => adminFetch("/campaigns/queue") as Promise<CampaignRow[]>,
+  get: (id: string) => adminFetch(`/campaigns/${id}`) as Promise<CampaignDetail>,
+  create: (body: Record<string, unknown>) =>
+    adminFetch("/campaigns", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<CampaignRow>,
+  patch: (id: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }) as Promise<CampaignRow>,
+  slug: (id: string, slug: string) =>
+    adminFetch(`/campaigns/${id}/slug`, {
+      method: "PATCH",
+      body: JSON.stringify({ slug }),
+    }),
+  remove: (id: string) => adminFetch(`/campaigns/${id}`, { method: "DELETE" }),
+  verb,
+  order: (body: Record<string, unknown>) =>
+    adminFetch("/campaigns/order", { method: "PUT", body: JSON.stringify(body) }),
+  roles: () => adminFetch("/campaigns/roles") as Promise<CouncilRole[]>,
+  createRole: (body: Record<string, unknown>) =>
+    adminFetch("/campaigns/roles", { method: "POST", body: JSON.stringify(body) }),
+  patchRole: (code: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/roles/${code}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteRole: (code: string) =>
+    adminFetch(`/campaigns/roles/${code}`, { method: "DELETE" }),
+  addMember: (id: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}/council`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<CouncilMemberRow>,
+  patchMember: (id: string, m: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}/council/${m}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }) as Promise<CouncilMemberRow>,
+  endMember: (id: string, m: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}/council/${m}/end`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<CouncilMemberRow>,
+  removeMember: (id: string, m: string) =>
+    adminFetch(`/campaigns/${id}/council/${m}`, {
+      method: "DELETE",
+    }) as Promise<{ deleted: true }>,
+  presign: (id: string, body: { kind: "image" | "pdf"; contentType: string; size: number }) =>
+    adminFetch(`/campaigns/${id}/uploads`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<PresignResult>,
+  commitMedia: (id: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}/media`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<Media>,
+  patchMedia: (id: string, m: string, body: Record<string, unknown>) =>
+    adminFetch(`/campaigns/${id}/media/${m}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }) as Promise<Media>,
+  deleteMedia: (id: string, m: string, reason?: string) =>
+    adminFetch(`/campaigns/${id}/media/${m}`, {
+      method: "DELETE",
+      body: JSON.stringify({ reason }),
+    }),
+  putDocument: (
+    id: string,
+    kind: DocumentKind,
+    subject: DocumentSubject,
+    body: Record<string, unknown>,
+  ) =>
+    adminFetch(`/campaigns/${id}/documents/${kind}/${subject}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }) as Promise<CampaignDocument>,
+  deleteDocument: (
+    id: string,
+    kind: DocumentKind,
+    subject: DocumentSubject,
+    reason?: string,
+  ) =>
+    adminFetch(`/campaigns/${id}/documents/${kind}/${subject}`, {
+      method: "DELETE",
+      body: JSON.stringify({ reason }),
+    }),
+  councilPhoto: (id: string, m: string, body: { stagingKey: string; reason?: string }) =>
+    adminFetch(`/campaigns/${id}/council/${m}/photo`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }) as Promise<CouncilMemberRow>,
+  purge: (id: string, body: { keys: string[]; reason: string }) =>
+    adminFetch(`/campaigns/${id}/purge`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+};
+
+export interface PresignResult {
+  uploadUrl: string;
+  stagingKey: string;
+  expiresAt: string;
+  maxBytes: number;
+}
+
+// ---------- upload orchestration (pure; XHR injected for tests) ----------
+
+export const IMAGE_MAX_BYTES = 15 * 1024 * 1024;
+export const PDF_MAX_BYTES = 50 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+const asMb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+
+export interface XhrLike {
+  open(method: string, url: string): void;
+  setRequestHeader(name: string, value: string): void;
+  send(body: unknown): void;
+  abort(): void;
+  status: number;
+  upload: {
+    addEventListener(
+      type: "progress",
+      fn: (e: { lengthComputable: boolean; loaded: number; total: number }) => void,
+    ): void;
+  };
+  addEventListener(type: "load" | "error" | "abort", fn: (e: unknown) => void): void;
+}
+
+export interface UploadOptions<T> {
+  file: File;
+  kind: "image" | "pdf";
+  presign: (body: {
+    kind: "image" | "pdf";
+    contentType: string;
+    size: number;
+  }) => Promise<PresignResult>;
+  /** Called with the staging key once the PUT succeeded; returns the API's commit result. */
+  commit: (stagingKey: string) => Promise<T>;
+  onProgress?: (fraction: number) => void;
+  /** XHR factory (default: real XMLHttpRequest). fetch() has no upload progress. */
+  xhr?: () => XhrLike;
+  signal?: AbortSignal;
+}
+
+/**
+ * presign → PUT straight to S3 (Content-Type and Content-Length are part of the
+ * signature, so both are sent exactly as presigned) → commit. Client-side
+ * checks mirror the server (type + size) so the user gets the error before a
+ * 15 MB upload, not after.
+ */
+export async function uploadAsset<T>(opts: UploadOptions<T>): Promise<T> {
+  const { file, kind } = opts;
+  if (opts.signal?.aborted) throw new Error("Upload cancelled");
+  if (kind === "image" && !IMAGE_TYPES.includes(file.type))
+    throw new Error("Image type not accepted — use jpeg, png, webp");
+  if (kind === "pdf" && file.type !== "application/pdf")
+    throw new Error("Documents must be PDF");
+  const max = kind === "image" ? IMAGE_MAX_BYTES : PDF_MAX_BYTES;
+  if (file.size > max) throw new Error(`File is larger than ${asMb(max)} MB`);
+
+  const presigned = await opts.presign({
+    kind,
+    contentType: file.type,
+    size: file.size,
+  });
+  // The constants above are a copy of the server's; this catches the day they drift.
+  if (file.size > presigned.maxBytes)
+    throw new Error(`Server limit is ${asMb(presigned.maxBytes)} MB — this file is larger`);
+
+  await new Promise<void>((resolve, reject) => {
+    if (opts.signal?.aborted) {
+      reject(new Error("Upload cancelled"));
+      return;
+    }
+    const xhr = (opts.xhr ?? (() => new XMLHttpRequest() as unknown as XhrLike))();
+    const onAbort = () => xhr.abort();
+    // One AbortSignal is often reused across several uploads, so drop our
+    // listener the moment this one settles rather than letting them pile up.
+    const settle = (fn: () => void) => {
+      opts.signal?.removeEventListener("abort", onAbort);
+      fn();
+    };
+    xhr.open("PUT", presigned.uploadUrl);
+    // withCredentials stays false on purpose: this is a plain CORS PUT to S3
+    // authorised by the SigV4 query string — a cookie would break the signature.
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) opts.onProgress?.(e.loaded / e.total);
+    });
+    xhr.addEventListener("load", () =>
+      settle(() => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          opts.onProgress?.(1);
+          resolve();
+        } else reject(new Error(`Upload failed (${xhr.status})`));
+      }),
+    );
+    xhr.addEventListener("error", () =>
+      settle(() => reject(new Error("Upload failed (network)"))),
+    );
+    xhr.addEventListener("abort", () =>
+      settle(() => reject(new Error("Upload cancelled"))),
+    );
+    opts.signal?.addEventListener("abort", onAbort, { once: true });
+    // Show a determinate bar from the first frame, before any progress event.
+    opts.onProgress?.(0);
+    xhr.send(file);
+  });
+  return opts.commit(presigned.stagingKey);
+}

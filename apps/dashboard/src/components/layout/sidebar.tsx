@@ -40,6 +40,10 @@ import {
   Upload,
   KeyRound,
   ChevronRight,
+  Vote,
+  ListChecks,
+  ArrowUpDown,
+  Tags,
   type LucideIcon,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
@@ -104,6 +108,34 @@ const communityNav: NavItem[] = [
     href: "/dashboard/donations",
     icon: Heart,
     permission: "donations.read",
+  },
+];
+
+const electionNav: NavItem[] = [
+  {
+    title: "Tickets",
+    href: "/dashboard/campaigns",
+    icon: Vote,
+    // Every campaign role (writer, reviewer, auditor, researcher) holds read.
+    permission: "campaigns.read",
+  },
+  {
+    title: "Review Queue",
+    href: "/dashboard/campaigns/queue",
+    icon: ListChecks,
+    permission: "campaigns.review",
+  },
+  {
+    title: "Rail Order",
+    href: "/dashboard/campaigns/order",
+    icon: ArrowUpDown,
+    permission: "campaigns.write",
+  },
+  {
+    title: "Council Roles",
+    href: "/dashboard/campaigns/roles",
+    icon: Tags,
+    permission: "campaigns.read",
   },
 ];
 
@@ -332,6 +364,7 @@ const adminNav: NavItem[] = [
 
 const navGroups = [
   { label: "Community", items: communityNav },
+  { label: "Election Tickets", items: electionNav },
   { label: "Social", items: socialNav },
   { label: "Knowledge Base", items: knowledgeNav },
   { label: "AI Engine", items: aiEngineNav },
