@@ -13,6 +13,16 @@ describe("MemoryObjectStore", () => {
     expect(await store.head("a/b.pdf")).toBeNull();
   });
 
+  it("keyFor compares origins, not string prefixes", async () => {
+    const store = new MemoryObjectStore("https://cdn.test");
+    expect(store.keyFor("https://cdn.test/election/2027/x.webp")).toBe("election/2027/x.webp");
+    // A lookalike host must NOT resolve to a key we would then delete.
+    expect(store.keyFor("https://cdn.test.evil.com/x")).toBeNull();
+    expect(store.keyFor("http://cdn.test/x")).toBeNull();
+    expect(store.keyFor("https://cdn.test/")).toBeNull();
+    expect(store.keyFor("not a url")).toBeNull();
+  });
+
   it("presigns a staging PUT and records the declared type", async () => {
     const store = new MemoryObjectStore("https://cdn.test");
     const p = await store.presignPut({ key: `${STAGING_PREFIX}x`, contentType: "image/png", expiresInSeconds: 60 });

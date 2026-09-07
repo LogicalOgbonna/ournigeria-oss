@@ -115,7 +115,27 @@ export class S3ObjectStore implements ObjectStore {
   }
 
   keyFor(url: string) {
-    const prefix = `${this.baseUrl}/`;
-    return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+    return keyFromUrl(this.baseUrl, url);
   }
+}
+
+/**
+ * Inverse of `urlFor`, comparing ORIGINS rather than string prefixes: a
+ * lookalike host (`https://cdn.test.evil.com/x` against a `https://cdn.test`
+ * base) must not resolve to a key we would then delete or treat as our own.
+ */
+export function keyFromUrl(baseUrl: string, url: string): string | null {
+  let base: URL;
+  let target: URL;
+  try {
+    base = new URL(baseUrl);
+    target = new URL(url);
+  } catch {
+    return null;
+  }
+  if (base.origin !== target.origin) return null;
+  const basePath = base.pathname.replace(/\/+$/, "");
+  if (basePath && !target.pathname.startsWith(`${basePath}/`)) return null;
+  const key = target.pathname.slice(basePath.length).replace(/^\/+/, "");
+  return key.length > 0 ? key : null;
 }

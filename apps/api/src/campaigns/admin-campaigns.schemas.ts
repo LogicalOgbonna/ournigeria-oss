@@ -190,3 +190,56 @@ export const endMemberSchema = z.object({
   reason: text(500).min(1),
 });
 export type EndMemberInput = z.infer<typeof endMemberSchema>;
+
+// ---------------------------------------------------------------------------
+// Assets (sub-plan 2): presigned staging uploads, media, documents, purge.
+// ---------------------------------------------------------------------------
+
+/** One row per ticket — a second upload REPLACES the row in place. */
+export const MEDIA_SLOT_TYPES = ["poster_candidate", "poster_mate", "card_candidate", "card_mate", "quote_photo", "bio_photo", "logo"] as const;
+/** Many rows per ticket — each upload appends. */
+export const MEDIA_APPEND_TYPES = ["banner", "photo"] as const;
+export const MEDIA_TYPES = [...MEDIA_SLOT_TYPES, ...MEDIA_APPEND_TYPES] as const;
+export type MediaType = (typeof MEDIA_TYPES)[number];
+
+export const presignSchema = z.object({
+  kind: z.enum(["image", "pdf"]),
+  contentType: z.string().max(60),
+  size: z.number().int().positive(),
+});
+export type PresignInput = z.infer<typeof presignSchema>;
+
+const stagingKey = z.string().regex(/^staging\/[0-9a-f-]{36}$/, "stagingKey must be a staging/<uuid> key");
+
+export const mediaCommitSchema = z.object({
+  stagingKey,
+  type: z.enum(MEDIA_TYPES),
+  caption: text(255).nullish(),
+  displayOrder: z.number().int().min(0).max(1000).optional(),
+  metadata: z.unknown().optional(), // validated per type in the service (posterArtSchema / matePosterArtSchema)
+  sourceUrl: httpUrl(2_000).nullish(),
+  reason: text(500).optional(),
+});
+export type MediaCommitInput = z.infer<typeof mediaCommitSchema>;
+
+export const mediaPatchSchema = mediaCommitSchema.omit({ stagingKey: true, type: true }).partial().extend({ reason: text(500).optional() });
+export type MediaPatchInput = z.infer<typeof mediaPatchSchema>;
+
+export const documentPutSchema = z.object({
+  stagingKey: stagingKey.optional(),
+  coverStagingKey: stagingKey.optional(),
+  title: text(100).min(1),
+  blurb: text(255).nullish(),
+  pageCount: z.number().int().min(1).max(5000).nullish(),
+  sourceUrl: httpUrl(2_000).nullish(),
+  reason: text(500).optional(),
+});
+export type DocumentPutInput = z.infer<typeof documentPutSchema>;
+export const DOCUMENT_KINDS = ["manifesto", "cv", "achievements"] as const;
+export const DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"] as const;
+
+export const councilPhotoSchema = z.object({ stagingKey, reason: text(500).optional() });
+export type CouncilPhotoInput = z.infer<typeof councilPhotoSchema>;
+
+export const purgeSchema = z.object({ keys: z.array(z.string().min(1).max(500)).min(1).max(100), reason: text(500).min(3) });
+export type PurgeInput = z.infer<typeof purgeSchema>;

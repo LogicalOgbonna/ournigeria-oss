@@ -38,6 +38,7 @@ const EDIT_ACTIONS = [
   "campaign.updated",
   "campaign.submitted",
   "campaign.slug.updated",
+  "campaign.media.added",
   "campaign.media.replaced",
   "campaign.media.updated",
   "campaign.media.deleted",

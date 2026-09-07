@@ -1,4 +1,4 @@
-import type { ObjectStore, PresignPutInput, PutOptions } from "./asset-store.service";
+import { keyFromUrl, type ObjectStore, type PresignPutInput, type PutOptions } from "./asset-store.service";
 
 /** Test double: everything in a Map, presigned URLs are fake but well-formed. */
 export class MemoryObjectStore implements ObjectStore {
@@ -32,7 +32,6 @@ export class MemoryObjectStore implements ObjectStore {
     return `${this.baseUrl}/${key}`;
   }
   keyFor(url: string) {
-    const prefix = `${this.baseUrl}/`;
-    return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+    return keyFromUrl(this.baseUrl, url);
   }
 }
