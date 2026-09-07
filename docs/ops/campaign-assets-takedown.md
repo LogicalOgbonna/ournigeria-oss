@@ -50,9 +50,9 @@ Every key must sit under this ticket's prefix `election/<year>/<electionType>/<s
   `targetType=campaign_council_member` (`diff.before.imageUrl`) for the other two. `action=campaign.` filters
   by prefix.
 - **Council portraits are two objects per photo:** `<hash>-600.webp` and `<hash>-128.webp` (the row stores
-  only the `-600` URL; the frontend derives `-128` by suffix swap). Pass **both** keys in the same call.
-  Purging one alone is refused with `(its variant ... is still referenced)` while the row lives, and
-  purging only the `-600` after the row is gone leaves the thumbnail on the CDN forever.
+  only the `-600` URL; the frontend derives `-128` by suffix swap). Pass either key: purge expands the
+  request to the whole family and returns both in `deleted[]`. While the row lives the call is refused
+  with `(its variant ... is still referenced)`.
 
 ## Step 3 - purge
 
