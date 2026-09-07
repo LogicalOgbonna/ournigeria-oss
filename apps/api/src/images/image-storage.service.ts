@@ -28,11 +28,13 @@ const MAX_REMOTE_BYTES = 15 * 1024 * 1024;
 export class ImageStorageService {
   private readonly s3: S3Client;
   private readonly bucket: string;
+  private readonly region: string;
   private readonly baseUrl: string;
 
   constructor(private readonly config: ConfigService) {
     this.bucket = this.config.getOrThrow<string>("S3_BUCKET");
     const region = this.config.getOrThrow<string>("AWS_REGION");
+    this.region = region;
     this.s3 = new S3Client({
       region,
       credentials: {
@@ -44,13 +46,25 @@ export class ImageStorageService {
     this.baseUrl = cdn || `https://${this.bucket}.s3.${region}.amazonaws.com`;
   }
 
-  /** True if a URL is already served from our own storage (CDN or S3 bucket). */
+  /**
+   * True if a URL is already served from our own storage (CDN or S3 bucket).
+   * Compares ORIGINS, not substrings: `https://cdn.example.ng.evil.com/x` and
+   * `https://evil.com/<bucket>/x` must not pass. Accepts the CDN origin, the
+   * virtual-hosted bucket origin, and the path-style origin with the bucket as
+   * the first path segment.
+   */
   isStoredUrl(url: string): boolean {
-    return (
-      url.startsWith(this.baseUrl) ||
-      url.includes(`${this.bucket}.s3.`) ||
-      url.includes(`/${this.bucket}/`)
-    );
+    let u: URL;
+    try {
+      u = new URL(url);
+    } catch {
+      return false;
+    }
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const origins = new Set<string>([new URL(this.baseUrl).origin, `https://${this.bucket}.s3.${this.region}.amazonaws.com`]);
+    if (origins.has(u.origin)) return true;
+    // Path-style: https://s3.<region>.amazonaws.com/<bucket>/key
+    return u.origin === `https://s3.${this.region}.amazonaws.com` && u.pathname.startsWith(`/${this.bucket}/`);
   }
 
   /** Store an official photo. `source` = remote URL | data-URL | Buffer. */

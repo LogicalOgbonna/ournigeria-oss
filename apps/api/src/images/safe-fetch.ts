@@ -105,20 +105,33 @@ export function assertSafeUrl(raw: string): URL {
 }
 
 /** Resolve once and vet. Returns the address to connect to. */
-export async function vetHost(hostname: string): Promise<string> {
+export async function vetHost(hostname: string, deadline = Date.now() + TIMEOUT_MS): Promise<string> {
   const bare = hostname.replace(/^\[|\]$/g, "");
   let address: string;
   if (isIP(bare)) {
     address = bare;
   } else {
+    // getaddrinfo has no timeout of its own; race it against the same deadline
+    // the transport uses so a stalling resolver cannot extend the wall clock.
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new BadRequestException("image fetch timed out");
+    let timer: NodeJS.Timeout | undefined;
     try {
       // Single-address form on purpose: `dns.lookup` returns exactly one address,
       // and that same address is both what we vet and what we pin the socket to.
       // Asking for `all: true` would open a gap between "an address we approved"
       // and "the address the socket picked".
-      address = (await dns.lookup(bare)).address;
-    } catch {
+      address = await Promise.race([
+        dns.lookup(bare).then((r) => r.address),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new BadRequestException("image fetch timed out")), remaining);
+        }),
+      ]);
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       throw new BadRequestException("could not resolve image host");
+    } finally {
+      clearTimeout(timer);
     }
   }
   if (!isPublicAddress(address)) {
@@ -253,7 +266,7 @@ export async function safeFetchBytes(raw: string, maxBytes: number): Promise<Buf
   let url = assertSafeUrl(raw);
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const address = await vetHost(url.hostname);
+    const address = await vetHost(url.hostname, deadline);
     const out = await fetchOnce(url, address, maxBytes, deadline);
     if (out.kind === "body") return out.bytes;
 
