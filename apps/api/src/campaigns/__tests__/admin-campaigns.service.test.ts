@@ -5,6 +5,9 @@ import { AuditCryptoService } from "../../audit/audit-crypto.service";
 import { bustRolesCache } from "../../admin/roles.util";
 import { AdminCampaignsService } from "../admin-campaigns.service";
 
+/** ImageStorageService needs S3 config to construct; only isStoredUrl matters here. */
+const imageStub = { isStoredUrl: (u: string) => u.startsWith("https://cdn.ournigeria.ng/") || u.includes(".s3.") } as never;
+
 /**
  * Integration, live DB. Two admins are created directly in admin_users with
  * role assignments (campaign_manager = writer, review_manager = reviewer); a
@@ -53,7 +56,7 @@ describe("AdminCampaignsService", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    svc = new AdminCampaignsService(prisma, audit);
+    svc = new AdminCampaignsService(prisma, audit, imageStub);
     writer = await mkAdmin("campaign_manager");
     writer2 = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");

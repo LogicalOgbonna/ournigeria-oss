@@ -9,6 +9,9 @@ import { AdminCampaignCouncilService } from "../../campaigns/admin-campaign-coun
 
 const actorOf = (id: string): AuditActor => ({ actorType: "staff", actorId: id });
 
+/** ImageStorageService needs S3 config to construct; only isStoredUrl matters here. */
+const imageStub = { isStoredUrl: (u: string) => u.startsWith("https://cdn.ournigeria.ng/") || u.includes(".s3.") } as never;
+
 describe("campaign events in the revert whitelist", () => {
   it("maps campaign edits to campaigns.review", () => {
     expect(REVERTIBLE_ACTIONS["campaign.updated"]).toBe("campaigns.review");
@@ -139,8 +142,8 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    campaigns = new AdminCampaignsService(prisma, audit);
-    const council = new AdminCampaignCouncilService(prisma, audit);
+    campaigns = new AdminCampaignsService(prisma, audit, imageStub);
+    const council = new AdminCampaignCouncilService(prisma, audit, imageStub);
     const alerts = { alert: vi.fn(async () => true) };
     revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council);
     writer = await mkAdmin("campaign_manager");

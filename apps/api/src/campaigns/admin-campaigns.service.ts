@@ -7,7 +7,9 @@ import {
 } from "@nestjs/common";
 import { Prisma, PrismaService, ensureTicketElections, slugifyName, type AnchorConfidence } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
+import { ImageStorageService } from "../images/image-storage.service";
 import { loadActiveRoles, loadPermissions } from "../admin/roles.util";
+import { mustCampaign, resolvePerson, reviewFlagData } from "./campaign-shared";
 import {
   raceScopeFor,
   type CreateInput,
@@ -44,6 +46,7 @@ const EDIT_ACTIONS = [
   "campaign.council.added",
   "campaign.council.updated",
   "campaign.council.ended",
+  "campaign.council.reinstated",
   "campaign.council.deleted",
 ];
 
@@ -83,6 +86,7 @@ export class AdminCampaignsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly images: ImageStorageService,
   ) {}
 
   // ---------- reads ----------
@@ -162,8 +166,8 @@ export class AdminCampaignsService {
     const key = scope.key;
     await this.assertRaceRefs(key, input.partyAcronym);
 
-    const candidate = await this.resolvePerson(input.candidate);
-    const mate = input.runningMate ? await this.resolvePerson(input.runningMate) : null;
+    const candidate = await resolvePerson(this.prisma, this.images, input.candidate);
+    const mate = input.runningMate ? await resolvePerson(this.prisma, this.images, input.runningMate) : null;
     // A supplied slug is a promise the caller made about the URL, so a clash is
     // an error; only the slug we derive ourselves may quietly take a -2 suffix.
     let slug: string;
@@ -223,11 +227,16 @@ export class AdminCampaignsService {
   }
 
   async patch(actor: AuditActor, id: string, input: PatchInput) {
-    const existing = await this.mustGet(id);
+    const existing = await mustCampaign(this.prisma, id);
     const { reason, ...fields } = input;
     const changes: Record<string, unknown> = {};
     for (const f of EDITABLE) if (fields[f as keyof typeof fields] !== undefined) changes[f] = fields[f as keyof typeof fields];
     if (Object.keys(changes).length === 0) throw new BadRequestException("No editable fields in request");
+    // Same gate as resolvePerson: create is not the only door into these columns.
+    for (const f of ["candidateImageUrl", "runningMateImageUrl"] as const) {
+      const url = changes[f];
+      if (typeof url === "string" && !this.images.isStoredUrl(url)) throw new BadRequestException(`${f} must be a stored image URL; upload the photo instead`);
+    }
 
     const isPublic = (PUBLIC_STATUSES as readonly string[]).includes(existing.status);
     if (existing.status !== "draft" && !reason?.trim()) throw new BadRequestException("A reason is required to edit a ticket that is not a draft");
@@ -241,7 +250,7 @@ export class AdminCampaignsService {
         where: { id },
         data: {
           ...(changes as Prisma.CampaignUncheckedUpdateInput),
-          ...(existing.status !== "draft" ? this.flagForReview(actor) : {}),
+          ...(existing.status !== "draft" ? reviewFlagData(actor) : {}),
         },
       });
       await this.audit.log(tx, actor, {
@@ -256,7 +265,7 @@ export class AdminCampaignsService {
   }
 
   async updateSlug(actor: AuditActor, id: string, slug: string) {
-    const existing = await this.mustGet(id);
+    const existing = await mustCampaign(this.prisma, id);
     if (existing.status !== "draft") throw new ConflictException("The slug is fixed once a ticket leaves draft");
     const unique = await this.uniqueSlug(slug);
     if (unique !== slug) throw new ConflictException(`slug ${slug} is taken`);
@@ -273,7 +282,7 @@ export class AdminCampaignsService {
   }
 
   async remove(actor: AuditActor, id: string) {
-    const existing = await this.mustGet(id);
+    const existing = await mustCampaign(this.prisma, id);
     if (existing.status !== "draft" || existing.reviewedBy) throw new ConflictException("Only a draft that was never published can be deleted; use unpublish or withdraw");
     await this.prisma.$transaction(async (tx) => {
       await tx.campaign.delete({ where: { id } });
@@ -285,13 +294,13 @@ export class AdminCampaignsService {
   // ---------- verbs ----------
 
   async submit(actor: AuditActor, id: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["draft"], "submit");
-    return this.transition(actor, id, "campaign.submitted", { ...this.flagForReview(actor), reviewNote: null });
+    return this.transition(actor, id, "campaign.submitted", { ...reviewFlagData(actor), reviewNote: null });
   }
 
   async requestChanges(actor: AuditActor, id: string, note: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["draft"], "request-changes");
     if (!row.reviewRequestedAt) throw new ConflictException("A draft must be submitted before changes can be requested");
     return this.transition(actor, id, "campaign.changes_requested", { reviewStatus: "disputed", reviewNote: note }, { note });
@@ -303,7 +312,7 @@ export class AdminCampaignsService {
    * race key is free among public rows.
    */
   async approve(actor: AuditActor, actorAdminId: string, id: string, reason: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["draft", "active", "concluded", "suspended"], "approve");
     if (row.status === "draft" && !row.reviewRequestedAt) throw new ConflictException("A draft must be submitted before it can be approved");
     if (row.status !== "draft" && row.status !== "suspended" && row.reviewStatus === "reviewed") throw new ConflictException("Nothing to approve — already reviewed");
@@ -351,7 +360,7 @@ export class AdminCampaignsService {
    * the campaign row is suspended.
    */
   async unpublish(actor: AuditActor, id: string, reason: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active", "concluded"], "unpublish");
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status: "suspended" } });
@@ -368,7 +377,7 @@ export class AdminCampaignsService {
   }
 
   async conclude(actor: AuditActor, id: string, reason: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active"], "conclude");
     return this.transition(actor, id, "campaign.concluded", { status: "concluded" }, { reason });
   }
@@ -382,7 +391,7 @@ export class AdminCampaignsService {
   }
 
   private async retire(actor: AuditActor, id: string, status: "withdrawn" | "dissolved", reason: string) {
-    const row = await this.mustGet(id);
+    const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active", "concluded", "suspended"], status);
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status } });
@@ -420,18 +429,8 @@ export class AdminCampaignsService {
 
   // ---------- helpers ----------
 
-  private async mustGet(id: string) {
-    const row = await this.prisma.campaign.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException("Campaign not found");
-    return row;
-  }
-
   private assertFrom(status: string, allowed: readonly string[], verb: string) {
     if (!allowed.includes(status)) throw new ConflictException(`${verb} is only allowed from ${allowed.join(", ")} (ticket is ${status})`);
-  }
-
-  private flagForReview(actor: AuditActor) {
-    return { reviewStatus: "unreviewed", reviewRequestedAt: new Date(), reviewRequestedBy: actor.actorId ?? null };
   }
 
   private async transition(actor: AuditActor, id: string, action: string, data: Prisma.CampaignUncheckedUpdateInput, metadata: Record<string, unknown> = {}) {
@@ -504,15 +503,6 @@ export class AdminCampaignsService {
       if (!l) throw new BadRequestException(`lgaCode: unknown LGA ${key.lgaCode}`);
       key.stateCode = l.stateCode;
     }
-  }
-
-  private async resolvePerson(p: { officialId?: string | null; name?: string | null; imageUrl?: string | null }) {
-    if (p.officialId) {
-      const o = await this.prisma.nigerianOfficial.findUnique({ where: { id: p.officialId }, select: { id: true, name: true, imageUrl: true, deletedAt: true } });
-      if (!o || o.deletedAt) throw new BadRequestException(`officialId: ${p.officialId} does not exist`);
-      return { officialId: o.id, name: o.name, imageUrl: p.imageUrl ?? o.imageUrl ?? null };
-    }
-    return { officialId: null, name: p.name!.trim(), imageUrl: p.imageUrl ?? null };
   }
 
   private deriveSlug(candidate: string, mate: string | null) {

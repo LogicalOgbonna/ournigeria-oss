@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, PrismaService } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
+import { ImageStorageService } from "../images/image-storage.service";
+import { mustCampaign, resolvePerson, reviewFlagData } from "./campaign-shared";
 import type { EndMemberInput, MemberInput, MemberPatch, RoleInput, RolePatch } from "./admin-campaigns.schemas";
 
 /**
@@ -18,6 +20,7 @@ export class AdminCampaignCouncilService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly images: ImageStorageService,
   ) {}
 
   // ---------- role catalog ----------
@@ -27,10 +30,12 @@ export class AdminCampaignCouncilService {
   }
 
   async createRole(actor: AuditActor, input: RoleInput) {
-    if (await this.prisma.campaignCouncilRole.findUnique({ where: { code: input.code } })) throw new ConflictException(`role ${input.code} exists`);
     return this.prisma.$transaction(async (tx) => {
+      // Inside the tx: two concurrent creates would otherwise both pass a
+      // check done outside it and the loser would surface as a raw 500.
+      if (await tx.campaignCouncilRole.findUnique({ where: { code: input.code } })) throw new ConflictException(`role ${input.code} exists`);
       const row = await tx.campaignCouncilRole.create({ data: input });
-      await this.audit.log(tx, actor, { action: "campaign.role.created", targetType: "campaign_council_role", targetId: row.code, diff: { before: null, after: input } });
+      await this.audit.log(tx, actor, { action: "campaign.role.created", targetType: "campaign_council_role", targetId: row.code, diff: { before: null, after: row } });
       return row;
     });
   }
@@ -46,11 +51,13 @@ export class AdminCampaignCouncilService {
   }
 
   async deleteRole(actor: AuditActor, code: string) {
-    const before = await this.prisma.campaignCouncilRole.findUnique({ where: { code } });
-    if (!before) throw new NotFoundException("Role not found");
-    const used = await this.prisma.campaignCouncilMember.count({ where: { roleCode: code } });
-    if (used > 0) throw new ConflictException(`role ${code} is referenced by ${used} member(s); deactivate it instead`);
     await this.prisma.$transaction(async (tx) => {
+      // Existence + reference count inside the tx: a member added concurrently
+      // would otherwise slip past a count taken before the delete.
+      const before = await tx.campaignCouncilRole.findUnique({ where: { code } });
+      if (!before) throw new NotFoundException("Role not found");
+      const used = await tx.campaignCouncilMember.count({ where: { roleCode: code } });
+      if (used > 0) throw new ConflictException(`role ${code} is referenced by ${used} member(s); deactivate it instead`);
       await tx.campaignCouncilRole.delete({ where: { code } });
       await this.audit.log(tx, actor, { action: "campaign.role.deleted", targetType: "campaign_council_role", targetId: code, diff: { before, after: null } });
     });
@@ -60,27 +67,29 @@ export class AdminCampaignCouncilService {
   // ---------- members ----------
 
   async addMember(actor: AuditActor, campaignId: string, input: MemberInput) {
-    const campaign = await this.mustCampaign(campaignId);
+    const campaign = await mustCampaign(this.prisma, campaignId);
     if (campaign.status !== "draft" && !input.reason?.trim()) throw new BadRequestException("A reason is required to edit a ticket that is not a draft");
     await this.assertRole(input.roleCode);
-    const scope = this.scopeFor(input);
-    const person = await this.resolvePerson(input);
+    const scope = await this.scopeFor(input);
+    const person = await resolvePerson(this.prisma, this.images, input);
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.campaignCouncilMember.create({
-        data: {
-          campaignId,
-          roleCode: input.roleCode,
-          officialId: person.officialId,
-          name: person.name,
-          imageUrl: person.imageUrl,
-          ...scope,
-          startDate: input.startDate ? new Date(input.startDate) : null,
-          displayOrder: input.displayOrder ?? 0,
-          confidence: input.confidence ?? "medium",
-          sourceUrl: input.sourceUrl ?? null,
-          sourceType: "manual",
-        },
-      });
+      const row = await this.uniqueWrite(() =>
+        tx.campaignCouncilMember.create({
+          data: {
+            campaignId,
+            roleCode: input.roleCode,
+            officialId: person.officialId,
+            name: person.name,
+            imageUrl: person.imageUrl,
+            ...scope,
+            startDate: input.startDate ? new Date(input.startDate) : null,
+            displayOrder: input.displayOrder ?? 0,
+            confidence: input.confidence ?? "medium",
+            sourceUrl: input.sourceUrl ?? null,
+            sourceType: "manual",
+          },
+        }),
+      );
       await this.flag(tx, campaign, actor);
       await this.audit.log(tx, actor, { action: "campaign.council.added", targetType: "campaign_council_member", targetId: row.id, diff: { before: null, after: row }, metadata: { campaignId, reason: input.reason ?? null } });
       return row;
@@ -88,13 +97,17 @@ export class AdminCampaignCouncilService {
   }
 
   async patchMember(actor: AuditActor, campaignId: string, memberId: string, input: MemberPatch) {
-    const campaign = await this.mustCampaign(campaignId);
+    const campaign = await mustCampaign(this.prisma, campaignId);
     const before = await this.loadChild(campaignId, memberId);
     if (campaign.status !== "draft" && !input.reason?.trim()) throw new BadRequestException("A reason is required to edit a ticket that is not a draft");
+    // An ended member is history: reinstate reopens it, a patch does not.
+    if (before.status === "ended") throw new ConflictException("Member has ended; reinstate first");
     if (input.roleCode) await this.assertRole(input.roleCode);
+    const officialId = input.officialId === undefined ? before.officialId : input.officialId;
+    if (input.name !== undefined && officialId) throw new BadRequestException("name is taken from the linked official");
     const scope =
       input.scopeLevel || input.stateCode !== undefined || input.lgaCode !== undefined
-        ? this.scopeFor({
+        ? await this.scopeFor({
             scopeLevel: input.scopeLevel ?? (before.scopeLevel as "national" | "state" | "lga"),
             stateCode: input.stateCode === undefined ? before.stateCode : input.stateCode,
             lgaCode: input.lgaCode === undefined ? before.lgaCode : input.lgaCode,
@@ -103,22 +116,26 @@ export class AdminCampaignCouncilService {
     const { reason, officialId: _o, name: _n, imageUrl: _i, startDate: _s, ...rest } = input;
     const person =
       input.officialId !== undefined || input.name !== undefined || input.imageUrl !== undefined
-        ? await this.resolvePerson({
-            officialId: input.officialId === undefined ? before.officialId : input.officialId,
+        ? await resolvePerson(this.prisma, this.images, {
+            officialId,
             name: input.name ?? before.name,
             imageUrl: input.imageUrl === undefined ? before.imageUrl : input.imageUrl,
           })
         : null;
+    // Only a move of the (official, role) pair can hit the partial unique index.
+    const mayClash = input.roleCode !== undefined || input.officialId !== undefined;
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.campaignCouncilMember.update({
-        where: { id: memberId },
-        data: {
-          ...(rest as Prisma.CampaignCouncilMemberUncheckedUpdateInput),
-          ...(person ? { officialId: person.officialId, name: person.name, imageUrl: person.imageUrl } : {}),
-          ...scope,
-          ...(input.startDate !== undefined ? { startDate: input.startDate ? new Date(input.startDate) : null } : {}),
-        },
-      });
+      const write = () =>
+        tx.campaignCouncilMember.update({
+          where: { id: memberId },
+          data: {
+            ...(rest as Prisma.CampaignCouncilMemberUncheckedUpdateInput),
+            ...(person ? { officialId: person.officialId, name: person.name, imageUrl: person.imageUrl } : {}),
+            ...scope,
+            ...(input.startDate !== undefined ? { startDate: input.startDate ? new Date(input.startDate) : null } : {}),
+          },
+        });
+      const row = mayClash ? await this.uniqueWrite(write) : await write();
       await this.flag(tx, campaign, actor);
       await this.audit.log(tx, actor, { action: "campaign.council.updated", targetType: "campaign_council_member", targetId: memberId, diff: { before, after: row }, metadata: { campaignId, reason: reason ?? null } });
       return row;
@@ -126,7 +143,7 @@ export class AdminCampaignCouncilService {
   }
 
   async endMember(actor: AuditActor, campaignId: string, memberId: string, input: EndMemberInput) {
-    const campaign = await this.mustCampaign(campaignId);
+    const campaign = await mustCampaign(this.prisma, campaignId);
     const before = await this.loadChild(campaignId, memberId);
     if (before.status === "ended") throw new ConflictException("Member already ended");
     return this.prisma.$transaction(async (tx) => {
@@ -152,14 +169,18 @@ export class AdminCampaignCouncilService {
    * a published ticket for re-review and audits like every other change.
    */
   async reinstateMember(actor: AuditActor, campaignId: string, memberId: string, reason: string) {
-    const campaign = await this.mustCampaign(campaignId);
+    const campaign = await mustCampaign(this.prisma, campaignId);
     const before = await this.loadChild(campaignId, memberId);
     if (before.status !== "ended") throw new ConflictException("Member is not ended");
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.campaignCouncilMember.update({
-        where: { id: memberId },
-        data: { status: "active", endReason: null, endDate: null },
-      });
+      // Going back to 'active' re-enters the partial unique index: someone may
+      // have been appointed into the seat while this one was ended.
+      const row = await this.uniqueWrite(() =>
+        tx.campaignCouncilMember.update({
+          where: { id: memberId },
+          data: { status: "active", endReason: null, endDate: null },
+        }),
+      );
       await this.flag(tx, campaign, actor);
       await this.audit.log(tx, actor, {
         action: "campaign.council.reinstated",
@@ -173,7 +194,7 @@ export class AdminCampaignCouncilService {
   }
 
   async removeMember(actor: AuditActor, campaignId: string, memberId: string) {
-    const campaign = await this.mustCampaign(campaignId);
+    const campaign = await mustCampaign(this.prisma, campaignId);
     const before = await this.loadChild(campaignId, memberId);
     if (campaign.status !== "draft") throw new ConflictException("Members of a published ticket are ended, not deleted; ticket is not a draft");
     await this.prisma.$transaction(async (tx) => {
@@ -184,12 +205,6 @@ export class AdminCampaignCouncilService {
   }
 
   // ---------- helpers ----------
-
-  private async mustCampaign(id: string) {
-    const row = await this.prisma.campaign.findUnique({ where: { id }, select: { id: true, status: true, lastVerifiedAt: true } });
-    if (!row) throw new NotFoundException("Campaign not found");
-    return row;
-  }
 
   /** Parent-scoped child load: a member of another campaign is a 404 here. */
   private async loadChild(campaignId: string, memberId: string) {
@@ -203,40 +218,53 @@ export class AdminCampaignCouncilService {
     if (!role || !role.isActive) throw new BadRequestException(`roleCode: unknown or inactive role ${code}`);
   }
 
-  /** Mirrors chk_campaign_council_scope — the DB CHECK is the backstop, this is the message. */
-  private scopeFor(m: { scopeLevel?: "national" | "state" | "lga"; stateCode?: string | null; lgaCode?: string | null }): {
+  /**
+   * uq_campaign_council_active_official is a partial unique index the ORM does
+   * not know about, so a duplicate seat arrives as a bare P2002. Kept tight
+   * around the single write so the audit event still lands last in the tx.
+   */
+  private async uniqueWrite<T>(write: () => Promise<T>): Promise<T> {
+    try {
+      return await write();
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new ConflictException("This official already holds that role on this campaign");
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Mirrors chk_campaign_council_scope — the DB CHECK is the backstop, this is
+   * the message. Geo codes are also resolved against the real tables (an
+   * unknown code would otherwise surface as a raw FK 500), and an LGA's state
+   * is taken from the LGA row rather than trusted from the caller.
+   */
+  private async scopeFor(m: { scopeLevel?: "national" | "state" | "lga"; stateCode?: string | null; lgaCode?: string | null }): Promise<{
     scopeLevel: string;
     stateCode: string | null;
     lgaCode: string | null;
-  } {
+  }> {
     const level = m.scopeLevel ?? "national";
     if (level === "national") return { scopeLevel: "national", stateCode: null, lgaCode: null };
     if (level === "state") {
       if (!m.stateCode) throw new BadRequestException("stateCode is required for a state-scoped member");
-      return { scopeLevel: "state", stateCode: m.stateCode.toLowerCase(), lgaCode: null };
+      const stateCode = m.stateCode.toLowerCase();
+      if (!(await this.prisma.nigerianState.findUnique({ where: { code: stateCode }, select: { code: true } }))) {
+        throw new BadRequestException(`stateCode: unknown state ${stateCode}`);
+      }
+      return { scopeLevel: "state", stateCode, lgaCode: null };
     }
     if (!m.lgaCode) throw new BadRequestException("lgaCode is required for an LGA-scoped member");
-    return { scopeLevel: "lga", stateCode: m.stateCode?.toLowerCase() ?? null, lgaCode: m.lgaCode.toLowerCase() };
-  }
-
-  /**
-   * A linked official owns their name and photo; an unlinked person carries a
-   * bare name. An arbitrary remote image URL is refused — the photo is
-   * uploaded and served from our CDN, never hotlinked.
-   */
-  private async resolvePerson(p: { officialId?: string | null; name?: string | null; imageUrl?: string | null }) {
-    if (p.officialId) {
-      const o = await this.prisma.nigerianOfficial.findUnique({ where: { id: p.officialId }, select: { id: true, name: true, imageUrl: true, deletedAt: true } });
-      if (!o || o.deletedAt) throw new BadRequestException(`officialId: ${p.officialId} does not exist`);
-      return { officialId: o.id, name: o.name, imageUrl: p.imageUrl ?? o.imageUrl ?? null };
-    }
-    if (p.imageUrl && !/^https:\/\/cdn\.ournigeria\.ng\//.test(p.imageUrl)) throw new BadRequestException("imageUrl must be a stored CDN URL; upload the photo instead");
-    return { officialId: null, name: (p.name ?? "").trim(), imageUrl: p.imageUrl ?? null };
+    const lgaCode = m.lgaCode.toLowerCase();
+    const lga = await this.prisma.nigerianLga.findUnique({ where: { code: lgaCode }, select: { stateCode: true } });
+    if (!lga) throw new BadRequestException(`lgaCode: unknown LGA ${lgaCode}`);
+    return { scopeLevel: "lga", stateCode: lga.stateCode, lgaCode };
   }
 
   /** Any council change on a non-draft ticket puts it back in the review queue. */
   private async flag(tx: Prisma.TransactionClient, campaign: { id: string; status: string }, actor: AuditActor) {
     if (campaign.status === "draft") return;
-    await tx.campaign.update({ where: { id: campaign.id }, data: { reviewStatus: "unreviewed", reviewRequestedAt: new Date(), reviewRequestedBy: actor.actorId ?? null } });
+    await tx.campaign.update({ where: { id: campaign.id }, data: reviewFlagData(actor) });
   }
 }
