@@ -25,24 +25,28 @@ describe("MemoryObjectStore", () => {
 
   it("presigns a staging PUT and records the declared type", async () => {
     const store = new MemoryObjectStore("https://cdn.test");
-    const p = await store.presignPut({ key: `${STAGING_PREFIX}x`, contentType: "image/png", expiresInSeconds: 60 });
+    const p = await store.presignPut({ key: `${STAGING_PREFIX}x`, contentType: "image/png", size: 1000, expiresInSeconds: 60 });
     expect(p.url).toContain(`${STAGING_PREFIX}x`);
     expect(p.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 });
 
 describe("S3ObjectStore", () => {
-  it("signs a PUT for the staging key with the content type baked in (offline)", async () => {
+  it("signs a PUT for the staging key with the content type AND length baked in (offline)", async () => {
     const config = {
       getOrThrow: (k: string) => ({ S3_BUCKET: "test-bucket", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "AKIATEST", AWS_SECRET_ACCESS_KEY: "secret" })[k],
       get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.test" : undefined),
     };
     const store = new S3ObjectStore(config as never);
-    const p = await store.presignPut({ key: `${STAGING_PREFIX}abc`, contentType: "image/png", expiresInSeconds: 600 });
+    const p = await store.presignPut({ key: `${STAGING_PREFIX}abc`, contentType: "image/png", size: 4096, expiresInSeconds: 600 });
     const u = new URL(p.url);
     expect(u.hostname).toBe("test-bucket.s3.eu-west-1.amazonaws.com");
     expect(u.pathname).toBe(`/${STAGING_PREFIX}abc`);
     expect(u.searchParams.get("X-Amz-Expires")).toBe("600");
-    expect(u.searchParams.get("X-Amz-SignedHeaders")).toContain("content-type");
+    const signed = u.searchParams.get("X-Amz-SignedHeaders") ?? "";
+    expect(signed).toContain("content-type");
+    // Without content-length in the signature the size checked at presign time
+    // is advisory: the uploader could stream anything at the signed URL.
+    expect(signed).toContain("content-length");
   });
 });

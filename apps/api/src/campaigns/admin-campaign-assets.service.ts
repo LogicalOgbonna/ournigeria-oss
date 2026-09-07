@@ -8,7 +8,7 @@ import { assertImageBytes, assertPdfBytes, IMAGE_MAX_BYTES, IMAGE_TYPES, PDF_MAX
 import { countPdfPages } from "./pdf-page-count";
 import { CdnPurgeService } from "./cdn-purge.service";
 import { matePosterArtSchema, posterArtSchema } from "./poster-art.schema";
-import { mustCampaign, reviewFlagData } from "./campaign-shared";
+import { mustCampaign, reviewFlagData, uniqueWrite } from "./campaign-shared";
 import {
   DOCUMENT_KINDS,
   DOCUMENT_SUBJECTS,
@@ -45,7 +45,7 @@ export interface DocumentRestoreInput {
  * Upload flow (spec §4 "Assets", R9):
  *
  *   browser ──POST /:id/uploads──▶ presign ──▶ { uploadUrl, stagingKey }
- *   browser ──PUT bytes──▶ S3 staging/<uuid>
+ *   browser ──PUT bytes──▶ S3 staging/<campaignId>/<uuid>
  *   browser ──POST /:id/media {stagingKey,…}──▶ commitMedia
  *       head+get staging → assertImageBytes → images.storeAsset(final key) → row → audit → delete staging
  *
@@ -73,8 +73,10 @@ export class AdminCampaignAssetsService {
       if (input.contentType !== "application/pdf") throw new BadRequestException("contentType must be application/pdf");
       if (input.size > PDF_MAX_BYTES) throw new BadRequestException(`document exceeds ${PDF_MAX_BYTES} bytes`);
     }
-    const stagingKey = `${STAGING_PREFIX}${randomUUID()}`;
-    const { url, expiresAt } = await this.store.presignPut({ key: stagingKey, contentType: input.contentType, expiresInSeconds: PRESIGN_TTL_SECONDS });
+    // Scoped to the ticket: `commit` re-checks the campaign segment, so bytes
+    // staged against one ticket can never be committed onto another.
+    const stagingKey = `${STAGING_PREFIX}${campaignId}/${randomUUID()}`;
+    const { url, expiresAt } = await this.store.presignPut({ key: stagingKey, contentType: input.contentType, size: input.size, expiresInSeconds: PRESIGN_TTL_SECONDS });
     void actor; // presign is not a mutation; nothing to audit
     return { uploadUrl: url, stagingKey, expiresAt, maxBytes: input.kind === "image" ? IMAGE_MAX_BYTES : PDF_MAX_BYTES };
   }
@@ -85,25 +87,31 @@ export class AdminCampaignAssetsService {
     const campaign = await mustCampaign(this.prisma, campaignId);
     this.requireReason(campaign.status, input.reason);
     const metadata = this.validateMetadata(input.type, input.metadata);
-    const bytes = await this.takeStaged(input.stagingKey);
-    const declared = (await this.store.head(input.stagingKey))?.contentType ?? "";
-    assertImageBytes(bytes, declared);
-    const stored = await this.images.storeAsset(bytes, this.prefixFor(campaign), { type: input.type });
+    const staged = await this.takeStaged(campaignId, input.stagingKey, IMAGE_MAX_BYTES);
+    assertImageBytes(staged.bytes, staged.contentType);
+    const stored = await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: input.type });
     const isSlot = (MEDIA_SLOT_TYPES as readonly string[]).includes(input.type);
 
     const row = await this.prisma.$transaction(async (tx) => {
+      // The slot lookup lives INSIDE the transaction so read and write are one
+      // unit; `uq_campaign_media_slot` is the backstop when two commits for the
+      // same slot interleave anyway — the loser gets a 409, not a second row.
       const existing = isSlot ? await tx.campaignMedia.findFirst({ where: { campaignId, type: input.type } }) : null;
       const data = {
         url: stored.url,
-        caption: input.caption ?? existing?.caption ?? null,
+        // An explicit `null` CLEARS; only an absent key inherits the old value.
+        caption: input.caption === undefined ? (existing?.caption ?? null) : input.caption,
         displayOrder: input.displayOrder ?? existing?.displayOrder ?? 0,
-        // An explicit `null` CLEARS the geometry; only an absent key inherits.
         metadata: (metadata === undefined ? (existing?.metadata ?? Prisma.JsonNull) : (metadata ?? Prisma.JsonNull)) as Prisma.InputJsonValue,
-        sourceUrl: input.sourceUrl ?? existing?.sourceUrl ?? null,
+        sourceUrl: input.sourceUrl === undefined ? (existing?.sourceUrl ?? null) : input.sourceUrl,
       };
-      const saved = existing
-        ? await tx.campaignMedia.update({ where: { id: existing.id }, data })
-        : await tx.campaignMedia.create({ data: { campaignId, type: input.type, ...data } });
+      const saved = await uniqueWrite(
+        () =>
+          existing
+            ? tx.campaignMedia.update({ where: { id: existing.id }, data })
+            : tx.campaignMedia.create({ data: { campaignId, type: input.type, ...data } }),
+        "That slot was replaced by someone else just now; reload and try again",
+      );
       await this.flag(tx, campaign, actor);
       await this.audit.log(tx, actor, {
         action: existing ? "campaign.media.replaced" : "campaign.media.added",
@@ -155,43 +163,50 @@ export class AdminCampaignAssetsService {
     if (!(DOCUMENT_SUBJECTS as readonly string[]).includes(subject)) throw new BadRequestException(`subject must be one of ${DOCUMENT_SUBJECTS.join(", ")}`);
     const campaign = await mustCampaign(this.prisma, campaignId);
     this.requireReason(campaign.status, input.reason);
-    const existing = await this.prisma.campaignDocument.findUnique({ where: { campaignId_kind_subject: { campaignId, kind, subject } } });
 
-    let fileUrl = existing?.fileUrl ?? null;
+    // Bytes are moved to permanent storage BEFORE the transaction (object I/O
+    // must not hold a DB transaction open); the row is read and written inside
+    // it, so a concurrent PUT of the same (kind, subject) cannot be lost.
+    let uploadedFileUrl: string | null = null;
     let scanned: number | null = null;
     if (input.stagingKey) {
-      const bytes = await this.takeStaged(input.stagingKey);
-      assertPdfBytes(bytes);
-      const hash = createHash("sha256").update(bytes).digest("hex").slice(0, 16);
+      const staged = await this.takeStaged(campaignId, input.stagingKey, PDF_MAX_BYTES);
+      assertPdfBytes(staged.bytes, staged.contentType);
+      const hash = createHash("sha256").update(staged.bytes).digest("hex").slice(0, 16);
       const key = `${this.prefixFor(campaign)}/${kind}-${subject}-${hash}.pdf`;
-      await this.store.put(key, bytes, { contentType: "application/pdf", contentDisposition: "inline", cacheControl: PDF_CACHE });
-      fileUrl = this.store.urlFor(key);
-      scanned = countPdfPages(bytes);
+      await this.store.put(key, staged.bytes, { contentType: "application/pdf", contentDisposition: "inline", cacheControl: PDF_CACHE });
+      uploadedFileUrl = this.store.urlFor(key);
+      scanned = countPdfPages(staged.bytes);
     }
-    let coverUrl = existing?.coverUrl ?? null;
+    let uploadedCoverUrl: string | null = null;
     if (input.coverStagingKey) {
-      const bytes = await this.takeStaged(input.coverStagingKey);
-      const declared = (await this.store.head(input.coverStagingKey))?.contentType ?? "";
-      assertImageBytes(bytes, declared);
-      coverUrl = (await this.images.storeAsset(bytes, this.prefixFor(campaign), { type: "document_cover", maxEdge: 1200 })).url;
+      const staged = await this.takeStaged(campaignId, input.coverStagingKey, IMAGE_MAX_BYTES);
+      assertImageBytes(staged.bytes, staged.contentType);
+      uploadedCoverUrl = (await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: "document_cover", maxEdge: 1200 })).url;
     }
 
     const row = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.campaignDocument.findUnique({ where: { campaignId_kind_subject: { campaignId, kind, subject } } });
       const data = {
         title: input.title,
-        blurb: input.blurb ?? existing?.blurb ?? null,
-        coverUrl,
-        fileUrl,
-        pageCount: input.pageCount ?? scanned ?? existing?.pageCount ?? null,
-        sourceUrl: input.sourceUrl ?? existing?.sourceUrl ?? null,
+        // An explicit `null` CLEARS; only an absent key inherits the old value.
+        blurb: input.blurb === undefined ? (existing?.blurb ?? null) : input.blurb,
+        coverUrl: uploadedCoverUrl ?? existing?.coverUrl ?? null,
+        fileUrl: uploadedFileUrl ?? existing?.fileUrl ?? null,
+        pageCount: input.pageCount === undefined ? (scanned ?? existing?.pageCount ?? null) : input.pageCount,
+        sourceUrl: input.sourceUrl === undefined ? (existing?.sourceUrl ?? null) : input.sourceUrl,
         sourceType: "manual",
       };
-      const saved = existing
-        ? await tx.campaignDocument.update({ where: { id: existing.id }, data })
-        : await tx.campaignDocument.create({ data: { campaignId, kind, subject, ...data } });
+      const saved = await uniqueWrite(
+        () =>
+          existing
+            ? tx.campaignDocument.update({ where: { id: existing.id }, data })
+            : tx.campaignDocument.create({ data: { campaignId, kind, subject, ...data } }),
+        "That document was replaced by someone else just now; reload and try again",
+      );
       await this.flag(tx, campaign, actor);
       await this.audit.log(tx, actor, {
-        action: "campaign.document.replaced",
+        action: existing ? "campaign.document.replaced" : "campaign.document.added",
         targetType: "campaign_document",
         targetId: saved.id,
         diff: { before: existing ? pickDoc(existing) : null, after: pickDoc(saved) },
@@ -225,10 +240,9 @@ export class AdminCampaignAssetsService {
     const member = await this.prisma.campaignCouncilMember.findFirst({ where: { id: memberId, campaignId } });
     if (!member) throw new NotFoundException("Council member not found on this campaign");
     this.requireReason(campaign.status, input.reason);
-    const bytes = await this.takeStaged(input.stagingKey);
-    const declared = (await this.store.head(input.stagingKey))?.contentType ?? "";
-    assertImageBytes(bytes, declared);
-    const stored = await this.images.store(bytes, `${this.prefixFor(campaign)}/council/${memberId}`);
+    const staged = await this.takeStaged(campaignId, input.stagingKey, IMAGE_MAX_BYTES);
+    assertImageBytes(staged.bytes, staged.contentType);
+    const stored = await this.images.store(staged.bytes, `${this.prefixFor(campaign)}/council/${memberId}`);
     const row = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaignCouncilMember.update({ where: { id: memberId }, data: { imageUrl: stored.url } });
       await this.flag(tx, campaign, actor);
@@ -307,27 +321,49 @@ export class AdminCampaignAssetsService {
 
   /**
    * Delete objects for real and purge the CDN. Refuses any key still referenced
-   * by a media/document/council row (any campaign) or a key outside this
-   * ticket's prefix. The takedown runbook: docs/ops/campaign-assets-takedown.md.
+   * by a media/document/council row (any campaign), any key whose SIBLING
+   * VARIANT is still referenced, and any key outside this ticket's prefix. The
+   * takedown runbook: docs/ops/campaign-assets-takedown.md.
+   *
+   * Audit is two events on purpose. The intent (`purge_requested`) is written
+   * BEFORE anything is deleted so a crash mid-takedown still leaves a record of
+   * who asked for what; the outcome (`purged`) is best-effort, because once the
+   * objects are gone a failed audit write must not turn into a 500 that tells
+   * the reviewer nothing happened.
    */
   async purge(actor: AuditActor, campaignId: string, input: { keys: string[]; reason: string }) {
     const campaign = await mustCampaign(this.prisma, campaignId);
     const prefix = `${this.prefixFor(campaign)}/`;
     const outside = input.keys.filter((k) => !k.startsWith(prefix));
     if (outside.length) throw new BadRequestException(`keys outside this ticket's storage prefix: ${outside.join(", ")}`);
-    const urls = input.keys.map((k) => this.store.urlFor(k));
+
+    // A square portrait is stored as TWO objects (`<hash>-600.webp` and
+    // `<hash>-128.webp`) while the row holds only the -600 URL and the frontend
+    // derives -128 by suffix swap. Checking a key on its own therefore happily
+    // deletes the avatar of a live council member. Each key is checked as a
+    // family, and a key is refused when any member of its family is referenced.
+    const family = new Map(input.keys.map((k) => [k, [k, ...siblingKeys(k)]]));
+    const lookupUrls = [...new Set([...family.values()].flat())].map((k) => this.store.urlFor(k));
     const [media, docs, council] = await Promise.all([
-      this.prisma.campaignMedia.findMany({ where: { url: { in: urls } }, select: { url: true } }),
-      this.prisma.campaignDocument.findMany({ where: { OR: [{ fileUrl: { in: urls } }, { coverUrl: { in: urls } }] }, select: { fileUrl: true, coverUrl: true } }),
-      this.prisma.campaignCouncilMember.findMany({ where: { imageUrl: { in: urls } }, select: { imageUrl: true } }),
+      this.prisma.campaignMedia.findMany({ where: { url: { in: lookupUrls } }, select: { url: true } }),
+      this.prisma.campaignDocument.findMany({ where: { OR: [{ fileUrl: { in: lookupUrls } }, { coverUrl: { in: lookupUrls } }] }, select: { fileUrl: true, coverUrl: true } }),
+      this.prisma.campaignCouncilMember.findMany({ where: { imageUrl: { in: lookupUrls } }, select: { imageUrl: true } }),
     ]);
     const referenced = new Set<string>([...media.map((m) => m.url), ...docs.flatMap((d) => [d.fileUrl, d.coverUrl]).filter((u): u is string => Boolean(u)), ...council.map((c) => c.imageUrl).filter((u): u is string => Boolean(u))]);
-    const blocked = input.keys.filter((k) => referenced.has(this.store.urlFor(k)));
+    const blocked = input.keys
+      .map((k) => {
+        const hit = family.get(k)!.find((s) => referenced.has(this.store.urlFor(s)));
+        if (!hit) return null;
+        return hit === k ? k : `${k} (its variant ${hit} is still referenced)`;
+      })
+      .filter((x): x is string => x !== null);
     if (blocked.length) throw new ConflictException(`keys still referenced by a row (delete the row first): ${blocked.join(", ")}`);
 
+    const urls = input.keys.map((k) => this.store.urlFor(k));
+    await this.audit.log(null, actor, { action: "campaign.assets.purge_requested", targetType: "campaign", targetId: campaignId, metadata: { keys: input.keys, reason: input.reason } });
     for (const k of input.keys) await this.store.delete(k);
     const cdn = await this.cdn.purge(urls);
-    await this.audit.log(null, actor, { action: "campaign.assets.purged", targetType: "campaign", targetId: campaignId, metadata: { keys: input.keys, cdn, reason: input.reason } });
+    await this.audit.logBestEffort(actor, { action: "campaign.assets.purged", targetType: "campaign", targetId: campaignId, metadata: { keys: input.keys, cdn, reason: input.reason } });
     return { deleted: input.keys, cdn };
   }
 
@@ -352,16 +388,23 @@ export class AdminCampaignAssetsService {
     return row;
   }
 
-  /** Read a staged object or 400; the caller deletes it after a successful commit. */
-  private async takeStaged(key: string): Promise<Buffer> {
-    if (!key.startsWith(STAGING_PREFIX)) throw new BadRequestException("stagingKey must be a staging key");
+  /**
+   * Read a staged object or 400; the caller deletes it after a successful
+   * commit. One `head` (size + the content type the PUT was signed for) and one
+   * `get` — the declared type comes back with the bytes so no caller has to
+   * head the key a second time. `maxBytes` is the limit for the KIND being
+   * committed (image vs PDF), not the larger of the two; an object over it is
+   * deleted rather than left to sit in the bucket.
+   */
+  private async takeStaged(campaignId: string, key: string, maxBytes: number): Promise<{ bytes: Buffer; contentType: string }> {
+    if (!key.startsWith(`${STAGING_PREFIX}${campaignId}/`)) throw new BadRequestException("stagingKey does not belong to this ticket");
     const head = await this.store.head(key);
     if (!head) throw new BadRequestException("staged upload not found or expired; upload again");
-    if (head.size > PDF_MAX_BYTES) {
+    if (head.size > maxBytes) {
       await this.store.delete(key).catch(() => undefined);
-      throw new BadRequestException(`staged upload exceeds ${PDF_MAX_BYTES} bytes`);
+      throw new BadRequestException(`staged upload exceeds ${maxBytes} bytes`);
     }
-    return this.store.get(key);
+    return { bytes: await this.store.get(key), contentType: head.contentType ?? "" };
   }
 
   private validateMetadata(type: string, metadata: unknown): Prisma.InputJsonValue | null | undefined {
@@ -379,6 +422,17 @@ export class AdminCampaignAssetsService {
     }
     throw new BadRequestException("metadata is only accepted on poster_candidate / poster_mate rows");
   }
+}
+
+/**
+ * The other stored variant(s) of a square portrait key. `ImageStorageService`
+ * writes `<hash>-600.webp` + `<hash>-128.webp` for one image and rows persist
+ * only the -600 URL, so the two objects live and die together.
+ */
+export function siblingKeys(key: string): string[] {
+  if (key.endsWith("-600.webp")) return [`${key.slice(0, -"-600.webp".length)}-128.webp`];
+  if (key.endsWith("-128.webp")) return [`${key.slice(0, -"-128.webp".length)}-600.webp`];
+  return [];
 }
 
 function pick(m: { url: string; caption: string | null; displayOrder: number; metadata: unknown; sourceUrl: string | null }) {

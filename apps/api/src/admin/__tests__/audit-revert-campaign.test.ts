@@ -538,9 +538,9 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     expect(after.officialId).toBe(official.id);
   });
 
-  /** Stage bytes the way a presigned browser upload would. */
-  async function stage(bytes: Buffer) {
-    const key = `${STAGING_PREFIX}${crypto.randomUUID()}`;
+  /** Stage bytes the way a presigned browser upload would (keys are ticket-scoped). */
+  async function stage(bytes: Buffer, forCampaignId = campaignId) {
+    const key = `${STAGING_PREFIX}${forCampaignId}/${crypto.randomUUID()}`;
     await store.put(key, bytes, { contentType: "image/png" });
     return key;
   }

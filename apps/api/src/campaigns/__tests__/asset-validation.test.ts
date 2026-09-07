@@ -25,13 +25,17 @@ describe("sniff + asserts", () => {
     expect(() => assertImageBytes(Buffer.alloc(IMAGE_MAX_BYTES + 1, 0x89), "image/png")).toThrow(/exceeds/);
   });
 
-  it("assertPdfBytes enforces magic and size", () => {
-    expect(() => assertPdfBytes(Buffer.from("%PDF-1.4 x"))).not.toThrow();
-    expect(() => assertPdfBytes(Buffer.from("PK"))).toThrow(/not a PDF/);
+  it("assertPdfBytes enforces magic, size and the declared type", () => {
+    const pdf = "application/pdf";
+    expect(() => assertPdfBytes(Buffer.from("%PDF-1.4 x"), pdf)).not.toThrow();
+    expect(() => assertPdfBytes(Buffer.from("PK"), pdf)).toThrow(/not a PDF/);
     // BOM / printer junk before the header, as some exporters emit and Acrobat accepts.
-    expect(() => assertPdfBytes(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("%PDF-1.5\n")]))).not.toThrow();
-    expect(() => assertPdfBytes(Buffer.concat([Buffer.alloc(2000, 0x20), Buffer.from("%PDF-1.5")]))).toThrow(/not a PDF/);
-    expect(() => assertPdfBytes(Buffer.alloc(PDF_MAX_BYTES + 1, 0x25))).toThrow(/exceeds/);
+    expect(() => assertPdfBytes(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("%PDF-1.5\n")]), pdf)).not.toThrow();
+    expect(() => assertPdfBytes(Buffer.concat([Buffer.alloc(2000, 0x20), Buffer.from("%PDF-1.5")]), pdf)).toThrow(/not a PDF/);
+    expect(() => assertPdfBytes(Buffer.alloc(PDF_MAX_BYTES + 1, 0x25), pdf)).toThrow(/exceeds/);
+    // The object was signed for some other type: real PDF bytes are not enough.
+    expect(() => assertPdfBytes(Buffer.from("%PDF-1.4 x"), "image/png")).toThrow(/is not application\/pdf/);
+    expect(() => assertPdfBytes(Buffer.from("%PDF-1.4 x"), "")).toThrow(/is not application\/pdf/);
   });
 });
 

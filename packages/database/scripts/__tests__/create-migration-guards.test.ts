@@ -190,4 +190,11 @@ ALTER TABLE "campaigns" ADD COLUMN "review_note" TEXT;`;
     expect(kept).toContain("idx_campaigns_review_queue");
     expect(findDestructiveOps(sql)).toEqual([]);
   });
+
+  it("keeps uq_campaign_media_slot — the one-row-per-slot invariant behind the 409 on a lost commit race", () => {
+    const diff = `-- DropIndex\nDROP INDEX "uq_campaign_media_slot";`;
+    const { sql, kept } = stripProtectedDrops(diff);
+    expect(kept).toContain("uq_campaign_media_slot");
+    expect(sql).toBe("");
+  });
 });

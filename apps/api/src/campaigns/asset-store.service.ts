@@ -20,6 +20,8 @@ export interface PutOptions {
 export interface PresignPutInput {
   key: string;
   contentType: string;
+  /** Exact byte count the uploader declared; signed, so it cannot be exceeded. */
+  size: number;
   expiresInSeconds: number;
 }
 
@@ -62,13 +64,15 @@ export class S3ObjectStore implements ObjectStore {
   }
 
   async presignPut(input: PresignPutInput) {
-    const command = new PutObjectCommand({ Bucket: this.bucket, Key: input.key, ContentType: input.contentType });
-    // signableHeaders pins content-type INTO the signature. Without it the
-    // presigner hoists the header into a query param, and the uploader could
-    // then PUT any content type it liked against our signed URL.
+    const command = new PutObjectCommand({ Bucket: this.bucket, Key: input.key, ContentType: input.contentType, ContentLength: input.size });
+    // signableHeaders pins content-type AND content-length INTO the signature.
+    // Without content-type the presigner hoists the header into a query param
+    // and the uploader could PUT any type it liked; without content-length the
+    // size we validated at presign time is advisory and a caller could stream
+    // gigabytes at the bucket before the commit call ever sees the object.
     const url = await getSignedUrl(this.s3, command, {
       expiresIn: input.expiresInSeconds,
-      signableHeaders: new Set(["content-type"]),
+      signableHeaders: new Set(["content-type", "content-length"]),
     });
     return { url, expiresAt: new Date(Date.now() + input.expiresInSeconds * 1000) };
   }

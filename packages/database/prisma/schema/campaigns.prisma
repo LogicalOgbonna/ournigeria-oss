@@ -263,6 +263,13 @@ model CampaignDocument {
 ///   chk_campaign_media_type: type IN ('poster_candidate','poster_mate',
 ///     'card_candidate','card_mate','quote_photo','bio_photo','banner',
 ///     'logo','photo')
+///   uq_campaign_media_slot (20260908090200_campaign_media_slot_unique):
+///     UNIQUE (campaign_id, type) WHERE type IN ('poster_candidate',
+///     'poster_mate','card_candidate','card_mate','quote_photo','bio_photo',
+///     'logo') — the single-slot types are one row per ticket, so two
+///     concurrent commits cannot both insert. The append types (banner, photo)
+///     are deliberately outside the index. Partial uniques are invisible to
+///     Prisma: the name is in PROTECTED_ARTIFACTS (scripts/create-migration.ts).
 model CampaignMedia {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   campaignId   String    @map("campaign_id") @db.Uuid

@@ -80,6 +80,9 @@ const PROTECTED_ARTIFACTS = [
   "uq_campaigns_race_display_order",
   // Campaigns — review queue partial index. 20260908090000_campaigns_draft_review
   "idx_campaigns_review_queue",
+  // Campaigns — one media row per single-slot type per ticket (partial: the
+  // append types banner/photo are exempt). 20260908090200_campaign_media_slot_unique
+  "uq_campaign_media_slot",
 ];
 
 /** SQL verbs that destroy data or invariants. Never auto-applied unreviewed. */

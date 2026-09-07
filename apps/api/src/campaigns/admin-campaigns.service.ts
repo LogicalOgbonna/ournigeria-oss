@@ -42,6 +42,7 @@ const EDIT_ACTIONS = [
   "campaign.media.replaced",
   "campaign.media.updated",
   "campaign.media.deleted",
+  "campaign.document.added",
   "campaign.document.replaced",
   "campaign.document.deleted",
   "campaign.council.added",
@@ -479,7 +480,15 @@ export class AdminCampaignsService {
       where: {
         action: { in: EDIT_ACTIONS },
         occurredAt: { gt: row.lastVerifiedAt ?? new Date(0) },
-        OR: [{ targetType: "campaign", targetId: row.id }, { targetType: { in: [...CHILD_TARGET_TYPES] }, targetId: { in: childIds } }],
+        OR: [
+          { targetType: "campaign", targetId: row.id },
+          { targetType: { in: [...CHILD_TARGET_TYPES] }, targetId: { in: childIds } },
+          // A child that was DELETED since the last review no longer has an id
+          // to match, so the targetId join alone lets the editor who deleted it
+          // approve their own change. Every child event also carries the parent
+          // in metadata.campaignId — match on that too.
+          { metadata: { path: ["campaignId"], equals: row.id } },
+        ],
       },
       select: { actorId: true },
     });

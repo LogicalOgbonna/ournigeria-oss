@@ -211,7 +211,16 @@ export const presignSchema = z.object({
 });
 export type PresignInput = z.infer<typeof presignSchema>;
 
-const stagingKey = z.string().regex(/^staging\/[0-9a-f-]{36}$/, "stagingKey must be a staging/<uuid> key");
+/**
+ * Staging keys are scoped to the ticket they were presigned for:
+ * `staging/<campaignId>/<uuid>`. The service re-checks the campaign segment, so
+ * a manager cannot commit another ticket's staged bytes onto theirs. Both
+ * segments are real UUIDs — `[0-9a-f-]{36}` also matched `------…`.
+ */
+const UUID_RE = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const stagingKey = z
+  .string()
+  .regex(new RegExp(`^staging/${UUID_RE}/${UUID_RE}$`, "i"), "stagingKey must be a staging/<campaignId>/<uuid> key");
 
 export const mediaCommitSchema = z.object({
   stagingKey,

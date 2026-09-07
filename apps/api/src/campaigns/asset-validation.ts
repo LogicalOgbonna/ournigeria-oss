@@ -24,7 +24,14 @@ export function assertImageBytes(bytes: Buffer, declaredType: string): ImageType
   return actual;
 }
 
-export function assertPdfBytes(bytes: Buffer): void {
+/**
+ * The declared type is checked as well as the bytes: the presigned PUT bakes
+ * content-type into the signature, so an object whose stored type is not
+ * `application/pdf` was signed for something else and must not be served back
+ * from a document row (the row sets `Content-Type: application/pdf` blindly).
+ */
+export function assertPdfBytes(bytes: Buffer, declaredType: string): void {
   if (bytes.length > PDF_MAX_BYTES) throw new BadRequestException(`document exceeds ${PDF_MAX_BYTES} bytes`);
+  if (declaredType !== "application/pdf") throw new BadRequestException(`declared type ${declaredType || "(none)"} is not application/pdf`);
   if (sniff(bytes) !== "application/pdf") throw new BadRequestException("file is not a PDF");
 }

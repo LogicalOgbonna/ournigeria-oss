@@ -60,11 +60,13 @@ describe("CampaignsService", () => {
             { kind: "manifesto", subject: "ticket", title: "Manifesto", pageCount: 80 },
           ],
         },
+        // `banner` is the append type — the ordering fixture has to use one:
+        // uq_campaign_media_slot allows a single poster_candidate per ticket.
         media: {
           create: [
-            { type: "poster_candidate", url: "https://example.test/p2.webp", displayOrder: 2 },
-            { type: "poster_candidate", url: "https://example.test/p1.webp", displayOrder: 1 },
-            { type: "banner", url: "https://example.test/b.webp" },
+            { type: "banner", url: "https://example.test/p2.webp", displayOrder: 2 },
+            { type: "banner", url: "https://example.test/p1.webp", displayOrder: 1 },
+            { type: "poster_candidate", url: "https://example.test/b.webp" },
           ],
         },
         council: {
@@ -225,7 +227,8 @@ describe("CampaignsService", () => {
     expect(t.documents.map((d) => d.kind)).toEqual(["cv", "manifesto"]);
     expect(t.documents.find((d) => d.kind === "manifesto")?.pageCount).toBe(80);
 
-    expect(t.media.filter((m) => m.type === "poster_candidate").map((m) => m.displayOrder)).toEqual([1, 2]);
+    expect(t.media.filter((m) => m.type === "banner").map((m) => m.displayOrder)).toEqual([1, 2]);
+    expect(t.media.filter((m) => m.type === "poster_candidate")).toHaveLength(1);
   });
 
   it("getBySlug 404s for hidden and unknown slugs", async () => {
