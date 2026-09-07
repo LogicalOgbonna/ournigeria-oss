@@ -198,6 +198,11 @@ export interface CampaignRow {
   confidence: "high" | "medium" | "low";
   sourceType: string;
   sourceUrl: string | null;
+  /**
+   * `list()`/`queue()` return the whole Prisma row, so the model's own
+   * `updatedAt @updatedAt` column rides along (campaigns.prisma).
+   */
+  updatedAt: string;
   /** Only `list()` includes this (the poster thumbnail); `queue()` never does. */
   media?: { url: string }[];
 }

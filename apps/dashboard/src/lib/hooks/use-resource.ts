@@ -19,11 +19,17 @@ export type ResourceState<T> = {
  *
  * @param fetcher stable async function returning the data (wrap in useCallback at call site)
  * @param deps    dependency list; re-fetches when these change
+ * @param options `enabled: false` holds the request back (permissions not
+ *                resolved yet, a dependency still missing) and keeps `loading`
+ *                true, so callers render their skeleton instead of an empty
+ *                result and never fire a request that is bound to 403.
  */
 export function useResource<T>(
   fetcher: () => Promise<T>,
   deps: unknown[] = [],
+  options: { enabled?: boolean } = {},
 ): ResourceState<T> {
+  const { enabled = true } = options;
   const [data, setData] = useState<T | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +38,10 @@ export function useResource<T>(
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(true);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -51,7 +61,7 @@ export function useResource<T>(
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce]);
+  }, [...deps, nonce, enabled]);
 
   return { data, loading, error, refetch, setData };
 }

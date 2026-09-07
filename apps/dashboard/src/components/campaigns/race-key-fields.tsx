@@ -11,13 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { publicFetch } from "@/lib/api";
+import { useGeoList, type GeoOption } from "@/lib/hooks/use-geo-list";
 import {
   CONSTITUENCY_TYPE,
   ELECTION_TYPES,
   ELECTION_TYPE_LABEL,
   SCOPE_FOR,
-  errorMessage,
   seatStateCode,
   type ElectionType,
 } from "@/lib/campaigns";
@@ -33,68 +32,6 @@ export interface RaceKeyValue {
   stateCode?: string | null;
   constituencyCode?: string | null;
   lgaCode?: string | null;
-}
-
-interface GeoOption {
-  code: string;
-  name: string;
-}
-
-/**
- * One in-flight/settled promise per URL for the life of the page: several
- * pickers (ticket scope, council member scope) ask for the same state's LGAs,
- * and the lists never change during a session.
- */
-const geoCache = new Map<string, Promise<GeoOption[]>>();
-
-function loadGeo(url: string): Promise<GeoOption[]> {
-  const hit = geoCache.get(url);
-  if (hit) return hit;
-  const pending = (publicFetch(url) as Promise<GeoOption[]>)
-    .then((rows) => [...rows].sort((a, b) => a.name.localeCompare(b.name)))
-    .catch((err: unknown) => {
-      // A failed load must not be cached forever — Retry re-issues the fetch.
-      geoCache.delete(url);
-      throw err;
-    });
-  geoCache.set(url, pending);
-  return pending;
-}
-
-function useGeoList(url: string | null) {
-  const [rows, setRows] = useState<GeoOption[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [nonce, setNonce] = useState(0);
-
-  useEffect(() => {
-    if (!url) {
-      setRows([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    let alive = true;
-    setLoading(true);
-    setError(null);
-    loadGeo(url)
-      .then((res) => {
-        if (!alive) return;
-        setRows(res);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        if (!alive) return;
-        setRows([]);
-        setError(errorMessage(err));
-        setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [url, nonce]);
-
-  return { rows, loading, error, retry: () => setNonce((n) => n + 1) };
 }
 
 function ListField({
