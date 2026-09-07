@@ -21,6 +21,14 @@ describe("CampaignsService", () => {
   const ids: string[] = [];
   const PARTY = "APC"; // seeded in the very first migration; never deleted
   const YEAR = 2099;
+  /** The state whose real geo mappings back the senate/assembly ballot tests. */
+  const BALLOT_STATE = "lagos";
+  // Real geo codes, read out of the DB in beforeAll — never hard-coded, so the
+  // seat-resolution tests survive a re-import of the constituency dataset.
+  let lgaCode: string;
+  let senatorialCode: string;
+  let wardCode: string;
+  let stateConstituencyCode: string;
 
   const base = (slug: string, factionLabel: string) => ({
     slug: `zzz-test-${slug}-${tag}`,
@@ -98,11 +106,57 @@ describe("CampaignsService", () => {
       data: {
         ...base("gov", "gov"),
         electionType: "gubernatorial",
-        stateCode: "lagos",
+        stateCode: BALLOT_STATE,
         displayOrder: 1,
       },
     });
     ids.push(gov.id);
+
+    // --- real geo fixtures for the resolver's DB-backed branches ---
+    // Pick the first LGA in the state that has a senatorial mapping, then
+    // resolve its district exactly the way GeoSeatResolver does (asc code).
+    const anyLgaMapping = await prisma.senatorialDistrictLga.findFirst({
+      where: { senatorialDistrict: { stateCode: BALLOT_STATE } },
+      orderBy: [{ lgaCode: "asc" }, { senatorialDistrictCode: "asc" }],
+    });
+    if (!anyLgaMapping) throw new Error(`no senatorial_district_lgas rows for ${BALLOT_STATE}`);
+    lgaCode = anyLgaMapping.lgaCode;
+    senatorialCode = (await prisma.senatorialDistrictLga.findFirst({
+      where: { lgaCode },
+      orderBy: { senatorialDistrictCode: "asc" },
+    }))!.senatorialDistrictCode;
+
+    // Same for a ward → state constituency.
+    const anyWardMapping = await prisma.constituencyWard.findFirst({
+      where: { constituency: { type: "state", stateCode: BALLOT_STATE } },
+      orderBy: [{ wardCode: "asc" }, { constituencyCode: "asc" }],
+    });
+    if (!anyWardMapping) throw new Error(`no state constituency_wards rows for ${BALLOT_STATE}`);
+    wardCode = anyWardMapping.wardCode;
+    stateConstituencyCode = (await prisma.constituencyWard.findFirst({
+      where: { wardCode, constituency: { type: "state" } },
+      orderBy: { constituencyCode: "asc" },
+    }))!.constituencyCode;
+
+    const sen = await prisma.campaign.create({
+      data: {
+        ...base("sen", "sen"),
+        electionType: "senatorial",
+        stateCode: BALLOT_STATE,
+        constituencyCode: senatorialCode,
+        displayOrder: 1,
+      },
+    });
+    const sha = await prisma.campaign.create({
+      data: {
+        ...base("sha", "sha"),
+        electionType: "state_assembly",
+        stateCode: BALLOT_STATE,
+        constituencyCode: stateConstituencyCode,
+        displayOrder: 1,
+      },
+    });
+    ids.push(sen.id, sha.id);
   });
 
   afterAll(async () => {
@@ -212,5 +266,30 @@ describe("CampaignsService", () => {
   it("ballot honours an offices filter", async () => {
     const races = await svc.ballot({ state: "lagos", year: YEAR, offices: ["governor"] });
     expect(races.map((r) => r.office)).toEqual(["governor"]);
+  });
+
+  it("ballot resolves the senate race from an LGA, with the code passed in any case", async () => {
+    const races = await svc.ballot({
+      state: "LAGOS",
+      lga: lgaCode.toUpperCase(),
+      year: YEAR,
+      offices: ["senate"],
+    });
+    expect(races).toHaveLength(1);
+    expect(races[0].seatCode).toBe(senatorialCode);
+    expect(races[0].tickets.map((t) => t.slug)).toEqual([`zzz-test-sen-${tag}`]);
+  });
+
+  it("ballot resolves the state assembly race from a ward", async () => {
+    const races = await svc.ballot({
+      state: "lagos",
+      lga: lgaCode,
+      ward: wardCode,
+      year: YEAR,
+      offices: ["state_assembly"],
+    });
+    expect(races).toHaveLength(1);
+    expect(races[0].seatCode).toBe(stateConstituencyCode);
+    expect(races[0].tickets.map((t) => t.slug)).toEqual([`zzz-test-sha-${tag}`]);
   });
 });

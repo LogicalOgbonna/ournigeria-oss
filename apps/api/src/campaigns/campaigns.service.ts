@@ -81,7 +81,7 @@ export interface BallotParams {
 
 export interface BallotRace {
   office: Office;
-  electionType: string;
+  electionType: CampaignElectionType;
   seatLabel: string;
   seatCode: string | null;
   tickets: CampaignSummary[];
@@ -247,38 +247,53 @@ export class CampaignsService {
    * dropdown must not offer an empty rail.
    */
   async ballot(params: BallotParams): Promise<BallotRace[]> {
+    // Every geo code is stored lower-case; normalise lga/ward the same way as
+    // state so a "LAGOS_AGEGE" query resolves instead of silently missing.
     const state = params.state.trim().toLowerCase();
+    const lga = params.lga?.trim().toLowerCase();
+    const ward = params.ward?.trim().toLowerCase();
     const wanted = params.offices?.length ? params.offices : OFFICE_ORDER;
     const stateName =
       (await this.prisma.nigerianState.findUnique({ where: { code: state }, select: { name: true } }))?.name ?? state;
 
     const races = await Promise.all(
       wanted.map(async (office) => {
-        const scope = await this.resolver.resolveOne(office, state, stateName, params.lga, params.ward);
-        if (!scope) return null;
-        // councillor seats key on ward_code, which campaigns does not model.
-        if (scope.column === "wardCode") return null;
-        const electionType = OFFICE_ELECTION_TYPE[office];
-        const rows = await this.prisma.campaign.findMany({
-          where: {
-            ...this.publicWhere(),
+        try {
+          const scope = await this.resolver.resolveOne(office, state, stateName, lga, ward);
+          if (!scope) return null;
+          // councillor seats key on ward_code, which campaigns does not model.
+          if (scope.column === "wardCode") return null;
+          // office-map and CAMPAIGN_ELECTION_TYPES share one vocabulary (the
+          // office-map test proves the round trip); OFFICE_ELECTION_TYPE is
+          // only typed `string`, so narrow it once, here.
+          const electionType = OFFICE_ELECTION_TYPE[office] as CampaignElectionType;
+          const rows = await this.prisma.campaign.findMany({
+            where: {
+              ...this.publicWhere(),
+              electionType,
+              year: params.year,
+              ...(scope.column === "stateCode" ? { stateCode: scope.code } : {}),
+              ...(scope.column === "constituencyCode" ? { constituencyCode: scope.code } : {}),
+              ...(scope.column === "lgaCode" ? { lgaCode: scope.code } : {}),
+            },
+            include: summaryInclude,
+            orderBy: [{ displayOrder: { sort: "asc", nulls: "last" } }, { partyAcronym: "asc" }, { slug: "asc" }],
+          });
+          if (rows.length === 0) return null;
+          return {
+            office,
             electionType,
-            year: params.year,
-            ...(scope.column === "stateCode" ? { stateCode: scope.code } : {}),
-            ...(scope.column === "constituencyCode" ? { constituencyCode: scope.code } : {}),
-            ...(scope.column === "lgaCode" ? { lgaCode: scope.code } : {}),
-          },
-          include: summaryInclude,
-          orderBy: [{ displayOrder: { sort: "asc", nulls: "last" } }, { partyAcronym: "asc" }, { slug: "asc" }],
-        });
-        if (rows.length === 0) return null;
-        return {
-          office,
-          electionType,
-          seatLabel: scope.label || OFFICE_LABEL[office],
-          seatCode: scope.code,
-          tickets: rows.map((r) => this.summary(r)),
-        } satisfies BallotRace;
+            seatLabel: scope.label || OFFICE_LABEL[office],
+            seatCode: scope.code,
+            tickets: rows.map((r) => this.summary(r)),
+          } satisfies BallotRace;
+        } catch (err) {
+          // Same rule as election.service.ts getBallot (#G): one bad seat query
+          // must not blank the whole ballot. Here the race is simply omitted,
+          // which is what this endpoint already does with an empty race.
+          console.error("campaigns ballot race error:", office, err);
+          return null;
+        }
       }),
     );
     return races.filter((r): r is BallotRace => r !== null);
