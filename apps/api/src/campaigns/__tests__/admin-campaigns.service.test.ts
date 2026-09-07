@@ -187,4 +187,47 @@ describe("AdminCampaignsService", () => {
     const other = await prisma.campaign.findFirstOrThrow({ where: { slug: `zzz-adm-a-${tag}` } });
     await expect(svc.order(actor(writer), { ...key, ids: [other.id] })).rejects.toThrow(/not in this race/);
   });
+
+  it("queue holds submitted drafts only — not an untouched draft, not a dissolved ticket", async () => {
+    const unsubmitted = await svc.create(actor(writer), draftInput("q1"));
+    const submitted = await svc.create(actor(writer), draftInput("q2"));
+    const dissolved = await svc.create(actor(writer), draftInput("q3"));
+    campaignIds.push(unsubmitted.id, submitted.id, dissolved.id);
+    await svc.submit(actor(writer), submitted.id);
+    // submit first so the row carries reviewRequestedAt: only `status` can keep it out
+    await svc.submit(actor(writer), dissolved.id);
+    await prisma.campaign.update({ where: { id: dissolved.id }, data: { status: "dissolved" } });
+
+    const queued = new Set((await svc.queue()).map((r) => r.id));
+    expect(queued.has(submitted.id)).toBe(true);
+    expect(queued.has(unsubmitted.id)).toBe(false);
+    expect(queued.has(dissolved.id)).toBe(false);
+  });
+
+  it("request-changes needs a draft that was actually submitted", async () => {
+    const row = await svc.create(actor(writer), draftInput("rc"));
+    campaignIds.push(row.id);
+    await expect(svc.requestChanges(actor(reviewer), row.id, "fix the bio")).rejects.toThrow(/submitted/);
+    await svc.submit(actor(writer), row.id);
+    await expect(svc.requestChanges(actor(reviewer), row.id, "fix the bio")).resolves.toMatchObject({ status: "draft", reviewStatus: "disputed" });
+  });
+
+  it("create rejects a taken explicit slug but auto-suffixes a derived one", async () => {
+    const first = await svc.create(actor(writer), draftInput("s1"));
+    campaignIds.push(first.id);
+    await expect(svc.create(actor(writer), { ...draftInput("s2"), slug: first.slug })).rejects.toThrow(/taken/);
+
+    const derived = (faction: string) => ({
+      electionType: "presidential" as const,
+      year: YEAR,
+      partyAcronym: "APC",
+      candidate: { name: `Zzz Adm Derived ${tag}` },
+      factionLabel: faction,
+    });
+    const d1 = await svc.create(actor(writer), derived(`zzz-d1-${tag}`));
+    const d2 = await svc.create(actor(writer), derived(`zzz-d2-${tag}`));
+    campaignIds.push(d1.id, d2.id);
+    expect(d1.slug).toBe(`zzz-adm-derived-${tag}`);
+    expect(d2.slug).toBe(`${d1.slug}-2`);
+  });
 });

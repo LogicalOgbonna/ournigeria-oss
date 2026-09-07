@@ -44,6 +44,7 @@ const EDIT_ACTIONS = [
   "campaign.council.added",
   "campaign.council.updated",
   "campaign.council.ended",
+  "campaign.council.deleted",
 ];
 
 const CHILD_TARGET_TYPES = ["campaign_media", "campaign_document", "campaign_council_member"] as const;
@@ -116,7 +117,12 @@ export class AdminCampaignsService {
 
   async queue() {
     return this.prisma.campaign.findMany({
-      where: { reviewStatus: { not: "reviewed" }, status: { not: "withdrawn" } },
+      where: {
+        reviewStatus: { not: "reviewed" },
+        status: { notIn: ["withdrawn", "dissolved"] },
+        // A draft only enters the queue once `submit` stamps reviewRequestedAt.
+        NOT: { status: "draft", reviewRequestedAt: null },
+      },
       orderBy: [{ reviewRequestedAt: { sort: "asc", nulls: "last" } }],
       include: { party: { select: { acronym: true, name: true } } },
     });
@@ -158,7 +164,15 @@ export class AdminCampaignsService {
 
     const candidate = await this.resolvePerson(input.candidate);
     const mate = input.runningMate ? await this.resolvePerson(input.runningMate) : null;
-    const slug = await this.uniqueSlug(input.slug ?? this.deriveSlug(candidate.name, mate?.name ?? null));
+    // A supplied slug is a promise the caller made about the URL, so a clash is
+    // an error; only the slug we derive ourselves may quietly take a -2 suffix.
+    let slug: string;
+    if (input.slug) {
+      slug = input.slug;
+      if ((await this.uniqueSlug(slug)) !== slug) throw new ConflictException(`slug ${slug} is taken`);
+    } else {
+      slug = await this.uniqueSlug(this.deriveSlug(candidate.name, mate?.name ?? null));
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const row = await tx.campaign.create({
@@ -279,6 +293,7 @@ export class AdminCampaignsService {
   async requestChanges(actor: AuditActor, id: string, note: string) {
     const row = await this.mustGet(id);
     this.assertFrom(row.status, ["draft"], "request-changes");
+    if (!row.reviewRequestedAt) throw new ConflictException("A draft must be submitted before changes can be requested");
     return this.transition(actor, id, "campaign.changes_requested", { reviewStatus: "disputed", reviewNote: note }, { note });
   }
 
