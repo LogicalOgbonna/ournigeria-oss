@@ -167,7 +167,7 @@ export function matchOfficial(
 }
 
 /** Reserve a unique slug not present in the cache (DB) — append -2, -3, … */
-function uniqueSlug(cache: OfficialRow[], reserved: Set<string>, name: string): string {
+export function uniqueSlug(cache: OfficialRow[], reserved: Set<string>, name: string): string {
   const base = slugifyName(name) || 'official';
   const taken = (s: string) =>
     reserved.has(s) || cache.some((o) => o.slug === s);

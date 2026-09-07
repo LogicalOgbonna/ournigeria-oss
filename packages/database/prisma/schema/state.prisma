@@ -20,6 +20,8 @@ model NigerianState {
   officialElections OfficialElection[]
   corruptionCases   CorruptionCase[]
   partyChapters     PartyStateChapter[]
+  campaigns         Campaign[]
+  campaignCouncilMembers CampaignCouncilMember[]
 
   @@index([zoneCode], map: "idx_states_zone")
   @@map("nigerian_states")

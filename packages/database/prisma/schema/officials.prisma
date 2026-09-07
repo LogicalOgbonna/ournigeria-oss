@@ -60,6 +60,9 @@ model NigerianOfficial {
   enrichmentAttempts EnrichmentAttempt[]
   partyOfficerRoles PartyOfficer[]
   slugAliases       OfficialSlugAlias[]
+  campaignsAsCandidate   Campaign[]              @relation("CampaignCandidate")
+  campaignsAsRunningMate Campaign[]              @relation("CampaignRunningMate")
+  campaignCouncilRoles   CampaignCouncilMember[] @relation("CampaignCouncilOfficial")
 
   @@map("nigerian_officials")
 }
@@ -328,6 +331,7 @@ model OfficialElection {
   lga                NigerianLga?          @relation(fields: [lgaCode], references: [code])
   ward               NigerianWard?         @relation(fields: [wardCode], references: [code])
   resultedInPosition OfficialPosition?     @relation(fields: [resultedInPositionId], references: [id])
+  campaign           Campaign?
 
   @@index([officialId], map: "idx_elections_official")
   @@index([electionType, year], map: "idx_elections_type_year")

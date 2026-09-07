@@ -1,0 +1,531 @@
+{
+  "_meta": {
+    "description": "The 19 presidential tickets INEC displayed for 2027 (Form EC9, 2026-08-02), one campaign each. Consumed by scripts/seed-campaigns.ts: find-or-creates the candidate and running mate as nigerian_officials, anchors the ticket on an official_elections row, then upserts campaigns + campaign_documents + campaign_media by slug. Re-runs are idempotent.",
+    "asOf": "2026-09-07",
+    "sources": {
+      "tickets": "https://candidates.ournigeria.ng (data.js, lastUpdated 2026-09-06; deduped from party-candidates-2027-primaries.json)",
+      "inecList": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "posterArt": "Figma DqlTNiJFPwa7l5EHTR6qoO 163:2 'Frame 13' — per-poster geometry lifted from each node (was apps/awanaija/src/lib/presidential-2027.ts)",
+      "profiles": "Figma 1:987 (APC) / 1:1209 (NDC) — editorial copy; career/education deliberately NOT here (they join on the official record)"
+    },
+    "images": "Every image key is relative to CDN_BASE_URL (https://cdn.ournigeria.ng). All 39 objects already exist in S3 under election/2027/presidential/… and parties/…; the script uploads nothing. apps/awanaija/public/presidential/ duplicates these and can be deleted once the pages read from the API.",
+    "posterArt": "Coordinates are in the 404x695 poster space. bg = the poster's own fill (NOT PoliticalParty.color) → campaigns.brand_color. candidate/mate boxes, chip, scrim, urlColor → campaign_media.metadata on the poster_candidate / poster_mate rows.",
+    "order": "The order of `tickets` IS the landing-page rail order (campaigns.display_order = position, first = 1) — Figma 163:2 left to right. To reorder, move the entry and re-run the seed; there is no per-ticket override, and the DB rejects two tickets on one rank within a race.",
+    "openQuestions": [
+      "APM running mate: the board names Ibrahim Adamu Bala (Bauchi) per westafricanpilotnews; the poster fixture said 'Bala Mohammed' and the S3 key is apm/bala-mohammed/hero.webp. The board is used; confirm the photo is the right person.",
+      "NDP vs NRM running mates: the board (INEC list) gives NDP = Samuel Magdalene Gali and NRM = unclear; the Figma posters read 'Ada & Chikwuemeka' (NDP) and 'Okereke & Gali' (NRM). The board is used; NRM mate left null; both tickets at confidence medium.",
+      "YPP 'Egbeola', AAC 'Magashi', ADP 'Chinazam' are surname-only from the posters — no source names them in full. Kept at confidence low.",
+      "The APC and NDC manifesto covers are the 2023 documents (Figma placeholders); pageCount 80 is the design's '1 of 80', not a real count.",
+      "APP has no logo in S3 (the fixture reused NRM's). Left null so the party's own logo_url is used."
+    ]
+  },
+  "electionType": "presidential",
+  "year": 2027,
+  "documentBlurbs": {
+    "manifesto": "Explore their policy agenda, priorities and promises.",
+    "cv": "Explore their education, career and political journey.",
+    "achievements": "Examine their record in office and major accomplishments."
+  },
+  "tickets": [
+    {
+      "slug": "tinubu-shettima",
+      "party": "APC",
+      "confidence": "high",
+      "sourceUrl": "https://www.premiumtimesng.com/news/headlines/881889-updated-apc-governorship-primaries-how-23-candidates-emerge-as-fubara-withdraws-pantami-protests.html",
+      "notes": "Incumbent president, re-nominated by APC; Shettima retained. Nomination forms submitted July 2026.",
+      "candidate": {
+        "name": "Bola Ahmed Tinubu",
+        "aka": ["Bola Tinubu"],
+        "knownOfficeHolder": true,
+        "shortName": "Tinubu",
+        "dateOfBirth": "1952-03-29",
+        "gender": "male",
+        "poster": "election/2027/presidential/apc/bola-ahmed-tinubu/hero.webp",
+        "card": "election/2027/presidential/apc/bola-ahmed-tinubu/card.webp"
+      },
+      "runningMate": {
+        "name": "Kashim Shettima",
+        "knownOfficeHolder": true,
+        "dateOfBirth": "1966-09-02",
+        "gender": "male",
+        "poster": "election/2027/presidential/apc/kashim-shettima/hero.webp",
+        "card": "election/2027/presidential/apc/kashim-shettima/card.webp"
+      },
+      "logo": "parties/apc.webp",
+      "brandColor": "#e31e25",
+      "visionLine": "Running under the All Progressives Congress (APC) Party with a vision of \"Renewed Hope\" for national prosperity and security.",
+      "fineprint": "The sitting President is once again being handed the APC presidential flag.",
+      "pullQuote": "“We must renew our hope in Nigeria.”",
+      "pullQuoteBg": "#52c2e8",
+      "quotePhoto": "election/2027/presidential/apc/quote.webp",
+      "bioPhoto": "election/2027/presidential/apc/bio.webp",
+      "candidateBio": "Bola Ahmed Tinubu is a Nigerian politician and businessman who has served as the President of Nigeria since May 2023. Born on 29 March 1952, he studied Accounting in the United States before returning to Nigeria, where he worked in the private sector. He entered politics in the 1990s, served as a Senator representing Lagos West, and later became Governor of Lagos State from 1999 to 2007. As governor, he was associated with major reforms in Lagos and played a prominent role in the development of the political structure that became the All Progressives Congress (APC). In 2023, he won the presidential election on the APC platform and became Nigeria’s 16th President.",
+      "documents": [
+        { "kind": "manifesto", "subject": "ticket", "title": "Manifesto", "cover": "election/2027/presidential/apc/manifesto-cover.webp", "pageCount": 80 },
+        { "kind": "cv", "subject": "candidate", "title": "CV" },
+        { "kind": "achievements", "subject": "candidate", "title": "Achievements" }
+      ],
+      "posterArt": {
+        "urlColor": "#000000",
+        "candidate": { "x": -178, "y": 53, "w": 554.476, "h": 693.263 },
+        "mate": { "x": 202, "y": 271, "w": 237.046, "h": 342 },
+        "chip": { "x": 303, "y": 604, "w": 101, "h": 91.038, "radius": "rounded-l-[11px]" }
+      }
+    },
+    {
+      "slug": "obi-kwankwaso",
+      "party": "NDC",
+      "confidence": "high",
+      "sourceUrl": "https://www.africanews.com/2026/05/31/nigerias-ndc-party-names-peter-obi-as-2027-presidential-candidate/",
+      "notes": "NDC sole aspirant, Special Convention 30 May 2026; Kwankwaso named running mate the same weekend. NDC registration was legally challenged (Federal High Court Lokoja, 26 June 2026; under appeal).",
+      "candidate": {
+        "name": "Peter Gregory Obi",
+        "aka": ["Peter Obi"],
+        "knownOfficeHolder": true,
+        "dateOfBirth": "1961-07-19",
+        "gender": "male",
+        "poster": "election/2027/presidential/ndc/peter-gregory-obi/hero.webp",
+        "card": "election/2027/presidential/ndc/peter-gregory-obi/card.webp"
+      },
+      "runningMate": {
+        "name": "Rabiu Musa Kwankwaso",
+        "aka": ["Rabiu Kwankwaso"],
+        "knownOfficeHolder": true,
+        "dateOfBirth": "1956-10-21",
+        "gender": "male",
+        "poster": "election/2027/presidential/ndc/rabiu-musa-kwankwaso/hero.webp",
+        "card": "election/2027/presidential/ndc/rabiu-musa-kwankwaso/card.webp"
+      },
+      "logo": "parties/ndc.webp",
+      "brandColor": "#3f3f95",
+      "visionLine": "Running under the National Democratic Congress (NDC) with a vision focused on good governance, economic transformation, accountability, and improved living standards for Nigerians.",
+      "fineprint": "The presidential flag is being handed to Peter Obi as the NDC’s candidate for the upcoming election.",
+      "pullQuote": "“Nigeria will be okay”",
+      "pullQuoteBg": "#da3341",
+      "quotePhoto": "election/2027/presidential/ndc/quote.webp",
+      "bioPhoto": "election/2027/presidential/ndc/bio.webp",
+      "candidateBio": "Peter Obi is a Nigerian businessman and politician who served as the Governor of Anambra State from 2006 to 2014. Born on 19 July 1961 in Onitsha, Anambra State, he built a career in business and banking before entering politics. As governor, he focused on financial management, education, healthcare and infrastructure. He later served as Vice Presidential candidate of the Peoples Democratic Party in 2019 and contested the presidency under the Labour Party in 2023. He is currently associated with the National Democratic Congress (NDC) as its presidential candidate.",
+      "documents": [
+        { "kind": "manifesto", "subject": "ticket", "title": "Manifesto", "cover": "election/2027/presidential/ndc/manifesto-cover.webp", "pageCount": 80 },
+        { "kind": "cv", "subject": "candidate", "title": "CV" },
+        { "kind": "achievements", "subject": "candidate", "title": "Achievements" }
+      ],
+      "posterArt": {
+        "urlColor": "#ccffef",
+        "candidate": { "x": -241, "y": 82.699, "w": 606.197, "h": 703.3 },
+        "mate": { "x": 170, "y": 158, "w": 336, "h": 456 },
+        "chip": { "x": 275, "y": 615, "w": 121, "h": 80, "radius": "rounded-[19.707px]" }
+      }
+    },
+    {
+      "slug": "atiku-rotimi",
+      "party": "ADC",
+      "confidence": "high",
+      "sourceUrl": "https://www.premiumtimesng.com/news/887865-2027-adc-names-amaechi-as-atikus-running-mate.html",
+      "notes": "Won the ADC presidential primary (ward-level, 23-25 May 2026; 1,846,370 votes, declared 27-28 May). Amaechi, runner-up with 504,117, selected as running mate 15 June 2026.",
+      "candidate": {
+        "name": "Atiku Abubakar",
+        "shortName": "Atiku",
+        "knownOfficeHolder": true,
+        "gender": "male",
+        "poster": "election/2027/presidential/adc/atiku-abubakar/hero.webp"
+      },
+      "runningMate": {
+        "name": "Chibuike Rotimi Amaechi",
+        "aka": ["Rotimi Amaechi"],
+        "knownOfficeHolder": true,
+        "gender": "male",
+        "poster": "election/2027/presidential/adc/chibuike-rotimi-amaechi/hero.webp"
+      },
+      "logo": "parties/adc.webp",
+      "brandColor": "#12a650",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -193, "y": 81, "w": 531.333, "h": 797 },
+        "mate": { "x": 37, "y": 152, "w": 540.8, "h": 676 },
+        "chip": { "x": 299, "y": 599, "w": 105, "h": 96.25, "radius": "rounded-[8.413px] rounded-tr-none" }
+      }
+    },
+    {
+      "slug": "makinde-bala",
+      "party": "APM",
+      "confidence": "high",
+      "sourceUrl": "https://www.westafricanpilotnews.com/2026/07/13/makinde-picks-adamu-bala-as-running-mate-for-2027-presidential-election/",
+      "notes": "Oyo Governor (term-limited) declared on the APM platform at Mapo Hall, Ibadan, May 2026. Running mate from Bauchi, North East (South-North balance).",
+      "candidate": {
+        "name": "Seyi Makinde",
+        "knownOfficeHolder": true,
+        "gender": "male",
+        "poster": "election/2027/presidential/apm/seyi-makinde/hero.webp"
+      },
+      "runningMate": {
+        "name": "Ibrahim Adamu Bala",
+        "aka": ["Adamu Bala"],
+        "gender": "male",
+        "poster": "election/2027/presidential/apm/bala-mohammed/hero.webp"
+      },
+      "logo": "parties/apm.webp",
+      "brandColor": "#027ce2",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "urlColor": "#ccffef",
+        "candidate": { "x": -199, "y": 45, "w": 514, "h": 713.064 },
+        "mate": { "x": -6, "y": 179, "w": 516, "h": 516 },
+        "chip": { "x": 304.03, "y": 586.85, "w": 88.971, "h": 95.869, "radius": "rounded-full" }
+      }
+    },
+    {
+      "slug": "sowore-magashi",
+      "party": "AAC",
+      "confidence": "high",
+      "notes": "Human rights activist and journalist; AAC presidential candidate in 2019 and 2023, running again for 2027. Running mate known by surname only.",
+      "candidate": {
+        "name": "Omoyele Sowore",
+        "gender": "male",
+        "poster": "election/2027/presidential/aac/omoyele-sowore/hero.webp"
+      },
+      "runningMate": {
+        "name": "Magashi",
+        "confidence": "low",
+        "poster": "election/2027/presidential/aac/magashi/hero.webp"
+      },
+      "logo": "parties/aac.webp",
+      "brandColor": "#3d2314",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "urlColor": "#ccffef",
+        "candidate": { "x": -196, "y": 149, "w": 564, "h": 564 },
+        "mate": { "x": 39, "y": 85, "w": 476, "h": 635 },
+        "chip": { "x": 286, "y": 586, "w": 109, "h": 109, "radius": "rounded-full" },
+        "scrim": { "x": -23, "y": 604, "w": 253, "h": 136 }
+      }
+    },
+    {
+      "slug": "duke-buba",
+      "party": "PRP",
+      "confidence": "high",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "Former Cross River governor (1999-2007). INEC-confirmed. One photo carries both men on the poster, so there is no mate crop.",
+      "candidate": {
+        "name": "Donald Duke",
+        "shortName": "Duke",
+        "knownOfficeHolder": true,
+        "gender": "male",
+        "poster": "election/2027/presidential/prp/donald-duke/hero.webp"
+      },
+      "runningMate": { "name": "Buba Musa", "gender": "male" },
+      "logo": "parties/prp.webp",
+      "brandColor": "#fa0202",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -279, "y": 188, "w": 867.936, "h": 507 },
+        "chip": { "x": 304, "y": 592, "w": 100, "h": 100, "radius": "rounded-full" },
+        "scrim": { "x": -32, "y": 594, "w": 253, "h": 136 }
+      }
+    },
+    {
+      "slug": "sandy-babangida",
+      "party": "PDP",
+      "confidence": "high",
+      "sourceUrl": "https://www.dockaysworld.com.ng/wike-led-pdp-picks-vice-presidential-candidate/",
+      "notes": "Senator (Cross River Central). Won the consensus PDP presidential primary of the Wike-backed faction recognised by INEC; ticket uploaded to the INEC portal before the 14 July 2026 deadline. Running mate is PDP National Vice-Chairman (North-East), also spelled Babangida Umaru.",
+      "candidate": {
+        "name": "Sandy Onor",
+        "shortName": "Sandy",
+        "knownOfficeHolder": true,
+        "gender": "male",
+        "poster": "election/2027/presidential/pdp/sandy-onor/hero.webp"
+      },
+      "runningMate": { "name": "Babangida Umar", "aka": ["Babangida Umaru"], "gender": "male" },
+      "logo": "parties/pdp.webp",
+      "brandColor": "#008f4f",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "urlColor": "#101010",
+        "candidate": { "x": -180.401, "y": 114.47, "w": 576.25, "h": 703.06 },
+        "chip": { "x": 298, "y": 589, "w": 106, "h": 106, "radius": "" }
+      }
+    },
+    {
+      "slug": "okwori-gali",
+      "party": "NDP",
+      "confidence": "medium",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "INEC-confirmed. Running mate per the INEC list; the Figma poster read 'Ada & Chikwuemeka' — see _meta.openQuestions.",
+      "candidate": {
+        "name": "Okwori Ada Elizabeth Frederick",
+        "shortName": "Ada",
+        "gender": "female",
+        "poster": "election/2027/presidential/ndp/okwori-ada-elizabeth-frederick/hero.webp"
+      },
+      "runningMate": { "name": "Samuel Magdalene Gali", "gender": "female" },
+      "logo": "parties/ndp.webp",
+      "brandColor": "#fbc62c",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -80, "y": 168, "w": 452.2, "h": 527 },
+        "chip": { "x": 292, "y": 536, "w": 121.766, "h": 159, "radius": "rounded-tl-[12px]" }
+      }
+    },
+    {
+      "slug": "zugwai-egbeola",
+      "party": "YPP",
+      "confidence": "high",
+      "notes": "YPP flag-bearer; female. Running mate known by surname only (poster).",
+      "candidate": {
+        "name": "Anita Zugwai-Chukwu",
+        "shortName": "Zugwai",
+        "gender": "female",
+        "poster": "election/2027/presidential/ypp/anita-zugwai-chukwu/hero.webp"
+      },
+      "runningMate": { "name": "Egbeola", "confidence": "low" },
+      "logo": "parties/ypp.webp",
+      "brandColor": "#02754a",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -97, "y": 131, "w": 444.286, "h": 622 },
+        "chip": { "x": 284, "y": 585, "w": 130, "h": 121, "radius": "rounded-[34px] rounded-bl-none" }
+      }
+    },
+    {
+      "slug": "adekunle-shehu",
+      "party": "AA",
+      "confidence": "high",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "Action Alliance; INEC-confirmed.",
+      "candidate": {
+        "name": "Rufai Adekunle Omoaje",
+        "aka": ["Adekunle Rufai Omoaje"],
+        "shortName": "Adekunle",
+        "gender": "male",
+        "poster": "election/2027/presidential/aa/rufai-adekunle-omoaje/hero.webp"
+      },
+      "runningMate": { "name": "Shehu Hussaini", "gender": "male" },
+      "logo": "parties/aa.webp",
+      "brandColor": "#200f6b",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -184, "y": 166, "w": 529, "h": 529 },
+        "chip": { "x": 269, "y": 561, "w": 134.601, "h": 134, "radius": "rounded-full" },
+        "scrim": { "x": -32, "y": 594, "w": 253, "h": 136, "color": "#1b1369", "opacity": 0.77 }
+      }
+    },
+    {
+      "slug": "adenuga-turaki",
+      "party": "BP",
+      "confidence": "high",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "Boot Party (INEC acronym BP); INEC-confirmed. This poster sets the logo on a white plaque instead of bleeding it to the edge.",
+      "candidate": {
+        "name": "Adenuga Sunday",
+        "shortName": "Adenuga",
+        "gender": "male",
+        "poster": "election/2027/presidential/boot/adenuga-sunday/hero.webp"
+      },
+      "runningMate": {
+        "name": "Mustapha Usman Turaki",
+        "gender": "male",
+        "poster": "election/2027/presidential/boot/turaki/hero.webp"
+      },
+      "logo": "parties/boot.webp",
+      "brandColor": "#069504",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -153, "y": 108, "w": 598.098, "h": 587 },
+        "mate": { "x": 159.236, "y": 263.291, "w": 258.742, "h": 275.224 },
+        "chip": { "x": 301, "y": 614, "w": 154, "h": 86.012, "radius": "rounded-[9.961px]", "plaque": { "inset": { "x": 13.439, "y": 10.593, "size": 64.667 } } }
+      }
+    },
+    {
+      "slug": "memeh-balogun",
+      "party": "DLA",
+      "confidence": "high",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "Democratic Leadership Alliance (INEC's registered name); INEC-confirmed.",
+      "candidate": {
+        "name": "Memeh Samuel",
+        "shortName": "Memeh",
+        "gender": "male",
+        "poster": "election/2027/presidential/dla/memeh-samuel/hero.webp"
+      },
+      "runningMate": { "name": "Balogun Alex", "gender": "male" },
+      "logo": "parties/dla.webp",
+      "brandColor": "#fcc708",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -207, "y": 150, "w": 554.842, "h": 545 },
+        "chip": { "x": 237, "y": 569, "w": 170.937, "h": 126, "radius": "rounded-tl-[21px] rounded-br-[21px]" }
+      }
+    },
+    {
+      "slug": "nwanyanwu-khalid",
+      "party": "ZLP",
+      "confidence": "high",
+      "sourceUrl": "https://www.premiumtimesng.com/news/more-news/884057-2027-zlp-gets-presidential-candidate.html",
+      "notes": "ZLP National Chairman; Delta-born.",
+      "candidate": {
+        "name": "Dan Nwanyanwu",
+        "shortName": "Nwanyanwu",
+        "gender": "male",
+        "poster": "election/2027/presidential/zlp/dan-nwanyanwu/hero.webp"
+      },
+      "runningMate": {
+        "name": "Hassan Khalid",
+        "gender": "male",
+        "poster": "election/2027/presidential/zlp/hassan-khalid/hero.webp"
+      },
+      "logo": "parties/zlp.webp",
+      "brandColor": "#fb0317",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -98, "y": 109.036, "w": 391, "h": 585.964 },
+        "mate": { "x": 78, "y": 184, "w": 495.581, "h": 587.766 },
+        "chip": { "x": 268, "y": 597.49, "w": 136.137, "h": 97.514, "radius": "rounded-l-[7.16px]" }
+      }
+    },
+    {
+      "slug": "okereke-konto",
+      "party": "LP",
+      "confidence": "high",
+      "sourceUrl": "https://www.premiumtimesng.com/news/top-news/884063-2027-labour-party-announces-presidential-candidate.html",
+      "notes": "The LP ticket on the INEC portal (uploaded 10 July 2026); the Abure faction separately ran Kennedy Ahanotu.",
+      "candidate": {
+        "name": "Sunday Chibuzo Okereke",
+        "aka": ["Chibuzo Okereke"],
+        "shortName": "Okereke",
+        "gender": "male",
+        "poster": "election/2027/presidential/lp/sunday-chibuzo-okereke/hero.webp"
+      },
+      "runningMate": {
+        "name": "Bintu Konto",
+        "gender": "female",
+        "poster": "election/2027/presidential/lp/bintu-konto/hero.webp"
+      },
+      "logo": "parties/lp.webp",
+      "brandColor": "#00923e",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -312, "y": 183, "w": 834.697, "h": 512 },
+        "mate": { "x": 60, "y": 269, "w": 501.829, "h": 442.819 },
+        "chip": { "x": 300, "y": 591, "w": 99, "h": 99, "radius": "" }
+      }
+    },
+    {
+      "slug": "okereke-esther",
+      "party": "NRM",
+      "confidence": "medium",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "INEC-confirmed; female. Running mate unclear (conflicting sources) — the Figma poster read 'Okereke & Gali'; see _meta.openQuestions.",
+      "candidate": {
+        "name": "Okereke Iken Esther",
+        "aka": ["Esther Nkem Okereke"],
+        "shortName": "Okereke",
+        "gender": "female",
+        "poster": "election/2027/presidential/nrm/okereke-iken-esther/hero.webp"
+      },
+      "runningMate": null,
+      "logo": "parties/nrm.webp",
+      "brandColor": "#f9ce05",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -182, "y": 115, "w": 679, "h": 849.739 },
+        "chip": { "x": 300, "y": 585, "w": 104, "h": 106, "radius": "rounded-full" }
+      }
+    },
+    {
+      "slug": "abbas-bin-chinazam",
+      "party": "ADP",
+      "confidence": "high",
+      "notes": "ADP presidential candidate 2027. Running mate known by surname only (poster).",
+      "candidate": {
+        "name": "Aliyu Bin Abbas",
+        "shortName": "Abbas-Bin",
+        "gender": "male",
+        "poster": "election/2027/presidential/adp/aliyu-bin-abbas/hero.webp"
+      },
+      "runningMate": {
+        "name": "Chinazam",
+        "confidence": "low",
+        "poster": "election/2027/presidential/adp/chinazam/hero.webp"
+      },
+      "logo": "parties/adp.webp",
+      "brandColor": "#197ad8",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -135, "y": 163.97, "w": 539.06, "h": 539.06 },
+        "mate": { "x": 109, "y": 192, "w": 427, "h": 427 },
+        "chip": { "x": 268, "y": 559, "w": 136, "h": 136, "radius": "rounded-full" }
+      }
+    },
+    {
+      "slug": "dikwa-abubakar",
+      "party": "NNPP",
+      "confidence": "medium",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "Kwankwaso left NNPP for NDC and the party said it would opt out, but this ticket was filed with INEC and appears on the 19-candidate display list; possibly a faction filing.",
+      "candidate": {
+        "name": "Dikwa Suleiman Mohammed",
+        "shortName": "Dikwa",
+        "gender": "male",
+        "poster": "election/2027/presidential/nnpp/dikwa-suleiman-mohammed/hero.webp"
+      },
+      "runningMate": { "name": "Abubakar Isah", "gender": "male" },
+      "logo": "parties/nnpp.webp",
+      "brandColor": "#0093e1",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -78, "y": 57, "w": 673.064, "h": 662 },
+        "chip": { "x": 282, "y": 564.37, "w": 122, "h": 130.642, "radius": "rounded-[61px]" }
+      }
+    },
+    {
+      "slug": "adebayo-bugaje",
+      "party": "SDP",
+      "confidence": "high",
+      "sourceUrl": "https://www.premiumtimesng.com/news/top-news/878285-2027-sdp-picks-presidential-candidate/",
+      "notes": "INEC-confirmed. SDP is contesting an INEC exclusion dispute affecting some of its other candidates.",
+      "candidate": {
+        "name": "Adebayo Adewole Ebenezer",
+        "aka": ["Adewole Adebayo"],
+        "shortName": "Adebayo",
+        "gender": "male",
+        "poster": "election/2027/presidential/sdp/adebayo-adewole-ebenezer/hero.webp"
+      },
+      "runningMate": {
+        "name": "Bugaje Usman Mohammed",
+        "gender": "male",
+        "poster": "election/2027/presidential/sdp/bugaje/hero.webp"
+      },
+      "logo": "parties/sdp.webp",
+      "brandColor": "#f48735",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "urlColor": "#000000",
+        "candidate": { "x": -173, "y": 118, "w": 577, "h": 577 },
+        "mate": { "x": 146, "y": 185, "w": 299.107, "h": 421.154 },
+        "chip": { "x": 288, "y": 595, "w": 121, "h": 100, "radius": "rounded-t-[14.382px]" }
+      }
+    },
+    {
+      "slug": "kabiru-ofordile",
+      "party": "APP",
+      "confidence": "high",
+      "sourceUrl": "https://dailypost.ng/2026/08/02/2027-inec-displays-19-presidential-candidates-running-mates-full-list/",
+      "notes": "APP, not NRM — the poster fixture had the wrong party, which is why 'NRM' appeared to field two tickets. INEC-confirmed.",
+      "candidate": {
+        "name": "Yusuf Kabiru",
+        "shortName": "Kabiru",
+        "gender": "male",
+        "poster": "election/2027/presidential/app/yusuf-kabiru/hero.webp"
+      },
+      "runningMate": { "name": "Ofordile Peace Egobia", "gender": "female" },
+      "logo": null,
+      "brandColor": "#f9ce05",
+      "documents": [{ "kind": "manifesto", "subject": "ticket", "title": "Manifesto" }],
+      "posterArt": {
+        "candidate": { "x": -113.119, "y": 116, "w": 517.12, "h": 707 },
+        "chip": { "x": 300, "y": 585, "w": 104, "h": 106, "radius": "rounded-full" }
+      }
+    }
+  ]
+}

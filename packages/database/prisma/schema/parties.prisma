@@ -32,6 +32,7 @@ model PoliticalParty {
   affiliations OfficialPartyAffiliation[]
   elections    OfficialElection[]
   officers     PartyOfficer[]
+  campaigns    Campaign[]
 
   @@map("political_parties")
 }
