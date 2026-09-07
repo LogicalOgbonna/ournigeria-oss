@@ -20,6 +20,7 @@ import { loadPermissions } from "./roles.util";
 import { AdminCampaignsService } from "../campaigns/admin-campaigns.service";
 import { AdminCampaignCouncilService } from "../campaigns/admin-campaign-council.service";
 import type { CampaignElectionType } from "../campaigns/campaigns.service";
+import { memberPatchSchema, patchSchema } from "../campaigns/admin-campaigns.schemas";
 
 /**
  * Phase-A audit playback (plan 62 follow-up): revert a whitelisted,
@@ -52,6 +53,62 @@ export const REVERTIBLE_ACTIONS: Record<string, Permission> = {
 interface DiffShape {
   before?: Record<string, unknown> | null;
   after?: Record<string, unknown> | null;
+}
+
+/**
+ * The revertible column sets are DERIVED from the campaign admin body schemas
+ * so a new/removed patch field can never drift out of sync with playback.
+ * `reason` is a request field, not a column. (`memberBaseSchema` is private to
+ * the schemas module; its `.partial()` — the patch body — has the same keys.)
+ */
+const CAMPAIGN_REVERTIBLE: readonly string[] = patchSchema
+  .keyof()
+  .options.filter((k) => k !== "reason");
+const COUNCIL_REVERTIBLE: readonly string[] = memberPatchSchema
+  .keyof()
+  .options.filter((k) => k !== "reason");
+
+/** The five columns that identify one race (mirrors campaigns' RaceKey). */
+interface RevertRaceKey {
+  electionType: string;
+  year: number;
+  stateCode: string | null;
+  constituencyCode: string | null;
+  lgaCode: string | null;
+}
+
+/** Read a race key off `metadata.raceKey` when the emitter recorded one. */
+function raceKeyFromMetadata(value: unknown): RevertRaceKey | null {
+  if (!value || typeof value !== "object") return null;
+  const m = value as Record<string, unknown>;
+  const year = Number(m.year);
+  if (typeof m.electionType !== "string" || !Number.isFinite(year)) return null;
+  const code = (k: string): string | null =>
+    typeof m[k] === "string" && m[k] ? (m[k] as string) : null;
+  return {
+    electionType: m.electionType,
+    year,
+    stateCode: code("stateCode"),
+    constituencyCode: code("constituencyCode"),
+    lgaCode: code("lgaCode"),
+  };
+}
+
+/**
+ * Fallback for `campaign.reordered`: the emitter currently writes only the
+ * composite targetId "<electionType>:<year>:<state>:<constituency>:<lga>"
+ * (empty segment = null), so parse it when metadata carries no raceKey.
+ */
+function raceKeyFromTargetId(targetId: string): RevertRaceKey {
+  const [electionType, year, stateCode, constituencyCode, lgaCode] =
+    targetId.split(":");
+  return {
+    electionType,
+    year: Number(year),
+    stateCode: stateCode || null,
+    constituencyCode: constituencyCode || null,
+    lgaCode: lgaCode || null,
+  };
 }
 
 /** ISO-normalized comparison (DB Dates vs diff ISO strings). */
@@ -247,7 +304,9 @@ export class AuditRevertService {
         if (!row) throw new NotFoundException("Campaign not found");
         const current = row as unknown as Record<string, unknown>;
         const input: Record<string, unknown> = {};
-        for (const field of Object.keys(before)) {
+        // Only columns the patch body exposes: a diff may carry derived/system
+        // fields (status, review_*) that patch() would silently drop.
+        for (const field of Object.keys(before).filter((f) => CAMPAIGN_REVERTIBLE.includes(f))) {
           if (!sameValue(current[field], after[field])) {
             throw new ConflictException(
               `Cannot revert: "${field}" has been changed again since this event`,
@@ -265,15 +324,32 @@ export class AuditRevertService {
 
       case "campaign.council.updated": {
         const before = diff.before as Record<string, unknown> | null;
+        const after = (diff.after ?? {}) as Record<string, unknown>;
         const campaignId = metadata.campaignId;
         if (!before || typeof campaignId !== "string") {
           throw new BadRequestException("Event has no council diff");
         }
-        // Only the columns memberPatchSchema exposes; ids/timestamps/status are not patchable.
-        const REVERTIBLE = ["roleCode", "officialId", "name", "imageUrl", "scopeLevel", "stateCode", "lgaCode", "startDate", "displayOrder", "confidence", "sourceUrl"];
+        const row = await this.prisma.campaignCouncilMember.findFirst({
+          where: { id: targetId, campaignId },
+        });
+        if (!row) throw new NotFoundException("Council member not found");
+        const current = row as unknown as Record<string, unknown>;
+        // `before`/`after` are whole rows here, so this also catches an edit
+        // that only moved a column this revert would not itself rewrite.
+        for (const field of Object.keys(before)) {
+          if (!sameValue(current[field], after[field])) {
+            throw new ConflictException(
+              `Cannot revert: "${field}" has been changed again since this event`,
+            );
+          }
+        }
+        // Only the columns the member patch body exposes; ids/timestamps/status are not patchable.
         const fields: Record<string, unknown> = {};
-        for (const f of REVERTIBLE) {
+        for (const f of COUNCIL_REVERTIBLE) {
           if (f in before) fields[f] = f === "startDate" && before[f] ? String(before[f]).slice(0, 10) : (before[f] ?? null);
+        }
+        if (Object.keys(fields).length === 0) {
+          throw new BadRequestException("Event diff has no revertible fields");
         }
         await this.council.patchMember(actor, campaignId, targetId, { ...fields, reason: effectiveReason } as never);
         return "campaign.council.updated";
@@ -288,20 +364,39 @@ export class AuditRevertService {
 
       case "campaign.reordered": {
         const before = diff.before as Record<string, number | null> | null;
+        const after = (diff.after ?? {}) as Record<string, number | null>;
         if (!before) throw new BadRequestException("Event has no order diff");
-        // targetId = "<electionType>:<year>:<state>:<constituency>:<lga>" (empty = null)
-        const [electionType, year, stateCode, constituencyCode, lgaCode] = targetId.split(":");
+        // Prefer an explicit race key; today's emitter only writes the composite targetId.
+        const raceKey = raceKeyFromMetadata(metadata.raceKey) ?? raceKeyFromTargetId(targetId);
+        const inRace = await this.prisma.campaign.findMany({
+          where: raceKey,
+          select: { id: true, displayOrder: true },
+        });
+        const ranks = new Map(inRace.map((r) => [r.id, r.displayOrder ?? null]));
+        // Deleted-row check first: it is the more precise diagnosis, and order()
+        // would otherwise reject the id with a generic "not in this race".
+        for (const id of Object.keys(before)) {
+          if (!ranks.has(id)) {
+            throw new ConflictException(
+              "Cannot revert: a ticket in this race was deleted since this event",
+            );
+          }
+        }
+        for (const [id, rank] of Object.entries(after)) {
+          if (!sameValue(ranks.get(id) ?? null, rank ?? null)) {
+            throw new ConflictException(
+              "Cannot revert: the race has been reordered again since this event",
+            );
+          }
+        }
         const ids = Object.entries(before)
           .filter((e): e is [string, number] => e[1] !== null)
           .sort((a, b) => a[1] - b[1])
           .map(([id]) => id);
         if (ids.length === 0) throw new BadRequestException("Event diff has no ranked rows to restore");
         await this.campaigns.order(actor, {
-          electionType: electionType as CampaignElectionType,
-          year: Number(year),
-          stateCode: stateCode || null,
-          constituencyCode: constituencyCode || null,
-          lgaCode: lgaCode || null,
+          ...raceKey,
+          electionType: raceKey.electionType as CampaignElectionType,
           ids,
         });
         return "campaign.reordered";
