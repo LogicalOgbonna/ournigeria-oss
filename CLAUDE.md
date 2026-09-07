@@ -178,7 +178,7 @@ Prisma v7 with PostgreSQL 16 + pgvector extension. The schema is a **multi-file 
 
 Non-Prisma tables: `budget_chunks`, `corruption_chunks`, `govspend_chunks`, `faac_vectors` — managed by Mastra PgVector at runtime. Do NOT add these to the Prisma schema or touch them via migrations.
 
-**Slug-alias invariant:** deleting or merging a `NigerianOfficial` that has a `slug` MUST first write an `official_slug_aliases` row pointing the dying slug (and re-point its existing aliases — the FK is `ON DELETE CASCADE` and will silently destroy them) at the surviving official. This applies to ad-hoc SQL dedup scripts too — an Aug 2026 dedup that skipped this orphaned 795 indexed URLs into 404s. The daily `seo-health` workflow samples sitemap URLs for 404s as the backstop.
+**Slug-alias invariant:** deleting or merging a `NigerianOfficial` that has a `slug` MUST first write an `official_slug_aliases` row pointing the dying slug (and re-point its existing aliases — the FK is `ON DELETE CASCADE` and will silently destroy them) at the surviving official. This applies to ad-hoc SQL dedup scripts too — an Aug 2026 dedup that skipped this orphaned 795 indexed URLs into 404s. The daily `seo-health` workflow samples sitemap URLs for 404s as the backstop. The campaign links (`campaigns.candidate_official_id`, `campaigns.running_mate_official_id`, `campaigns.official_election_id`, `campaign_council_members.official_id`) are `ON DELETE RESTRICT` on purpose: a hard delete of a linked official or election row fails until the dedup repoints those columns at the survivor — do that in the same transaction as the alias write.
 
 ### Migration Workflow
 
@@ -197,6 +197,10 @@ pnpm prisma:generate
 ```
 
 The `prisma:migrate:create` script (`packages/database/scripts/create-migration.ts`) automatically filters out operations on Mastra-managed chunk tables.
+
+## Election tickets (campaigns)
+
+`campaigns` rows (one ticket = candidate + running mate in one race) are managed from the dashboard: `campaign_manager` holds `campaigns.write`, `review_manager` holds `campaigns.review`, both plus `auditor`/`researcher` hold `campaigns.read`. Public visibility = `status IN ('active','concluded') AND review_status = 'reviewed' AND confidence <> 'low'`. `status` moves only through verbs on `/api/admin/campaigns/:id/{submit,approve,request-changes,unpublish,conclude,withdraw,dissolve}`; `PATCH` never accepts it. Hiding a public ticket (withdraw, dissolve, unpublish, lowering confidence to low) is a `campaigns.review` act. A writer who edited a ticket since its last review cannot approve it (super_admin exempt, audited as `campaign.self_approved`). `uq_campaigns_race_party_faction` is partial over public rows so a replacement candidate can be drafted beside a live ticket; `approve` guards the key. `packages/database/scripts/seed-campaigns.ts` is CREATE-ONLY (existing slugs skipped; `--force` = copy only) — never expect it to update prod rows. `GET /api/campaigns/ballot?state&lga&ward&year` resolves a viewer's races through `GeoSeatResolver`. `ensureTicketElections` (`@ournigeria/database`) is the only writer of the `official_elections` anchor rows (candidate `is_primary`, `pending` while draft, `won` = won the primary once published, `withdrawn` on withdraw). The `campaigns` dataset on `/dashboard/imports` creates DRAFT tickets through the enrichment apply pipeline (`enrichment_apply` role grants in `20260908090100`). Campaign audit events (`campaign.updated`, `council.updated`, `council.ended`, `reordered`) are revertible by reviewers. Design: `docs/superpowers/specs/2026-09-07-campaign-dashboard-design.md`; plan: `.agent/plans/64.campaign-dashboard-1-foundation.md`.
 
 ## Secrets Management
 
