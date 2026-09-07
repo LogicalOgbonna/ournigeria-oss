@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, PrismaService } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
 import { ImageStorageService } from "../images/image-storage.service";
-import { mustCampaign, resolvePerson, reviewFlagData } from "./campaign-shared";
+import { mustCampaign, resolvePerson, reviewFlagData, uniqueWrite } from "./campaign-shared";
 import type { EndMemberInput, MemberInput, MemberPatch, RoleInput, RolePatch } from "./admin-campaigns.schemas";
 
 /**
@@ -224,15 +224,8 @@ export class AdminCampaignCouncilService {
    * not know about, so a duplicate seat arrives as a bare P2002. Kept tight
    * around the single write so the audit event still lands last in the tx.
    */
-  private async uniqueWrite<T>(write: () => Promise<T>): Promise<T> {
-    try {
-      return await write();
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        throw new ConflictException("This official already holds that role on this campaign");
-      }
-      throw err;
-    }
+  private uniqueWrite<T>(write: () => Promise<T>): Promise<T> {
+    return uniqueWrite(write, "This official already holds that role on this campaign");
   }
 
   /**

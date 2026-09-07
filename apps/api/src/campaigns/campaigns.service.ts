@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma, PrismaService } from "@ournigeria/database";
 import { GeoSeatResolver } from "../election/geo-seat-resolver";
 import { Office, OFFICE_ELECTION_TYPE, OFFICE_LABEL, OFFICE_ORDER } from "../election/office-map";
+import { PUBLIC_STATUSES } from "./campaign-shared";
 
 /**
  * Public read model for `campaigns` — one ticket in one race, with its
@@ -35,7 +36,6 @@ export const CAMPAIGN_ELECTION_TYPES = [
 
 export type CampaignElectionType = (typeof CAMPAIGN_ELECTION_TYPES)[number];
 
-const PUBLIC_STATUSES = ["active", "concluded"] as const;
 
 const partySelect = {
   select: { acronym: true, name: true, logoUrl: true, color: true },

@@ -157,6 +157,17 @@ describe("AdminCampaignsService", () => {
     await expect(svc.approve(actor(reviewer), reviewer, dup.id, "dup")).rejects.toThrow(new RegExp(`withdraw the existing ${live.slug}`));
   });
 
+  it("re-labelling a public ticket onto another public ticket's race key is a 409, not a 500", async () => {
+    const live = await prisma.campaign.findUniqueOrThrow({ where: { slug: `zzz-adm-d-${tag}` } });
+    const other = await svc.create(actor(writer), { ...draftInput("dup2"), factionLabel: `zzz-dup2-${tag}` });
+    campaignIds.push(other.id);
+    await svc.submit(actor(writer), other.id);
+    await svc.approve(actor(reviewer), reviewer, other.id, "second public ticket");
+    await expect(
+      svc.patch(actor(writer), other.id, { factionLabel: live.factionLabel, reason: "collide" }),
+    ).rejects.toThrow(/already holds this race key/);
+  });
+
   it("no verb moves a public row back to draft, and delete is draft-only", async () => {
     const live = await prisma.campaign.findUniqueOrThrow({ where: { slug: `zzz-adm-d-${tag}` } });
     await expect(svc.remove(actor(writer), live.id)).rejects.toThrow(/draft/);

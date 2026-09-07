@@ -1,5 +1,5 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
-import type { PrismaService } from "@ournigeria/database";
+import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import { Prisma, type PrismaService } from "@ournigeria/database";
 import type { AuditActor } from "../audit/audit.service";
 import type { ImageStorageService } from "../images/image-storage.service";
 
@@ -53,4 +53,24 @@ export async function resolvePerson(prisma: PrismaService, images: ImageStorageS
     return { officialId: o.id, name: o.name, imageUrl: p.imageUrl ?? o.imageUrl ?? null };
   }
   return { officialId: null, name: (p.name ?? "").trim(), imageUrl: p.imageUrl ?? null };
+}
+
+/** The statuses the public can see — also hard-coded in the partial index uq_campaigns_race_party_faction. */
+export const PUBLIC_STATUSES = ["active", "concluded"] as const;
+
+/**
+ * Run one write and turn a unique-index violation (P2002) into a 409 with a
+ * domain message. The partial indexes are the backstop for every check the
+ * services do outside their transaction (race key on approve, active council
+ * seat per official); this keeps a lost race from surfacing as a raw 500.
+ */
+export async function uniqueWrite<T>(write: () => Promise<T>, message: string): Promise<T> {
+  try {
+    return await write();
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new ConflictException(message);
+    }
+    throw err;
+  }
 }

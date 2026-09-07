@@ -9,7 +9,7 @@ import { Prisma, PrismaService, ensureTicketElections, slugifyName, type AnchorC
 import { AuditService, type AuditActor } from "../audit/audit.service";
 import { ImageStorageService } from "../images/image-storage.service";
 import { loadActiveRoles, loadPermissions } from "../admin/roles.util";
-import { mustCampaign, resolvePerson, reviewFlagData } from "./campaign-shared";
+import { mustCampaign, PUBLIC_STATUSES, resolvePerson, reviewFlagData, uniqueWrite } from "./campaign-shared";
 import {
   raceScopeFor,
   type CreateInput,
@@ -30,7 +30,7 @@ import {
  *   active | concluded | suspended --withdraw/dissolve(review)--> withdrawn | dissolved
  */
 
-export const PUBLIC_STATUSES = ["active", "concluded"] as const;
+export { PUBLIC_STATUSES };
 
 /** Writer-side audit actions; an actor with any of these since the last review cannot approve. */
 const EDIT_ACTIONS = [
@@ -246,13 +246,19 @@ export class AdminCampaignsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const row = await tx.campaign.update({
-        where: { id },
-        data: {
-          ...(changes as Prisma.CampaignUncheckedUpdateInput),
-          ...(existing.status !== "draft" ? reviewFlagData(actor) : {}),
-        },
-      });
+      // factionLabel is part of the partial race-key unique; on a public row a
+      // collision is a 409, not a 500.
+      const row = await uniqueWrite(
+        () =>
+          tx.campaign.update({
+            where: { id },
+            data: {
+              ...(changes as Prisma.CampaignUncheckedUpdateInput),
+              ...(existing.status !== "draft" ? reviewFlagData(actor) : {}),
+            },
+          }),
+        "A public ticket already holds this race key — change the faction label or withdraw the existing ticket first",
+      );
       await this.audit.log(tx, actor, {
         action: "campaign.updated",
         targetType: "campaign",
@@ -327,19 +333,26 @@ export class AdminCampaignsService {
     const selfApproved = isSuper && (await this.wasEditor(row, actorAdminId));
 
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.campaign.update({
-        where: { id },
-        data: {
-          status: nextStatus,
-          reviewStatus: "reviewed",
-          reviewedBy: actorAdminId,
-          lastVerifiedAt: new Date(),
-          reviewRequestedAt: null,
-          reviewRequestedBy: null,
-          reviewNote: null,
-        },
-      });
-      await ensureTicketElections(tx, updated, { result: "won", reviewedBy: actorAdminId, sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
+      // assertRaceKeyFree ran before this transaction; the partial unique index
+      // is the backstop for a concurrent approve, mapped to the same 409.
+      const updated = await uniqueWrite(
+        () =>
+          tx.campaign.update({
+            where: { id },
+            data: {
+              status: nextStatus,
+              reviewStatus: "reviewed",
+              reviewedBy: actorAdminId,
+              lastVerifiedAt: new Date(),
+              reviewRequestedAt: null,
+              reviewRequestedBy: null,
+              reviewNote: null,
+            },
+          }),
+        "A public ticket already holds this race key — change the faction label or withdraw the existing ticket first",
+      );
+      const anchor = await ensureTicketElections(tx, updated, { result: "won", reviewedBy: actorAdminId, sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
+      await this.persistAnchor(tx, updated, anchor.candidateElectionId);
       if (selfApproved) {
         await this.audit.log(tx, actor, { action: "campaign.self_approved", targetType: "campaign", targetId: id, metadata: { reason } });
       }
@@ -366,7 +379,8 @@ export class AdminCampaignsService {
       const updated = await tx.campaign.update({ where: { id }, data: { status: "suspended" } });
       // The only legitimate won → pending path: the ticket is being pulled from
       // public view, so the primary win it asserted no longer stands.
-      await ensureTicketElections(tx, updated, { result: "pending", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence), allowResultDowngrade: true });
+      const anchor = await ensureTicketElections(tx, updated, { result: "pending", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence), allowResultDowngrade: true  });
+      await this.persistAnchor(tx, updated, anchor.candidateElectionId);
       await this.audit.log(tx, actor, {
         action: "campaign.unpublished",
         targetType: "campaign",
@@ -397,7 +411,8 @@ export class AdminCampaignsService {
     this.assertFrom(row.status, ["active", "concluded", "suspended"], status);
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status } });
-      await ensureTicketElections(tx, updated, { result: "withdrawn", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence) });
+      const anchor = await ensureTicketElections(tx, updated, { result: "withdrawn", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence)  });
+      await this.persistAnchor(tx, updated, anchor.candidateElectionId);
       await this.audit.log(tx, actor, { action: `campaign.${status}`, targetType: "campaign", targetId: id, diff: { before: { status: row.status }, after: { status } }, metadata: { reason } });
       return updated;
     });
@@ -430,6 +445,13 @@ export class AdminCampaignsService {
   }
 
   // ---------- helpers ----------
+
+  /** Keep campaigns.official_election_id pointing at the anchor row the transition just wrote. */
+  private async persistAnchor(tx: Prisma.TransactionClient, row: { id: string; officialElectionId: string | null }, anchorId: string | null) {
+    if (anchorId && anchorId !== row.officialElectionId) {
+      await tx.campaign.update({ where: { id: row.id }, data: { officialElectionId: anchorId } });
+    }
+  }
 
   private assertFrom(status: string, allowed: readonly string[], verb: string) {
     if (!allowed.includes(status)) throw new ConflictException(`${verb} is only allowed from ${allowed.join(", ")} (ticket is ${status})`);
