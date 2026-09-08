@@ -1,4 +1,5 @@
 import { adminFetch } from "@/lib/api";
+import { asMb, fileProblem } from "@/lib/campaign-assets";
 import type { Tone } from "@/lib/tone";
 
 // `errorMessage` lives next to ApiError in lib/api.ts; re-exported here so
@@ -93,6 +94,18 @@ export function isPubliclyVisible(c: {
 export function hasRunningMate(type: ElectionType): boolean {
   return !SOLO_RACES.has(type);
 }
+/**
+ * Does THIS ticket have a running mate to show fields for? The race type is
+ * the rule, but a mate already stored on a solo race is shown anyway so the
+ * bad data can be corrected rather than hidden.
+ */
+export function ticketHasMate(c: {
+  electionType: ElectionType;
+  runningMateName: string | null;
+}): boolean {
+  return hasRunningMate(c.electionType) || Boolean(c.runningMateName);
+}
+
 const SOLO_RACES = new Set<ElectionType>([
   "senatorial",
   "house_of_reps",
@@ -269,6 +282,14 @@ export interface CampaignDocument {
   coverUrl: string | null;
   fileUrl: string | null;
   pageCount: number | null;
+  /**
+   * `GET /campaigns/:id` includes documents without a `select`, so the whole
+   * row rides along. The Documents tab has to seed its Source URL box from
+   * this: `documentPutSchema` treats an absent key as "keep" but the tab sends
+   * every column it edits, so a field that could not be seeded would blank a
+   * stored source on the next save.
+   */
+  sourceUrl: string | null;
 }
 /**
  * The bare `campaign_council_members` row every member mutation returns — the
@@ -502,11 +523,17 @@ export interface PresignResult {
 
 // ---------- upload orchestration (pure; XHR injected for tests) ----------
 
-export const IMAGE_MAX_BYTES = 15 * 1024 * 1024;
-export const PDF_MAX_BYTES = 50 * 1024 * 1024;
-const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-const asMb = (bytes: number) => Math.round(bytes / 1024 / 1024);
+/**
+ * The accepted types and size caps live in lib/campaign-assets.ts next to
+ * `fileProblem`, the single gate both the drop zone and `uploadAsset` apply.
+ * Re-exported here so campaign pages keep importing from one module.
+ */
+export {
+  IMAGE_MAX_BYTES,
+  IMAGE_TYPES,
+  PDF_MAX_BYTES,
+  fileProblem,
+} from "@/lib/campaign-assets";
 
 export interface XhrLike {
   open(method: string, url: string): void;
@@ -548,12 +575,11 @@ export interface UploadOptions<T> {
 export async function uploadAsset<T>(opts: UploadOptions<T>): Promise<T> {
   const { file, kind } = opts;
   if (opts.signal?.aborted) throw new Error("Upload cancelled");
-  if (kind === "image" && !IMAGE_TYPES.includes(file.type))
-    throw new Error("Image type not accepted — use jpeg, png, webp");
-  if (kind === "pdf" && file.type !== "application/pdf")
-    throw new Error("Documents must be PDF");
-  const max = kind === "image" ? IMAGE_MAX_BYTES : PDF_MAX_BYTES;
-  if (file.size > max) throw new Error(`File is larger than ${asMb(max)} MB`);
+  // Exactly the check the drop zone already ran — one implementation, so a
+  // file that slipped past the UI (a paste, a programmatic call) is refused
+  // with the same sentence.
+  const problem = fileProblem(file, kind);
+  if (problem) throw new Error(problem);
 
   const presigned = await opts.presign({
     kind,

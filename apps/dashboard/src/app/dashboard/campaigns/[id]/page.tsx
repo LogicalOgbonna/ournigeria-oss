@@ -20,6 +20,8 @@ import { Forbidden } from "@/components/layout/forbidden";
 import { StatusChip } from "@/components/campaigns/status-chip";
 import { VerbButtons } from "@/components/campaigns/verb-buttons";
 import { TicketTab } from "./_tabs/ticket-tab";
+import { ArtworkTab } from "./_tabs/artwork-tab";
+import { DocumentsTab } from "./_tabs/documents-tab";
 import { ReviewTab } from "./_tabs/review-tab";
 import { hiddenReason } from "@/lib/campaign-form";
 import {
@@ -196,24 +198,17 @@ function CampaignDetailView({ id }: { id: string }) {
           <TicketTab campaign={campaign} onSaved={refetch} />
         </TabsContent>
 
-        {/* Tasks 6 and 7 of this plan fill these three in; the tabs exist now so
-            the URL (?tab=artwork) and the shell do not change under them. */}
+        {/* Artwork and Documents keep Radix's default unmount-when-inactive: an
+            in-flight upload is cancelled by design when the operator leaves
+            (useAssetUpload aborts it), and both tabs re-seed from `campaign`. */}
         <TabsContent value="artwork" className="pt-4">
-          <ComingSoon
-            title="Artwork"
-            body={`${campaign.media.length} image${
-              campaign.media.length === 1 ? "" : "s"
-            } are attached to this ticket.`}
-          />
+          <ArtworkTab campaign={campaign} onSaved={refetch} />
         </TabsContent>
         <TabsContent value="documents" className="pt-4">
-          <ComingSoon
-            title="Documents"
-            body={`${campaign.documents.length} document${
-              campaign.documents.length === 1 ? "" : "s"
-            } (manifesto, CV, achievements) are attached.`}
-          />
+          <DocumentsTab campaign={campaign} onSaved={refetch} />
         </TabsContent>
+        {/* Task 7 of this plan fills this one in; the tab exists now so the URL
+            (?tab=council) and the shell do not change under it. */}
         <TabsContent value="council" className="pt-4">
           <ComingSoon
             title="Council"
