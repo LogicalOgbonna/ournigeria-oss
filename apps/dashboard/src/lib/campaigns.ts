@@ -55,6 +55,51 @@ export const SCOPE_FOR: Record<ElectionType, "state" | "constituency" | "lga" | 
   councilor: "lga",
   other: null,
 };
+/**
+ * The two statuses a ticket can be public in — PUBLIC_STATUSES in
+ * apps/api/src/campaigns/campaign-shared.ts. Membership alone is what the API's
+ * `patch` guard checks before demanding campaigns.review to drop a ticket to low
+ * confidence, and what the verbs branch on; actual visibility also needs
+ * `isPubliclyVisible`.
+ */
+export const PUBLIC_STATUSES = ["active", "concluded"] as const;
+
+/** True when the status is one a public ticket can hold. */
+export function isPublicStatus(status: CampaignStatus): boolean {
+  return (PUBLIC_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * The whole public gate `CampaignsService.list/getBySlug` applies: a public
+ * status AND reviewed AND above low confidence. Anything else 404s on
+ * ournigeria.ng — including a live ticket that was edited since its approval.
+ */
+export function isPubliclyVisible(c: {
+  status: CampaignStatus;
+  reviewStatus: ReviewStatus;
+  confidence: string;
+}): boolean {
+  return (
+    isPublicStatus(c.status) && c.reviewStatus === "reviewed" && c.confidence !== "low"
+  );
+}
+
+/**
+ * Does this race elect a PAIR? Only the president, a governor and an LGA
+ * chairman run with a deputy; Senate, House of Reps, State Assembly and ward
+ * councillor seats are won by one person, so offering a running-mate field
+ * there only invites bad data.
+ */
+export function hasRunningMate(type: ElectionType): boolean {
+  return !SOLO_RACES.has(type);
+}
+const SOLO_RACES = new Set<ElectionType>([
+  "senatorial",
+  "house_of_reps",
+  "state_assembly",
+  "councilor",
+]);
+
 export const CONSTITUENCY_TYPE: Partial<
   Record<ElectionType, "senatorial" | "federal" | "state">
 > = {

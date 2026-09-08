@@ -14,26 +14,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { revertAuditEvent } from "@/lib/api";
+import { revertPermission } from "@/lib/audit-revertible";
 import { usePermissions } from "@/lib/permissions";
 import { formatDateTimeSeconds, relativeTime } from "@/lib/format";
-
-/** Mirrors REVERTIBLE_ACTIONS on the API (action -> permission needed). */
-const REVERTIBLE: Record<string, string> = {
-  "official.updated": "officials.update",
-  "official.slug.updated": "officials.slug.update",
-  "official.deleted": "officials.delete",
-  "official.restored": "officials.delete",
-  "role.granted": "roles.manage",
-  "role.revoked": "roles.manage",
-  "user.banned": "users.manage",
-  "user.unbanned": "users.manage",
-  "campaign.updated": "campaigns.review",
-  "campaign.council.updated": "campaigns.review",
-  "campaign.council.ended": "campaigns.review",
-  "campaign.reordered": "campaigns.review",
-  "campaign.media.replaced": "campaigns.review",
-  "campaign.document.replaced": "campaigns.review",
-};
 
 /** One event from GET /api/admin/audit — mirrors the API's AuditEventView. */
 export interface AuditEventView {
@@ -164,8 +147,10 @@ export function DiffViewerDialog({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const revertPermission = event ? REVERTIBLE[event.action] : undefined;
-  const canRevert = Boolean(revertPermission && can(revertPermission));
+  // The action -> permission table is shared with the campaign review
+  // timeline (lib/audit-revertible.ts) so the two surfaces cannot drift.
+  const permission = event ? revertPermission(event.action) : undefined;
+  const canRevert = Boolean(permission && can(permission));
   const ownAction = Boolean(event?.actorId && event.actorId === adminId);
 
   const submitRevert = async () => {

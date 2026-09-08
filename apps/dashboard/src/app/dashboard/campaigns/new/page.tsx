@@ -31,6 +31,7 @@ import {
   SCOPE_FOR,
   campaignsApi,
   errorMessage,
+  hasRunningMate,
   seatStateCode,
 } from "@/lib/campaigns";
 import { useGeoList } from "@/lib/hooks/use-geo-list";
@@ -81,10 +82,9 @@ function NewTicketForm() {
   const [error, setError] = useState<string | null>(null);
 
   const scope = SCOPE_FOR[race.electionType];
-  // Senate / House of Reps / State Assembly seats are won by one person — the
-  // API stores a mate on any race type, but offering one here would invite bad
-  // data. Chairman tickets DO have a deputy, so LGA races keep the picker.
-  const mateAllowed = scope !== "constituency";
+  // The API stores a mate on any race type, but offering one for a single-winner
+  // seat invites bad data. Same predicate the edit page uses.
+  const mateAllowed = hasRunningMate(race.electionType);
   const code = scopeCode(race);
   const raceComplete = (scope === null || !!code) && !!party;
 
@@ -133,7 +133,7 @@ function NewTicketForm() {
   function pickRace(next: RaceKeyValue) {
     setRace(next);
     // A mate picked for a governor ticket must not ride along into a seat race.
-    if (SCOPE_FOR[next.electionType] === "constituency") setMate(null);
+    if (!hasRunningMate(next.electionType)) setMate(null);
   }
 
   function pickCandidate(next: PersonValue | null) {

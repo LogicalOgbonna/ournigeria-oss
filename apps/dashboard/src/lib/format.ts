@@ -73,3 +73,12 @@ export function relativeTime(iso: string | null | undefined): string {
   if (day < 30) return `${day}d ago`;
   return formatDate(iso);
 }
+
+/**
+ * First segment of a UUID — enough to tell two admins apart in a dense audit
+ * row without pasting 36 characters into it. Always pair it with the full id in
+ * a `title` so the real value is one hover away.
+ */
+export function shortId(id: string | null | undefined): string {
+  return id ? id.slice(0, 8) : "—";
+}
