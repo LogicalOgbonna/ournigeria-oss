@@ -19,20 +19,20 @@ import {
   SCOPE_FOR,
   seatStateCode,
   type ElectionType,
+  type RaceKey,
 } from "@/lib/campaigns";
 
 export const DEFAULT_ELECTION_YEAR = 2027;
 const MIN_YEAR = 1999;
 const MAX_YEAR = 2100;
 
-/** Exactly the four race-key columns the API accepts (admin-campaigns.schemas raceScopeFor). */
-export interface RaceKeyValue {
-  electionType: ElectionType;
-  year: number;
-  stateCode?: string | null;
-  constituencyCode?: string | null;
-  lgaCode?: string | null;
-}
+/**
+ * Exactly the four race-key columns the API accepts (admin-campaigns.schemas
+ * raceScopeFor). The shape lives in lib/campaigns.ts as `RaceKey` so the pure
+ * helpers in lib/campaign-order.ts can share it without importing a client
+ * component; the old name is kept as an alias for the pages that use it.
+ */
+export type RaceKeyValue = RaceKey;
 
 /**
  * Election type + year + the ONE scope picker that race type needs. Controlled:

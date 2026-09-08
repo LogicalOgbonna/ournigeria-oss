@@ -45,6 +45,21 @@ export const ELECTION_TYPE_LABEL: Record<ElectionType, string> = {
   councilor: "Councillor",
   other: "Other",
 };
+/**
+ * The four race-key columns every campaign surface passes around: what the
+ * `<RaceKeyFields>` picker emits, what `listQuerySchema` filters on and what
+ * `raceScopeFor` validates on the way into a write. Exactly ONE of the three
+ * scope codes is ever set (a national race sets none) — the API rejects a
+ * payload carrying a second.
+ */
+export interface RaceKey {
+  electionType: ElectionType;
+  year: number;
+  stateCode?: string | null;
+  constituencyCode?: string | null;
+  lgaCode?: string | null;
+}
+
 /** Which scope picker a race type needs (mirrors raceScopeFor in the API). */
 export const SCOPE_FOR: Record<ElectionType, "state" | "constituency" | "lga" | null> = {
   presidential: null,
