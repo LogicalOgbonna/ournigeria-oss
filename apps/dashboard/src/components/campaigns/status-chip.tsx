@@ -8,7 +8,9 @@ import { TONE_CLASS } from "@/lib/tone";
 export function StatusChip(props: Parameters<typeof statusLabel>[0]) {
   const { label, tone } = statusLabel(props);
   return (
-    <Badge className={TONE_CLASS[tone]} variant="outline">
+    // The E2E suite reads a ticket's state off this chip; the label alone is
+    // too generic to select on ("Draft", "Live") and its classes are styling.
+    <Badge data-testid="status-chip" className={TONE_CLASS[tone]} variant="outline">
       {label}
     </Badge>
   );

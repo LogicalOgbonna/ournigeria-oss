@@ -117,7 +117,7 @@ export function ReasonDialog({
             </p>
           ) : null}
           {error ? (
-            <p id={errorId} className="text-xs text-destructive">
+            <p id={errorId} data-testid="reason-error" className="text-xs text-destructive">
               {error}
             </p>
           ) : null}
