@@ -133,6 +133,8 @@ export function ReviewTimeline({
         confirmLabel="Revert"
         destructive
         required={false}
+        // revertSchema caps the reason at 460 characters.
+        maxLength={460}
         onConfirm={async (reason) => {
           if (!reverting) return;
           await revertAuditEvent(reverting.seq, reason || undefined);

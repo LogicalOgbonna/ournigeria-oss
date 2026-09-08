@@ -23,6 +23,13 @@ export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 /** `accept` attributes for the two drop zones. */
 export const IMAGE_ACCEPT = IMAGE_TYPES.join(",");
 export const PDF_ACCEPT = "application/pdf";
+/**
+ * "jpeg, png or webp" — IMAGE_TYPES as prose, so a hint in the UI cannot drift
+ * from the list the check actually enforces.
+ */
+export const IMAGE_TYPES_PROSE = IMAGE_TYPES.map((t) => t.replace("image/", ""))
+  .join(", ")
+  .replace(/, ([^,]+)$/, " or $1");
 
 /**
  * Short edge below this many pixels earns a warning, never a block: the poster

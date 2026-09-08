@@ -270,6 +270,9 @@ export function memberCreateBody(
  *  - the service recomputes the whole scope arc whenever ANY of scopeLevel /
  *    stateCode / lgaCode is present, so a scope change sends all three and lets
  *    `scopeFor` null out the columns the new level does not use.
+ *  - `resolvePerson` rebuilds `imageUrl` from the body alone, so any change to
+ *    the person echoes an uploaded portrait back rather than letting it be
+ *    nulled — see `setName` (rename/unlink) and `keepPhotoOnLink` (link).
  */
 /**
  * Rename (or un-link) a member without losing a portrait that is theirs.
@@ -292,6 +295,23 @@ function setName(body: Record<string, unknown>, base: CouncilMember, name: strin
   if (!base.officialId) body.imageUrl = base.imageUrl;
 }
 
+/**
+ * The same echo, one direction further: LINKING an unlinked member.
+ *
+ * `resolvePerson` resolves a linked person's photo as `body.imageUrl ??
+ * official.imageUrl ?? null`, so linking someone to an official who has no
+ * photo of their own would blank the portrait the operator uploaded for them.
+ * Echoing the stored URL keeps it — and when the official does have a photo,
+ * the deliberate upload is the better picture to keep anyway.
+ *
+ * Only for an already-unlinked member, and only when there is something to
+ * keep: a linked row's `imageUrl` is the official's and re-sending it on a
+ * re-link is at best a no-op.
+ */
+function keepPhotoOnLink(body: Record<string, unknown>, base: CouncilMember): void {
+  if (!base.officialId && base.imageUrl) body.imageUrl = base.imageUrl;
+}
+
 export function memberPatchBody(
   v: MemberFormValues,
   base: CouncilMember,
@@ -306,6 +326,7 @@ export function memberPatchBody(
     body.officialId = nextOfficialId;
     // Unlinking leaves the row with no name source; the form's text becomes it.
     if (!nextOfficialId) setName(body, base, nextName);
+    else keepPhotoOnLink(body, base);
   } else if (!nextOfficialId && nextName !== base.name) {
     setName(body, base, nextName);
   }

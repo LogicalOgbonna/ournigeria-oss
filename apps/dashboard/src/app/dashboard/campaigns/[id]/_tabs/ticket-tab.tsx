@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ReadOnlyNotice } from "@/components/campaigns/read-only-notice";
 import { ReasonDialog } from "@/components/campaigns/reason-dialog";
 import { SLUG_MAX, slugError } from "@/lib/campaign-slug";
 import {
@@ -39,8 +40,8 @@ import {
 import {
   campaignsApi,
   errorMessage,
-  hasRunningMate,
   isPublicStatus,
+  ticketHasMate,
   type CampaignDetail,
 } from "@/lib/campaigns";
 import { usePermissions } from "@/lib/permissions";
@@ -184,8 +185,7 @@ export function TicketTab({
   // Senate / Reps / State Assembly seats and councillor wards are won by ONE
   // person; a mate that is somehow already stored is still shown so it can be
   // corrected.
-  const mateRelevant =
-    hasRunningMate(campaign.electionType) || Boolean(campaign.runningMateName);
+  const mateRelevant = ticketHasMate(campaign);
 
   const body = diffOf(form, base);
   const problems = problemsOf(form);
@@ -272,12 +272,7 @@ export function TicketTab({
 
   return (
     <div className="space-y-6">
-      {!canWrite ? (
-        <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-          You are reading this ticket. Editing needs{" "}
-          <code className="font-mono text-xs">campaigns.write</code>.
-        </p>
-      ) : null}
+      {!canWrite ? <ReadOnlyNotice subject="details" action="Editing" /> : null}
 
       <Card>
         <CardHeader>

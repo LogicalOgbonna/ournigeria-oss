@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AssetDropZone } from "@/components/campaigns/asset-drop-zone";
-import { CAPTION_MAX, SOURCE_URL_MAX } from "@/lib/campaign-assets";
+import { CAPTION_MAX, MIN_IMAGE_SHORT_EDGE, SOURCE_URL_MAX } from "@/lib/campaign-assets";
 import { isHttpUrl } from "@/lib/campaign-form";
 import { MEDIA_TYPE_LABEL, type Media, type MediaType } from "@/lib/campaigns";
 import { useAssetUpload, type UploadRun } from "@/lib/hooks/use-asset-upload";
@@ -27,7 +27,12 @@ const SHAPE: Record<SlotShape, { box: string; hint: string }> = {
   portrait: { box: "aspect-[3/4]", hint: "Portrait, about 3:4 (1200×1600)" },
   square: { box: "aspect-square", hint: "Square (1000×1000)" },
   wide: { box: "aspect-[16/6]", hint: "Wide banner, about 16:6" },
-  free: { box: "aspect-[4/3]", hint: "Any shape; 800 px on the short edge or more" },
+  free: {
+    box: "aspect-[4/3]",
+    // Same threshold `shortEdgeWarning` warns below, so the hint and the
+    // warning can never quote different numbers.
+    hint: `Any shape; ${MIN_IMAGE_SHORT_EDGE} px on the short edge or more`,
+  },
 };
 
 export interface MediaSlotCardProps {
@@ -152,7 +157,7 @@ export function MediaSlotCard({
           <AssetDropZone
             kind="image"
             compact
-            disabled={disabled || upload.busy}
+            disabled={disabled || upload.busy || saving}
             progress={upload.progress}
             error={upload.error}
             onRetry={upload.retry}

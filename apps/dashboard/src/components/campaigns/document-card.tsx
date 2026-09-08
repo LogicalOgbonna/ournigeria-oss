@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, FileText, Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,10 @@ import { ConfirmDialog } from "@/components/enrichment/confirm-dialog";
 import {
   DOC_BLURB_MAX,
   DOC_TITLE_MAX,
+  IMAGE_TYPES_PROSE,
+  PDF_MAX_BYTES,
   SOURCE_URL_MAX,
+  asMb,
   documentBody,
   documentProblems,
   type DocumentFormValues,
@@ -142,6 +145,11 @@ export function DocumentCard({
     setStaged(null);
     setCover(null);
   }, [subject]);
+  // The subject as it stands NOW, readable from an upload that started before
+  // the operator switched rows — a stale closure would only compare the old
+  // value with itself.
+  const subjectRef = useRef(subject);
+  subjectRef.current = subject;
 
   const problems = documentProblems(form);
   const blocked = Object.keys(problems).length > 0;
@@ -150,31 +158,43 @@ export function DocumentCard({
   // Save is disabled either way, so the message waits for a first edit.
   const titleProblem = touched ? problems.title : undefined;
 
-  /** Upload straight to staging; the "commit" step is just keeping the key. */
-  const stagePdf: UploadRun = (file, onProgress, signal) =>
-    uploadAsset({
+  /**
+   * Upload straight to staging; the "commit" step is just keeping the key.
+   * The subject is captured at the START of the upload: the controls that
+   * change it are disabled while one is in flight, but a switch that slipped
+   * through (or a subject that moved for any other reason) means these bytes
+   * belong to a different row, so the key is dropped rather than staged.
+   */
+  const stagePdf: UploadRun = (file, onProgress, signal) => {
+    const forSubject = subject;
+    return uploadAsset({
       file,
       kind: "pdf",
       signal,
       onProgress,
       presign: (body) => campaignsApi.presign(campaign.id, body),
       commit: async (stagingKey) => {
-        setStaged({ key: stagingKey, name: file.name });
+        if (subjectRef.current === forSubject)
+          setStaged({ key: stagingKey, name: file.name });
         return stagingKey;
       },
     });
-  const stageCover: UploadRun = (file, onProgress, signal) =>
-    uploadAsset({
+  };
+  const stageCover: UploadRun = (file, onProgress, signal) => {
+    const forSubject = subject;
+    return uploadAsset({
       file,
       kind: "image",
       signal,
       onProgress,
       presign: (body) => campaignsApi.presign(campaign.id, body),
       commit: async (stagingKey) => {
-        setCover({ key: stagingKey, name: file.name });
+        if (subjectRef.current === forSubject)
+          setCover({ key: stagingKey, name: file.name });
         return stagingKey;
       },
     });
+  };
 
   function set<K extends keyof DocumentFormValues>(key: K, value: string) {
     setTouched(true);
@@ -237,6 +257,9 @@ export function DocumentCard({
   const pagesErrorId = `${fieldId}-pages-error`;
   const sourceErrorId = `${fieldId}-source-error`;
   const disabled = !canWrite || saving;
+  // Staged bytes are held against the subject on screen, so nothing that could
+  // retarget them may move while an upload is still running.
+  const uploading = pdfUpload.busy || coverUpload.busy;
 
   return (
     <Card>
@@ -302,6 +325,7 @@ export function DocumentCard({
                     <Button
                       size="sm"
                       variant="outline"
+                      disabled={uploading}
                       onClick={() => setSubject(row.subject)}
                     >
                       Edit
@@ -318,7 +342,7 @@ export function DocumentCard({
             <Label htmlFor={`${fieldId}-subject`}>Subject</Label>
             <Select
               value={subject}
-              disabled={disabled}
+              disabled={disabled || uploading}
               onValueChange={(v) => setSubject(v as DocumentSubject)}
             >
               <SelectTrigger id={`${fieldId}-subject`} className="w-full">
@@ -434,7 +458,7 @@ export function DocumentCard({
               error={pdfUpload.error}
               onRetry={pdfUpload.retry}
               label={existing?.fileUrl ? "Replace PDF" : "Choose PDF"}
-              hint="Up to 50 MB."
+              hint={`Up to ${asMb(PDF_MAX_BYTES)} MB.`}
               onFile={(file) => void pdfUpload.start(file, stagePdf)}
             />
             <StagedLine
@@ -455,7 +479,7 @@ export function DocumentCard({
               error={coverUpload.error}
               onRetry={coverUpload.retry}
               label={existing?.coverUrl ? "Replace cover" : "Choose cover"}
-              hint="jpeg, png or webp."
+              hint={`${IMAGE_TYPES_PROSE}.`}
               onFile={(file) => void coverUpload.start(file, stageCover)}
             />
             <StagedLine
@@ -473,7 +497,7 @@ export function DocumentCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={disabled || blocked} onClick={() => void save()}>
+          <Button disabled={disabled || blocked || uploading} onClick={() => void save()}>
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
             {existing ? "Save document" : "Create document"}
           </Button>

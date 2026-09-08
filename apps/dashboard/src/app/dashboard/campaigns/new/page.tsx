@@ -25,6 +25,7 @@ import {
   RaceKeyFields,
   type RaceKeyValue,
 } from "@/components/campaigns/race-key-fields";
+import { raceScopeCode } from "@/lib/campaign-order";
 import { deriveTicketSlug, slugError, SLUG_MAX } from "@/lib/campaign-slug";
 import {
   ELECTION_TYPE_LABEL,
@@ -52,15 +53,6 @@ export default function NewCampaignPage() {
   return <NewTicketForm />;
 }
 
-/** The scope code this race type carries, if any (raceScopeFor allows exactly one). */
-function scopeCode(race: RaceKeyValue): string | null {
-  const scope = SCOPE_FOR[race.electionType];
-  if (scope === "state") return race.stateCode ?? null;
-  if (scope === "constituency") return race.constituencyCode ?? null;
-  if (scope === "lga") return race.lgaCode ?? null;
-  return null;
-}
-
 function NewTicketForm() {
   const router = useRouter();
   const fieldId = useId();
@@ -85,7 +77,8 @@ function NewTicketForm() {
   // The API stores a mate on any race type, but offering one for a single-winner
   // seat invites bad data. Same predicate the edit page uses.
   const mateAllowed = hasRunningMate(race.electionType);
-  const code = scopeCode(race);
+  // The ONE scope code this race type carries (raceScopeFor allows exactly one).
+  const code = raceScopeCode(race);
   const raceComplete = (scope === null || !!code) && !!party;
 
   // Names for the step-2 summary. A national race has no scope to name, so the

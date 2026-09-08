@@ -306,6 +306,31 @@ describe("memberPatchBody", () => {
     expect(memberPatchBody(form, row)).toEqual({ officialId: "off-9" });
   });
 
+  it("keeps an unlinked member's uploaded portrait when they are linked", () => {
+    // resolvePerson resolves a linked person's photo as
+    // `body.imageUrl ?? official.imageUrl ?? null`, so linking to an official
+    // with no photo of their own would blank the uploaded one.
+    const row = member({ imageUrl: "https://cdn.ournigeria.ng/a.webp" });
+    const form = { ...memberFormOf(row), person: { officialId: "off-9", name: "Ada Obi" } };
+    expect(memberPatchBody(form, row)).toEqual({
+      officialId: "off-9",
+      imageUrl: "https://cdn.ournigeria.ng/a.webp",
+    });
+  });
+
+  it("does not echo an imageUrl when re-linking a member who is already linked", () => {
+    // A linked row's imageUrl is the official's; re-sending it is at best a
+    // no-op and at worst an external url resolvePerson would 400 on.
+    const row = member({
+      officialId: "off-1",
+      name: "Ada Obi",
+      imageUrl: "https://example.com/not-ours.jpg",
+      official: { id: "off-1", slug: null, name: "Ada Obi", imageUrl: "https://example.com/not-ours.jpg" },
+    });
+    const form = { ...memberFormOf(row), person: { officialId: "off-9", name: "Bola A." } };
+    expect(memberPatchBody(form, row)).toEqual({ officialId: "off-9" });
+  });
+
   it("renames an unlinked member without dropping their uploaded portrait", () => {
     // resolvePerson rebuilds imageUrl from the body alone: a bare `name` would
     // null a photo committed through POST /council/:id/photo.
