@@ -43,6 +43,13 @@ export interface SessionReason {
   askOrThrow: (action?: string) => Promise<string | undefined>;
   /** Drop the held reason so the next commit asks for a fresh one. */
   clear: () => void;
+  /**
+   * Adopt a reason the operator already typed somewhere else (the end-member
+   * dialog collects its own, because the API demands one there even on a
+   * draft). The banner then shows it and later commits reuse it, instead of
+   * asking again for the same piece of work.
+   */
+  set: (reason: string) => void;
   /** Spread onto `<ReasonDialog>` alongside its copy props. */
   dialogProps: {
     open: boolean;
@@ -106,13 +113,20 @@ export function useSessionReason(required: boolean): SessionReason {
     setReason(null);
   }, []);
 
-  const onConfirm = useCallback(async (value: string) => {
+  const set = useCallback((value: string) => {
     held.current = value;
     setReason(value);
-    const resolve = waiter.current;
-    waiter.current = null;
-    resolve?.({ ok: true, reason: value });
   }, []);
+
+  const onConfirm = useCallback(
+    async (value: string) => {
+      set(value);
+      const resolve = waiter.current;
+      waiter.current = null;
+      resolve?.({ ok: true, reason: value });
+    },
+    [set],
+  );
 
   const onOpenChange = useCallback((v: boolean) => {
     setOpen(v);
@@ -129,6 +143,7 @@ export function useSessionReason(required: boolean): SessionReason {
     reason,
     askOrThrow,
     clear,
+    set,
     dialogProps: { open, onOpenChange, onConfirm },
   };
 }

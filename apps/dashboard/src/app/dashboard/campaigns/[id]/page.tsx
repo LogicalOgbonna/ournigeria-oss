@@ -4,16 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, use } from "react";
 import { parseAsStringEnum, useQueryState } from "nuqs";
-import { ArrowLeft, Construction, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Forbidden } from "@/components/layout/forbidden";
@@ -22,6 +15,7 @@ import { VerbButtons } from "@/components/campaigns/verb-buttons";
 import { TicketTab } from "./_tabs/ticket-tab";
 import { ArtworkTab } from "./_tabs/artwork-tab";
 import { DocumentsTab } from "./_tabs/documents-tab";
+import { CouncilTab } from "./_tabs/council-tab";
 import { ReviewTab } from "./_tabs/review-tab";
 import { hiddenReason } from "@/lib/campaign-form";
 import {
@@ -207,15 +201,8 @@ function CampaignDetailView({ id }: { id: string }) {
         <TabsContent value="documents" className="pt-4">
           <DocumentsTab campaign={campaign} onSaved={refetch} />
         </TabsContent>
-        {/* Task 7 of this plan fills this one in; the tab exists now so the URL
-            (?tab=council) and the shell do not change under it. */}
         <TabsContent value="council" className="pt-4">
-          <ComingSoon
-            title="Council"
-            body={`${campaign.council.length} council member${
-              campaign.council.length === 1 ? "" : "s"
-            } are on this ticket.`}
-          />
+          <CouncilTab campaign={campaign} onSaved={refetch} />
         </TabsContent>
 
         <TabsContent value="review" className="pt-4">
@@ -239,22 +226,5 @@ function BackLink() {
       <ArrowLeft className="h-4 w-4" />
       All tickets
     </Link>
-  );
-}
-
-function ComingSoon({ title, body }: { title: string; body: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Construction className="h-4 w-4 text-muted-foreground" />
-          {title}
-        </CardTitle>
-        <CardDescription>Arrives in the next release.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{body}</p>
-      </CardContent>
-    </Card>
   );
 }

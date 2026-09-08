@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Search, UserRound, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Portrait } from "@/components/campaigns/portrait";
 import { publicFetch } from "@/lib/api";
 import { errorMessage } from "@/lib/campaigns";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -57,31 +58,6 @@ function officeLine(o: OfficialHit): string | null {
   return [roleLabel(p.role), scope, p.party].filter(Boolean).join(" · ") || null;
 }
 
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-function Portrait({ name, imageUrl }: { name: string; imageUrl: string | null }) {
-  return imageUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={imageUrl}
-      alt=""
-      className="h-8 w-8 shrink-0 rounded-full object-cover"
-      loading="lazy"
-    />
-  ) : (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-medium text-muted-foreground">
-      {initials(name) || <UserRound className="h-4 w-4" />}
-    </span>
-  );
-}
-
 /**
  * Search-and-link a person. Picking a result emits `{ officialId, name }` (the
  * API's resolvePerson lets the official's own name win); the footer row emits
@@ -97,12 +73,18 @@ export function OfficialPicker({
   label,
   placeholder = "Search officials by name…",
   disabled,
+  invalid,
+  describedBy,
 }: {
   value: PersonValue | null;
   onChange: (v: PersonValue | null) => void;
   label: string;
   placeholder?: string;
   disabled?: boolean;
+  /** The owning form found a problem with this field. */
+  invalid?: boolean;
+  /** Id of the node stating that problem, so a screen reader reads it. */
+  describedBy?: string;
 }) {
   const inputId = useId();
   const listboxId = `${inputId}-results`;
@@ -228,7 +210,12 @@ export function OfficialPicker({
     return (
       <div className="space-y-1.5">
         <Label>{label}</Label>
-        <div className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+        <div
+          aria-describedby={describedBy}
+          className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
+            invalid ? "border-destructive" : "border-border"
+          }`}
+        >
           <span className="truncate text-sm font-medium">{value.name ?? "Linked official"}</span>
           {value.officialId ? (
             <Badge variant="outline" className="shrink-0">
@@ -264,6 +251,8 @@ export function OfficialPicker({
           aria-controls={listboxId}
           aria-activedescendant={listOpen && rowCount > 0 ? optionId(active) : undefined}
           aria-autocomplete="list"
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
           autoComplete="off"
           placeholder={placeholder}
           disabled={disabled}

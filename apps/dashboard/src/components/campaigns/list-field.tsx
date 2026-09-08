@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -27,6 +28,7 @@ export function ListField({
   error,
   disabled,
   emptyHint,
+  problem,
   onRetry,
   onChange,
 }: {
@@ -39,9 +41,19 @@ export function ListField({
   error: string | null;
   disabled?: boolean;
   emptyHint?: string;
+  /**
+   * The owning FORM's complaint about this field ("Pick a state."), as opposed
+   * to `error`, which is the LIST failing to load. Rendered here so the message
+   * sits inside the field and the trigger can point at it.
+   */
+  problem?: string;
   onRetry: () => void;
   onChange: (code: string) => void;
 }) {
+  // Hoisted: a hook must not hide inside a template literal. (`id` is already
+  // taken by the caller-supplied prop above.)
+  const generatedId = useId();
+  const problemId = `${generatedId}-problem`;
   // A stored code the list cannot name yet — the state list failed to load, or
   // the seat's owning state could not be resolved. Radix only shows the
   // placeholder for an EMPTY value (shouldShowPlaceholder), so an unmatched
@@ -59,7 +71,12 @@ export function ListField({
           onValueChange={onChange}
           disabled={disabled || !!error || options.length === 0}
         >
-          <SelectTrigger id={id} className="w-full">
+          <SelectTrigger
+            id={id}
+            className="w-full"
+            aria-invalid={problem ? true : undefined}
+            aria-describedby={problem ? problemId : undefined}
+          >
             {unresolved ? (
               <span className="min-w-0 truncate font-mono text-xs">{value}</span>
             ) : (
@@ -77,6 +94,11 @@ export function ListField({
           </SelectContent>
         </Select>
       )}
+      {problem ? (
+        <p id={problemId} className="text-xs text-destructive">
+          {problem}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-xs text-destructive">
           {error}{" "}
