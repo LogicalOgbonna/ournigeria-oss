@@ -10,6 +10,7 @@ import {
   type ConstituencyRow,
   type WardConstituencies,
 } from "./ward-constituencies";
+import { officialCardExtras } from "./official-card";
 
 /** Lower = preferred headline row when multiple `IgrRecord`s share the same fiscal year (FY over partials). */
 const IGR_PERIOD_RANK: Record<string, number> = {
@@ -314,9 +315,8 @@ export class GeoService implements OnModuleInit {
       slug: governorPosition.official.slug,
       name: governorPosition.official.name,
       party: governorPosition.partyAcronym || "N/A",
-      term: governorPosition.endDate ? `${governorPosition.startDate.getFullYear()} - ${governorPosition.endDate.getFullYear()}` : `${governorPosition.startDate.getFullYear()} - Present`,
       image: governorPosition.official.imageUrl,
-      email: governorPosition.official.email,
+      ...officialCardExtras(governorPosition),
     } : null;
 
     const fiscal = state.fiscalEntity;
@@ -422,7 +422,7 @@ export class GeoService implements OnModuleInit {
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
-      email: pos.official.email,
+      ...officialCardExtras(pos),
     });
 
     const senators = senatorPositions.map(mapOfficial);
@@ -714,9 +714,8 @@ export class GeoService implements OnModuleInit {
       name: pos.official.name,
       party: pos.partyAcronym || "N/A",
       ward: pos.ward?.name || "Unknown Ward",
-      leadershipRole: pos.leadershipRole,
       image: pos.official.imageUrl,
-      email: pos.official.email,
+      ...officialCardExtras(pos),
       proposed: false,
     }));
 
@@ -726,9 +725,8 @@ export class GeoService implements OnModuleInit {
       slug: chairmanPosition.official.slug,
       name: chairmanPosition.official.name,
       party: chairmanPosition.partyAcronym || "N/A",
-      term: chairmanPosition.endDate ? `${chairmanPosition.startDate.getFullYear()} - ${chairmanPosition.endDate.getFullYear()}` : `${chairmanPosition.startDate.getFullYear()} - Present`,
       image: chairmanPosition.official.imageUrl,
-      email: chairmanPosition.official.email,
+      ...officialCardExtras(chairmanPosition),
       proposed: false,
     } : null;
 
@@ -755,7 +753,7 @@ export class GeoService implements OnModuleInit {
       party: senatorPosition.partyAcronym || "N/A",
       constituency: senatorPosition.constituency?.name || "Unknown Constituency",
       image: senatorPosition.official.imageUrl,
-      email: senatorPosition.official.email,
+      ...officialCardExtras(senatorPosition),
       proposed: false,
     } : null;
 
@@ -784,7 +782,7 @@ export class GeoService implements OnModuleInit {
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
-      email: pos.official.email,
+      ...officialCardExtras(pos),
       proposed: false,
     }));
 
@@ -813,7 +811,7 @@ export class GeoService implements OnModuleInit {
       party: pos.partyAcronym || "N/A",
       constituency: pos.constituency?.name || "Unknown Constituency",
       image: pos.official.imageUrl,
-      email: pos.official.email,
+      ...officialCardExtras(pos),
       proposed: false,
     }));
 
@@ -945,9 +943,8 @@ export class GeoService implements OnModuleInit {
       slug: councilorPosition.official.slug,
       name: councilorPosition.official.name,
       party: councilorPosition.partyAcronym || "N/A",
-      phone: councilorPosition.official.phoneNumber || "N/A",
       image: councilorPosition.official.imageUrl,
-      email: councilorPosition.official.email,
+      ...officialCardExtras(councilorPosition),
       proposed: proposedIds.has(councilorPosition.official.id),
     } : null;
 
