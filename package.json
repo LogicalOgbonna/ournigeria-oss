@@ -21,7 +21,7 @@
     "okf:publish": "infisical run --projectId ${INFISICAL_PROJECT_ID:-INFISICAL_PROJECT_ID} --env dev --path /api -- npx tsx --tsconfig apps/api/tsconfig.json apps/api/src/okf/okf-publish.cli.ts",
     "setup": "bash packages/scripts/setup/setup.sh",
     "secret:login": "bash packages/scripts/setup/secret-login.sh",
-    "packages:build": "nx run-many -t build -p database,cache,tools,official-records",
+    "packages:build": "nx run-many -t build --projects=packages/*",
     "db:build": "nx run database:build",
     "ingest:dev": "nx run ingest:dev",
     "ingest:build": "nx run ingest:build",

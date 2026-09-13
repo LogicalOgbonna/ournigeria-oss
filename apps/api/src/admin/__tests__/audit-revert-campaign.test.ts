@@ -9,7 +9,8 @@ import { bustRolesCache } from "../roles.util";
 import { AdminCampaignsService } from "../../campaigns/admin-campaigns.service";
 import { AdminCampaignCouncilService } from "../../campaigns/admin-campaign-council.service";
 import { AdminCampaignAssetsService } from "../../campaigns/admin-campaign-assets.service";
-import { MemoryObjectStore } from "../../campaigns/asset-store.memory";
+import { MemoryObjectStore } from "../../storage/memory-object-store";
+import { registryOf } from "../../campaigns/__tests__/admin-campaign-assets.service.test";
 import { STAGING_PREFIX } from "../../campaigns/asset-store.service";
 import { CdnPurgeService } from "../../campaigns/cdn-purge.service";
 
@@ -456,7 +457,7 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
         return { url: store.urlFor(key), width: 1, height: 1 };
       },
     } as never;
-    assets = new AdminCampaignAssetsService(prisma, audit, assetImages, store, new CdnPurgeService({ get: () => undefined } as never));
+    assets = new AdminCampaignAssetsService(prisma, audit, assetImages, store, registryOf({ s3: store }), new CdnPurgeService({ get: () => undefined } as never));
     const alerts = { alert: vi.fn(async () => true) };
     revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council, assets);
     writer = await mkAdmin("campaign_manager");

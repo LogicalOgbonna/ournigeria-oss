@@ -1,7 +1,8 @@
-import { keyFromUrl, type ObjectStore, type PresignPutInput, type PutOptions } from "./asset-store.service";
+import { keyForBases, type ObjectStore, type PresignPutInput, type PutOptions } from "./object-store";
 
 /** Test double: everything in a Map, presigned URLs are fake but well-formed. */
 export class MemoryObjectStore implements ObjectStore {
+  readonly provider = "memory" as const;
   readonly objects = new Map<string, { body: Buffer; opts: PutOptions }>();
   readonly deleted: string[] = [];
   /** `aliases` = extra public bases the same object may be referenced under (tests for purge). */
@@ -33,13 +34,8 @@ export class MemoryObjectStore implements ObjectStore {
     return `${this.baseUrl}/${key}`;
   }
   keyFor(url: string) {
-    for (const base of [this.baseUrl, ...this.aliases]) {
-      const key = keyFromUrl(base, url);
-      if (key) return key;
-    }
-    return null;
+    return keyForBases([this.baseUrl, ...this.aliases], url);
   }
-
   urlsFor(key: string) {
     return [this.baseUrl, ...this.aliases].map((b) => `${b}/${key}`);
   }

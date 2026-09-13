@@ -219,11 +219,12 @@ describe("local-server transport suite", () => {
 describe("ImageStorageService.isStoredUrl compares origins", () => {
   it("accepts CDN, virtual-hosted and path-style bucket URLs; rejects look-alikes", async () => {
     const { ImageStorageService } = await import("../image-storage.service");
-    const config = {
-      getOrThrow: (k: string) => ({ S3_BUCKET: "ournigeria-documents", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "x", AWS_SECRET_ACCESS_KEY: "y" })[k],
-      get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.ournigeria.ng" : undefined),
-    };
-    const svc = new ImageStorageService(config as never);
+    const { ObjectStorageService } = await import("../../storage/object-storage.service");
+    const { resolveStorageConfig } = await import("../../storage/storage.config");
+    const registry = new ObjectStorageService(
+      resolveStorageConfig({ S3_BUCKET: "ournigeria-documents", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "x", AWS_SECRET_ACCESS_KEY: "y", CDN_BASE_URL: "https://cdn.ournigeria.ng" }),
+    );
+    const svc = new ImageStorageService(registry.for("images"), registry);
     expect(svc.isStoredUrl("https://cdn.ournigeria.ng/officials/a/b-600.webp")).toBe(true);
     expect(svc.isStoredUrl("https://ournigeria-documents.s3.eu-west-1.amazonaws.com/officials/x.webp")).toBe(true);
     expect(svc.isStoredUrl("https://s3.eu-west-1.amazonaws.com/ournigeria-documents/officials/x.webp")).toBe(true);

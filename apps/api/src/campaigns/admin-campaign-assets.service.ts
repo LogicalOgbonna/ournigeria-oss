@@ -1,9 +1,11 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, PrismaService } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
 import { ImageStorageService } from "../images/image-storage.service";
-import { OBJECT_STORE, STAGING_PREFIX, type ObjectStore } from "./asset-store.service";
+import { STAGING_PREFIX, type ObjectStore } from "./asset-store.service";
+import { ObjectStorageService } from "../storage/object-storage.service";
+import { InjectObjectStore } from "../storage/storage.module";
 import { assertImageBytes, assertPdfBytes, IMAGE_MAX_BYTES, IMAGE_TYPES, PDF_MAX_BYTES } from "./asset-validation";
 import { countPdfPages } from "./pdf-page-count";
 import { CdnPurgeService } from "./cdn-purge.service";
@@ -45,7 +47,7 @@ export interface DocumentRestoreInput {
  * Upload flow (spec §4 "Assets", R9):
  *
  *   browser ──POST /:id/uploads──▶ presign ──▶ { uploadUrl, stagingKey }
- *   browser ──PUT bytes──▶ S3 staging/<campaignId>/<uuid>
+ *   browser ──PUT bytes──▶ campaign_assets store (S3 / R2 / local) staging/<campaignId>/<uuid>
  *   browser ──POST /:id/media {stagingKey,…}──▶ commitMedia
  *       head+get staging → assertImageBytes → images.storeAsset(final key) → row → audit → delete staging
  *
@@ -58,7 +60,9 @@ export class AdminCampaignAssetsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly images: ImageStorageService,
-    @Inject(OBJECT_STORE) private readonly store: ObjectStore,
+    @InjectObjectStore("campaign_assets") private readonly store: ObjectStore,
+    /** Every configured provider: objects written before a provider switch live elsewhere. */
+    private readonly storage: ObjectStorageService,
     private readonly cdn: CdnPurgeService,
   ) {}
 
@@ -89,7 +93,9 @@ export class AdminCampaignAssetsService {
     const metadata = this.validateMetadata(input.type, input.metadata);
     const staged = await this.takeStaged(campaignId, input.stagingKey, IMAGE_MAX_BYTES);
     assertImageBytes(staged.bytes, staged.contentType);
-    const stored = await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: input.type });
+    // Every object of a ticket lives in the campaign_assets store (`into`), so
+    // revert/purge below can resolve keys against the same store they were written to.
+    const stored = await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: input.type, into: this.store });
     const isSlot = (MEDIA_SLOT_TYPES as readonly string[]).includes(input.type);
 
     const row = await this.prisma.$transaction(async (tx) => {
@@ -182,7 +188,7 @@ export class AdminCampaignAssetsService {
     if (input.coverStagingKey) {
       const staged = await this.takeStaged(campaignId, input.coverStagingKey, IMAGE_MAX_BYTES);
       assertImageBytes(staged.bytes, staged.contentType);
-      uploadedCoverUrl = (await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: "document_cover", maxEdge: 1200 })).url;
+      uploadedCoverUrl = (await this.images.storeAsset(staged.bytes, this.prefixFor(campaign), { type: "document_cover", maxEdge: 1200, into: this.store })).url;
     }
 
     const row = await this.prisma.$transaction(async (tx) => {
@@ -242,7 +248,7 @@ export class AdminCampaignAssetsService {
     this.requireReason(campaign.status, input.reason);
     const staged = await this.takeStaged(campaignId, input.stagingKey, IMAGE_MAX_BYTES);
     assertImageBytes(staged.bytes, staged.contentType);
-    const stored = await this.images.store(staged.bytes, `${this.prefixFor(campaign)}/council/${memberId}`);
+    const stored = await this.images.store(staged.bytes, `${this.prefixFor(campaign)}/council/${memberId}`, this.store);
     const row = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaignCouncilMember.update({ where: { id: memberId }, data: { imageUrl: stored.url } });
       await this.flag(tx, campaign, actor);
@@ -308,14 +314,22 @@ export class AdminCampaignAssetsService {
     });
   }
 
-  /** A recorded URL is replayable only while it is ours and still stored. */
-  /** Revert guard: the URL is ours AND its object still exists (not purged). */
+  /**
+   * Revert guard: the URL is ours AND its object still exists (not purged).
+   * Resolved through the registry, not `this.store`: a URL recorded before the
+   * campaign_assets domain moved provider still points at the old bucket.
+   */
   async assertObjectSurvives(url: string) {
     if (!this.images.isStoredUrl(url)) throw new BadRequestException("previous URL is not in our storage");
-    const key = this.store.keyFor(url);
-    if (!key || !(await this.store.head(key))) {
+    const hit = this.storage.keyForAny(url);
+    if (!hit || !(await this.storage.provider(hit.provider).head(hit.key))) {
       throw new ConflictException("Cannot revert: the previous object was purged");
     }
+  }
+
+  /** Every configured store, so purge sees (and takes down) objects under any provider we ever wrote to. */
+  private allStores(): ObjectStore[] {
+    return this.storage.configuredProviders().map((p) => this.storage.provider(p));
   }
 
   // ---------- purge (reviewer) ----------
@@ -344,7 +358,11 @@ export class AdminCampaignAssetsService {
     // deletes the avatar of a live council member. Each key is checked as a
     // family, and a key is refused when any member of its family is referenced.
     const family = new Map(input.keys.map((k) => [k, [k, ...siblingKeys(k)]]));
-    const lookupUrls = [...new Set([...family.values()].flat())].flatMap((k) => this.store.urlsFor(k));
+    // URL forms under EVERY provider: a row may still hold the URL a previous
+    // provider served the same key from.
+    const stores = this.allStores();
+    const urlsFor = (k: string) => [...new Set(stores.flatMap((s) => s.urlsFor(k)))];
+    const lookupUrls = [...new Set([...family.values()].flat())].flatMap(urlsFor);
     const [media, docs, council] = await Promise.all([
       this.prisma.campaignMedia.findMany({ where: { url: { in: lookupUrls } }, select: { url: true } }),
       this.prisma.campaignDocument.findMany({ where: { OR: [{ fileUrl: { in: lookupUrls } }, { coverUrl: { in: lookupUrls } }] }, select: { fileUrl: true, coverUrl: true } }),
@@ -353,7 +371,7 @@ export class AdminCampaignAssetsService {
     const referenced = new Set<string>([...media.map((m) => m.url), ...docs.flatMap((d) => [d.fileUrl, d.coverUrl]).filter((u): u is string => Boolean(u)), ...council.map((c) => c.imageUrl).filter((u): u is string => Boolean(u))]);
     const blocked = input.keys
       .map((k) => {
-        const hit = family.get(k)!.find((s) => this.store.urlsFor(s).some((u) => referenced.has(u)));
+        const hit = family.get(k)!.find((s) => urlsFor(s).some((u) => referenced.has(u)));
         if (!hit) return null;
         return hit === k ? k : `${k} (its variant ${hit} is still referenced)`;
       })
@@ -363,9 +381,11 @@ export class AdminCampaignAssetsService {
     // Take down the whole variant family: a square portrait is two objects and a
     // takedown that leaves the -128 avatar live is not a takedown.
     const keys = [...new Set([...family.values()].flat())];
-    const urls = keys.map((k) => this.store.urlFor(k));
+    const urls = [...new Set(keys.flatMap((k) => stores.map((s) => s.urlFor(k))))];
     await this.audit.log(null, actor, { action: "campaign.assets.purge_requested", targetType: "campaign", targetId: campaignId, metadata: { keys, requested: input.keys, reason: input.reason } });
-    for (const k of keys) await this.store.delete(k);
+    // Delete from every provider: a takedown that leaves the copy in the old
+    // bucket live is not a takedown. Deleting a missing key is a no-op everywhere.
+    for (const k of keys) for (const s of stores) await s.delete(k);
     const cdn = await this.cdn.purge(urls);
     await this.audit.logBestEffort(actor, { action: "campaign.assets.purged", targetType: "campaign", targetId: campaignId, metadata: { keys, cdn, reason: input.reason } });
     return { deleted: keys, cdn };

@@ -1,22 +1,22 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { ImageStorageService } from "../image-storage.service";
+import { MemoryObjectStore } from "../../storage/memory-object-store";
+import type { ObjectStorageService } from "../../storage/object-storage.service";
+import type { PutOptions } from "../../storage/object-store";
 
+/** ImageStorageService against the in-memory store: every put lands in `puts`. */
 function makeService() {
-  const config = {
-    getOrThrow: (k: string) => ({ S3_BUCKET: "test-bucket", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "x", AWS_SECRET_ACCESS_KEY: "y" })[k],
-    get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.test" : undefined),
-  };
-  const svc = new ImageStorageService(config as never);
+  const store = new MemoryObjectStore("https://cdn.test");
   const puts: { Key: string; ContentType: string; CacheControl?: string; Body: Buffer }[] = [];
-  // Intercept the private S3 client: every PutObjectCommand lands in `puts`.
-  (svc as unknown as { s3: { send: (c: { input: never }) => Promise<unknown> } }).s3 = {
-    send: vi.fn(async (cmd: { input: never }) => {
-      puts.push(cmd.input);
-      return {};
-    }),
+  const original = store.put.bind(store);
+  store.put = async (key: string, body: Buffer, opts: PutOptions) => {
+    puts.push({ Key: key, ContentType: opts.contentType, CacheControl: opts.cacheControl, Body: body });
+    await original(key, body, opts);
   };
-  return { svc, puts };
+  const registry = { ownsUrl: (u: string) => store.keyFor(u) !== null } as unknown as ObjectStorageService;
+  const svc = new ImageStorageService(store, registry);
+  return { svc, puts, store };
 }
 
 async function png(w: number, h: number) {
@@ -43,6 +43,18 @@ describe("ImageStorageService.storeAsset", () => {
     expect([out.width, out.height]).toEqual([300, 500]);
     expect(puts).toHaveLength(1);
     await expect(svc.storeAsset(Buffer.from("not an image"), "p", { type: "logo" })).rejects.toThrow(/decodable/);
+  });
+
+  it("writes into the caller's store when `into` is given (campaign assets stay in one domain)", async () => {
+    const { svc, puts } = makeService();
+    const other = new MemoryObjectStore("https://other.test");
+    const out = await svc.storeAsset(await png(400, 400), "p", { type: "logo", into: other });
+    expect(puts).toHaveLength(0);
+    expect([...other.objects.keys()]).toHaveLength(1);
+    expect(out.url.startsWith("https://other.test/p/logo-")).toBe(true);
+    const sq = await svc.store(await png(400, 400), "p/council/m1", other);
+    expect(sq.url.startsWith("https://other.test/p/council/m1/")).toBe(true);
+    expect(puts).toHaveLength(0);
   });
 
   it("is content-addressed: the same bytes produce the same key", async () => {

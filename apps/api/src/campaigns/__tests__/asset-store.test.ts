@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { MemoryObjectStore } from "../asset-store.memory";
-import { S3ObjectStore, STAGING_PREFIX } from "../asset-store.service";
+import { MemoryObjectStore } from "../../storage/memory-object-store";
+import { S3ObjectStore } from "../../storage/s3-object-store";
+import { STAGING_PREFIX } from "../asset-store.service";
 
 describe("MemoryObjectStore", () => {
   it("round-trips put/head/get/delete and lists by prefix", async () => {
@@ -31,13 +32,23 @@ describe("MemoryObjectStore", () => {
   });
 });
 
+describe("S3ObjectStore bases", () => {
+  it("dedups and strips alias bases, canonical first, legacy AWS forms last", () => {
+    const s = new S3ObjectStore({ bucket: "b", region: "eu-west-1", accessKeyId: "k", secretAccessKey: "s", publicBaseUrl: "https://cdn.test/", aliasBaseUrls: ["https://old.test/", "https://cdn.test"] });
+    expect(s.urlsFor("k")).toEqual(["https://cdn.test/k", "https://old.test/k", "https://b.s3.eu-west-1.amazonaws.com/k", "https://s3.eu-west-1.amazonaws.com/b/k"]);
+    expect(s.keyFor("https://old.test/x/y.webp")).toBe("x/y.webp");
+  });
+  it("a custom endpoint without a public base serves from <endpoint>/<bucket>", () => {
+    const s = new S3ObjectStore({ bucket: "b", region: "auto", accessKeyId: "k", secretAccessKey: "s", endpoint: "https://minio.test/" });
+    expect(s.urlFor("k")).toBe("https://minio.test/b/k");
+    expect(s.keyFor("https://minio.test/b/k")).toBe("k");
+    expect(s.urlsFor("k")).toEqual(["https://minio.test/b/k"]);
+  });
+});
+
 describe("S3ObjectStore", () => {
   it("signs a PUT for the staging key with the content type AND length baked in (offline)", async () => {
-    const config = {
-      getOrThrow: (k: string) => ({ S3_BUCKET: "test-bucket", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "AKIATEST", AWS_SECRET_ACCESS_KEY: "secret" })[k],
-      get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.test" : undefined),
-    };
-    const store = new S3ObjectStore(config as never);
+    const store = new S3ObjectStore({ bucket: "test-bucket", region: "eu-west-1", accessKeyId: "AKIATEST", secretAccessKey: "secret", publicBaseUrl: "https://cdn.test" });
     const p = await store.presignPut({ key: `${STAGING_PREFIX}abc`, contentType: "image/png", size: 4096, expiresInSeconds: 600 });
     const u = new URL(p.url);
     expect(u.hostname).toBe("test-bucket.s3.eu-west-1.amazonaws.com");
@@ -51,11 +62,7 @@ describe("S3ObjectStore", () => {
   });
 
   it("keyFor accepts every origin form isStoredUrl accepts, and urlsFor lists them", async () => {
-    const config = {
-      getOrThrow: (k: string) => ({ S3_BUCKET: "test-bucket", AWS_REGION: "eu-west-1", AWS_ACCESS_KEY_ID: "AKIATEST", AWS_SECRET_ACCESS_KEY: "secret" })[k],
-      get: (k: string) => (k === "CDN_BASE_URL" ? "https://cdn.test" : undefined),
-    };
-    const store = new S3ObjectStore(config as never);
+    const store = new S3ObjectStore({ bucket: "test-bucket", region: "eu-west-1", accessKeyId: "AKIATEST", secretAccessKey: "secret", publicBaseUrl: "https://cdn.test" });
     expect(store.keyFor("https://cdn.test/a/b.webp")).toBe("a/b.webp");
     expect(store.keyFor("https://test-bucket.s3.eu-west-1.amazonaws.com/a/b.webp")).toBe("a/b.webp");
     expect(store.keyFor("https://s3.eu-west-1.amazonaws.com/test-bucket/a/b.webp")).toBe("a/b.webp");

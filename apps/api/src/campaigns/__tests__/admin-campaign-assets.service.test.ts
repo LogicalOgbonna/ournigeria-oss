@@ -4,7 +4,22 @@ import { PrismaService } from "@ournigeria/database";
 import { AuditService } from "../../audit/audit.service";
 import { AuditCryptoService } from "../../audit/audit-crypto.service";
 import { bustRolesCache } from "../../admin/roles.util";
-import { MemoryObjectStore } from "../asset-store.memory";
+import { MemoryObjectStore } from "../../storage/memory-object-store";
+import type { ObjectStorageService } from "../../storage/object-storage.service";
+import type { ObjectStore } from "../../storage/object-store";
+
+/** Registry stub over named memory stores (same surface the service uses). */
+export function registryOf(stores: Record<string, ObjectStore>): ObjectStorageService {
+  const names = Object.keys(stores);
+  const keyForAny = (url: string) => {
+    for (const provider of names) {
+      const key = stores[provider].keyFor(url);
+      if (key) return { provider, key };
+    }
+    return null;
+  };
+  return { configuredProviders: () => names, provider: (n: string) => stores[n], keyForAny, ownsUrl: (u: string) => keyForAny(u) !== null } as unknown as ObjectStorageService;
+}
 import { STAGING_PREFIX } from "../asset-store.service";
 import { AdminCampaignAssetsService } from "../admin-campaign-assets.service";
 import { AdminCampaignsService } from "../admin-campaigns.service";
@@ -18,6 +33,8 @@ import { CdnPurgeService } from "../cdn-purge.service";
 describe("AdminCampaignAssetsService", () => {
   let prisma: PrismaService;
   let store: MemoryObjectStore;
+  /** A provider the campaign_assets domain USED to write to (rows still hold its URLs). */
+  let legacy: MemoryObjectStore;
   let assets: AdminCampaignAssetsService;
   let campaigns: AdminCampaignsService;
   let council: AdminCampaignCouncilService;
@@ -50,8 +67,10 @@ describe("AdminCampaignAssetsService", () => {
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
     store = new MemoryObjectStore("https://cdn.test", ["https://bucket.s3.test"]);
+    legacy = new MemoryObjectStore("https://legacy.test");
+    const registry = registryOf({ r2: store, s3: legacy });
     const images = {
-      isStoredUrl: (u: string) => u.startsWith("https://cdn.test/"),
+      isStoredUrl: (u: string) => registry.ownsUrl(u),
       storeAsset: async (input: Buffer, prefix: string, opts: { type: string }) => {
         const key = `${prefix}/${opts.type}-${input.length.toString(16).padStart(16, "0")}.webp`;
         await store.put(key, input, { contentType: "image/webp" });
@@ -66,7 +85,7 @@ describe("AdminCampaignAssetsService", () => {
     const purge = new CdnPurgeService({ get: () => undefined } as never);
     campaigns = new AdminCampaignsService(prisma, audit, images);
     council = new AdminCampaignCouncilService(prisma, audit, images);
-    assets = new AdminCampaignAssetsService(prisma, audit, images, store, purge);
+    assets = new AdminCampaignAssetsService(prisma, audit, images, store, registry, purge);
     writer = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");
     const mk = (n: string) => campaigns.create(actor(writer), { electionType: "presidential", year: 2095, partyAcronym: "APC", slug: `zzz-assets-${n}-${tag}`, candidate: { name: `Zzz Assets ${n} ${tag}` }, runningMate: null, factionLabel: `zzz-${n}-${tag}` });
@@ -332,6 +351,27 @@ describe("AdminCampaignAssetsService", () => {
     const res = await assets.purge(actor(reviewer), draftId, { keys: [large], reason: "takedown" });
     expect(res.deleted.sort()).toEqual([large, small].sort());
     expect(store.objects.has(small)).toBe(false);
+  });
+
+  it("revert and purge find objects written under a PREVIOUS provider of the campaign_assets domain", async () => {
+    const campaign = await prisma.campaign.findUniqueOrThrow({ where: { id: draftId }, select: { year: true, electionType: true, slug: true } });
+    const key = `election/${campaign.year}/${campaign.electionType}/${campaign.slug}/photo-legacy0000000.webp`;
+    await legacy.put(key, Buffer.from("old-provider-bytes"), { contentType: "image/webp" });
+    const url = legacy.urlFor(key);
+    expect(store.keyFor(url)).toBeNull(); // the CURRENT store does not know this URL
+    await expect(assets.assertObjectSurvives(url)).resolves.toBeUndefined();
+
+    const k = await stage(draftId, await png(310, 310), "image/png");
+    const m = await assets.commitMedia(actor(writer), draftId, { stagingKey: k, type: "photo", caption: "legacy" });
+    await prisma.campaignMedia.update({ where: { id: m.id }, data: { url } });
+    await expect(assets.purge(actor(reviewer), draftId, { keys: [key], reason: "takedown" })).rejects.toThrow(/still referenced/);
+    await prisma.campaignMedia.delete({ where: { id: m.id } });
+
+    const res = await assets.purge(actor(reviewer), draftId, { keys: [key], reason: "takedown" });
+    expect(res.deleted).toEqual([key]);
+    expect(legacy.objects.has(key)).toBe(false);
+    expect(store.deleted).toContain(key); // no-op on the current store, still attempted
+    await expect(assets.assertObjectSurvives(url)).rejects.toThrow(/previous object was purged/);
   });
 
   it("purge refuses a key whose object a row references under the raw bucket URL form", async () => {

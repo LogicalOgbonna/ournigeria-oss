@@ -9,7 +9,6 @@ import { AdminCampaignsController } from "./admin-campaigns.controller";
 import { AdminCampaignCouncilService } from "./admin-campaign-council.service";
 import { AdminCampaignAssetsService } from "./admin-campaign-assets.service";
 import { CdnPurgeService } from "./cdn-purge.service";
-import { OBJECT_STORE, S3ObjectStore } from "./asset-store.service";
 
 @Module({
   imports: [AuditModule, ElectionModule, ImagesModule],
@@ -20,7 +19,6 @@ import { OBJECT_STORE, S3ObjectStore } from "./asset-store.service";
     AdminCampaignCouncilService,
     AdminCampaignAssetsService,
     CdnPurgeService,
-    { provide: OBJECT_STORE, useClass: S3ObjectStore },
   ],
   exports: [CampaignsService, AdminCampaignsService, AdminCampaignCouncilService, AdminCampaignAssetsService],
 })

@@ -8,7 +8,7 @@
 #   1. CORS rule "campaign-dashboard-uploads" — lets the dashboard PUT bytes
 #      straight at a presigned staging URL. `content-length` is in the allowed
 #      headers because the presigner signs content-type AND content-length
-#      (apps/api/src/campaigns/asset-store.service.ts); a browser preflight that
+#      (apps/api/src/storage/s3-object-store.ts); a browser preflight that
 #      cannot echo both headers fails the upload.
 #   2. Lifecycle rule "expire-staging-uploads" — `staging/` objects are the raw,
 #      unvalidated bytes; the API deletes them on commit, this expires the ones

@@ -19,7 +19,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-BUILD_PACKAGES="database cache tools official-records"
+# Every project under packages/ that has a build target. Derived, not listed:
+# the hardcoded list silently went stale when packages/access landed with the
+# RBAC work, and the API then failed to boot on a missing dist/.
+BUILD_PACKAGES="packages/*"
 
 # ─── Ensure pnpm is available ───────────────────────────────────────────────
 # The version pinned in package.json's "packageManager" field is the source
@@ -54,7 +57,7 @@ pnpm install
 echo -e "${YELLOW}==> Building internal packages: ${BUILD_PACKAGES}${NC}"
 # nx.json sets build.dependsOn=[^build], so this also builds any
 # cross-package deps (e.g. tools -> cache) in the correct order.
-pnpm exec nx run-many -t build -p $(echo "$BUILD_PACKAGES" | tr ' ' ',')
+pnpm exec nx run-many -t build --projects="$BUILD_PACKAGES"
 
 echo -e "${GREEN}==> All internal packages built. Apps are ready to run (pnpm api:dev, pnpm ingest:dev, ...)${NC}"
 
