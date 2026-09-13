@@ -18,6 +18,7 @@ const breadcrumbMap: Record<string, string> = {
   audit: "Audit Log",
   mine: "My Activity",
   campaigns: "Election Tickets",
+  elections: "Election Events",
 };
 
 /**
@@ -31,6 +32,7 @@ const breadcrumbPathMap: Record<string, string> = {
   "/dashboard/campaigns/queue": "Review Queue",
   "/dashboard/campaigns/order": "Rail Order",
   "/dashboard/campaigns/roles": "Council Roles",
+  "/dashboard/elections/new": "New Event",
 };
 
 export function Header() {

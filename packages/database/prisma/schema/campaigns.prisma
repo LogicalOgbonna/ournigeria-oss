@@ -46,6 +46,11 @@ model Campaign {
 
   partyAcronym String? @map("party_acronym") @db.VarChar(20)
 
+  /// The election EVENT this ticket contests (plan 68, D10.1 attachment
+  /// rule). Nullable: 'other'-type campaigns and rows nobody has attached
+  /// yet stay null.
+  electionId String? @map("election_id") @db.Uuid
+
   /// The is_primary/won official_elections row this ticket is built on.
   officialElectionId String? @unique @map("official_election_id") @db.Uuid
 
@@ -116,6 +121,7 @@ model Campaign {
   /// ad-hoc dedup) must fail loudly until the dedup repoints the campaign at
   /// the survivor — see the slug-alias invariant in CLAUDE.md.
   officialElection  OfficialElection?     @relation(fields: [officialElectionId], references: [id], onDelete: Restrict)
+  election          Election?             @relation(fields: [electionId], references: [id], onDelete: Restrict)
   candidateOfficial NigerianOfficial?     @relation("CampaignCandidate", fields: [candidateOfficialId], references: [id], onDelete: Restrict)
   runningMate       NigerianOfficial?     @relation("CampaignRunningMate", fields: [runningMateOfficialId], references: [id], onDelete: Restrict)
 
@@ -129,6 +135,7 @@ model Campaign {
   @@index([constituencyCode], map: "idx_campaigns_constituency")
   @@index([lgaCode], map: "idx_campaigns_lga")
   @@index([candidateOfficialId], map: "idx_campaigns_candidate")
+  @@index([electionId], map: "idx_campaigns_election")
   @@index([runningMateOfficialId], map: "idx_campaigns_running_mate")
   @@map("campaigns")
 }

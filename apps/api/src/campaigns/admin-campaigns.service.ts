@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, PrismaService, ensureTicketElections, slugifyName, type AnchorConfidence } from "@ournigeria/database";
+import { Prisma, PrismaService, ensureTicketElections, resolveElectionIdForRace, slugifyName, type AnchorConfidence } from "@ournigeria/database";
 import { AuditService, type AuditActor } from "../audit/audit.service";
 import { ImageStorageService } from "../images/image-storage.service";
 import { loadActiveRoles, loadPermissions } from "../admin/roles.util";
@@ -180,11 +180,16 @@ export class AdminCampaignsService {
       slug = await this.uniqueSlug(this.deriveSlug(candidate.name, mate?.name ?? null));
     }
 
+    // D10.2 attachment-on-create: exactly one subsuming event ⇒ attach;
+    // none or ambiguous ⇒ null — never blocks ticket creation.
+    const electionId = await resolveElectionIdForRace(this.prisma, { ...key, wardCode: null });
+
     return this.prisma.$transaction(async (tx) => {
       const row = await tx.campaign.create({
         data: {
           slug,
           ...key,
+          electionId,
           partyAcronym: input.partyAcronym.toUpperCase(),
           candidateOfficialId: candidate.officialId,
           candidateName: candidate.name,
@@ -334,6 +339,20 @@ export class AdminCampaignsService {
 
     const selfApproved = isSuper && (await this.wasEditor(row, actorAdminId));
 
+    // D10.2: a ticket created before its event existed gets another chance to
+    // attach on approve; an attachment already on the row is never overwritten.
+    const attachElectionId =
+      row.electionId === null
+        ? await resolveElectionIdForRace(this.prisma, {
+            electionType: row.electionType,
+            year: row.year,
+            stateCode: row.stateCode,
+            constituencyCode: row.constituencyCode,
+            lgaCode: row.lgaCode,
+            wardCode: null,
+          })
+        : null;
+
     return this.prisma.$transaction(async (tx) => {
       // assertRaceKeyFree ran before this transaction; the partial unique index
       // is the backstop for a concurrent approve, mapped to the same 409.
@@ -349,6 +368,7 @@ export class AdminCampaignsService {
               reviewRequestedAt: null,
               reviewRequestedBy: null,
               reviewNote: null,
+              ...(attachElectionId ? { electionId: attachElectionId } : {}),
             },
           }),
         "A public ticket already holds this race key — change the faction label or withdraw the existing ticket first",

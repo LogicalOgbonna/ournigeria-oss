@@ -303,6 +303,10 @@ model OfficialElection {
   officialId            String    @map("official_id") @db.Uuid
   electionType          String    @map("election_type") @db.VarChar(30)
   isPrimary             Boolean   @default(false) @map("is_primary")
+  /// The election EVENT this participation belongs to (plan 68). Nullable on
+  /// purpose: is_primary and MATE-type anchor rows are party events, not
+  /// ours — they keep this null.
+  electionId            String?   @map("election_id") @db.Uuid
   year                  Int
   electionDate          DateTime? @map("election_date") @db.Date
   partyAcronym          String?   @map("party_acronym") @db.VarChar(20)
@@ -331,10 +335,12 @@ model OfficialElection {
   lga                NigerianLga?          @relation(fields: [lgaCode], references: [code])
   ward               NigerianWard?         @relation(fields: [wardCode], references: [code])
   resultedInPosition OfficialPosition?     @relation(fields: [resultedInPositionId], references: [id])
+  election           Election?             @relation(fields: [electionId], references: [id], onDelete: Restrict)
   campaign           Campaign?
 
   @@index([officialId], map: "idx_elections_official")
   @@index([electionType, year], map: "idx_elections_type_year")
+  @@index([electionId], map: "idx_elections_participation")
   @@map("official_elections")
 }
 

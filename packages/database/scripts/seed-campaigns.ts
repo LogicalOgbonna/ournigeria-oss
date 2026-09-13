@@ -49,6 +49,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 import { ensureTicketElections } from "../src/campaigns/election-anchor";
+import { resolveElectionIdForRace } from "../src/campaigns/election-subsumption";
 import { slugifyName } from "../src/slug";
 import {
   findOrCreateOfficial,
@@ -257,11 +258,22 @@ export async function writeTicket(
       confidence: t.confidence ?? "medium",
       notes: t.notes ?? null,
     });
+    // D10.2 attachment-on-create: exactly one subsuming event ⇒ attach;
+    // none or ambiguous ⇒ null — never blocks the seed.
+    const electionId = await resolveElectionIdForRace(tx, {
+      electionType: data.electionType,
+      year: data.year,
+      stateCode: null,
+      constituencyCode: null,
+      lgaCode: null,
+      wardCode: null,
+    });
     await tx.campaign.create({
       data: {
         slug: t.slug,
         electionType: data.electionType,
         year: data.year,
+        electionId,
         partyAcronym: t.party,
         officialElectionId: anchor.candidateElectionId,
         candidateOfficialId: opts.candidateId,

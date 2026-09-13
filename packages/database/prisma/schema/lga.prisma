@@ -16,6 +16,7 @@ model NigerianLga {
   officialElections  OfficialElection[]
   campaigns          Campaign[]
   campaignCouncilMembers CampaignCouncilMember[]
+  elections          Election[]
 
   @@index([stateCode], map: "idx_lgas_state")
   @@map("nigerian_lgas")

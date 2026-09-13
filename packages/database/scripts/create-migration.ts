@@ -83,6 +83,10 @@ const PROTECTED_ARTIFACTS = [
   // Campaigns — one media row per single-slot type per ticket (partial: the
   // append types banner/photo are exempt). 20260908090200_campaign_media_slot_unique
   "uq_campaign_media_slot",
+  // Elections — one event per (office, year, round, scope arc), NULLS NOT
+  // DISTINCT; and the gate query's partial index. 20260912014235_add_elections
+  "uq_elections_event",
+  "idx_elections_gate",
 ];
 
 /** SQL verbs that destroy data or invariants. Never auto-applied unreviewed. */

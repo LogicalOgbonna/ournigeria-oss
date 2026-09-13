@@ -12,6 +12,7 @@ model NigerianWard {
   constituencyMappings ConstituencyWard[]
   officialPositions    OfficialPosition[]
   officialElections    OfficialElection[]
+  elections            Election[]
 
   @@index([lgaCode], map: "idx_wards_lga")
   @@map("nigerian_wards")

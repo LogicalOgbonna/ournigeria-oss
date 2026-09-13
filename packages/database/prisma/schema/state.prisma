@@ -22,6 +22,8 @@ model NigerianState {
   partyChapters     PartyStateChapter[]
   campaigns         Campaign[]
   campaignCouncilMembers CampaignCouncilMember[]
+  elections         Election[]
+  electionExclusions ElectionExcludedState[]
 
   @@index([zoneCode], map: "idx_states_zone")
   @@map("nigerian_states")

@@ -43,7 +43,7 @@ export default async function ElectionYearPage({ params }: Props) {
   if (year === null) redirect("/elections");
 
   const coverage = await getCoverage(revalidate);
-  const daysToGo = daysToGoFor(year);
+  const daysToGo = await daysToGoFor(year);
 
   return (
     <PageLayout navLabel={`${year} Elections`}>

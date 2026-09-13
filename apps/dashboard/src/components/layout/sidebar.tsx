@@ -44,6 +44,7 @@ import {
   ListChecks,
   ArrowUpDown,
   Tags,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
@@ -69,6 +70,11 @@ interface NavItem {
   icon: LucideIcon;
   /** RBAC permission required to see this item; omit for always-visible. */
   permission?: string;
+  /**
+   * ANY-of alternative to `permission` for pages whose API reads accept more
+   * than one permission (e.g. elections: writers CRUD, reviewers publish).
+   */
+  anyOfPermissions?: string[];
 }
 
 // Pinned, ungrouped home link rendered above all collapsible sections.
@@ -136,6 +142,14 @@ const electionNav: NavItem[] = [
     href: "/dashboard/campaigns/roles",
     icon: Tags,
     permission: "campaigns.read",
+  },
+  {
+    title: "Events",
+    href: "/dashboard/elections",
+    icon: CalendarDays,
+    // D5 split (plan 68): writers CRUD events, reviewers publish them — the
+    // list is readable by both, mirroring GET /api/admin/elections.
+    anyOfPermissions: ["elections.write", "campaigns.review"],
   },
 ];
 
@@ -416,8 +430,10 @@ export function AppSidebar() {
     return navGroups
       .map((group) => ({
         ...group,
-        items: group.items.filter(
-          (item) => !item.permission || can(item.permission),
+        items: group.items.filter((item) =>
+          item.anyOfPermissions
+            ? item.anyOfPermissions.some((p) => can(p))
+            : !item.permission || can(item.permission),
         ),
       }))
       .filter((group) => group.items.length > 0);

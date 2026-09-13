@@ -64,6 +64,16 @@ export const CAMPAIGN_AUDIT_ACTIONS: Record<string, ActionMeta> = {
   "campaign.council.deleted": { icon: Users, label: "Council member removed", tone: DANGER },
   "campaign.assets.purge_requested": { icon: Ban, label: "CDN purge requested", tone: WARN },
   "campaign.assets.purged": { icon: Ban, label: "CDN purged", tone: WARN },
+  // Election events (plan 68) reuse the same timeline component on
+  // /dashboard/elections/[id]; the API emits these on targetType "election".
+  "election.created": { icon: FilePlus2, label: "Event created" },
+  "election.updated": { icon: Pencil, label: "Event edited" },
+  "election.deleted": { icon: Trash2, label: "Event deleted", tone: DANGER },
+  "election.published": { icon: CheckCircle2, label: "Published to the gate", tone: SUCCESS },
+  "election.unpublished": { icon: EyeOff, label: "Unpublished", tone: DANGER },
+  "election.concluded": { icon: Flag, label: "Concluded" },
+  "election.cancelled": { icon: Ban, label: "Cancelled", tone: DANGER },
+  "election.gate_toggled": { icon: ShieldAlert, label: "Gate kill switch toggled", tone: WARN },
 };
 
 /**
@@ -74,7 +84,7 @@ export function metaFor(action: string): ActionMeta {
   return (
     CAMPAIGN_AUDIT_ACTIONS[action] ?? {
       icon: CircleDot,
-      label: action.replace(/^campaign\./, "").replace(/[._]/g, " "),
+      label: action.replace(/^(campaign|election)\./, "").replace(/[._]/g, " "),
     }
   );
 }

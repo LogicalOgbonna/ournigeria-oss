@@ -15,6 +15,7 @@ model NigerianConstituency {
   officialPositions OfficialPosition[]
   officialElections OfficialElection[]
   campaigns         Campaign[]
+  elections         Election[]
 
   @@index([stateCode, type], map: "idx_constituencies_state_type")
   @@map("nigerian_constituencies")

@@ -1,0 +1,90 @@
+// ============================================================
+// Elections: first-class election EVENTS (plan 68)
+// ============================================================
+//
+// One row = one scheduled election EVENT the platform covers — the thing
+// that has a date, a status, and a publish switch. An event may be
+// nationwide ("2027 senate elections") or scoped ("2026 Osun
+// governorship"). Seat-level detail stays on campaigns/official_elections;
+// their nullable election_id FK says which event they belong to.
+//
+// MIGRATION SQL (hand-written, not expressible in Prisma — audited on every
+// later diff; also listed in create-migration.ts PROTECTED_ARTIFACTS):
+//   uq_elections_event: UNIQUE (office, year, round, state_code,
+//     constituency_code, lga_code, ward_code) NULLS NOT DISTINCT — one event
+//     per race key; re-runs/supplementaries are sibling rows via `round`.
+//   chk_elections_office: office IN ('presidential','gubernatorial',
+//     'senatorial','house_of_reps','state_assembly','lga_chairman',
+//     'councilor') — deliberately NO 'other' (the gate cannot emit it).
+//   chk_elections_status: status IN ('scheduled','postponed','concluded',
+//     'cancelled')
+//   chk_elections_round: round IN ('general','runoff','supplementary',
+//     'rerun','bye')
+//   chk_elections_date_encoding: (date_precision = 'year' AND election_date
+//     IS NULL) OR (date_precision IN ('month','day') AND election_date IS
+//     NOT NULL AND (date_precision <> 'month' OR EXTRACT(DAY FROM
+//     election_date) = 1)) — one legal encoding per precision; NO
+//     year-equality clause on purpose (year is the cycle key, not the poll
+//     calendar year).
+//   idx_elections_gate: partial index ON (year) WHERE published — backs the
+//     gate query.
+//   Provenance trio CHECKs (chk_elections_confidence/review_status/
+//     source_type), campaigns vocabulary.
+
+model Election {
+  id     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug   String @unique @db.VarChar(160) // "2027-presidential", "2026-osun-gubernatorial"
+  office String @db.VarChar(30) // campaigns.election_type vocabulary, minus 'other' (D10.6)
+
+  year Int
+
+  /// Supplementary/re-run elections are siblings, not history rewrites (D3).
+  round String @default("general") @db.VarChar(20) // general|runoff|supplementary|rerun|bye
+
+  electionDate  DateTime? @map("election_date") @db.Date
+  datePrecision String    @default("year") @map("date_precision") @db.VarChar(10) // year|month|day
+  label         String?   @db.VarChar(120) // display override ("Osun Governorship")
+
+  stateCode        String? @map("state_code") @db.VarChar(30)
+  constituencyCode String? @map("constituency_code") @db.VarChar(80)
+  lgaCode          String? @map("lga_code") @db.VarChar(60)
+  wardCode         String? @map("ward_code") @db.VarChar(100)
+
+  status    String  @default("scheduled") @db.VarChar(20) // scheduled|postponed|concluded|cancelled
+  published Boolean @default(false) 
+
+  confidence   String  @default("medium") @db.VarChar(10)
+  sourceType   String  @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl    String? @map("source_url") @db.Text
+  reviewStatus String  @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy   String? @map("reviewed_by") @db.VarChar(100)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  state        NigerianState?        @relation(fields: [stateCode], references: [code])
+  constituency NigerianConstituency? @relation(fields: [constituencyCode], references: [code])
+  lga          NigerianLga?          @relation(fields: [lgaCode], references: [code])
+  ward         NigerianWard?         @relation(fields: [wardCode], references: [code])
+
+  campaigns         Campaign[]
+  officialElections OfficialElection[]
+  excludedStates    ElectionExcludedState[]
+
+  @@map("elections")
+}
+
+
+/// Carve-outs on nationwide events — states whose seats sit outside the
+/// event's cycle (off-cycle governorships and the like). The gate serializer
+/// emits these as `excludeStates`.
+model ElectionExcludedState {
+  electionId String @map("election_id") @db.Uuid
+  stateCode  String @map("state_code") @db.VarChar(30)
+
+  election Election      @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  state    NigerianState @relation(fields: [stateCode], references: [code])
+
+  @@id([electionId, stateCode])
+  @@map("election_excluded_states")
+}
