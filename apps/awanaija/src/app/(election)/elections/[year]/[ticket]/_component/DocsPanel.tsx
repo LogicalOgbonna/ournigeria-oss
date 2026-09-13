@@ -3,6 +3,7 @@
 import { Download, Expand, Minus, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { isOptimizedImageSrc } from "@/lib/image-hosts";
 import { cn } from "@/lib/utils";
 import type { TicketDoc } from "@/lib/presidential-profiles-2027";
 
@@ -68,6 +69,7 @@ export function DocsPanel({ docs }: { readonly docs: readonly TicketDoc[] }) {
           {doc.cover ? (
             <Image
               src={doc.cover}
+              unoptimized={!isOptimizedImageSrc(doc.cover)}
               alt={`${doc.title} cover`}
               width={510}
               height={665}

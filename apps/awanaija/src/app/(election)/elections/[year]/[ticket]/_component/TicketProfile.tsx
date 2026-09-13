@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Show } from "@/components/ui/Show";
-import type { RailCandidate } from "@/lib/mock-home-ballot";
+import type { OfficialRecords, RaceLabel } from "@/lib/campaigns";
+import type { RailCandidate } from "@/lib/home-ballot";
+import { isOptimizedImageSrc } from "@/lib/image-hosts";
 import {
   ageFrom,
   type TicketPerson,
@@ -25,22 +27,31 @@ import { DocsPanel } from "./DocsPanel";
  * still matches Figma exactly: `#e5e2e1` text, `#bbcbbc` secondary, `#6d736f`
  * muted, `#3c4a3f` hairline, `#060a08` card, `#00d492`/`#43ee94` accent.
  *
- * Sections 4-8 render only with a `profile`. 16 of the 18 acronyms in
- * `PRESIDENTIAL_2027` have none yet, and those pages stop after the ticket pair
- * rather than showing empty shells.
+ * Sections 4-7 render only with a `profile` (a campaign that carries editorial
+ * copy — 2 of 19 today); the rest stop after the ticket pair rather than
+ * showing empty shells. Section 8 (career + education) comes from the
+ * candidate's official record via `records`, and only renders when there is
+ * something to show.
  */
 export function TicketProfile({
   ticket,
   profile,
+  records,
   year,
+  race,
 }: {
   readonly ticket: RailCandidate;
   readonly profile: Profile | null;
+  readonly records?: OfficialRecords;
   readonly year: number;
+  /** The race's labels (office names, eyebrow, noun, seat) — see `raceOf`. */
+  readonly race: RaceLabel;
 }) {
   const accent = "text-emerald-600 dark:text-emerald-400";
 
   const names = [ticket.candidate.name, ticket.mate?.name].filter(Boolean).join(" & ");
+  const career = records?.career ?? [];
+  const education = records?.education ?? [];
 
   return (
     <div className="overflow-x-clip pb-24">
@@ -50,7 +61,8 @@ export function TicketProfile({
           changing what is drawn. */}
       <h1 className="sr-only">
         {names} — {ticket.party.name ?? ticket.party.acronym} ({ticket.party.acronym}),{" "}
-        {year} presidential ticket
+        {year} {race.noun}
+        {race.seat ? ` · ${race.seat}` : ""}
       </h1>
       {/* 1 — Crest band (Figma 1:1096). A rule either side of the party
           medallion, each ending in a dot. The logo is the one already committed
@@ -60,6 +72,7 @@ export function TicketProfile({
         <span className="grid size-[92px] shrink-0 place-items-center rounded-full border border-border bg-card p-4 dark:border-[#3c4a3f] dark:bg-[#0f1311] lg:size-[129px]">
           <Image
             src={ticket.party.logoUrl ?? ""}
+            unoptimized={!isOptimizedImageSrc(ticket.party.logoUrl ?? "")}
             alt={`${ticket.party.name ?? ticket.party.acronym} logo`}
             width={103}
             height={103}
@@ -76,7 +89,13 @@ export function TicketProfile({
         <span className="px-2" aria-hidden>
           ·
         </span>
-        Presidential
+        {race.eyebrow}
+        <Show when={Boolean(race.seat)}>
+          <span className="px-2" aria-hidden>
+            ·
+          </span>
+          {race.seat}
+        </Show>
       </p>
 
       {/* 3 — The ticket pair (Figma 1:1077-1:1093) */}
@@ -85,15 +104,15 @@ export function TicketProfile({
           <Half
             person={profile?.candidate}
             fallbackName={ticket.candidate.name}
-            fallbackRole="President"
+            fallbackRole={race.office}
             fallbackPhoto={ticket.candidate.imageUrl}
             accent={accent}
           />
           <Show when={Boolean(ticket.mate ?? profile?.mate)}>
             <Half
-              person={profile?.mate}
+              person={profile?.mate ?? undefined}
               fallbackName={ticket.mate?.name ?? ""}
-              fallbackRole="Running mate"
+              fallbackRole={race.mateOffice ?? "Running mate"}
               fallbackPhoto={ticket.mate?.imageUrl}
               accent={accent}
             />
@@ -125,13 +144,16 @@ export function TicketProfile({
               they collide, so the split is proportional (46/54) instead. */}
           <div className="flex min-h-[280px] flex-col lg:min-h-[417px] lg:flex-row lg:items-stretch">
             <div className="relative h-[220px] w-full shrink-0 lg:h-auto lg:w-[46%]">
-              <Image
-                src={profile?.quotePhoto ?? ""}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 46vw, 100vw"
-                className="object-cover object-top"
-              />
+              <Show when={Boolean(profile?.quotePhoto)}>
+                <Image
+                  src={profile?.quotePhoto ?? ""}
+                  unoptimized={!isOptimizedImageSrc(profile?.quotePhoto ?? "")}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 46vw, 100vw"
+                  className="object-cover object-top"
+                />
+              </Show>
             </div>
             {/* Instrument Sans Bold, not serif — the frames set the quote in the
                 body face at 78.787px/85.255px, tracking -1.1923px. That is sized
@@ -145,14 +167,17 @@ export function TicketProfile({
         {/* 6 — "Who is X?" (Figma 1:1144) */}
         <section className="mx-auto mt-20 w-full max-w-7xl px-6 lg:px-8">
           <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:gap-14">
-            <Image
-              src={profile?.bioPhoto ?? ""}
-              alt={`${profile?.short} portrait`}
-              width={463}
-              height={353}
-              sizes="(min-width: 1024px) 463px, 100vw"
-              className="h-auto w-full max-w-[463px] rounded-[12px] object-cover"
-            />
+            <Show when={Boolean(profile?.bioPhoto)}>
+              <Image
+                src={profile?.bioPhoto ?? ""}
+                unoptimized={!isOptimizedImageSrc(profile?.bioPhoto ?? "")}
+                alt={`${profile?.short} portrait`}
+                width={463}
+                height={353}
+                sizes="(min-width: 1024px) 463px, 100vw"
+                className="h-auto w-full max-w-[463px] rounded-[12px] object-cover"
+              />
+            </Show>
             <div className="min-w-0 flex-1">
               <h2 className="font-serif text-[32px] italic leading-tight text-foreground lg:text-[48px]">
                 Who is <span className={accent}>{profile?.short}?</span>
@@ -169,13 +194,18 @@ export function TicketProfile({
         <section className="mx-auto mt-20 w-full max-w-7xl px-6 lg:px-8">
           <DocsPanel docs={profile?.docs ?? []} />
         </section>
+      </Show>
 
-        {/* 8 — Career + Education (Figma 1:1148) */}
+      {/* 8 — Career + Education (Figma 1:1148). From the official record, so
+          it can render with or without an authored profile — and not at all
+          when the record is empty (most 2027 candidates today). */}
+      <Show when={career.length > 0 || education.length > 0}>
         <section className="mx-auto mt-16 w-full max-w-7xl px-6 lg:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:justify-center">
+            <Show when={career.length > 0}>
             <RecordCard title="Political Career" className="lg:w-[439px]">
               <div className="mt-6 flex flex-col gap-[25px]">
-                {(profile?.career ?? []).map((row, i) => (
+                {career.map((row, i) => (
                   <div
                     key={`${row.span}-${row.office}`}
                     className={
@@ -199,10 +229,12 @@ export function TicketProfile({
                 ))}
               </div>
             </RecordCard>
+            </Show>
 
+            <Show when={education.length > 0}>
             <RecordCard title="Education" className="lg:w-[381px]">
               <div className="mt-6 flex flex-col gap-4">
-                {(profile?.education ?? []).map((row) => (
+                {education.map((row) => (
                   <div key={`${row.award}-${row.school}`}>
                     <p className="text-foreground text-[18px] leading-[30px] lg:text-[19.9px]">
                       {row.award}
@@ -214,6 +246,7 @@ export function TicketProfile({
                 ))}
               </div>
             </RecordCard>
+            </Show>
           </div>
         </section>
       </Show>
@@ -291,6 +324,7 @@ function Half({
         <Show when={Boolean(photo)}>
           <Image
             src={photo ?? ""}
+            unoptimized={!isOptimizedImageSrc(photo ?? "")}
             alt={`${given} ${surname}`.trim()}
             fill
             sizes="(min-width: 640px) 377px, 100vw"
@@ -320,9 +354,10 @@ function Half({
         )}
       </p>
 
-      <Show when={Boolean(person)}>
+      {/* No date of birth on record = no age line, never a wrong one. */}
+      <Show when={Boolean(person?.dob)}>
         <p className="mt-2 text-[20px] italic leading-[28.294px] tracking-[-0.1768px] text-foreground lg:text-[24px]">
-          {person ? ageFrom(person.dob) : 0} years
+          {person?.dob ? ageFrom(person.dob) : 0} years
         </p>
       </Show>
     </div>

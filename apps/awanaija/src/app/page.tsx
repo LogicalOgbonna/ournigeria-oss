@@ -3,20 +3,13 @@ import { StructuredData } from "@/app/_seo/structured-data";
 import { WelcomeModalWrapper } from "@/components/civic/WelcomeModalWrapper";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PersonalizedData } from "@/components/sections/PersonalizedData";
-import {
-  applicableRaces,
-  FALLBACK_PRESIDENTIAL_YEAR,
-  getElectionGate,
-  presidentialYear,
-} from "@/lib/election-gate";
-import {
-  MOCK_LOCATION,
-  MOCK_PARTY_SLATES,
-  MOCK_RACES,
-  MOCK_YEARS,
-} from "@/lib/mock-home-ballot";
-import { AskBlock } from "./_component/AskBlock";
+import { getElectionGate } from "@/lib/election-gate";
+import { buildHomeRaces } from "@/lib/home-ballot";
+import { getCampaigns, toRailCandidate } from "@/lib/campaigns";
+import { presidentialTickets } from "./(election)/_lib";
 import { HomeHero } from "./_component/HomeHero";
+import { AskHero } from "./_component/AskHero";
+import { Show } from "@/components/ui/Show";
 
 // ISR: the homepage's initial (pre-personalization) snapshot is cached and
 // revalidated every 5 min instead of re-running the SSR API waterfall on every
@@ -33,64 +26,56 @@ export const metadata = {
 };
 
 /**
- * Which contests the rail offers, per the `election-gate` PostHog flag.
+ * Which contests the rail offers, per `GET /api/election/gate`.
  *
- * The homepage is national, so races are resolved against an empty geo: a race
- * with no scope reaches every visitor, and a state-scoped one (Osun's
- * governorship, say) correctly does not.
+ * The gate's payload IS the dropdown: every upcoming race it carries gets an
+ * entry, state-scoped ones included (the homepage is national, and an
+ * off-cycle governorship is national news even if only one state votes in
+ * it). Candidates are real — the presidential field from `GET /api/campaigns`,
+ * down-ballot fields from `GET /api/election/ballot` per scoped state.
  *
- * Falls back to the presidential race when the gate yields nothing, which today
- * it does for two independent reasons — the flag payload currently carries only
- * the Osun governorship, and local `.env.local` deliberately leaves
- * `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` unset so `getElectionGate()` fails dark.
- * The presidential race is live and going out; a blank hero would be a worse
- * failure than a stale one. Once `president` is added to the payload this
- * becomes the gate's answer rather than the fallback, with no code change.
+ * Gate semantics (decision C): an explicit `enabled:false` is the kill
+ * switch — zero races, no hero. An UNREACHABLE gate (null) or an enabled
+ * gate with nothing published falls back to the presidential race: the
+ * field is live and going out, and an API blip must never blank the page.
  */
 async function racesOnOffer() {
-  // `getElectionGate` fetches with `cache: "no-store"`, which is right for the
-  // entity pages (already dynamic) but would opt this route out of ISR and make
-  // every homepage hit render on demand. Reading it on the page's own 5-minute
-  // revalidate keeps `/` static; the gate's 60s in-memory cache still applies.
-  const gate = await getElectionGate((url, init) =>
-    fetch(url, { ...init, cache: undefined, next: { revalidate } } as RequestInit),
-  );
-  const live = new Set(applicableRaces(gate, {}).map((r) => r.office));
-  const gated = MOCK_RACES.filter((r) => live.has(r.office as never));
-  const races =
-    gated.length > 0 ? gated : MOCK_RACES.filter((r) => r.office === "president");
-
-  // The cycle the hero's posters link into. Read off the gate's presidential
-  // race, so activating the flag moves the links with no code change; until
-  // then — the flag carries no `president` race, and local `.env.local` leaves
-  // the PostHog token unset so the gate fails dark — it is the 2027 fallback.
-  const year = presidentialYear(gate) ?? FALLBACK_PRESIDENTIAL_YEAR;
-
-  return { races, year };
+  // The gate module owns its fetch policy (Next data cache, 60s revalidate),
+  // which composes with this page's 5-minute ISR window.
+  const gate = await getElectionGate();
+  return buildHomeRaces(gate, {
+    presidential: presidentialTickets,
+    // Down-ballot rails read public campaign tickets — the same source (and
+    // the same poster/mate media) the presidential rail already renders.
+    tickets: async (params) => (await getCampaigns(params)).map(toRailCandidate),
+  });
 }
 
 export default async function Home() {
-  const { races, year: electionYear } = await racesOnOffer();
+  const { races, year: electionYear, years } = await racesOnOffer();
 
   return (
     <PageLayout>
       <StructuredData />
       <WelcomeModalWrapper />
 
-      {/* The presidential field is real (see `lib/presidential-2027`); the
-          down-ballot races and party slates are still fixtures. */}
-      <Suspense fallback={<div className="h-225" />}>
-        <HomeHero
-          races={races}
-          slates={MOCK_PARTY_SLATES}
-          location={MOCK_LOCATION}
-          years={MOCK_YEARS}
-          electionYear={electionYear}
-        />
-      </Suspense>
+      {/* The hero follows the election gate. Gate ON (any race live): the
+          candidates rail — races and years off the gate payload; geo-scoped
+          races ship unfiltered in this ISR snapshot and HomeHero hides them
+          per-viewer, client-side. Gate OFF (kill switch, decision C): the ask
+          pitch takes the hero position instead — same page, different lead. */}
 
-      <AskBlock />
-      <PersonalizedData />
+      <Show when={races.length > 0}>
+        <Suspense fallback={<div className="h-225" />}>
+          <HomeHero races={races} years={years} electionYear={electionYear} />
+        </Suspense>
+      </Show>
+
+      <Show when={races.length === 0}>
+        <AskHero />
+      </Show>
+
+      <PersonalizedData heroWillMount={races.length > 0} />
     </PageLayout>
   );
 }

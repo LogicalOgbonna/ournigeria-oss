@@ -15,6 +15,8 @@ import { usePersistedLocation, readPersistedLocation } from "@/hooks/usePersiste
 import { Show } from "@/components/ui/Show";
 import { FeaturedOfficialCard, type LocalOfficial } from "@/app/_component/FeaturedOfficialCard";
 import { PeerOfficialsStrip } from "@/app/_component/PeerOfficialsStrip";
+import { createPortal } from "react-dom";
+import { useHeroLocationSlot } from "@/app/_component/HeroLocationSlot";
 
 const DEFAULT_SECTOR_BARS: BarDatum[] = [
   { label: "Education", value: 0, color: "bg-blue-500" },
@@ -42,6 +44,14 @@ type GeoOfficial = {
   party?: string | null;
   constituency?: string | null;
   email?: string | null;
+  phone?: string | null;
+  twitter?: string | null;
+  /** Leadership office held in the chamber (Speaker, Chief Whip, ...) — rare. */
+  leadershipRole?: string | null;
+  /** "2023 - Present" / "2019 - 2023", derived from the position's dates. */
+  term?: string | null;
+  /** 0..1 — how much of our record of this person is filled in. */
+  completeness?: number | null;
   image?: string | null;
   proposed?: boolean;
   [key: string]: unknown;
@@ -109,9 +119,13 @@ type ProfileOfficialRow =
       slug?: string | null;
       name?: string;
       party?: string | null;
-      term?: string;
+      term?: string | null;
       contact?: string | null;
       contactType?: string;
+      phone?: string | null;
+      twitter?: string | null;
+      leadershipRole?: string | null;
+      completeness?: number | null;
       image?: string | null;
       proposed?: boolean;
       [key: string]: unknown;
@@ -134,6 +148,7 @@ type LocationSelection = {
 function toLocalOfficial(
   row: ProfileOfficialRow | undefined,
   where: LocationSelection,
+  partyLogos: Record<string, string> = {},
 ): LocalOfficial {
   if (!row) return { id: "unknown", name: "", role: "Representative", missing: true };
 
@@ -156,9 +171,15 @@ function toLocalOfficial(
     role: row.role,
     term: row.term,
     party: row.party,
+    partyLogoUrl: row.party ? (partyLogos[row.party.toUpperCase()] ?? null) : null,
     imageUrl: row.image,
     slug: row.slug,
     proposed: row.proposed,
+    email: row.contact ?? null,
+    phone: row.phone ?? null,
+    twitter: row.twitter ?? null,
+    leadershipRole: row.leadershipRole ?? null,
+    completeness: row.completeness ?? null,
   };
 }
 
@@ -274,7 +295,7 @@ export function transformProfileData(
   
   if (lgaDetails?.senator) {
     const sen = lgaDetails.senator;
-    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: "Current", contact: sen.email || null, contactType: "email", image: sen.image, proposed: sen.proposed });
+    officials.push({ id: sen.id, slug: sen.slug, role: `Senator (${sen.constituency || 'Unknown'})`, name: sen.name, party: sen.party || 'N/A', term: sen.term, contact: sen.email || null, contactType: "email", phone: sen.phone, twitter: sen.twitter, leadershipRole: sen.leadershipRole, completeness: sen.completeness, image: sen.image, proposed: sen.proposed });
   } else {
     officials.push({
       isMissing: true, role: "Senator",
@@ -285,7 +306,7 @@ export function transformProfileData(
 
   if (lgaDetails?.houseMembers?.[0]) {
     const rep = lgaDetails.houseMembers[0];
-    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: "Current", contact: rep.email || null, contactType: "email", image: rep.image, proposed: rep.proposed });
+    officials.push({ id: rep.id, slug: rep.slug, role: `House of Reps (${rep.constituency || 'Unknown'})`, name: rep.name, party: rep.party || 'N/A', term: rep.term, contact: rep.email || null, contactType: "email", phone: rep.phone, twitter: rep.twitter, leadershipRole: rep.leadershipRole, completeness: rep.completeness, image: rep.image, proposed: rep.proposed });
   } else {
     officials.push({
       isMissing: true, role: "House of Reps",
@@ -296,7 +317,7 @@ export function transformProfileData(
 
   if (lgaDetails?.stateAssemblyMembers?.[0]) {
     const mha = lgaDetails.stateAssemblyMembers[0];
-    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: "Current", contact: mha.email || null, contactType: "email", image: mha.image, proposed: mha.proposed });
+    officials.push({ id: mha.id, slug: mha.slug, role: `State House (${mha.constituency || 'Unknown'})`, name: mha.name, party: mha.party || 'N/A', term: mha.term, contact: mha.email || null, contactType: "email", phone: mha.phone, twitter: mha.twitter, leadershipRole: mha.leadershipRole, completeness: mha.completeness, image: mha.image, proposed: mha.proposed });
   } else {
     officials.push({
       isMissing: true, role: "State House",
@@ -312,7 +333,7 @@ export function transformProfileData(
   }
   
   if (wardDetails?.councilor) {
-    officials.push({ ...wardDetails.councilor, role: "Ward Councillor", term: "Current", contactType: "email", contact: wardDetails.councilor.email || null });
+    officials.push({ ...wardDetails.councilor, role: "Ward Councillor", contactType: "email", contact: wardDetails.councilor.email || null });
   } else {
     officials.push({ isMissing: true, role: "Ward Councillor" });
   }
@@ -396,6 +417,11 @@ export function transformProfileData(
 }
 
 interface PersonalizedDataClientProps {
+  /** True when the page rendered a hero that mounts a HeroLocationSlot (the
+   *  candidates rail). Keeps SSR honest: with a hero coming, the row waits for
+   *  the portal target instead of flashing under the stats and teleporting on
+   *  hydration; with no hero (gate off, AskHero), the row renders inline. */
+  heroWillMount?: boolean;
   initialFaacPeriods: { years: number[], monthsByYear: Record<number, number[]> };
   initialStatesList: GeoListEntry[];
   initialLgasList: GeoListEntry[];
@@ -413,11 +439,15 @@ interface PersonalizedDataClientProps {
   };
   initialYear: number | null;
   initialMonth: number | null;
+  /** acronym -> party flag URL, for the badge disc over each portrait. */
+  partyLogos?: Record<string, string>;
   children?: React.ReactNode;
 }
 
-export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, children }: PersonalizedDataClientProps) {
+export function PersonalizedDataClient({ heroWillMount = false, initialFaacPeriods, initialStatesList, initialLgasList, initialWardsList, initialStateDetails, initialLgaDetails, initialWardDetails, initialSelection, initialYear, initialMonth, partyLogos = {}, children }: PersonalizedDataClientProps) {
   const { setLocation: setPersistedLocation } = usePersistedLocation();
+  // The hero's slot for the viewing-status row (see HeroLocationSlot).
+  const heroSlot = useHeroLocationSlot();
   const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
   const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -663,6 +693,196 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The "● You are viewing <place> [Change] [Month]" row — start to finish, as
+  // it was under the candidates, but rendered at the top of the homepage hero
+  // through a portal (HeroLocationSlot). Its state and fetches stay here.
+  const locationRow = (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <div className="flex items-center gap-3">
+                {/* Label and status dot are desktop-only. On a phone the row has to
+                    hold the location, the location picker and the month picker, and
+                    a ward like "Alausa Oregun Olusosun" wraps to four lines if it
+                    shares the width with anything else — so the location gets it
+                    all, and the surrounding section already says what it is. */}
+                <div className="hidden sm:block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                <span className="hidden sm:inline font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  You are viewing
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(!dropdownOpen);
+                    setDateDropdownOpen(false);
+                  }}
+                  className="font-semibold text-sm text-foreground text-left transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
+                >
+                  {data.state} · {data.lga} · {data.ward}
+                </button>
+              </div>
+          
+              <div className="flex items-center gap-3">
+                {/* Location Selector */}
+                <div className="relative">
+                  <button 
+                    onClick={() => {
+                      setDropdownOpen(!dropdownOpen);
+                      setDateDropdownOpen(false);
+                    }}
+                    type="button"
+                    className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 sm:px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
+                  >
+                    <MapPin className="h-4 w-4 sm:hidden text-emerald-600 dark:text-emerald-400" />
+                    <span className="hidden sm:inline">Change</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </button>
+              
+                  <Show when={dropdownOpen}>
+                    <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 top-full mt-2 w-[300px] sm:w-80 rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/10 z-50 overflow-hidden flex flex-col">
+                      {/* Header */}
+                      <div className="p-3 border-b border-border/50 flex items-center gap-2 bg-muted/30">
+                        <Show when={selectorStep !== "state"}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectorStep(selectorStep === "ward" ? "lga" : "state");
+                              setSearchQuery("");
+                            }}
+                            className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+                          >
+                            <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        </Show>
+                        <div className={`font-semibold text-sm flex-1 text-center ${selectorStep === "state" ? "" : "pr-6"}`}>
+                          {selectorStep === "state" ? "Select State" : selectorStep === "lga" ? "Select LGA" : "Select Ward"}
+                        </div>
+                      </div>
+                  
+                      {/* Search */}
+                      <div className="p-2 border-b border-border/50">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <input 
+                            type="text" 
+                            placeholder={`Search ${selectorStep === "state" ? "states" : selectorStep === "lga" ? "LGAs" : "wards"}...`}
+                            className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* List */}
+                      <div className="max-h-60 overflow-y-auto p-2 scrollbar-theme">
+                        {getListItems().map(item => (
+                          <button
+                            type="button"
+                            key={item.code}
+                            onClick={() => handleLocationSelect(item)}
+                            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50 text-foreground"
+                          >
+                            {item.name}
+                            <Show when={selectorStep !== "ward"}><ChevronRight className="h-4 w-4 text-muted-foreground/50" /></Show>
+                            <Show when={selectorStep === "ward" && data.ward === item.name && data.lga === pendingSelection.lgaName}><Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></Show>
+                          </button>
+                        ))}
+                        <Show when={getListItems().length === 0}>
+                          <div className="py-8 text-center text-sm text-muted-foreground">No results found.</div>
+                        </Show>
+                      </div>
+                    </div>
+                  </Show>
+                </div>
+
+                {/* Date Selector */}
+                <div className="relative">
+                  <button 
+                    onClick={() => {
+                      setDateDropdownOpen(!dateDropdownOpen);
+                      setDropdownOpen(false);
+                    }}
+                    type="button"
+                    className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
+                  >
+                    <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="sm:hidden">
+                      {selectedMonth ? monthNames[selectedMonth - 1].slice(0, 3) : "..."}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {selectedMonth ? monthNames[selectedMonth - 1] : "..."} {selectedYear || "..."}
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </button>
+              
+                  <Show when={dateDropdownOpen}>
+                    <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-72 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
+                      <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
+                        <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Month</div>
+                        {selectedYear && faacPeriods.monthsByYear[selectedYear]?.map((m) => (
+                          <button
+                            type="button"
+                            key={m}
+                            onClick={() => {
+                              setSelectedMonth(m);
+                              if (currentSelection.stateCode) {
+                                fetchFullProfile(
+                                  currentSelection.stateCode, currentSelection.stateName,
+                                  currentSelection.lgaCode, currentSelection.lgaName,
+                                  currentSelection.wardCode, currentSelection.wardName,
+                                  selectedYear, m
+                                );
+                              }
+                            }}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                              selectedMonth === m ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
+                            }`}
+                          >
+                            {monthNames[m - 1]}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="w-px bg-border/50" />
+                      <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
+                        <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Year</div>
+                        {faacPeriods.years.map((y) => (
+                          <button
+                            type="button"
+                            key={y}
+                            onClick={() => {
+                              setSelectedYear(y);
+                              setDateDropdownOpen(false);
+                          
+                              // Check if currently selected month is valid for the new year
+                              let nextMonth = selectedMonth;
+                              const availableMonths = faacPeriods.monthsByYear[y] || [];
+                              if (selectedMonth && !availableMonths.includes(selectedMonth)) {
+                                nextMonth = availableMonths[availableMonths.length - 1] || null;
+                                setSelectedMonth(nextMonth);
+                              }
+                          
+                              if (currentSelection.stateCode && nextMonth) {
+                                fetchFullProfile(
+                                  currentSelection.stateCode, currentSelection.stateName,
+                                  currentSelection.lgaCode, currentSelection.lgaName,
+                                  currentSelection.wardCode, currentSelection.wardName,
+                                  y, nextMonth
+                                );
+                              }
+                            }}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                              selectedYear === y ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
+                            }`}
+                          >
+                            {y}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </Show>
+                </div>
+              </div>
+            </div>
+  );
+
   return (
     <>
     {/* Personalization Top Bar */}
@@ -671,193 +891,16 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
         {/* Coverage stats first */}
         {children}
 
-        {/* Then: Viewing Status + location/date selectors.
-            Divider is white-ish in dark mode so the section boundary stays visible
-            against the near-black background (border-border is dark-on-dark there). */}
-        <div className="flex items-center justify-between py-4 border-t border-border/60 dark:border-white/30">
-          <div className="flex items-center gap-3">
-            {/* Label and status dot are desktop-only. On a phone the row has to
-                hold the location, the location picker and the month picker, and
-                a ward like "Alausa Oregun Olusosun" wraps to four lines if it
-                shares the width with anything else — so the location gets it
-                all, and the surrounding section already says what it is. */}
-            <div className="hidden sm:block h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-            <span className="hidden sm:inline font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              You are viewing
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setDropdownOpen(!dropdownOpen);
-                setDateDropdownOpen(false);
-              }}
-              className="font-semibold text-sm text-foreground text-left transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer"
-            >
-              {data.state} · {data.lga} · {data.ward}
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Location Selector */}
-            <div className="relative">
-              <button 
-                onClick={() => {
-                  setDropdownOpen(!dropdownOpen);
-                  setDateDropdownOpen(false);
-                }}
-                type="button"
-                className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 sm:px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
-              >
-                <MapPin className="h-4 w-4 sm:hidden text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden sm:inline">Change</span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </button>
-              
-              <Show when={dropdownOpen}>
-                <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 top-full mt-2 w-[300px] sm:w-80 rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/10 z-50 overflow-hidden flex flex-col">
-                  {/* Header */}
-                  <div className="p-3 border-b border-border/50 flex items-center gap-2 bg-muted/30">
-                    <Show when={selectorStep !== "state"}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectorStep(selectorStep === "ward" ? "lga" : "state");
-                          setSearchQuery("");
-                        }}
-                        className="p-1.5 hover:bg-muted rounded-lg transition-colors"
-                      >
-                        <ArrowLeft className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </Show>
-                    <div className={`font-semibold text-sm flex-1 text-center ${selectorStep === "state" ? "" : "pr-6"}`}>
-                      {selectorStep === "state" ? "Select State" : selectorStep === "lga" ? "Select LGA" : "Select Ward"}
-                    </div>
-                  </div>
-                  
-                  {/* Search */}
-                  <div className="p-2 border-b border-border/50">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <input 
-                        type="text" 
-                        placeholder={`Search ${selectorStep === "state" ? "states" : selectorStep === "lga" ? "LGAs" : "wards"}...`}
-                        className="w-full bg-muted/50 border border-border/50 rounded-xl pl-9 pr-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* List */}
-                  <div className="max-h-60 overflow-y-auto p-2 scrollbar-theme">
-                    {getListItems().map(item => (
-                      <button
-                        type="button"
-                        key={item.code}
-                        onClick={() => handleLocationSelect(item)}
-                        className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted/50 text-foreground"
-                      >
-                        {item.name}
-                        <Show when={selectorStep !== "ward"}><ChevronRight className="h-4 w-4 text-muted-foreground/50" /></Show>
-                        <Show when={selectorStep === "ward" && data.ward === item.name && data.lga === pendingSelection.lgaName}><Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /></Show>
-                      </button>
-                    ))}
-                    <Show when={getListItems().length === 0}>
-                      <div className="py-8 text-center text-sm text-muted-foreground">No results found.</div>
-                    </Show>
-                  </div>
-                </div>
-              </Show>
-            </div>
-
-            {/* Date Selector */}
-            <div className="relative">
-              <button 
-                onClick={() => {
-                  setDateDropdownOpen(!dateDropdownOpen);
-                  setDropdownOpen(false);
-                }}
-                type="button"
-                className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted/50"
-              >
-                <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                <span className="sm:hidden">
-                  {selectedMonth ? monthNames[selectedMonth - 1].slice(0, 3) : "..."}
-                </span>
-                <span className="hidden sm:inline">
-                  {selectedMonth ? monthNames[selectedMonth - 1] : "..."} {selectedYear || "..."}
-                </span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </button>
-              
-              <Show when={dateDropdownOpen}>
-                <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-72 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
-                  <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
-                    <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Month</div>
-                    {selectedYear && faacPeriods.monthsByYear[selectedYear]?.map((m) => (
-                      <button
-                        type="button"
-                        key={m}
-                        onClick={() => {
-                          setSelectedMonth(m);
-                          if (currentSelection.stateCode) {
-                            fetchFullProfile(
-                              currentSelection.stateCode, currentSelection.stateName,
-                              currentSelection.lgaCode, currentSelection.lgaName,
-                              currentSelection.wardCode, currentSelection.wardName,
-                              selectedYear, m
-                            );
-                          }
-                        }}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
-                          selectedMonth === m ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
-                        }`}
-                      >
-                        {monthNames[m - 1]}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="w-px bg-border/50" />
-                  <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
-                    <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Year</div>
-                    {faacPeriods.years.map((y) => (
-                      <button
-                        type="button"
-                        key={y}
-                        onClick={() => {
-                          setSelectedYear(y);
-                          setDateDropdownOpen(false);
-                          
-                          // Check if currently selected month is valid for the new year
-                          let nextMonth = selectedMonth;
-                          const availableMonths = faacPeriods.monthsByYear[y] || [];
-                          if (selectedMonth && !availableMonths.includes(selectedMonth)) {
-                            nextMonth = availableMonths[availableMonths.length - 1] || null;
-                            setSelectedMonth(nextMonth);
-                          }
-                          
-                          if (currentSelection.stateCode && nextMonth) {
-                            fetchFullProfile(
-                              currentSelection.stateCode, currentSelection.stateName,
-                              currentSelection.lgaCode, currentSelection.lgaName,
-                              currentSelection.wardCode, currentSelection.wardName,
-                              y, nextMonth
-                            );
-                          }
-                        }}
-                        className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
-                          selectedYear === y ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium" : "hover:bg-muted/50 text-foreground"
-                        }`}
-                      >
-                        {y}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Show>
-            </div>
-          </div>
-        </div>
+        {/* The viewing-status + location/date selector row sits at the top of
+            the hero when one mounts a HeroLocationSlot (the candidates rail).
+            With no slot — the gate is off and AskHero leads the page — the row
+            renders right here instead, under the coverage stats, so the one
+            real location control never disappears with the hero. */}
+        {heroSlot ? (
+          createPortal(locationRow, heroSlot)
+        ) : heroWillMount ? null : (
+          <div className="border-t border-border/60 py-4 dark:border-white/30">{locationRow}</div>
+        )}
       </KitContainer>
     </div>
 
@@ -979,7 +1022,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
                   Comes first on mobile, sits under the LGA card on desktop. */}
               <FeaturedOfficialCard
                 className="order-1 lg:order-2"
-                official={toLocalOfficial(data.officials[0], currentSelection)}
+                official={toLocalOfficial(data.officials[0], currentSelection, partyLogos)}
               />
             </div>
             <div className="lg:col-span-7 flex flex-col gap-8">
@@ -994,7 +1037,7 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
               <PeerOfficialsStrip
                 officials={data.officials
                   .slice(1)
-                  .map((o) => toLocalOfficial(o, currentSelection))}
+                  .map((o) => toLocalOfficial(o, currentSelection, partyLogos))}
                 moreHref={`/states/${currentSelection.stateName.toLowerCase().replace(/\s+/g, "-")}`}
                 moreLabel={`Learn more about ${data.state}`}
               />
@@ -1006,7 +1049,6 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
     </section>
 
     <Show when={locationState !== "loading"}>
-      <>
         <section className="pb-8 pt-16 lg:pb-12 lg:pt-20 border-t border-border/50 bg-muted/10 dark:bg-muted/5 relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
           <KitContainer className="relative z-10">
@@ -1023,7 +1065,6 @@ export function PersonalizedDataClient({ initialFaacPeriods, initialStatesList, 
         <LgLineItems data={data} />
         <NeighbourComparison data={data} />
         <TakeAction data={data} />
-      </>
     </Show>
     <Methodology />
     <FaqAndTestimonials />

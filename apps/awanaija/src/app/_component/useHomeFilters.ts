@@ -6,7 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 /**
  * The homepage's filters live in the URL so a view is shareable and survives a
  * reload: `?parties=true` swaps the candidate rail for a party's slate, `?year`
- * picks the election cycle, `?party` picks whose slate to show.
+ * picks the election cycle, `?party` picks whose slate to show, `?race` pins
+ * the selected contest in the hero dropdown.
  *
  * Same read/write shape as `app/officials/_component/OfficialsClientContent` —
  * plain `next/navigation`, no extra state library.
@@ -38,10 +39,13 @@ export function useHomeFilters({
 
   return {
     parties: params.get("parties") === "true",
+    /** Selected HomeRace id, or null for the first race on offer. */
+    race: params.get("race"),
     year: Number.isFinite(year) && year > 0 ? year : defaultYear,
     party: params.get("party") ?? defaultParty,
     setParties: (on: boolean) => set("parties", on ? "true" : null),
     setYear: (next: number) => set("year", String(next)),
     setParty: (acronym: string) => set("party", acronym),
+    setRace: (id: string) => set("race", id),
   };
 }

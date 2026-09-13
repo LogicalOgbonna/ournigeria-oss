@@ -1,4 +1,5 @@
-export { AskBlock } from "./AskBlock";
+export { AskBlock, AskPitch, AskCta, ChatDemoPanel } from "./AskBlock";
+export { AskHero } from "./AskHero";
 export { CandidateRail } from "./CandidateRail";
 export { CandidatesHero } from "./CandidatesHero";
 export { ChatDemo } from "./ChatDemo";

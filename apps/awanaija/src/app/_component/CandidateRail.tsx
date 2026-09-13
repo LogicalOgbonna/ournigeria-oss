@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { CandidateTicket, type TicketSize } from "@/components/civic/CandidateTicket";
 import { Show } from "@/components/ui/Show";
-import type { RailCandidate } from "@/lib/mock-home-ballot";
+import type { RailCandidate } from "@/lib/home-ballot";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,8 +50,8 @@ export function CandidateRail({
   readonly onPageCountChange?: (count: number) => void;
   /** Builds the href behind each poster's party logo. */
   readonly partyHref?: (acronym: string) => string;
-  /** Builds the href behind the whole poster. */
-  readonly href?: (item: RailCandidate) => string;
+  /** Builds the href behind the whole poster; `undefined` = not a link (fixture data). */
+  readonly href?: (item: RailCandidate) => string | undefined;
   /** Gradient mask over the right edge — Figma 132:2400. */
   readonly fade?: boolean;
   readonly className?: string;

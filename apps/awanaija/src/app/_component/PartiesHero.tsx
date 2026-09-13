@@ -1,9 +1,9 @@
 "use client";
 
 import { CandidateTicket, type TicketParty, type TicketPerson } from "@/components/civic/CandidateTicket";
-import type { HomePartySlate } from "@/lib/mock-home-ballot";
+import type { HomePartySlate } from "@/lib/home-ballot";
 import { HeroHeading } from "./HeroHeading";
-import { LocationChip } from "./LocationChip";
+import { HeroLocationSlot } from "./HeroLocationSlot";
 import { OfficeSelect } from "./OfficeSelect";
 import { PartyPill } from "./PartyPill";
 import { PartySlatePanel } from "./PartySlatePanel";
@@ -17,21 +17,17 @@ import { YearSelect } from "./YearSelect";
 export function PartiesHero({
   slate,
   parties,
-  location,
   year,
   years,
   onPartyChange,
   onYearChange,
-  onLocationChange,
 }: {
   readonly slate: HomePartySlate;
   readonly parties: readonly TicketParty[];
-  readonly location: string;
   readonly year: number;
   readonly years: readonly number[];
   readonly onPartyChange?: (acronym: string) => void;
   readonly onYearChange?: (year: number) => void;
-  readonly onLocationChange?: () => void;
 }) {
   const { candidate, mate, party } = slate.featured;
 
@@ -46,7 +42,7 @@ export function PartiesHero({
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 lg:mt-10">
         <PartyPill party={slate.party} options={parties} onChange={onPartyChange} />
-        <LocationChip label={location} onChange={onLocationChange} />
+        <HeroLocationSlot className="min-h-[50px] basis-full lg:basis-auto" />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">

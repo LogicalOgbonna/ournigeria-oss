@@ -18,6 +18,12 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "nass.gov.ng",
       },
+      // Campaign posters, cards, quote/bio photos and party logos — every
+      // image the election pages draw is served from the CDN, not /public.
+      {
+        protocol: "https",
+        hostname: "cdn.ournigeria.ng",
+      },
     ],
   },
   async redirects() {

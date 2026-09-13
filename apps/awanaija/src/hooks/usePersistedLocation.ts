@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "awanaija_user_location";
 
+// The `storage` event only fires in OTHER tabs. Separate components in the
+// same tab each hold their own instance of this hook (the personalization
+// bar writes, the hero reads), so writes also announce themselves in-tab.
+const LOCAL_CHANGE_EVENT = "awanaija:location-change";
+
 export interface PersistedLocation {
   stateCode: string;
   stateName: string;
@@ -47,12 +52,17 @@ export function usePersistedLocation() {
     setLocationState(readPersistedLocation());
     setHydrated(true);
 
+    const reread = () => setLocationState(readPersistedLocation());
     const handleStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY) return;
-      setLocationState(readPersistedLocation());
+      reread();
     };
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    window.addEventListener(LOCAL_CHANGE_EVENT, reread);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(LOCAL_CHANGE_EVENT, reread);
+    };
   }, []);
 
   const setLocation = useCallback((loc: PersistedLocation) => {
@@ -60,6 +70,7 @@ export function usePersistedLocation() {
     if (typeof window === "undefined") return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+      window.dispatchEvent(new Event(LOCAL_CHANGE_EVENT));
     } catch (e) {
       console.error("Failed to save location to local storage", e);
     }
@@ -70,6 +81,7 @@ export function usePersistedLocation() {
     if (typeof window === "undefined") return;
     try {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.dispatchEvent(new Event(LOCAL_CHANGE_EVENT));
     } catch (e) {
       console.error("Failed to clear location from local storage", e);
     }

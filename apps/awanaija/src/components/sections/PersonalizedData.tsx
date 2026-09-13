@@ -1,5 +1,6 @@
-import { getFaacPeriods, getLgaDetails, getLgas, getStateDetails, getStates, getWardDetails, getWards } from "@/lib/api";
+import { getFaacPeriods, getLgaDetails, getLgas, getPartyLogoMap, getStateDetails, getStates, getWardDetails, getWards } from "@/lib/api";
 import { PersonalizedDataClient } from "./PersonalizedDataClient";
+import { HeroBackdrop } from "@/app/_component";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3000/api";
 
@@ -15,19 +16,22 @@ async function getStats() {
   return res.json();
 }
 
-export async function PersonalizedData() {
+export async function PersonalizedData({ heroWillMount = false }: { heroWillMount?: boolean } = {}) {
   // De-waterfalled: faac periods, stats, and the states list are independent, so
   // fetch them together instead of awaiting states as a separate serial stage.
-  const [faacPeriods, stats, states] = await Promise.all<
+  const [faacPeriods, stats, states, partyLogos] = await Promise.all<
     [
       Promise<{ years: number[]; monthsByYear: Record<number, number[]> }>,
       Promise<any>,
       Promise<any[]>,
+      Promise<Record<string, string>>,
     ]
   >([
     getFaacPeriods(ssrInit).catch(() => ({ years: [], monthsByYear: {} })),
     getStats().catch(() => ({ states: 36, lgas: 774, wards: 8809, faacYears: "2019-24" })),
     getStates(ssrInit).catch(() => []),
+    // Fail-soft inside the helper: the badge falls back to the bare acronym.
+    getPartyLogoMap(),
   ]);
 
   let initialYear = null;
@@ -73,6 +77,7 @@ export async function PersonalizedData() {
 
   return (
     <PersonalizedDataClient
+      heroWillMount={heroWillMount}
       initialFaacPeriods={faacPeriods}
       initialStatesList={states}
       initialLgasList={lgas}
@@ -83,6 +88,7 @@ export async function PersonalizedData() {
       initialSelection={initialSelection}
       initialYear={initialYear}
       initialMonth={initialMonth}
+      partyLogos={partyLogos}
     >
       <div className="grid grid-cols-2 md:grid-cols-4 py-6 gap-y-6">
         <div className="flex flex-col justify-between items-center text-center md:items-start md:text-left md:border-r border-border/50 px-4 md:px-6 md:first:pl-0">

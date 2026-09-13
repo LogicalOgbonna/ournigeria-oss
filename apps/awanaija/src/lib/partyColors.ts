@@ -18,13 +18,13 @@ export const PARTY_COLORS: Record<string, string> = {
   APP: "#9333ea",
   PRP: "#ca8a04",
   ZLP: "#0d9488",
-  // Added with the 2027 presidential field (see lib/presidential-2027). The
-  // posters carry their own background fill via the `color` override; these are
-  // for everywhere else that reads a party colour (PartyBadge, the choropleth).
+  // Added with the 2027 presidential field. The posters carry their own
+  // background fill (`campaigns.brand_color`, via the `color` override); these
+  // are for everywhere else that reads a party colour (PartyBadge, the choropleth).
   NDC: "#3f3f95",
   APM: "#027ce2",
   NDP: "#fbc62c",
-  BOOT: "#16a34a",
+  BP: "#16a34a",
   DLA: "#eab308",
   NRM: "#f59e0b",
 };

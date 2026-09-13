@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { isOptimizedImageSrc } from "@/lib/image-hosts";
 import Link from "next/link";
 import { Show } from "@/components/ui/Show";
 import { partyColor } from "@/lib/partyColors";
@@ -249,11 +250,16 @@ function PartyChip({
 
   // A plaque poster insets a smaller logo on a white card; the rest bleed the
   // logo to fill the chip.
+  // Party logos come from wherever the party record was sourced (Wikimedia,
+  // party sites, our CDN) — an unconfigured host must render unoptimized
+  // instead of crashing next/image (same rule as TicketProfile/DocsPanel).
+  const optimized = isOptimizedImageSrc(src);
   const inner = chip?.plaque ? (
     <span className="absolute inset-0 bg-white">
       <Image
         src={src}
         alt={alt}
+        unoptimized={!optimized}
         width={Math.round(chip.plaque.inset.size)}
         height={Math.round(chip.plaque.inset.size)}
         sizes={`${Math.max(1, Math.round(chip.plaque.inset.size * (px / 404)))}px`}
@@ -270,6 +276,7 @@ function PartyChip({
     <Image
       src={src}
       alt={alt}
+      unoptimized={!optimized}
       width={Math.round(style.width)}
       height={Math.round(style.height)}
       sizes={`${Math.max(1, Math.round(style.width * (px / 404)))}px`}
@@ -363,6 +370,7 @@ function Photo({
     <Image
       src={box.src}
       alt={alt}
+      unoptimized={!isOptimizedImageSrc(box.src)}
       width={Math.round(box.w)}
       height={Math.round(box.h)}
       priority={priority}

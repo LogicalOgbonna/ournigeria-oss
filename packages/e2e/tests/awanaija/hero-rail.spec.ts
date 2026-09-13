@@ -107,20 +107,26 @@ test.describe('Homepage candidate rail @awanaija', () => {
     const hrefs = await posters.evaluateAll((els) =>
       els.map((el) => el.getAttribute('href') ?? ''),
     );
+    // The segment is the ticket slug (`tinubu-shettima`), lower-case kebab —
+    // a party acronym is not a key, NRM fields two tickets.
     for (const href of hrefs) {
-      expect(href).toMatch(/^\/elections\/\d{4}\/[A-Za-z][A-Za-z0-9-]{1,15}$/);
+      expect(href).toMatch(/^\/elections\/\d{4}\/[a-z0-9]+(?:-[a-z0-9]+)*$/);
     }
 
     // Follow one for real — a well-formed href that 404s is still a dead end.
     // The ticket pages carry real content now, so this no longer lands on the
-    // holding page: assert the party the poster named, which holds whether the
-    // ticket has an authored profile or only the rail data.
+    // holding page: the slug's first word is the candidate's surname (or the
+    // poster's short name), which the h1 carries whether the ticket has an
+    // authored profile or only the rail data.
     const first = posters.first();
     const target = await first.getAttribute('href');
-    const acronym = (target ?? '').split('/').pop() ?? '';
+    const slug = (target ?? '').split('/').pop() ?? '';
+    const surname = slug.split('-')[0] ?? '';
     await first.click();
     await page.waitForURL(`**${target}`);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(acronym);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      new RegExp(surname, 'i'),
+    );
   });
 
   // The rail spans the top of the homepage, so on a laptop a cursor is resting

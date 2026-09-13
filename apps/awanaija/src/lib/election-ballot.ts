@@ -11,7 +11,8 @@ export interface BallotRace {
 export interface PartySlateItem { office: Office; seatLabel: string; candidate: BallotCandidate; }
 export interface PartySlate { acronym: string; name: string; slate: PartySlateItem[]; }
 
-const OFFICE_ORDER: Office[] = ["president", "governor", "senate", "hor", "state_assembly", "lga_chairman", "councillor"];
+/** Constitutional ballot order — the one office ranking every surface shares. */
+export const OFFICE_ORDER: Office[] = ["president", "governor", "senate", "hor", "state_assembly", "lga_chairman", "councillor"];
 const PARTY_PRIORITY = ["APC", "PDP", "LP", "NNPP", "ADC", "SDP", "APGA", "NDC", "Accord"];
 
 export function pivotByParty(races: BallotRace[]): PartySlate[] {
@@ -38,7 +39,7 @@ export function officeYearsForState(gate: ElectionGate, stateCode: string, now: 
   for (const r of applicableRaces(gate, { state: stateCode }, now)) {
     if (seen.has(r.office)) continue;
     seen.add(r.office);
-    out.push({ office: r.office, year: Number(r.date.slice(0, 4)) });
+    out.push({ office: r.office, year: r.year });
   }
   return out;
 }
