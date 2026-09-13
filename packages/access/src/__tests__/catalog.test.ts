@@ -73,4 +73,22 @@ describe("permission catalog", () => {
     expect(ASSIGNABLE_ROLES).not.toContain("researcher");
     expect(ASSIGNABLE_ROLES).toContain("super_admin");
   });
+
+  it("campaign permissions are split between manager and reviewer", () => {
+    const manager = resolvePermissions(["campaign_manager"]);
+    expect(manager.has("campaigns.read")).toBe(true);
+    expect(manager.has("campaigns.write")).toBe(true);
+    expect(manager.has("campaigns.review")).toBe(false);
+
+    const reviewer = resolvePermissions(["review_manager"]);
+    expect(reviewer.has("campaigns.read")).toBe(true);
+    expect(reviewer.has("campaigns.review")).toBe(true);
+    expect(reviewer.has("campaigns.write")).toBe(false);
+
+    for (const role of ["auditor", "researcher"] as const) {
+      const held = resolvePermissions([role]);
+      expect(held.has("campaigns.read"), role).toBe(true);
+      expect(held.has("campaigns.write"), role).toBe(false);
+    }
+  });
 });

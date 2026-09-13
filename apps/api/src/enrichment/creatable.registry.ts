@@ -1,5 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
-import { slugifyName } from "@ournigeria/database";
+import { ensureTicketElections, slugifyName } from "@ournigeria/database";
+import type { AnchorConfidence, Prisma } from "@ournigeria/database";
 import { resolveStateSlug } from "./state-codes";
 import {
   coerceEnum,
@@ -896,6 +897,358 @@ export const assemblyMemberEntity: CreatableEntity = {
   },
 };
 
+
+/**
+ * campaigns create — the bulk-import path for election tickets (campaign
+ * dashboard sub-plan 1, Task 14). The tx handed to insert() is the Prisma
+ * transaction client (RawTx is its raw subset), so the multi-row write uses
+ * the Prisma API; the role is still enrichment_apply (grants in
+ * 20260908090100_campaigns_enrichment_apply_grants). Rows land as DRAFT +
+ * unreviewed and enter the review queue — this path never publishes.
+ *
+ * DUPLICATION IS DELIBERATE: the campaign/media/document row-builder below is a
+ * second copy of the one in packages/database/scripts/seed-campaigns.ts. The
+ * seed is a standalone CLI outside the API's dependency graph (it talks to a
+ * raw PrismaClient over its own pg pool and must run without the Nest app), so
+ * neither side can import the other. **Change both together** — a field added
+ * to the dataset here and not there (or vice versa) silently drops on one path.
+ * The same note is repeated in the seed's header.
+ *
+ * People: an existing official whose slug is slugifyName(name) — or of any of
+ * the person's `aka` names — is reused, but only when reusing is safe (see
+ * `person()`); otherwise a candidate-typed (official_type NULL) row is created
+ * under a per-race slug hint, so a same-name stranger never gets the ticket.
+ * Linking to a different existing official is a dashboard job.
+ */
+const CDN_BASE = (process.env.CDN_BASE_URL ?? "https://cdn.ournigeria.ng").replace(/\/+$/, "");
+const cdnKey = (key: unknown): string | null =>
+  typeof key === "string" && key ? `${CDN_BASE}/${key.replace(/^\/+/, "")}` : null;
+
+interface ImportPerson {
+  name: string;
+  shortName?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  poster?: string;
+  card?: string;
+  /** Alternate spellings/orderings; each is tried as a reuse key. */
+  aka?: string[];
+  /**
+   * Operator assertion: this candidate IS the sitting office holder of the same
+   * name. Without it a name that resolves to someone holding an active position
+   * gets a fresh per-race row — a false split is a merge away, a false merge
+   * puts a ticket on a stranger's profile. Mirrors seed-campaigns.ts.
+   */
+  knownOfficeHolder?: boolean;
+}
+
+/** campaign_documents.kind / .subject — the dataset's closed vocabularies. */
+export const CAMPAIGN_DOCUMENT_KINDS = ["manifesto", "cv", "achievements"] as const;
+export const CAMPAIGN_DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"] as const;
+
+/**
+ * Resolve a ticket person onto an EXISTING nigerian_officials row, or null when
+ * the import should mint a fresh per-race row instead.
+ *
+ * Keyed on the plain slug of the person's name and of every `aka` spelling, so
+ * "Adebayo Adewole Ebenezer" still lands on the "Adewole Adebayo" row the DB
+ * already has.
+ *
+ * OFFICE-HOLDER GATE (mirrors seed-campaigns.ts): a plain-slug hit is only
+ * reused when either
+ *   (a) the dataset asserts `knownOfficeHolder: true` — the operator has
+ *       confirmed the candidate IS the sitting office holder, or
+ *   (b) that official holds no ACTIVE official_positions row — i.e. it is a
+ *       candidate/position-less row (very likely the one a previous import or
+ *       seed-party-candidates created), not somebody's office-holder profile.
+ * Otherwise we return null and the caller creates a separate per-race row: a
+ * false split is one dashboard merge away, a false merge hangs a presidential
+ * ticket off a stranger's profile.
+ *
+ * Raw SQL rather than the Prisma model API because preflight() only receives
+ * the RawTx surface; the queries are the exact equivalent of
+ * nigerianOfficial.findFirst + officialPosition.count({ status: 'active' }).
+ */
+async function resolveExistingPerson(
+  tx: RawTx,
+  p: ImportPerson,
+  /** Per-race fallback slug (`{plain}-{year}-{party}`) — the row a previous run of this import minted. */
+  fallbackSlug?: string,
+): Promise<string | null> {
+  const bySlug = async (slug: string): Promise<string | null> => {
+    const rows = await tx.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM nigerian_officials WHERE slug = $1 AND deleted_at IS NULL LIMIT 1`,
+      slug,
+    );
+    return rows[0]?.id ?? null;
+  };
+
+  const slugs = [...new Set([p.name, ...(p.aka ?? [])].map((n) => slugifyName(n)).filter(Boolean))];
+  for (const slug of slugs) {
+    const id = await bySlug(slug);
+    if (!id) continue;
+    if (p.knownOfficeHolder === true) return id;
+    const held = await tx.$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM official_positions WHERE official_id = $1::uuid AND status = 'active' LIMIT 1`,
+      id,
+    );
+    if (held.length === 0) return id;
+    // Name collides with a sitting office holder and the dataset did not vouch
+    // for the merge — stop consulting plain slugs and fall through to the
+    // per-race row (which a previous run of this import may already have made).
+    break;
+  }
+  // The per-race slug is by construction a candidate row this import created,
+  // so it needs no office-holder gate — but it MUST be consulted, or a re-import
+  // under a different campaign slug would mint a second copy of the same person.
+  return fallbackSlug ? await bySlug(fallbackSlug) : null;
+}
+
+/** `{plain-name}-{year}-{party}` — the per-race slug the import mints for a new person. */
+const perRaceSlug = (name: string, year: number, party: string) =>
+  `${slugifyName(name)}-${year}-${party.toLowerCase()}`;
+
+function campaignEntity(): CreatableEntity {
+  return {
+    targetTable: "campaigns",
+    evidenceEntryType: null, // evidence rows are per official/position, not per ticket
+    validate(raw: unknown): Record<string, unknown> {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw as Record<string, unknown>;
+      for (const k of ["slug", "party", "electionType", "year", "candidate"]) {
+        if (p[k] === undefined || p[k] === null) throw new BadRequestException(`${k} is required`);
+      }
+      if (typeof p.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.slug)) {
+        throw new BadRequestException("slug must be lower-case kebab");
+      }
+      if (!Number.isInteger(p.year)) throw new BadRequestException("year must be an integer");
+      const cand = p.candidate as Partial<ImportPerson>;
+      if (typeof cand !== "object" || typeof cand.name !== "string" || !cand.name.trim()) {
+        throw new BadRequestException("candidate.name is required");
+      }
+      // Geo codes: the dataset may carry ISO-style ("LA") state codes or the
+      // slug itself ("lagos"); the column is a slug. Anything resolveStateSlug
+      // cannot map is kept lower-cased as-is so preflight fails loudly on it
+      // (a full name like "Lagos State" is NOT normalised). Constituency/LGA
+      // codes are lower-case slugs in their reference tables.
+      if (p.stateCode !== undefined && p.stateCode !== null) {
+        // Keep an unresolvable value rather than nulling it: preflight turns it
+        // into a named 400 instead of silently dropping the ticket's scope.
+        p.stateCode = resolveStateSlug(p.stateCode) ?? (String(p.stateCode).trim().toLowerCase() || null);
+      }
+      for (const k of ["constituencyCode", "lgaCode"]) {
+        const v = p[k];
+        if (typeof v === "string") p[k] = v.trim().toLowerCase() || null;
+      }
+      // Documents ride a closed vocabulary; an off-list value would silently
+      // render as an unlabeled card on the public ticket page.
+      const docs = p.documents;
+      if (docs !== undefined && docs !== null) {
+        if (!Array.isArray(docs)) throw new BadRequestException("documents must be an array");
+        docs.forEach((d, i) => {
+          const doc = d as Record<string, unknown>;
+          if (!CAMPAIGN_DOCUMENT_KINDS.includes(doc?.kind as never)) {
+            throw new BadRequestException(`documents[${i}].kind must be one of ${CAMPAIGN_DOCUMENT_KINDS.join(", ")}`);
+          }
+          if (!CAMPAIGN_DOCUMENT_SUBJECTS.includes(doc?.subject as never)) {
+            throw new BadRequestException(`documents[${i}].subject must be one of ${CAMPAIGN_DOCUMENT_SUBJECTS.join(", ")}`);
+          }
+          if (typeof doc?.title !== "string" || !doc.title.trim()) {
+            throw new BadRequestException(`documents[${i}].title is required`);
+          }
+        });
+      }
+      return p;
+    },
+    async preflight(tx, payload) {
+      const exists = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM campaigns WHERE slug = $1`, payload.slug);
+      if (exists.length) throw new BadRequestException(`campaign ${payload.slug} already exists`);
+      const party = await tx.$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        String(payload.party).toUpperCase(),
+      );
+      if (!party.length) throw new BadRequestException(`unknown party ${payload.party}`);
+
+      // Scope FKs are a hard 400 here, not a soften-to-NULL (normalizeGeoRefs):
+      // a down-ballot ticket with no scope is unfindable on the public race
+      // pages, so a bad code must be fixed in the dataset, not swallowed.
+      const geo: Array<[key: string, column: string, table: string]> = [
+        ["stateCode", "state_code", "nigerian_states"],
+        ["constituencyCode", "constituency_code", "nigerian_constituencies"],
+        ["lgaCode", "lga_code", "nigerian_lgas"],
+      ];
+      for (const [key, column, table] of geo) {
+        const v = payload[key];
+        if (!v) continue;
+        const rows = await tx.$queryRawUnsafe<unknown[]>(`SELECT 1 FROM ${table} WHERE code = $1`, v);
+        if (!rows.length) throw new BadRequestException(`unknown ${column} ${String(v)}`);
+      }
+
+      // Duplicate-anchor guard: the same person cannot hold two tickets for the
+      // same race. Only checked when the candidate resolves to an EXISTING
+      // official — a to-be-created person has no tickets by definition.
+      const cand = payload.candidate as ImportPerson;
+      const existingCandidate = await resolveExistingPerson(
+        tx,
+        cand,
+        perRaceSlug(cand.name, Number(payload.year), String(payload.party)),
+      );
+      if (existingCandidate) {
+        const dupe = await tx.$queryRawUnsafe<{ slug: string }[]>(
+          `SELECT slug FROM campaigns
+            WHERE candidate_official_id = $1::uuid
+              AND election_type = $2 AND year = $3::int AND party_acronym = $4
+              AND status NOT IN ('withdrawn', 'dissolved')
+            LIMIT 1`,
+          existingCandidate,
+          String(payload.electionType),
+          Number(payload.year),
+          String(payload.party).toUpperCase(),
+        );
+        if (dupe.length) {
+          throw new BadRequestException(
+            `${cand.name} already has a ticket for this race: ${dupe[0].slug}`,
+          );
+        }
+      }
+    },
+    async insert(rawTx, payload, ctx) {
+      const tx = rawTx as unknown as Prisma.TransactionClient;
+      const year = Number(payload.year);
+      const party = String(payload.party).toUpperCase();
+      // campaigns.confidence is a free string column; official_elections and
+      // campaign_documents take the 3-value enum. Coerce ONCE here so the
+      // ticket, its documents and its anchor can never disagree.
+      const confidence: AnchorConfidence =
+        ctx.confidence === "high" || ctx.confidence === "low" ? ctx.confidence : "medium";
+
+      const person = async (p: ImportPerson | null) => {
+        if (!p) return null;
+        const imageUrl = cdnKey(p.card ?? p.poster);
+        const slugHint = perRaceSlug(p.name, year, party);
+        // Reuse only when the office-holder gate says it is safe — see
+        // resolveExistingPerson. Same call preflight makes, so the duplicate
+        // check and the write can never disagree about who this person is.
+        const existingId = await resolveExistingPerson(rawTx, p, slugHint);
+        if (existingId) return { id: existingId, name: p.name, imageUrl };
+        const id = await findOrCreateOfficial(rawTx, {
+          name: p.name,
+          imageUrl,
+          gender: p.gender ?? null,
+          dateOfBirth: p.dateOfBirth ?? null,
+          officialType: null, // a candidate is not an office-holder (plan 60 §4.3)
+          slug: slugHint,
+        });
+        return { id, name: p.name, imageUrl };
+      };
+
+      const cand = (await person(payload.candidate as ImportPerson))!;
+      const mateInput = (payload.runningMate as ImportPerson | null | undefined) ?? null;
+      const mate = await person(mateInput);
+      const c = payload.candidate as ImportPerson;
+      const blurbs = (payload.documentBlurbs as Record<string, string> | undefined) ?? {};
+      const art = payload.posterArt as
+        | { urlColor?: string; candidate: object; mate?: object; chip?: object; scrim?: object }
+        | undefined;
+
+      const media: { type: string; url: string; metadata?: object; displayOrder: number }[] = [];
+      const push = (type: string, key: unknown, metadata?: object) => {
+        const url = cdnKey(key);
+        if (url) media.push({ type, url, metadata, displayOrder: media.length });
+      };
+      push(
+        "poster_candidate",
+        c.poster,
+        art ? { box: art.candidate, chip: art.chip ?? null, scrim: art.scrim ?? null, urlColor: art.urlColor ?? null } : undefined,
+      );
+      push("poster_mate", mateInput?.poster, art?.mate ? { box: art.mate } : undefined);
+      push("card_candidate", c.card);
+      push("card_mate", mateInput?.card);
+      push("quote_photo", payload.quotePhoto);
+      push("bio_photo", payload.bioPhoto);
+      push("logo", payload.logo);
+
+      type Doc = { kind: string; subject: string; title: string; blurb?: string; cover?: string; file?: string; pageCount?: number };
+      const documents = ((payload.documents as Doc[] | undefined) ?? []).map((d) => ({
+        kind: d.kind,
+        subject: d.subject,
+        title: d.title,
+        blurb: d.blurb ?? blurbs[d.kind] ?? null,
+        coverUrl: cdnKey(d.cover),
+        fileUrl: cdnKey(d.file),
+        pageCount: d.pageCount ?? null,
+        confidence,
+        sourceType: "import",
+      }));
+
+      const row = await tx.campaign.create({
+        data: {
+          slug: String(payload.slug),
+          electionType: String(payload.electionType),
+          year,
+          partyAcronym: party,
+          stateCode: (payload.stateCode as string | null) ?? null,
+          constituencyCode: (payload.constituencyCode as string | null) ?? null,
+          lgaCode: (payload.lgaCode as string | null) ?? null,
+          candidateOfficialId: cand.id,
+          candidateName: cand.name,
+          candidateShortName: c.shortName ?? null,
+          candidateImageUrl: cand.imageUrl,
+          runningMateOfficialId: mate?.id ?? null,
+          runningMateName: mate?.name ?? null,
+          runningMateImageUrl: mate?.imageUrl ?? null,
+          candidateBio: (payload.candidateBio as string | null) ?? null,
+          visionLine: (payload.visionLine as string | null) ?? null,
+          fineprint: (payload.fineprint as string | null) ?? null,
+          pullQuote: (payload.pullQuote as string | null) ?? null,
+          pullQuoteBg: (payload.pullQuoteBg as string | null) ?? null,
+          brandColor: (payload.brandColor as string | null) ?? null,
+          factionLabel: (payload.factionLabel as string | null) ?? null,
+          isDisputed: Boolean(payload.isDisputed),
+          status: "draft",
+          reviewStatus: "unreviewed",
+          reviewRequestedAt: new Date(),
+          reviewRequestedBy: ctx.adminId,
+          confidence,
+          sourceType: "import",
+          sourceUrl: (payload.sourceUrl as string | null) ?? null,
+          documents: { create: documents },
+          media: { create: media },
+        },
+        select: {
+          id: true,
+          electionType: true,
+          year: true,
+          partyAcronym: true,
+          stateCode: true,
+          constituencyCode: true,
+          lgaCode: true,
+          candidateOfficialId: true,
+          candidateName: true,
+          runningMateOfficialId: true,
+          runningMateName: true,
+          officialElectionId: true,
+        },
+      });
+      const anchor = await ensureTicketElections(tx, row, {
+        result: "pending",
+        reviewedBy: ctx.adminId,
+        sourceType: "import",
+        confidence,
+        // Nobody has looked at a machine-created anchor yet; the ticket itself
+        // lands review_status='unreviewed' and the anchor must match.
+        reviewStatus: "unreviewed",
+      });
+      if (anchor.candidateElectionId) {
+        await tx.campaign.update({ where: { id: row.id }, data: { officialElectionId: anchor.candidateElectionId } });
+      }
+      return { id: row.id, officialId: cand.id };
+    },
+  };
+}
+
 export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   official_education: officialFactEntity("official_education", "education", [
     { key: "institution", column: "institution", type: "string", required: true },
@@ -1045,6 +1398,8 @@ export const CREATABLE_ENTITIES: Record<string, CreatableEntity> = {
   // Assembly member (State House of Assembly, role 'mha'): find-or-create official,
   // upsert active mha position for the seat, atomic downgrade of other holders.
   assembly_member: assemblyMemberEntity,
+  // Election tickets (bulk import): draft campaign + media + documents + anchor.
+  campaigns: campaignEntity(),
 };
 
 export function getCreatableEntity(targetTable: string): CreatableEntity | null {

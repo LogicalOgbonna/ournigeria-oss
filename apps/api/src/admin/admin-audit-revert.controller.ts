@@ -16,7 +16,11 @@ import { PermissionsGuard } from "./permissions.guard";
 import { AuditRevertService } from "./audit-revert.service";
 import { auditActorFromRequest } from "../audit/audit.service";
 
-const bodySchema = z.object({ reason: z.string().max(500).optional() });
+/**
+ * 460, not 500: the service prefixes `revert of audit seq <n>: ` before handing
+ * the reason to the domain services, whose own reason columns cap at 500.
+ */
+const bodySchema = z.object({ reason: z.string().max(460).optional() });
 
 /**
  * No static @RequirePermission: the needed permission depends on the reverted

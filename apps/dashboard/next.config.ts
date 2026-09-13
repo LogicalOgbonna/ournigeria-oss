@@ -22,6 +22,25 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/api/officials/:path*`,
       },
       {
+        // Public read-only endpoints the campaign pages need for pickers and previews.
+        source: "/api/geo/:path*",
+        destination: `${apiUrl}/api/geo/:path*`,
+      },
+      {
+        source: "/api/parties/:path*",
+        destination: `${apiUrl}/api/parties/:path*`,
+      },
+      {
+        source: "/api/campaigns/:path*",
+        destination: `${apiUrl}/api/campaigns/:path*`,
+      },
+      {
+        // Public election gate — the /dashboard/elections kill switch reads it
+        // so what the switch shows is exactly what awanaija sees.
+        source: "/api/election/:path*",
+        destination: `${apiUrl}/api/election/:path*`,
+      },
+      {
         source: "/api/ingest/:path*",
         destination: `${ingestUrl}/api/ingest/:path*`,
       },

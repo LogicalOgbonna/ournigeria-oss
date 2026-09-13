@@ -2,6 +2,8 @@ import { initOtel } from "./lib/otel";
 initOtel();
 
 import "reflect-metadata";
+import type { CorsOptions } from "@nestjs/common/interfaces/external/cors-options.interface";
+import { corsOptionsFor } from "./storage/local-storage-cors";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -36,10 +38,9 @@ async function bootstrap() {
   const allowedOrigins = process.env
     .CORS_ORIGINS!.split(",")
     .map((o) => o.trim());
-  app.enableCors({
-    origin: allowedOrigins,
-    credentials: true,
-  });
+  // Delegate form: the local storage route (dev only) answers CORS for any
+  // origin without credentials; everything else keeps the allowlist.
+  app.enableCors((req: { originalUrl?: string; url?: string }, cb: (err: Error | null, opts: CorsOptions) => void) => cb(null, corsOptionsFor(req, allowedOrigins)));
 
   const config = new DocumentBuilder()
     .setTitle("OurNigeria API")

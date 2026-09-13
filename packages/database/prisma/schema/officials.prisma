@@ -1,0 +1,475 @@
+// ============================================================
+// Public officials, positions & political parties (plan 45)
+// ============================================================
+
+/// Any Nigerian public official/government figure — NOT only politicians.
+/// `officialType` classifies (elected/appointed/...); political data (positions,
+/// party, elections) lives in optional one-to-many tables. Plan 45.
+
+// ============================================================
+// Public officials, positions & political parties (plan 45)
+// ============================================================
+
+/// Any Nigerian public official/government figure — NOT only politicians.
+/// `officialType` classifies (elected/appointed/...); political data (positions,
+/// party, elections) lives in optional one-to-many tables. Plan 45.
+model NigerianOfficial {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String    @db.VarChar(200)
+  slug          String?   @unique @db.VarChar(160)
+  officialType  String?   @map("official_type") @db.VarChar(20)
+  imageUrl      String?   @map("image_url") @db.VarChar(500)
+  email         String?   @db.VarChar(255)
+  phoneNumber   String?   @map("phone_number") @db.VarChar(30)
+  officeAddress String?   @map("office_address") @db.Text
+  twitterHandle String?   @map("twitter_handle") @db.VarChar(100)
+  facebookUrl   String?   @map("facebook_url") @db.VarChar(500)
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  gender        String?   @db.VarChar(10)
+  /// Legacy freeform text — fallback when no structured OfficialEducation rows exist.
+  education     String?   @db.Text
+  /// Narrative summary — kept as intro/fallback alongside structured sections.
+  biography     String?   @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
+
+  /// Soft delete (spec §12): hard delete does not exist as an API — on a
+  /// transparency platform, vanishing an official's record is the attack to
+  /// prevent. Public reads filter deletedAt IS NULL.
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz()
+  deletedById    String?   @map("deleted_by_id") @db.Uuid
+  deletionReason String?   @map("deletion_reason") @db.VarChar(500)
+
+  positions OfficialPosition[]
+  proposals DataProposal[]
+
+  educationRecords  OfficialEducation[]
+  careers           OfficialCareer[]
+  partyAffiliations OfficialPartyAffiliation[]
+  committees        OfficialCommittee[]
+  sponsoredBills    OfficialSponsoredBill[]
+  elections         OfficialElection[]
+  assetDeclarations OfficialAssetDeclaration[]
+  awards            OfficialAward[]
+  publications      OfficialPublication[]
+  familyMembers     OfficialFamilyMember[]
+  relatedAsFamily   OfficialFamilyMember[]     @relation("FamilyRelatedOfficial")
+  legalCases        OfficialLegalCase[]
+  enrichmentAttempts EnrichmentAttempt[]
+  partyOfficerRoles PartyOfficer[]
+  slugAliases       OfficialSlugAlias[]
+  campaignsAsCandidate   Campaign[]              @relation("CampaignCandidate")
+  campaignsAsRunningMate Campaign[]              @relation("CampaignRunningMate")
+  campaignCouncilRoles   CampaignCouncilMember[] @relation("CampaignCouncilOfficial")
+
+  @@map("nigerian_officials")
+}
+
+
+/// Old slugs an official has been known by. On a name *correction* the canonical
+/// slug is regenerated from the new name and the previous slug is recorded here so
+/// existing URLs (/officials/<old-slug>) 308-redirect to the current one. A slug
+/// is never both a live canonical slug and an alias at the same time.
+model OfficialSlugAlias {
+  slug       String   @id @db.VarChar(160)
+  officialId String   @map("official_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_slug_alias_official")
+  @@map("official_slug_aliases")
+}
+
+
+/// Exclusive arcs: exactly one of state_code, constituency_code, lga_code, ward_code
+/// must be non-null (enforced by CHECK constraint in migration SQL).
+/// No is_current column — "current" is derived via status + dates.
+/// CHECK constraints for role-scope, appointment_type, status, etc. in migration SQL.
+/// Views: current_positions, preferred_current_positions (see migration).
+model OfficialPosition {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId       String    @map("official_id") @db.Uuid
+  termId           String?   @map("term_id") @db.Uuid
+  partyAcronym     String?   @map("party_acronym") @db.VarChar(20)
+  role             String    @db.VarChar(50)
+  appointmentType  String    @default("elected") @map("appointment_type") @db.VarChar(20)
+  status           String    @default("active") @db.VarChar(20)
+  leadershipRole   String?   @map("leadership_role") @db.VarChar(50)
+  stateCode        String?   @map("state_code") @db.VarChar(30)
+  constituencyCode String?   @map("constituency_code") @db.VarChar(80)
+  lgaCode          String?   @map("lga_code") @db.VarChar(60)
+  wardCode         String?   @map("ward_code") @db.VarChar(100)
+  startDate        DateTime  @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
+  endReason        String?   @map("end_reason") @db.VarChar(30)
+  sourceType       String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl        String?   @map("source_url") @db.Text
+  sourceDate       DateTime? @map("source_date") @db.Date
+  confidence       String    @default("medium") @db.VarChar(10)
+  lastVerifiedAt   DateTime? @map("last_verified_at") @db.Timestamptz()
+  reviewedBy       String?   @map("reviewed_by") @db.VarChar(100)
+  reviewStatus     String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  official     NigerianOfficial      @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  term         PoliticalTerm?        @relation(fields: [termId], references: [id])
+  party        PoliticalParty?       @relation(fields: [partyAcronym], references: [acronym])
+  state        NigerianState?        @relation(fields: [stateCode], references: [code])
+  constituency NigerianConstituency? @relation(fields: [constituencyCode], references: [code])
+  lga          NigerianLga?          @relation(fields: [lgaCode], references: [code])
+  ward         NigerianWard?         @relation(fields: [wardCode], references: [code])
+  proposals    DataProposal[]
+  committees   OfficialCommittee[]
+  electionsWon OfficialElection[]
+
+  @@index([termId], map: "idx_positions_term")
+  @@index([stateCode, status], map: "idx_positions_state_status")
+  @@index([constituencyCode, status], map: "idx_positions_constituency_status")
+  @@index([lgaCode, status], map: "idx_positions_lga_status")
+  @@index([wardCode, status], map: "idx_positions_ward_status")
+  @@index([officialId], map: "idx_positions_official")
+  @@map("official_positions")
+}
+
+
+model PoliticalTerm {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar(100)
+  termNumber Int?      @map("term_number")
+  level      String    @db.VarChar(10)
+  kind       String    @db.VarChar(20)
+  stateCode  String?   @map("state_code") @db.VarChar(30)
+  startDate  DateTime  @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+
+  state      NigerianState?      @relation(fields: [stateCode], references: [code])
+  positions  OfficialPosition[]
+  committees OfficialCommittee[]
+
+  @@unique([level, kind, stateCode, termNumber], map: "uq_term_level_kind_state_number")
+  @@map("political_terms")
+}
+
+
+// ============================================================
+// Civic Crowdsource (proposals, votes, activity)
+// ============================================================
+
+// ============================================================
+// Official structured profile data (Plan 45)
+// Biographical tables apply to ANY official type; the political
+// layer (party/committees/bills/elections) is optional per person.
+// Every fact carries provenance columns; multi-source evidence
+// lives in the shared polymorphic `evidence` table below.
+// CHECK constraints for enum-like columns are in migration SQL.
+// ============================================================
+
+model OfficialEducation {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId      String    @map("official_id") @db.Uuid
+  institution     String    @db.VarChar(255)
+  institutionType String?   @map("institution_type") @db.VarChar(20)
+  qualification   String?   @db.VarChar(120)
+  field           String?   @db.VarChar(150)
+  startYear       Int?      @map("start_year")
+  endYear         Int?      @map("end_year")
+  graduated       Boolean?
+  location        String?   @db.VarChar(150)
+  confidence      String    @default("medium") @db.VarChar(10)
+  sourceType      String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus    String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy      String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt  DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_education_official")
+  @@map("official_education")
+}
+
+
+/// Pre-politics / professional career entries.
+model OfficialCareer {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  organization   String    @db.VarChar(255)
+  role           String?   @db.VarChar(150)
+  industry       String?   @db.VarChar(100)
+  employmentType String?   @map("employment_type") @db.VarChar(20)
+  startYear      Int?      @map("start_year")
+  endYear        Int?      @map("end_year")
+  description    String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_careers_official")
+  @@map("official_careers")
+}
+
+
+model OfficialPartyAffiliation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  partyAcronym   String    @map("party_acronym") @db.VarChar(20)
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  reason         String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  party    PoliticalParty   @relation(fields: [partyAcronym], references: [acronym])
+
+  @@index([officialId], map: "idx_party_affiliations_official")
+  @@map("official_party_affiliations")
+}
+
+
+model OfficialCommittee {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  committeeName  String    @map("committee_name") @db.VarChar(255)
+  chamber        String    @db.VarChar(30)
+  role           String    @default("member") @db.VarChar(20)
+  positionId     String?   @map("position_id") @db.Uuid
+  termId         String?   @map("term_id") @db.Uuid
+  startDate      DateTime? @map("start_date") @db.Date
+  endDate        DateTime? @map("end_date") @db.Date
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial  @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  position OfficialPosition? @relation(fields: [positionId], references: [id])
+  term     PoliticalTerm?    @relation(fields: [termId], references: [id])
+
+  @@index([officialId], map: "idx_committees_official")
+  @@map("official_committees")
+}
+
+
+model OfficialSponsoredBill {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  title          String    @db.Text
+  billNumber     String?   @map("bill_number") @db.VarChar(60)
+  chamber        String    @db.VarChar(30)
+  role           String    @default("sponsor") @db.VarChar(20)
+  status         String?   @db.VarChar(30)
+  introducedDate DateTime? @map("introduced_date") @db.Date
+  statusDate     DateTime? @map("status_date") @db.Date
+  summary        String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_bills_official")
+  @@map("official_sponsored_bills")
+}
+
+
+/// Elections contested + outcome. Scope arcs all nullable, NO exclusive CHECK
+/// (presidential elections are national — no scope). A win can link to the
+/// OfficialPosition it produced.
+model OfficialElection {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId            String    @map("official_id") @db.Uuid
+  electionType          String    @map("election_type") @db.VarChar(30)
+  isPrimary             Boolean   @default(false) @map("is_primary")
+  /// The election EVENT this participation belongs to (plan 68). Nullable on
+  /// purpose: is_primary and MATE-type anchor rows are party events, not
+  /// ours — they keep this null.
+  electionId            String?   @map("election_id") @db.Uuid
+  year                  Int
+  electionDate          DateTime? @map("election_date") @db.Date
+  partyAcronym          String?   @map("party_acronym") @db.VarChar(20)
+  stateCode             String?   @map("state_code") @db.VarChar(30)
+  constituencyCode      String?   @map("constituency_code") @db.VarChar(80)
+  lgaCode               String?   @map("lga_code") @db.VarChar(60)
+  wardCode              String?   @map("ward_code") @db.VarChar(100)
+  result                String    @db.VarChar(20)
+  votes                 Int?
+  votePercentage        Decimal?  @map("vote_percentage") @db.Decimal(5, 2)
+  winnerName            String?   @map("winner_name") @db.VarChar(200)
+  resultedInPositionId  String?   @map("resulted_in_position_id") @db.Uuid
+  notes                 String?   @db.Text
+  confidence            String    @default("medium") @db.VarChar(10)
+  sourceType            String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus          String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy            String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt        DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official           NigerianOfficial      @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  party              PoliticalParty?       @relation(fields: [partyAcronym], references: [acronym])
+  state              NigerianState?        @relation(fields: [stateCode], references: [code])
+  constituency       NigerianConstituency? @relation(fields: [constituencyCode], references: [code])
+  lga                NigerianLga?          @relation(fields: [lgaCode], references: [code])
+  ward               NigerianWard?         @relation(fields: [wardCode], references: [code])
+  resultedInPosition OfficialPosition?     @relation(fields: [resultedInPositionId], references: [id])
+  election           Election?             @relation(fields: [electionId], references: [id], onDelete: Restrict)
+  campaign           Campaign?
+
+  @@index([officialId], map: "idx_elections_official")
+  @@index([electionType, year], map: "idx_elections_type_year")
+  @@index([electionId], map: "idx_elections_participation")
+  @@map("official_elections")
+}
+
+
+model OfficialAssetDeclaration {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  year           Int
+  declaredTo     String?   @map("declared_to") @db.VarChar(100)
+  amount         Decimal?  @db.Decimal(18, 2)
+  currency       String    @default("NGN") @db.VarChar(10)
+  summary        String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_assets_official")
+  @@map("official_asset_declarations")
+}
+
+
+model OfficialAward {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  title          String    @db.VarChar(255)
+  awardedBy      String?   @map("awarded_by") @db.VarChar(255)
+  year           Int?
+  category       String?   @db.VarChar(100)
+  description    String?   @db.Text
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_awards_official")
+  @@map("official_awards")
+}
+
+
+model OfficialPublication {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId     String    @map("official_id") @db.Uuid
+  title          String    @db.VarChar(300)
+  type           String?   @db.VarChar(20)
+  publisher      String?   @db.VarChar(255)
+  year           Int?
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+
+  @@index([officialId], map: "idx_publications_official")
+  @@map("official_publications")
+}
+
+
+/// Base relationships: father/mother/spouse/child; `relationship` stays open
+/// (VarChar) so new kinds (sibling, in-law…) slot in. relatedOfficialId links
+/// political dynasties to their own profiles.
+model OfficialFamilyMember {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId        String    @map("official_id") @db.Uuid
+  relationship      String    @db.VarChar(30)
+  name              String?   @db.VarChar(200)
+  relatedOfficialId String?   @map("related_official_id") @db.Uuid
+  isPublicFigure    Boolean   @default(false) @map("is_public_figure")
+  notes             String?   @db.Text
+  confidence        String    @default("medium") @db.VarChar(10)
+  sourceType        String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus      String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy        String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt    DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official        NigerianOfficial  @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  relatedOfficial NigerianOfficial? @relation("FamilyRelatedOfficial", fields: [relatedOfficialId], references: [id])
+
+  @@index([officialId], map: "idx_family_official")
+  @@map("official_family_members")
+}
+
+
+/// Personal legal record (civil/electoral/criminal). Corruption matters live in
+/// the corruption_cases domain; a personal entry that escalates links via
+/// relatedCorruptionCaseId — no double entry.
+model OfficialLegalCase {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  officialId             String    @map("official_id") @db.Uuid
+  title                  String    @db.VarChar(300)
+  caseType               String    @map("case_type") @db.VarChar(30)
+  status                 String    @db.VarChar(30)
+  forum                  String?   @db.VarChar(150)
+  caseNumber             String?   @map("case_number") @db.VarChar(100)
+  filedDate              DateTime? @map("filed_date") @db.Date
+  resolvedDate           DateTime? @map("resolved_date") @db.Date
+  outcome                String?   @db.Text
+  /// Official's role in the matter: defendant|plaintiff|claimant|respondent|named_in. Null = unknown.
+  role                   String?   @db.VarChar(20)
+  /// Plan 58 §3.8 record kind: adjudicated|allegation|listing|appearance. Null = legacy/unclassified.
+  recordKind             String?   @map("record_kind") @db.VarChar(20)
+  relatedCorruptionCaseId String?  @map("related_corruption_case_id") @db.Uuid
+  confidence             String    @default("medium") @db.VarChar(10)
+  sourceType             String    @default("manual") @map("source_type") @db.VarChar(20)
+  reviewStatus           String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy             String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt         DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  official              NigerianOfficial @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  relatedCorruptionCase CorruptionCase?  @relation(fields: [relatedCorruptionCaseId], references: [id])
+
+  @@index([officialId], map: "idx_legal_cases_official")
+  @@map("official_legal_cases")
+}

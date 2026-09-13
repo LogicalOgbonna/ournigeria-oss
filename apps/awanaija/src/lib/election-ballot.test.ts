@@ -18,9 +18,9 @@ test("pivotByParty groups candidates by party, ordered by slate size then major-
 
 test("officeYearsForState maps applicable races to office:year pairs (per-office year)", () => {
   const gate = { enabled: true, races: [
-    { office: "president", date: "2027-02-27", states: [], constituencies: [], lgas: [], excludeStates: [] },
-    { office: "governor", date: "2026-08-08", states: ["osun"], constituencies: [], lgas: [], excludeStates: [] },
-    { office: "governor", date: "2025-11-08", states: ["anambra"], constituencies: [], lgas: [], excludeStates: [] },
+    { office: "president", year: 2027, date: "2027-02-27", states: [], constituencies: [], lgas: [], excludeStates: [] },
+    { office: "governor", year: 2026, date: "2026-08-08", states: ["osun"], constituencies: [], lgas: [], excludeStates: [] },
+    { office: "governor", year: 2025, date: "2025-11-08", states: ["anambra"], constituencies: [], lgas: [], excludeStates: [] },
   ] } as any;
   const now = new Date("2026-01-01T00:00:00Z");
   const oy = officeYearsForState(gate, "osun", now).sort((a, b) => a.office.localeCompare(b.office));

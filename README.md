@@ -299,7 +299,7 @@ apps/api/src/
 ├── sources/           # Budget document file serving
 └── telegram/          # Webhook handler, bot commands, user sync
 
-# Prisma schema lives in packages/database/prisma/schema.prisma (~100 models, pgvector, enums)
+# Prisma schema lives in packages/database/prisma/schema/ — a multi-file folder split by domain (~100 models, pgvector, enums)
 ```
 
 </details>

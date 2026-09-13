@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { months } from "@/lib/utils";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getLgaDetails, getFaacPeriods, ApiError } from "@/lib/api";
-import { getElectionGate, isElectionEnabledFor } from "@/lib/election-gate";
+import { getElectionGate, isElectionEnabledFor, offGate } from "@/lib/election-gate";
 import { ElectionSection } from "@/components/civic/ElectionSection";
 import { StructuredData } from "./_seo/structured-data";
 import {
@@ -55,7 +55,8 @@ export default async function LgaPage({
     permanentRedirect(`/states/${resolvedParams.state_slug}`);
   }
 
-  const gate = await getElectionGate();
+  // Unknown gate (unreachable, nothing stale) hides election UI, same as off.
+  const gate = (await getElectionGate()) ?? offGate();
   const showElection = isElectionEnabledFor(gate, {
     state: resolvedParams.state_slug,
     lga: resolvedParams.lga_slug,

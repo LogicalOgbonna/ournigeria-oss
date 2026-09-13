@@ -1,4 +1,4 @@
-import { Controller, Get, Query, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Header, Query, BadRequestException } from "@nestjs/common";
 import { Public } from "../auth/decorators/public";
 import { ElectionService } from "./election.service";
 import { Office, OFFICES } from "./office-map";
@@ -6,6 +6,13 @@ import { Office, OFFICES } from "./office-map";
 @Controller("election")
 export class ElectionController {
   constructor(private readonly service: ElectionService) {}
+
+  @Public()
+  @Get("gate")
+  @Header("Cache-Control", "public, s-maxage=60") // no stale-while-revalidate (E1.6) — rollback latency stays bounded
+  async gate() {
+    return this.service.gate();
+  }
 
   @Public()
   @Get("ballot")

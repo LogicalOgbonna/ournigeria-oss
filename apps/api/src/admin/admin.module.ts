@@ -27,13 +27,14 @@ import { AdminBackupController } from "./admin-backup.controller";
 import { AdminBackupService } from "./admin-backup.service";
 import { AuditModule } from "../audit/audit.module";
 import { OfficialsModule } from "../officials/officials.module";
+import { CampaignsModule } from "../campaigns/campaigns.module";
 import { AuditRevertService } from "./audit-revert.service";
 import { AdminAuditRevertController } from "./admin-audit-revert.controller";
 import { AdminRolesController } from "./admin-roles.controller";
 import { RolesAdminService } from "./roles-admin.service";
 
 @Module({
-  imports: [AuditModule, OfficialsModule],
+  imports: [AuditModule, OfficialsModule, CampaignsModule],
   controllers: [
     AdminAuthController,
     AdminRolesController,

@@ -1,0 +1,19 @@
+// ============================================================
+// Wards (below LGA)
+// ============================================================
+
+model NigerianWard {
+  code    String  @id @db.VarChar(100)
+  name    String  @db.VarChar(150)
+  lgaCode String  @map("lga_code") @db.VarChar(60)
+  pcode   String? @db.VarChar(20)
+
+  lga                  NigerianLga        @relation(fields: [lgaCode], references: [code])
+  constituencyMappings ConstituencyWard[]
+  officialPositions    OfficialPosition[]
+  officialElections    OfficialElection[]
+  elections            Election[]
+
+  @@index([lgaCode], map: "idx_wards_lga")
+  @@map("nigerian_wards")
+}

@@ -1,6 +1,5 @@
-const FLAG_KEY = "election-gate";
 const CACHE_TTL_MS = 60_000;
-const NEGATIVE_CACHE_TTL_MS = 10_000;
+const FETCH_TIMEOUT_MS = 1_500;
 
 export type Office =
   | "president" | "governor" | "senate" | "hor"
@@ -12,7 +11,13 @@ const OFFICES: readonly Office[] = [
 
 export interface Race {
   office: Office;
-  date: string;            // ISO YYYY-MM-DD (day optional: YYYY-MM)
+  /**
+   * The CYCLE year — matches `campaigns.year` and addresses the ballot API.
+   * NOT derivable from `date`: a Dec election postponed into January keeps
+   * its cycle year while the date's calendar year moves.
+   */
+  year: number;
+  date: string;            // "YYYY" | "YYYY-MM" | "YYYY-MM-DD" per the gate's date precision
   label?: string;
   states: string[];
   constituencies: string[];
@@ -25,7 +30,14 @@ export interface ElectionGate {
   races: Race[];
 }
 
-function offGate(): ElectionGate {
+/**
+ * The deliberately-off gate. Callers that get `null` from `getElectionGate`
+ * (gate UNREACHABLE, nothing stale) and want today's fail-quiet behavior
+ * coalesce with this — hiding election UI when the gate is unknown. The
+ * homepage is the one caller that treats the two differently (see
+ * `buildHomeRaces`): explicit off kills the hero, unknown falls back.
+ */
+export function offGate(): ElectionGate {
   return { enabled: false, races: [] };
 }
 
@@ -40,13 +52,15 @@ function isOffice(v: unknown): v is Office {
 /** Offices elected nationwide — scope lists (states/constituencies/lgas/excludeStates) don't apply. */
 const NATIONAL_OFFICES: ReadonlySet<Office> = new Set(["president"]);
 
-function parseRace(raw: unknown): Race | null {
+export function parseRace(raw: unknown): Race | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   if (!isOffice(r.office)) return null;
-  if (typeof r.date !== "string" || !/^\d{4}-\d{2}(-\d{2})?$/.test(r.date)) return null;
+  if (typeof r.year !== "number" || !Number.isInteger(r.year) || r.year <= 0) return null;
+  if (typeof r.date !== "string" || !/^\d{4}(-\d{2}(-\d{2})?)?$/.test(r.date)) return null;
   const race: Race = {
     office: r.office,
+    year: r.year,
     date: r.date,
     label: typeof r.label === "string" ? r.label : undefined,
     states: asStringArray(r.states),
@@ -63,21 +77,22 @@ function parseRace(raw: unknown): Race | null {
   return race;
 }
 
-/** Parse a PostHog /flags response (v2 `flags` shape or legacy `featureFlags` shape). */
-export function parseGate(body: any): ElectionGate {
-  const v2 = body?.flags?.[FLAG_KEY];
-  const enabled =
-    typeof v2?.enabled === "boolean" ? v2.enabled : Boolean(body?.featureFlags?.[FLAG_KEY]);
-  if (!enabled) return offGate();
-
-  let rawPayload: unknown = v2?.metadata?.payload ?? body?.featureFlagPayloads?.[FLAG_KEY];
-  if (typeof rawPayload === "string") {
-    try { rawPayload = JSON.parse(rawPayload); } catch { rawPayload = null; }
+/**
+ * Validate a `GET /api/election/gate` response body. Null = not a gate at all
+ * (never cached or trusted). A malformed race inside an otherwise valid body
+ * is dropped and logged — the rest of the gate stands.
+ */
+export function parseGate(body: unknown): ElectionGate | null {
+  if (!body || typeof body !== "object") return null;
+  const b = body as Record<string, unknown>;
+  if (typeof b.enabled !== "boolean" || !Array.isArray(b.races)) return null;
+  if (!b.enabled) return offGate();
+  const races: Race[] = [];
+  for (const raw of b.races) {
+    const race = parseRace(raw);
+    if (race) races.push(race);
+    else console.warn(`[election-gate] dropping malformed race: ${JSON.stringify(raw)}`);
   }
-  const p = (rawPayload && typeof rawPayload === "object") ? (rawPayload as Record<string, unknown>) : {};
-  const races = Array.isArray(p.races)
-    ? p.races.map(parseRace).filter((r): r is Race => r !== null)
-    : [];
   return { enabled: true, races };
 }
 
@@ -87,17 +102,47 @@ export interface EntityTarget {
   constituency?: string;
 }
 
-/** True if the election date is today or later. Day-optional dates stay active through their month. */
+/**
+ * The cycle every `/elections/<year>/...` URL is keyed on, used until the gate
+ * carries the presidential race.
+ *
+ * It stops being load-bearing the moment a published `president` election row
+ * reaches the gate — no code change, just a different answer from the same call.
+ */
+export const FALLBACK_PRESIDENTIAL_YEAR = 2027;
+
+/**
+ * The presidential race's cycle year, straight off the gate. Null when the
+ * gate is off or carries no presidential race — callers pair this with
+ * `FALLBACK_PRESIDENTIAL_YEAR`.
+ *
+ * Deliberately ignores whether the race is still upcoming: the year is what
+ * addresses the campaign pages, and those outlive the election itself.
+ */
+export function presidentialYear(gate: ElectionGate): number | null {
+  if (!gate.enabled) return null;
+  const race = gate.races.find((r) => r.office === "president");
+  return race ? race.year : null;
+}
+
+/**
+ * True if the election date is today or later. Precision-aware: bare-year
+ * dates stay active through Dec 31, day-optional dates through their month.
+ */
 export function isRaceUpcoming(date: string, now: Date): boolean {
   const [y, m, d] = date.split("-").map(Number);
-  if (!y || !m) return false;
-  const lastDay = d || new Date(y, m, 0).getDate(); // day 0 of next month = last day of this month
-  const cutoff = new Date(y, m - 1, lastDay, 23, 59, 59, 999).getTime();
+  if (!y) return false;
+  const month = m || 12; // bare "YYYY" is active through Dec 31
+  const lastDay = d || new Date(y, month, 0).getDate(); // day 0 of next month = last day of this month
+  const cutoff = new Date(y, month - 1, lastDay, 23, 59, 59, 999).getTime();
   return now.getTime() <= cutoff;
 }
 
+/** A race's geo scope alone — what `raceCoversGeo` actually reads. */
+export type RaceScope = Pick<Race, "states" | "constituencies" | "lgas" | "excludeStates">;
+
 /** Does this race apply to a voter/target in the given geo? Empty scope = all voters, minus excludeStates. */
-function raceCoversGeo(race: Race, geo: EntityTarget): boolean {
+export function raceCoversGeo(race: RaceScope, geo: EntityTarget): boolean {
   if (geo.state && race.excludeStates.includes(geo.state)) return false;
   const allEmpty =
     race.states.length === 0 && race.constituencies.length === 0 && race.lgas.length === 0;
@@ -175,37 +220,41 @@ export function resolveBallot(gate: ElectionGate, location: VoterLocation, now: 
   });
 }
 
-let cache: { at: number; ttl: number; gate: ElectionGate } | null = null;
+let cache: { at: number; gate: ElectionGate } | null = null;
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
-export async function getElectionGate(fetchImpl: FetchLike = fetch): Promise<ElectionGate> {
-  if (cache && Date.now() - cache.at < cache.ttl) return cache.gate;
+/**
+ * The gate, from our own API. Resilience is layered (E1.1): the API serves a
+ * last-known-good snapshot with 200 on DB failure, the Next data cache
+ * (`revalidate: 60`) is shared across instances and only ever holds good
+ * responses, and the in-memory L1 here guards network failures — a non-2xx or
+ * invalid body is never trusted as a gate: L1 stale if present, else `null`.
+ *
+ * `null` means UNKNOWN — the gate was unreachable and nothing stale exists.
+ * That is a different fact from `{enabled: false}`, which is the kill switch
+ * speaking deliberately. Callers that hide election UI either way coalesce
+ * with `offGate()`; the homepage keeps its presidential fallback only for
+ * the unknown case.
+ */
+export async function getElectionGate(fetchImpl: FetchLike = fetch): Promise<ElectionGate | null> {
+  if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.gate;
 
-  const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
-  const host = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com";
-  if (!token) return offGate();
-
+  const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 800);
+  const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetchImpl(`${host.replace(/\/$/, "")}/flags/?v=2`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ api_key: token, distinct_id: "awanaija-server" }),
+    const res = await fetchImpl(`${base}/api/election/gate`, {
       signal: ctl.signal,
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      cache = { at: Date.now(), ttl: NEGATIVE_CACHE_TTL_MS, gate: offGate() };
-      return cache.gate;
-    }
+      next: { revalidate: CACHE_TTL_MS / 1000 },
+    } as RequestInit);
+    if (!res.ok) return cache?.gate ?? null;
     const gate = parseGate(await res.json());
-    cache = { at: Date.now(), ttl: CACHE_TTL_MS, gate };
+    if (!gate) return cache?.gate ?? null;
+    cache = { at: Date.now(), gate };
     return gate;
   } catch {
-    cache = { at: Date.now(), ttl: NEGATIVE_CACHE_TTL_MS, gate: offGate() };
-    return cache.gate;
+    return cache?.gate ?? null;
   } finally {
     clearTimeout(timer);
   }

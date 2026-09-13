@@ -49,6 +49,10 @@ function makeClient({ prefix, label }: Service) {
 }
 
 const admin = makeClient({ prefix: "/api/admin", label: "Admin" });
+// Public, unprefixed reads (geo lists, officials search, parties) proxied by the
+// Next rewrites. Same error extraction as the admin client, so a Nest `message`
+// surfaces verbatim through errorMessage() instead of a bare status code.
+const publicApi = makeClient({ prefix: "", label: "Public" });
 const socials = makeClient({ prefix: "/api/socials", label: "Socials" });
 const ingest = makeClient({ prefix: "/api/ingest", label: "Ingest" });
 const proposals = makeClient({ prefix: "/api/proposals", label: "Proposals" });
@@ -59,3 +63,29 @@ export const adminUpload = admin.upload;
 export const socialsFetch = socials.json;
 export const ingestFetch = ingest.json;
 export const proposalsFetch = proposals.json;
+export const publicFetch = publicApi.json;
+
+/**
+ * Human-facing text from a thrown API error: drops the
+ * `<Service> API error: <status> ` prefix extractError() adds above, and falls
+ * back to the status when the server sent nothing useful.
+ */
+export function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) {
+    const stripped = err.message.replace(/^\w+ API error: \d+\s*/, "").trim();
+    return stripped || `Request failed (${err.status})`;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Revert a diff-invertible audit event (POST /api/admin/audit/:seq/revert).
+ * Shared by every surface that renders an audit trail — the API decides which
+ * permission the reverted action needs, per REVERTIBLE_ACTIONS.
+ */
+export function revertAuditEvent(seq: number, reason?: string) {
+  return adminFetch(`/audit/${seq}/revert`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}

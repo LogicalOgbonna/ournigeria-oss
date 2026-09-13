@@ -13,21 +13,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { adminFetch } from "@/lib/api";
+import { revertAuditEvent } from "@/lib/api";
+import { revertPermission } from "@/lib/audit-revertible";
 import { usePermissions } from "@/lib/permissions";
 import { formatDateTimeSeconds, relativeTime } from "@/lib/format";
-
-/** Mirrors REVERTIBLE_ACTIONS on the API (action -> permission needed). */
-const REVERTIBLE: Record<string, string> = {
-  "official.updated": "officials.update",
-  "official.slug.updated": "officials.slug.update",
-  "official.deleted": "officials.delete",
-  "official.restored": "officials.delete",
-  "role.granted": "roles.manage",
-  "role.revoked": "roles.manage",
-  "user.banned": "users.manage",
-  "user.unbanned": "users.manage",
-};
 
 /** One event from GET /api/admin/audit — mirrors the API's AuditEventView. */
 export interface AuditEventView {
@@ -158,8 +147,10 @@ export function DiffViewerDialog({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const revertPermission = event ? REVERTIBLE[event.action] : undefined;
-  const canRevert = Boolean(revertPermission && can(revertPermission));
+  // The action -> permission table is shared with the campaign review
+  // timeline (lib/audit-revertible.ts) so the two surfaces cannot drift.
+  const permission = event ? revertPermission(event.action) : undefined;
+  const canRevert = Boolean(permission && can(permission));
   const ownAction = Boolean(event?.actorId && event.actorId === adminId);
 
   const submitRevert = async () => {
@@ -170,10 +161,7 @@ export function DiffViewerDialog({
     }
     setBusy(true);
     try {
-      await adminFetch(`/audit/${event.seq}/revert`, {
-        method: "POST",
-        body: JSON.stringify({ reason: reason.trim() || undefined }),
-      });
+      await revertAuditEvent(event.seq, reason.trim() || undefined);
       toast.success(`Reverted seq ${event.seq} — logged as a new chain event`);
       setRevertOpen(false);
       setReason("");

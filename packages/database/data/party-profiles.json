@@ -418,7 +418,7 @@
     "description": "Allied Peoples Movement (APM) is an INEC-registered Nigerian political party registered in August 2018. The party operates on principles of good governance, national development, and citizens' empowerment, with a motto of 'Integrity, Sacrifice, Service.' It gained significant national prominence in 2026 when Oyo State Governor Seyi Makinde and Bauchi State Governor Bala Mohammed aligned with APM ahead of the 2027 general elections.",
     "ideology": "Progressive; good governance, national development",
     "slogan": "APM – Nigeria First",
-    "color": "Green, Blue, White",
+    "color": "#027ce2",
     "inec_status": "Registered",
     "_sources": {
       "founding_year": "https://en.wikipedia.org/wiki/Allied_Peoples_Movement",
@@ -478,7 +478,7 @@
     "twitter_handle": "DLA_Nigeria",
     "facebook_url": "https://www.facebook.com/profile.php?id=61586085515734",
     "description": "The Democratic Leadership Alliance (DLA) is a Nigerian political party registered by INEC on 5 February 2026, founded on Pan-Africanist philosophy, ethical leadership, scientific advancement, and citizen-centred governance. It positions itself as an ideology-driven party drawing heavily on youth participation, and advocates a production-based economy, institutional reform, and inclusive prosperity.",
-    "ideology": "Pan-Africanism; ethical leadership; science and technology-driven development; people-centred governance",
+    "ideology": "Pan-Africanism; ethical leadership; technology-driven development; people-centred governance",
     "slogan": "Leading with Courage, Serving with Integrity",
     "inec_status": "Registered",
     "_sources": {
@@ -510,7 +510,7 @@
     "description": "The National Democratic Party (NDP) is a Nigerian political party founded on 5 June 2024 by Hon. Ada Elizabeth Fredrick Okwori. After INEC declined its initial application, a Federal High Court in Abuja directed INEC to register the party; it was formally registered in 2026 as one of Nigeria's newest parties. It campaigns on national unity, transparent governance, and people-centred leadership.",
     "ideology": "People-centred democratic governance; national unity; integrity, inclusion, participatory governance",
     "slogan": "Light of hope, Nigeria first, Bright future for all",
-    "color": "Green, Black, Gold, Red",
+    "color": "#fbc62c",
     "inec_status": "Registered",
     "_sources": {
       "founding_year": "https://www.ndpnigeria.org/",
@@ -536,13 +536,13 @@
     "hq_address": "Plot 2006, Kukawa Close, Off Makurdi Street, Area 10, Garki, Abuja, FCT",
     "website": "https://www.nrm.org.ng",
     "email": "contact@nrm.org.ng",
-    "phone_number": "07047866746, 08033144749, 08032022776",
+    "phone_number": "07047866746",
     "twitter_handle": "NRMRescue",
     "facebook_url": "https://www.facebook.com/NRMRescue/",
     "description": "The National Rescue Movement (NRM) is a Nigerian political party registered by INEC in 2017, positioning itself as a reform movement to rescue Nigeria from institutional collapse, economic stagnation, and insecurity. The party champions the rule of law, accountability, transparency, equity, and selfless service.",
-    "ideology": "Reform/rescue politics; rule of law, accountability, transparency, anti-corruption, inclusive governance",
+    "ideology": "Reform politics; rule of law, accountability, transparency, anti-corruption, inclusive governance",
     "slogan": "Rescue Nigeria",
-    "color": "Red, Black, White",
+    "color": "#f59e0b",
     "inec_status": "Registered",
     "_sources": {
       "founding_year": "https://dailypost.ng/2017/12/15/inec-registers-21-new-political-parties-full-list/",

@@ -1,0 +1,171 @@
+// ============================================================
+// Source documents, ingestion pipeline & query analytics
+// ============================================================
+
+enum DocumentStatus {
+  unprocessed
+  parsing
+  parsed
+  indexing
+  indexed
+  error
+
+  @@map("document_status")
+}
+
+
+enum DocumentFileType {
+  pdf
+  xlsx
+  xls
+  csv
+  docx
+
+  @@map("document_file_type")
+}
+
+
+model Document {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode        String?          @map("entity_code") @db.VarChar(60)
+  stateCode         String?          @map("state_code") @db.VarChar(30)
+  fiscalYear        Int              @map("fiscal_year") @db.SmallInt
+  fileName          String           @map("file_name") @db.VarChar(255)
+  filePath          String           @unique @map("file_path") @db.VarChar(500)
+  fileType          DocumentFileType @map("file_type")
+  fileSizeBytes     BigInt?          @map("file_size_bytes")
+  fileHashSha256    String?          @map("file_hash_sha256") @db.VarChar(64)
+  status            DocumentStatus   @default(unprocessed)
+  errorDetails      String?          @map("error_details") @db.Text
+  parsedAt          DateTime?        @map("parsed_at") @db.Timestamptz()
+  indexedAt         DateTime?        @map("indexed_at") @db.Timestamptz()
+  metadata          Json             @default("{}") @db.JsonB
+  pageCount         Int?             @map("page_count")
+  extractedSections Json?            @map("extracted_sections") @db.JsonB
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  fiscalEntity      FiscalEntity?      @relation(fields: [entityCode], references: [code])
+  state             NigerianState?     @relation(fields: [stateCode], references: [code])
+  sourceReferences  SourceReference[]
+  budgetLineItems   BudgetLineItem[]
+  budgetActuals     BudgetActual[]
+  faacDisbursements FaacDisbursement[]
+  budgetDocumentSections BudgetDocumentSection[]
+  budgetProjects         BudgetProject[]
+
+  @@index([entityCode, fiscalYear], map: "idx_documents_entity_year")
+  @@index([stateCode, fiscalYear], map: "idx_documents_state_year")
+  @@map("documents")
+}
+
+
+model SourceReference {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId       String   @map("message_id") @db.Uuid
+  documentId      String   @map("document_id") @db.Uuid
+  pageNumber      Int?     @map("page_number")
+  lineStart       Int?     @map("line_start")
+  lineEnd         Int?     @map("line_end")
+  sheetName       String?  @map("sheet_name") @db.VarChar(100)
+  sectionHeading  String?  @map("section_heading") @db.VarChar(300)
+  snippet         String?  @db.Text
+  confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
+  stateCode       String?  @map("state_code") @db.VarChar(30)
+  fiscalYear      Int?     @map("fiscal_year") @db.SmallInt
+  relevanceRank   Int?     @map("relevance_rank")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  message  Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  state    NigerianState? @relation(fields: [stateCode], references: [code])
+
+  @@index([messageId], map: "idx_source_refs_message")
+  @@index([documentId], map: "idx_source_refs_document")
+  @@index([stateCode, fiscalYear], map: "idx_source_refs_state_year")
+  @@map("source_references")
+}
+
+
+model QueryAnalytic {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  messageId     String?  @map("message_id") @db.Uuid
+  queryCategory String?  @map("query_category") @db.VarChar(50)
+  queriedStates String[] @default([]) @map("queried_states")
+  queriedYears  Int[]    @default([]) @map("queried_years") @db.SmallInt
+  queryText     String?  @map("query_text") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([queryCategory, createdAt(sort: Desc)], map: "idx_analytics_category_date")
+  @@index([createdAt(sort: Desc)], map: "idx_analytics_date")
+  @@map("query_analytics")
+}
+
+
+model IngestionRecord {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pipeline   String   @db.VarChar(30)
+  filePath   String   @map("file_path") @db.VarChar(1000)
+  fileHash   String   @map("file_hash") @db.VarChar(64)
+  s3Etag     String?  @map("s3_etag") @db.VarChar(128)
+  sourceType String   @map("source_type") @db.VarChar(10)
+  identity   Json     @default("{}") @db.JsonB
+  chunks     Int      @default(0)
+  status     String   @default("processing") @db.VarChar(20)
+  errorMsg   String?  @map("error_msg") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  @@unique([pipeline, filePath], map: "uq_ingestion_pipeline_filepath")
+  @@index([pipeline, status], map: "idx_ingestion_pipeline_status")
+  @@index([pipeline, s3Etag], map: "idx_ingestion_pipeline_etag")
+  @@index([status, updatedAt], map: "idx_ingestion_status_updated")
+  @@map("ingestion_records")
+}
+
+
+model IngestionRun {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pipeline       String    @db.VarChar(30)
+  trigger        String    @db.VarChar(20)
+  status         String    @default("running") @db.VarChar(20)
+  totalFiles     Int       @default(0) @map("total_files")
+  processedFiles Int       @default(0) @map("processed_files")
+  skippedFiles   Int       @default(0) @map("skipped_files")
+  errorFiles     Int       @default(0) @map("error_files")
+  totalChunks    Int       @default(0) @map("total_chunks")
+  durationMs     Int?      @map("duration_ms")
+  errorMsg       String?   @map("error_msg") @db.Text
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz()
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz()
+
+  @@index([pipeline, startedAt(sort: Desc)], map: "idx_runs_pipeline_started")
+  @@map("ingestion_runs")
+}
+
+
+// ============================================================
+// Graph Extraction
+// ============================================================
+
+model GraphExtractionJob {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  domain          String    @db.VarChar(20)
+  pass            Int       @default(1)
+  status          String    @default("pending") @db.VarChar(20)
+  lastChunkId     String?   @map("last_chunk_id") @db.Text
+  chunksTotal     Int       @default(0) @map("chunks_total")
+  chunksProcessed Int       @default(0) @map("chunks_processed")
+  costUsd         Float     @default(0) @map("cost_usd")
+  errorLog        Json      @default("[]") @map("error_log") @db.JsonB
+  startedAt       DateTime? @map("started_at") @db.Timestamptz()
+  completedAt     DateTime? @map("completed_at") @db.Timestamptz()
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@index([domain, pass, status], map: "idx_graph_jobs_domain_pass_status")
+  @@map("graph_extraction_jobs")
+}

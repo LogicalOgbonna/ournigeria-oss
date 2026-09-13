@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { slug, typeLabel, roleLabel, fetchConstituency } from "./utils";
 import { StructuredData } from "./_seo/structured-data";
 import { wardSlug } from "@/lib/utils";
-import { getElectionGate, isElectionEnabledFor } from "@/lib/election-gate";
+import { getElectionGate, isElectionEnabledFor, offGate } from "@/lib/election-gate";
 import { ElectionSection } from "@/components/civic/ElectionSection";
 
 export { generateMetadata } from "./_seo/util";
@@ -27,7 +27,8 @@ export default async function ConstituencyPage({ params }: Props) {
   const stateSlug = slug(c.stateName);
   const label = typeLabel(c.type);
 
-  const gate = await getElectionGate();
+  // Unknown gate (unreachable, nothing stale) hides election UI, same as off.
+  const gate = (await getElectionGate()) ?? offGate();
   const showElection = isElectionEnabledFor(gate, { state: c.stateCode, constituency: code });
 
   const lgaLinks: RelatedLink[] = c.lgas.map((lga) => ({

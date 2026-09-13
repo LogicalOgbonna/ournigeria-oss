@@ -1,52 +1,92 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseGate, applicableRaces, isElectionEnabledFor, resolveBallot,
-  getElectionGate, __resetGateCache, isRaceUpcoming,
+  parseGate, parseRace, applicableRaces, isElectionEnabledFor, resolveBallot,
+  getElectionGate, __resetGateCache, isRaceUpcoming, presidentialYear,
 } from "./election-gate";
+import { appEnv } from "./app-env";
 
-function flagsBody(payload: unknown) {
-  return { flags: { "election-gate": { enabled: true, metadata: { payload } } } };
+// A well-formed `GET /api/election/gate` body.
+function gateBody(races: unknown[], enabled = true) {
+  return { enabled, races };
 }
 
-test("parseGate: disabled/absent => enabled false, empty races", () => {
-  assert.deepEqual(parseGate({ flags: { "election-gate": { enabled: false } } }), { enabled: false, races: [] });
-  assert.deepEqual(parseGate({}), { enabled: false, races: [] });
+test("parseGate: a body that isn't a gate is rejected (null), never coerced", () => {
+  assert.equal(parseGate(null), null);
+  assert.equal(parseGate("nonsense"), null);
+  assert.equal(parseGate({}), null);
+  assert.equal(parseGate({ enabled: true }), null);
+  assert.equal(parseGate({ enabled: "yes", races: [] }), null);
+  assert.equal(parseGate({ enabled: true, races: {} }), null);
 });
 
-test("parseGate: parses races (object and JSON-string payload), fills scope defaults", () => {
-  const payload = { races: [{ office: "governor", date: "2026-08-08", label: "Osun", states: ["osun"] }] };
-  const want = { enabled: true, races: [{ office: "governor", date: "2026-08-08", label: "Osun", states: ["osun"], constituencies: [], lgas: [], excludeStates: [] }] };
-  assert.deepEqual(parseGate(flagsBody(payload)), want);
-  assert.deepEqual(parseGate(flagsBody(JSON.stringify(payload))), want);
+test("parseGate: kill switch off => enabled false, empty races", () => {
+  assert.deepEqual(parseGate(gateBody([{ office: "president", year: 2027, date: "2027-01-16" }], false)), {
+    enabled: false,
+    races: [],
+  });
 });
 
-test("parseGate: drops malformed races (bad office, bad/absent date) but keeps valid ones", () => {
-  const g = parseGate(flagsBody({ races: [
-    { office: "governor", date: "2027-02-27" },
-    { office: "not_an_office", date: "2027-02-27" },
-    { office: "president", date: "nonsense" },
-    { office: "councillor", date: "2027-02" },
-  ] }));
-  assert.equal(g.races.length, 2);
-  assert.deepEqual(g.races.map((r) => r.office), ["governor", "councillor"]);
+test("parseGate: parses races, fills scope defaults, null label => undefined", () => {
+  const g = parseGate(gateBody([
+    { office: "governor", year: 2026, date: "2026-12-08", label: "Osun Governorship", states: ["osun"], constituencies: [], lgas: [], excludeStates: [] },
+    { office: "president", year: 2027, date: "2027-01-16", label: null, states: [], constituencies: [], lgas: [], excludeStates: [] },
+  ]));
+  assert.deepEqual(g, {
+    enabled: true,
+    races: [
+      { office: "governor", year: 2026, date: "2026-12-08", label: "Osun Governorship", states: ["osun"], constituencies: [], lgas: [], excludeStates: [] },
+      { office: "president", year: 2027, date: "2027-01-16", label: undefined, states: [], constituencies: [], lgas: [], excludeStates: [] },
+    ],
+  });
+});
+
+test("parseGate: drops malformed races (bad office/date, missing or non-integer year) and warns per drop", (t) => {
+  const warn = t.mock.method(console, "warn", () => {});
+  const g = parseGate(gateBody([
+    { office: "governor", year: 2027, date: "2027-01-16" },
+    { office: "not_an_office", year: 2027, date: "2027-01-16" },
+    { office: "president", year: 2027, date: "nonsense" },
+    { office: "senate", date: "2027-01-16" },              // year missing
+    { office: "senate", year: "2027", date: "2027-01-16" }, // year not a number
+    { office: "senate", year: 2027.5, date: "2027-01-16" }, // year not an integer
+    { office: "councillor", year: 2027, date: "2027-01" },
+    { office: "hor", year: 2027, date: "2027" },            // bare year is legal
+  ]));
+  assert.ok(g);
+  assert.deepEqual(g.races.map((r) => r.office), ["governor", "councillor", "hor"]);
+  assert.equal(warn.mock.callCount(), 5);
+  // The log names the dropped race.
+  assert.match(String(warn.mock.calls[0].arguments[0]), /not_an_office/);
+});
+
+test("parseRace: national office (president) has its scope lists neutralized", () => {
+  const race = parseRace({
+    office: "president", year: 2027, date: "2027-01-16",
+    states: ["osun"], excludeStates: ["lagos"], constituencies: ["x"], lgas: ["a/b"],
+  });
+  assert.deepEqual(race, {
+    office: "president", year: 2027, date: "2027-01-16", label: undefined,
+    states: [], constituencies: [], lgas: [], excludeStates: [],
+  });
 });
 
 const NOW = new Date("2026-08-01T00:00:00Z");
-function gate(races: any[]) { return { enabled: true, races: races.map((r) => ({ constituencies: [], lgas: [], excludeStates: [], states: [], ...r })) }; }
+function gate(races: any[]) {
+  return {
+    enabled: true,
+    races: races.map((r) => ({ year: 2027, constituencies: [], lgas: [], excludeStates: [], states: [], ...r })),
+  };
+}
 
-test("parseRace: national office (president) has its scope lists neutralized", () => {
-  const g = parseGate({ flags: { "election-gate": { enabled: true, metadata: { payload: { races: [
-    { office: "president", date: "2027-02-27", states: ["osun"], excludeStates: ["lagos"], constituencies: ["x"], lgas: ["a/b"] },
-  ] } } } } });
-  assert.deepEqual(g.races[0], { office: "president", date: "2027-02-27", label: undefined, states: [], constituencies: [], lgas: [], excludeStates: [] });
-});
-
-test("isRaceUpcoming: future/this-month true, past false, YYYY-MM active through month", () => {
+test("isRaceUpcoming: future/this-month true, past false, YYYY-MM through month, YYYY through Dec 31", () => {
   assert.equal(isRaceUpcoming("2027-02-27", NOW), true);
   assert.equal(isRaceUpcoming("2025-11-08", NOW), false);
   assert.equal(isRaceUpcoming("2026-08", NOW), true);
   assert.equal(isRaceUpcoming("2026-07", NOW), false);
+  assert.equal(isRaceUpcoming("2026", NOW), true);   // bare year: active through Dec 31
+  assert.equal(isRaceUpcoming("2026", new Date("2026-12-31T12:00:00")), true);
+  assert.equal(isRaceUpcoming("2025", NOW), false);
   assert.equal(isRaceUpcoming("nonsense", NOW), false);
 });
 
@@ -111,45 +151,165 @@ test("resolveBallot: surfaces a constituency-scoped race when the voter's consti
   assert.equal(without.some((r) => r.race.office === "state_assembly"), false);
 });
 
-const OFF2 = { enabled: false, races: [] };
-function saveToken(t: any) { const prev = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN; t.after(() => { process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = prev; }); }
-function resp(body: unknown, ok = true) { return { ok, status: ok ? 200 : 500, json: async () => body } as unknown as Response; }
-
-test("getElectionGate: missing token => OFF, no fetch", async (t) => {
-  saveToken(t); delete process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN; __resetGateCache();
-  let calls = 0; const fake = async () => { calls++; return resp({}); };
-  assert.deepEqual(await getElectionGate(fake), OFF2);
-  assert.equal(calls, 0);
+test("presidentialYear: reads the cycle year off the presidential race", () => {
+  const g = parseGate(gateBody([
+    { office: "governor", year: 2028, date: "2028-03-11" },
+    { office: "president", year: 2031, date: "2031-02-14" },
+  ]))!;
+  assert.equal(presidentialYear(g), 2031);
 });
 
-test("getElectionGate: success => parsed races + 60s cache", async (t) => {
-  saveToken(t); process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "phc_x"; __resetGateCache();
+test("presidentialYear: postponed election keeps its cycle year (year 2026, date in 2027)", () => {
+  const g = parseGate(gateBody([{ office: "president", year: 2026, date: "2027-01-05" }]))!;
+  assert.equal(presidentialYear(g), 2026);
+});
+
+test("presidentialYear: null when the gate is off, or carries no presidential race", () => {
+  assert.equal(presidentialYear({ enabled: false, races: [] }), null);
+  assert.equal(presidentialYear(parseGate(gateBody([]))!), null);
+  const noPrez = parseGate(gateBody([{ office: "senate", year: 2031, date: "2031-02-14" }]))!;
+  assert.equal(presidentialYear(noPrez), null);
+});
+
+test("presidentialYear: a past presidential race still names the cycle", () => {
+  // The year addresses the campaign pages, which outlive the election.
+  const g = parseGate(gateBody([{ office: "president", year: 1999, date: "1999-02-27" }]))!;
+  assert.equal(presidentialYear(g), 1999);
+});
+
+// --- getElectionGate: fetch policy + two-layer fail-stale (D11/E1.1) ---
+
+const OFF2 = { enabled: false, races: [] };
+const GOOD_BODY = gateBody([{ office: "governor", year: 2026, date: "2026-12-08", states: ["osun"] }]);
+
+function saveEnvVars(t: any, ...names: string[]) {
+  const prev = names.map((n) => [n, process.env[n]] as const);
+  t.after(() => {
+    for (const [n, v] of prev) {
+      if (v === undefined) delete process.env[n];
+      else process.env[n] = v;
+    }
+  });
+}
+
+function resp(body: unknown, ok = true) {
+  return { ok, status: ok ? 200 : 500, json: async () => body } as unknown as Response;
+}
+
+test("getElectionGate: GETs our gate endpoint through the Next data cache (revalidate 60)", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  process.env.NEXT_PUBLIC_API_URL = "https://api.example.test/";
+  __resetGateCache();
+  let url = ""; let init: any = null;
+  const fake = async (u: string, i?: RequestInit) => { url = u; init = i; return resp(GOOD_BODY); };
+  const g = (await getElectionGate(fake))!;
+  assert.equal(g.enabled, true);
+  assert.equal(g.races[0].office, "governor");
+  assert.equal(url, "https://api.example.test/api/election/gate");
+  assert.equal(init?.method, undefined); // plain GET
+  assert.deepEqual(init?.next, { revalidate: 60 });
+});
+
+test("getElectionGate: defaults to localhost:3000 without NEXT_PUBLIC_API_URL", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  delete process.env.NEXT_PUBLIC_API_URL;
+  __resetGateCache();
+  let url = "";
+  await getElectionGate(async (u: string) => { url = u; return resp(GOOD_BODY); });
+  assert.equal(url, "http://localhost:3000/api/election/gate");
+});
+
+test("getElectionGate: success => parsed races + 60s in-memory L1", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  __resetGateCache();
   let calls = 0;
-  const body = { flags: { "election-gate": { enabled: true, metadata: { payload: { races: [{ office: "governor", date: "2027-02-27", states: ["osun"] }] } } } } };
-  const fake = async () => { calls++; return resp(body); };
-  const g = await getElectionGate(fake);
-  assert.equal(g.enabled, true); assert.equal(g.races[0].office, "governor");
+  const fake = async () => { calls++; return resp(GOOD_BODY); };
+  const g = (await getElectionGate(fake))!;
+  assert.equal(g.enabled, true);
   await getElectionGate(fake);
   assert.equal(calls, 1);
 });
 
-test("getElectionGate: non-ok => OFF and negatively cached", async (t) => {
-  saveToken(t); process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "phc_x"; __resetGateCache();
-  let calls = 0; const fail = async () => { calls++; return resp("", false); };
-  assert.deepEqual(await getElectionGate(fail), OFF2);
-  await getElectionGate(fail);
+test("getElectionGate: non-2xx with no L1 => null (UNKNOWN, not off), and NEVER cached (next call refetches)", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  __resetGateCache();
+  let calls = 0;
+  const fail = async () => { calls++; return resp("", false); };
+  // Decision C: unreachable-with-nothing-stale is UNKNOWN (null) — a
+  // different fact from the kill switch's deliberate {enabled:false}.
+  assert.equal(await getElectionGate(fail), null);
+  assert.equal(await getElectionGate(fail), null);
+  assert.equal(calls, 2);
+});
+
+test("getElectionGate: an explicit enabled:false response IS trusted and cached — the kill switch speaking", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  __resetGateCache();
+  let calls = 0;
+  const off = async () => { calls++; return resp({ enabled: false, races: [] }); };
+  assert.deepEqual(await getElectionGate(off), OFF2);
+  assert.deepEqual(await getElectionGate(off), OFF2); // served from L1
   assert.equal(calls, 1);
 });
 
-test("getElectionGate: negative cache expires after 10s and recovers", async (t) => {
-  saveToken(t); process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN = "phc_x"; __resetGateCache();
+test("getElectionGate: non-2xx serves the stale L1 gate; recovery refreshes it", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  __resetGateCache();
   t.mock.timers.enable({ apis: ["Date"] });
-  let calls = 0; const fail = async () => { calls++; return resp("", false); };
-  assert.deepEqual(await getElectionGate(fail), OFF2);
-  await getElectionGate(fail);
-  assert.equal(calls, 1);
-  t.mock.timers.tick(10_001);
-  const ok = async () => { calls++; return resp({ flags: { "election-gate": { enabled: true, metadata: { payload: { races: [] } } } } }); };
-  const g = await getElectionGate(ok);
-  assert.equal(g.enabled, true); assert.equal(calls, 2);
+  let calls = 0;
+  const good = (await getElectionGate(async () => { calls++; return resp(GOOD_BODY); }))!;
+  assert.ok(good);
+  assert.equal(good.races.length, 1);
+
+  t.mock.timers.tick(60_001); // L1 expired
+  const stale = await getElectionGate(async () => { calls++; return resp("", false); });
+  assert.deepEqual(stale, good); // stale L1, not null
+  assert.equal(calls, 2);
+
+  const recovered = await getElectionGate(async () => {
+    calls++;
+    return resp(gateBody([{ office: "president", year: 2027, date: "2027-01-16" }]));
+  });
+  assert.equal(recovered!.races[0].office, "president");
+  assert.equal(calls, 3);
+});
+
+test("getElectionGate: invalid body or thrown fetch is never trusted — stale L1 if present, else off", async (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_API_URL");
+  __resetGateCache();
+  // No L1 yet: invalid body => UNKNOWN (null), never a fabricated gate.
+  assert.equal(await getElectionGate(async () => resp({ not: "a gate" })), null);
+  assert.equal(await getElectionGate(async () => { throw new Error("network down"); }), null);
+
+  t.mock.timers.enable({ apis: ["Date"] });
+  const good = await getElectionGate(async () => resp(GOOD_BODY));
+  t.mock.timers.tick(60_001);
+  assert.deepEqual(await getElectionGate(async () => resp({ not: "a gate" })), good);
+  assert.deepEqual(await getElectionGate(async () => { throw new Error("network down"); }), good);
+});
+
+// --- environment flag helper (used elsewhere; the gate no longer sends it) ---
+
+test("appEnv: VERCEL_ENV maps production->prod, preview->staging, else dev", (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_APP_ENV", "VERCEL_ENV");
+  delete process.env.NEXT_PUBLIC_APP_ENV;
+
+  process.env.VERCEL_ENV = "production";
+  assert.equal(appEnv(), "prod");
+  process.env.VERCEL_ENV = "preview";
+  assert.equal(appEnv(), "staging");
+  process.env.VERCEL_ENV = "development";
+  assert.equal(appEnv(), "dev");
+  delete process.env.VERCEL_ENV;
+  assert.equal(appEnv(), "dev");
+});
+
+test("appEnv: NEXT_PUBLIC_APP_ENV overrides VERCEL_ENV; junk values are ignored", (t) => {
+  saveEnvVars(t, "NEXT_PUBLIC_APP_ENV", "VERCEL_ENV");
+  process.env.VERCEL_ENV = "production";
+
+  process.env.NEXT_PUBLIC_APP_ENV = "staging";
+  assert.equal(appEnv(), "staging");
+  process.env.NEXT_PUBLIC_APP_ENV = "bogus";
+  assert.equal(appEnv(), "prod"); // falls through to VERCEL_ENV
 });

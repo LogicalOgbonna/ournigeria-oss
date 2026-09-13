@@ -18,11 +18,25 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "nass.gov.ng",
       },
+      // Campaign posters, cards, quote/bio photos and party logos — every
+      // image the election pages draw is served from the CDN, not /public.
+      {
+        protocol: "https",
+        hostname: "cdn.ournigeria.ng",
+      },
     ],
   },
   async redirects() {
     // permanent: true ⇒ HTTP 308 (SEO-equivalent to 301).
-    return wardRedirects;
+    return [
+      ...wardRedirects,
+      // The election section moved to the plural `/elections` when it gained a
+      // cycle level (`/elections/<year>`) and a ticket level
+      // (`/elections/<year>/<party>`). `/election/<state>` is handled by its own
+      // page component — a config redirect there would shadow nothing useful,
+      // since the state segment is dropped either way.
+      { source: "/election", destination: "/elections", permanent: true },
+    ];
   },
   async headers() {
     // X (Twitter) card validation is flaky with the default

@@ -1,0 +1,18 @@
+// ============================================================
+// Population estimates (cross-level demographic; keyed via FiscalEntity today)
+// ============================================================
+
+/// Population estimates. ~500 rows.
+model PopulationEstimate {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityCode String   @map("entity_code") @db.VarChar(60)
+  year       Int      @db.SmallInt
+  population BigInt
+  source     String   @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  entity FiscalEntity @relation(fields: [entityCode], references: [code])
+
+  @@unique([entityCode, year], map: "uq_population")
+  @@map("population_estimates")
+}

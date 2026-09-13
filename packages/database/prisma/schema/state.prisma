@@ -1,0 +1,77 @@
+// ============================================================
+// State level: states + curated state profiles
+// ============================================================
+
+model NigerianState {
+  code     String @id @db.VarChar(30)
+  name     String @unique @db.VarChar(50)
+  zoneCode String @map("zone_code") @db.VarChar(20)
+  capital  String @db.VarChar(50)
+
+  zone              GeopoliticalZone       @relation(fields: [zoneCode], references: [code])
+  documents         Document[]
+  sourceReferences  SourceReference[]
+  lgas              NigerianLga[]
+  constituencies    NigerianConstituency[]
+  fiscalEntity      FiscalEntity?
+  stateProfile      StateProfile?
+  officialPositions OfficialPosition[]
+  politicalTerms    PoliticalTerm[]
+  officialElections OfficialElection[]
+  corruptionCases   CorruptionCase[]
+  partyChapters     PartyStateChapter[]
+  campaigns         Campaign[]
+  campaignCouncilMembers CampaignCouncilMember[]
+  elections         Election[]
+  electionExclusions ElectionExcludedState[]
+
+  @@index([zoneCode], map: "idx_states_zone")
+  @@map("nigerian_states")
+}
+
+
+// Curated, admin-editable state-level profile. One-to-one with NigerianState.
+// All fields nullable (partial curation). Seeded from data/state-profiles.json.
+// TODO(state-profile): build an admin-dashboard editing UI + backfill nulled
+// fields. Tracked in PROGRESS.md. No write path exists yet — read-only.
+model StateProfile {
+  stateCode String @id @map("state_code") @db.VarChar(30)
+
+  // Identity & orientation
+  about        String?   @db.Text
+  motto        String?   @db.VarChar(120)
+  dateCreated  DateTime? @map("date_created") @db.Date
+  landAreaSqKm Decimal?  @map("land_area_sq_km") @db.Decimal(10, 2)
+  sealImageUrl String?   @map("seal_image_url") @db.Text
+  flagImageUrl String?   @map("flag_image_url") @db.Text
+
+  // Official links & sourcing
+  officialWebsiteUrl String? @map("official_website_url") @db.Text
+  financeMinistryUrl String? @map("finance_ministry_url") @db.Text
+  assemblyWebsiteUrl String? @map("assembly_website_url") @db.Text
+  inecInfoUrl        String? @map("inec_info_url") @db.Text
+  // State Independent Electoral Commission (SIEC) — the state body that runs
+  // Local Government elections, distinct from the federal INEC (inecInfoUrl).
+  stateElectoralCommissionUrl String? @map("state_electoral_commission_url") @db.Text
+
+  // Contact & accountability
+  contactAddress     String? @map("contact_address") @db.Text
+  contactPhone       String? @map("contact_phone") @db.VarChar(60)
+  contactEmail       String? @map("contact_email") @db.Text
+  complaintPortalUrl String? @map("complaint_portal_url") @db.Text
+  whistleblowerUrl   String? @map("whistleblower_url") @db.Text
+
+  // Social & news
+  twitterUrl   String? @map("twitter_url") @db.Text
+  facebookUrl  String? @map("facebook_url") @db.Text
+  instagramUrl String? @map("instagram_url") @db.Text
+  youtubeUrl   String? @map("youtube_url") @db.Text
+  newsUrl      String? @map("news_url") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  state NigerianState @relation(fields: [stateCode], references: [code])
+
+  @@map("state_profiles")
+}

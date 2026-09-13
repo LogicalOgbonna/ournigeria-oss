@@ -22,6 +22,10 @@ export type {
   CompletenessCategory,
   CompletenessInput,
 } from './completeness';
+export { ensureTicketElections, MATE_ELECTION_TYPE } from './campaigns/election-anchor';
+export type { TicketAnchorInput, AnchorContext, AnchorResult, AnchorConfidence } from './campaigns/election-anchor';
+export { eventSpecificity, findSubsumingElection, resolveElectionIdForRace } from './campaigns/election-subsumption';
+export type { ScopeArc, ElectionEventLite, AttachableRow, Subsumption } from './campaigns/election-subsumption';
 // NOTE: FAAC seeding (./faac) is intentionally NOT re-exported from this barrel.
 // seed-faac.ts loads `xlsx` (sheetjs) at import time, and the API runtime image
 // deliberately prunes node_modules/xlsx. Re-exporting it here pulled xlsx into the

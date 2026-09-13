@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { getStateDetails, ApiError } from "@/lib/api";
 import { months } from "@/lib/utils";
 import { StructuredData } from "./_seo/structured-data";
-import { getElectionGate, isElectionEnabledFor } from "@/lib/election-gate";
+import { getElectionGate, isElectionEnabledFor, offGate } from "@/lib/election-gate";
 import { ElectionSection } from "@/components/civic/ElectionSection";
 import {
   StateHero,
@@ -59,7 +59,8 @@ export default async function StatePage({
   const { governor, stats, economy } = state;
   const profile = state.profile ?? null;
 
-  const gate = await getElectionGate();
+  // Unknown gate (unreachable, nothing stale) hides election UI, same as off.
+  const gate = (await getElectionGate()) ?? offGate();
   const showElection = isElectionEnabledFor(gate, { state: state_slug });
 
   return (

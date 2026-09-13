@@ -1,0 +1,296 @@
+// ============================================================
+// Election campaigns: ticket, council, documents, media
+// ============================================================
+//
+// A Campaign is one TICKET in one race: candidate + running mate, under a
+// party, for (electionType, year, scope). Race-agnostic (same optional
+// geographic arc as OfficialElection) so it covers president down to LGA
+// chairman without a future migration.
+//
+//
+// MIGRATION SQL (hand-written, not expressible in Prisma — the
+// create-migration guard keeps SQL-only objects, but they must be added here
+// once and audited on every later diff):
+//   CREATE UNIQUE INDEX uq_campaigns_race_party_faction ON campaigns
+//     (election_type, year, state_code, constituency_code, lga_code,
+//      party_acronym, faction_label) NULLS NOT DISTINCT WHERE status IN
+//     ('active','concluded');  -- partial over PUBLIC rows only: drafts and
+//     hidden (suspended/withdrawn/dissolved) rows are unconstrained, so a
+//     replacement candidate can be drafted beside a live ticket without a
+//     collision; AdminCampaignsService.approve guards the key at publish time.
+//   idx_campaigns_review_queue: partial index on (review_status,
+//     review_requested_at) WHERE review_status <> 'reviewed' — backs the
+//     admin review queue list.
+//   chk_campaigns_election_type: election_type IN ('presidential',
+//     'gubernatorial','senatorial','house_of_reps','state_assembly',
+//     'lga_chairman','councilor','other')  -- NOT the running-mate types;
+//     a ticket is one campaign, the mate is a column.
+//   chk_campaigns_status: status IN ('draft','active','suspended','withdrawn',
+//     'dissolved','concluded')
+//   Plan-45 provenance trio on campaigns, campaign_council_members,
+//   campaign_documents: confidence IN ('high','medium','low'),
+//     review_status IN ('unreviewed','reviewed','disputed'),
+//     source_type IN ('manual','agent','citizen','import')
+model Campaign {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug         String  @unique @db.VarChar(160)
+  electionType String  @map("election_type") @db.VarChar(30)
+  year         Int
+
+  /// Scope arc, all nullable, no exclusive CHECK — same as OfficialElection.
+  /// Presidential = all null. Gubernatorial = stateCode. Senatorial /
+  /// house_of_reps / state_assembly = constituencyCode. lga_chairman = lgaCode.
+  stateCode        String? @map("state_code") @db.VarChar(30)
+  constituencyCode String? @map("constituency_code") @db.VarChar(80)
+  lgaCode          String? @map("lga_code") @db.VarChar(60)
+
+  partyAcronym String? @map("party_acronym") @db.VarChar(20)
+
+  /// The election EVENT this ticket contests (plan 68, D10.1 attachment
+  /// rule). Nullable: 'other'-type campaigns and rows nobody has attached
+  /// yet stay null.
+  electionId String? @map("election_id") @db.Uuid
+
+  /// The is_primary/won official_elections row this ticket is built on.
+  officialElectionId String? @unique @map("official_election_id") @db.Uuid
+
+  candidateOfficialId String? @map("candidate_official_id") @db.Uuid
+  candidateName       String  @map("candidate_name") @db.VarChar(200)
+  /// Poster headline override when the surname alone reads wrong ("Tinubu",
+  /// "Zugwai"). Also the accented word in "Who is <short>?".
+  candidateShortName  String? @map("candidate_short_name") @db.VarChar(60)
+  candidateImageUrl   String? @map("candidate_image_url") @db.VarChar(500)
+  /// "Who is X?" paragraph. Not nigerian_officials.biography — the candidate
+  /// seed writes priorOffice there.
+  candidateBio        String? @map("candidate_bio") @db.Text
+
+  runningMateOfficialId String? @map("running_mate_official_id") @db.Uuid
+  runningMateName       String? @map("running_mate_name") @db.VarChar(200)
+  runningMateImageUrl   String? @map("running_mate_image_url") @db.VarChar(500)
+
+  /// Distinguishes rival slates for the same race key — e.g. "Faction A" /
+  /// "Faction B". Null for the uncontested/canonical case.
+  factionLabel String? @map("faction_label") @db.VarChar(100)
+  isDisputed   Boolean @default(false) @map("is_disputed")
+
+  /// Position on the landing-page rail within one race (electionType, year,
+  /// scope), first = 1. Owned by the dashboard (PUT /api/admin/campaigns/order);
+  /// seed-campaigns.ts writes dataset positions only when it creates a race
+  /// nobody has ranked yet. NULL = unranked, sorts last. Sibling *_order columns are
+  /// `Int @default(0)`; this one is nullable because 0 would sort FIRST.
+  /// MIGRATION SQL: uq_campaigns_race_display_order — partial unique on
+  /// (election_type, year, state_code, constituency_code, lga_code,
+  /// display_order) NULLS NOT DISTINCT WHERE display_order IS NOT NULL.
+  displayOrder Int? @map("display_order")
+
+  /// Editorial copy the ticket page renders (Figma 1:987 / 1:1209).
+  visionLine  String? @map("vision_line") @db.Text
+  fineprint   String? @db.Text
+  pullQuote   String? @map("pull_quote") @db.Text
+  pullQuoteBg String? @map("pull_quote_bg") @db.VarChar(20)
+  /// The poster's own background fill. Deliberately NOT PoliticalParty.color
+  /// (the APC poster is red, not emerald).
+  brandColor  String? @map("brand_color") @db.VarChar(20)
+
+  /// draft → (submit) → in review → (approve) → active → concluded; suspended,
+  /// withdrawn, dissolved hide the ticket. Only verbs in AdminCampaignsService
+  /// move this column; PATCH never accepts it.
+  /// MIGRATION SQL: chk_campaigns_status widened with 'draft'.
+  status String @default("draft") @db.VarChar(20)
+
+  /// Set by submit and by every edit to a live ticket; cleared by approve.
+  reviewRequestedAt DateTime? @map("review_requested_at") @db.Timestamptz()
+  reviewRequestedBy String?   @map("review_requested_by") @db.VarChar(100)
+  /// Reviewer's "request changes" note; cleared by approve.
+  reviewNote        String?   @map("review_note") @db.Text
+
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl      String?   @map("source_url") @db.Text
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  party             PoliticalParty?       @relation(fields: [partyAcronym], references: [acronym])
+  state             NigerianState?        @relation(fields: [stateCode], references: [code])
+  constituency      NigerianConstituency? @relation(fields: [constituencyCode], references: [code])
+  lga               NigerianLga?          @relation(fields: [lgaCode], references: [code])
+  /// Restrict, not SetNull: a hard delete of a linked official/election (an
+  /// ad-hoc dedup) must fail loudly until the dedup repoints the campaign at
+  /// the survivor — see the slug-alias invariant in CLAUDE.md.
+  officialElection  OfficialElection?     @relation(fields: [officialElectionId], references: [id], onDelete: Restrict)
+  election          Election?             @relation(fields: [electionId], references: [id], onDelete: Restrict)
+  candidateOfficial NigerianOfficial?     @relation("CampaignCandidate", fields: [candidateOfficialId], references: [id], onDelete: Restrict)
+  runningMate       NigerianOfficial?     @relation("CampaignRunningMate", fields: [runningMateOfficialId], references: [id], onDelete: Restrict)
+
+  council   CampaignCouncilMember[]
+  documents CampaignDocument[]
+  media     CampaignMedia[]
+
+  @@index([electionType, year, displayOrder], map: "idx_campaigns_type_year_order")
+  @@index([partyAcronym, electionType, year], map: "idx_campaigns_party_type_year")
+  @@index([stateCode], map: "idx_campaigns_state")
+  @@index([constituencyCode], map: "idx_campaigns_constituency")
+  @@index([lgaCode], map: "idx_campaigns_lga")
+  @@index([candidateOfficialId], map: "idx_campaigns_candidate")
+  @@index([electionId], map: "idx_campaigns_election")
+  @@index([runningMateOfficialId], map: "idx_campaigns_running_mate")
+  @@map("campaigns")
+}
+
+
+/// Admin-editable role catalog (dashboard-managed) — new titles are data, not
+/// a migration. The migration that creates this table MUST also INSERT the
+/// initial rows (director_general, deputy_director_general, secretary,
+/// spokesperson, treasurer, state_coordinator, lga_coordinator, women_leader,
+/// youth_leader, member) or every CampaignCouncilMember insert fails on the FK.
+model CampaignCouncilRole {
+  code       String   @id @db.VarChar(60)
+  label      String   @db.VarChar(100)
+  sortOrder  Int      @default(0) @map("sort_order")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  members CampaignCouncilMember[]
+
+  @@map("campaign_council_roles")
+}
+
+
+/// Flat membership list + a geographic scope field (national/state/lga) rather
+/// than a parent/child org-chart — answers "who covers Kano" without recursive
+/// queries. officialId is optional: a council member may be an existing
+/// NigerianOfficial (sitting senator, ex-governor), a private citizen with no
+/// official record, or (rare) both eligible and not yet linked. name/imageUrl
+/// are denormalized fallbacks, same pattern as PartyOfficer.
+///
+/// Lifecycle follows OfficialPosition: `status` is the current state,
+/// `endReason` says why it ended. startDate is nullable on purpose —
+/// appointment dates are often unknown at import time and a default(now())
+/// would record the import day as fact.
+///
+/// MIGRATION SQL:
+///   chk_campaign_council_scope_level: scope_level IN ('national','state','lga')
+///   chk_campaign_council_scope: (scope_level = 'national' AND state_code IS NULL
+///     AND lga_code IS NULL) OR (scope_level = 'state' AND state_code IS NOT NULL
+///     AND lga_code IS NULL) OR (scope_level = 'lga' AND lga_code IS NOT NULL)
+///   chk_campaign_council_status: status IN ('active','ended')
+///   chk_campaign_council_end_reason: end_reason IS NULL OR end_reason IN
+///     ('resigned','removed','reshuffled','deceased','campaign_ended')
+///   CREATE UNIQUE INDEX uq_campaign_council_active_official ON
+///     campaign_council_members (campaign_id, official_id, role_code)
+///     WHERE official_id IS NOT NULL AND status = 'active';
+model CampaignCouncilMember {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId String @map("campaign_id") @db.Uuid
+  roleCode   String @map("role_code") @db.VarChar(60)
+
+  officialId String? @map("official_id") @db.Uuid
+  name       String  @db.VarChar(200)
+  imageUrl   String? @map("image_url") @db.VarChar(500)
+
+  scopeLevel String  @default("national") @map("scope_level") @db.VarChar(10)
+  stateCode  String? @map("state_code") @db.VarChar(30)
+  lgaCode    String? @map("lga_code") @db.VarChar(60)
+
+  displayOrder Int @default(0) @map("display_order")
+
+  status    String    @default("active") @db.VarChar(20)
+  endReason String?   @map("end_reason") @db.VarChar(30)
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl      String?   @map("source_url") @db.Text
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  campaign Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  role     CampaignCouncilRole @relation(fields: [roleCode], references: [code])
+  official NigerianOfficial?   @relation("CampaignCouncilOfficial", fields: [officialId], references: [id], onDelete: Restrict)
+  state    NigerianState?      @relation(fields: [stateCode], references: [code])
+  lga      NigerianLga?        @relation(fields: [lgaCode], references: [code])
+
+  @@index([campaignId], map: "idx_campaign_council_campaign")
+  @@index([officialId], map: "idx_campaign_council_official")
+  @@index([roleCode], map: "idx_campaign_council_role")
+  @@index([stateCode, status], map: "idx_campaign_council_state_status")
+  @@index([lgaCode, status], map: "idx_campaign_council_lga_status")
+  @@map("campaign_council_members")
+}
+
+
+/// The documents panel (Figma 1:1108): one row per tab. `subject` matters —
+/// the manifesto is the ticket's, the CV and achievements are one person's.
+/// A tab with no fileUrl renders its cover with download disabled.
+///
+/// MIGRATION SQL:
+///   chk_campaign_documents_kind: kind IN ('manifesto','cv','achievements')
+///   chk_campaign_documents_subject: subject IN ('ticket','candidate','running_mate')
+model CampaignDocument {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId String  @map("campaign_id") @db.Uuid
+  kind       String  @db.VarChar(20)
+  subject    String  @default("ticket") @db.VarChar(20)
+  title      String  @db.VarChar(100)
+  blurb      String? @db.VarChar(255)
+  coverUrl   String? @map("cover_url") @db.VarChar(500)
+  fileUrl    String? @map("file_url") @db.VarChar(500)
+  pageCount  Int?    @map("page_count")
+
+  confidence     String    @default("medium") @db.VarChar(10)
+  sourceType     String    @default("manual") @map("source_type") @db.VarChar(20)
+  sourceUrl      String?   @map("source_url") @db.Text
+  reviewStatus   String    @default("unreviewed") @map("review_status") @db.VarChar(20)
+  reviewedBy     String?   @map("reviewed_by") @db.VarChar(100)
+  lastVerifiedAt DateTime? @map("last_verified_at") @db.Timestamptz()
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, kind, subject], map: "uq_campaign_documents_kind_subject")
+  @@map("campaign_documents")
+}
+
+
+/// Every image slot the poster rail and ticket page draw, in one table.
+/// `type` names the slot; `metadata` carries per-poster geometry (the
+/// Figma-authored crop box / chip / scrim) when it has to live in data rather
+/// than in presidential-2027.ts. sourceUrl carries image rights/attribution.
+///
+/// MIGRATION SQL:
+///   chk_campaign_media_type: type IN ('poster_candidate','poster_mate',
+///     'card_candidate','card_mate','quote_photo','bio_photo','banner',
+///     'logo','photo')
+///   uq_campaign_media_slot (20260908090200_campaign_media_slot_unique):
+///     UNIQUE (campaign_id, type) WHERE type IN ('poster_candidate',
+///     'poster_mate','card_candidate','card_mate','quote_photo','bio_photo',
+///     'logo') — the single-slot types are one row per ticket, so two
+///     concurrent commits cannot both insert. The append types (banner, photo)
+///     are deliberately outside the index. Partial uniques are invisible to
+///     Prisma: the name is in PROTECTED_ARTIFACTS (scripts/create-migration.ts).
+model CampaignMedia {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId   String    @map("campaign_id") @db.Uuid
+  type         String    @db.VarChar(20)
+  url          String    @db.VarChar(500)
+  caption      String?   @db.VarChar(255)
+  displayOrder Int       @default(0) @map("display_order")
+  metadata     Json?     @db.JsonB
+  sourceUrl    String?   @map("source_url") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, type, displayOrder], map: "idx_campaign_media_campaign_type_order")
+  @@map("campaign_media")
+}

@@ -18,6 +18,7 @@ import { DonationModule } from "./donation/donation.module";
 import { DevAuthModule } from "./auth/dev-auth.module";
 import { OfficialsModule } from "./officials/officials.module";
 import { PartiesModule } from "./parties/parties.module";
+import { CampaignsModule } from "./campaigns/campaigns.module";
 import { ProposalsModule } from "./proposals/proposals.module";
 import { GeoModule } from "./geo/geo.module";
 import { ElectionModule } from "./election/election.module";
@@ -29,6 +30,7 @@ import { CorruptionCasesModule } from "./corruption-cases/corruption-cases.modul
 import { OkfModule } from "./okf/okf.module";
 import { ImportsModule } from "./admin/imports/imports.module";
 import { AuditModule } from "./audit/audit.module";
+import { StorageModule } from "./storage/storage.module";
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { AuditModule } from "./audit/audit.module";
       connectionTimeoutMillis: 10_000,
       allowExitOnIdle: false,
     }),
+    StorageModule.forRoot(),
     ChartModule,
     AuthModule,
     ConversationsModule,
@@ -53,6 +56,7 @@ import { AuditModule } from "./audit/audit.module";
     HealthModule,
     OfficialsModule,
     PartiesModule,
+    CampaignsModule,
     ProposalsModule,
     GeoModule,
     ElectionModule,

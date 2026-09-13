@@ -4,7 +4,7 @@ const API_BASE = typeof window !== "undefined"
   ? "/api" 
   : (process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : "http://localhost:3000/api");
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "omit",
     ...options,
@@ -42,8 +42,8 @@ export async function getOfficials(params?: Record<string, string>) {
   }>(`/officials${qs}`);
 }
 
-export async function getOfficialById(id: string) {
-  return apiFetch<Official>(`/officials/${id}`);
+export async function getOfficialById(id: string, init?: RequestInit) {
+  return apiFetch<Official>(`/officials/${id}`, init);
 }
 
 export async function getOfficialsByLocation(params: {

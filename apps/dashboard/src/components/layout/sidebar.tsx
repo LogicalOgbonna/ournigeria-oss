@@ -40,6 +40,11 @@ import {
   Upload,
   KeyRound,
   ChevronRight,
+  Vote,
+  ListChecks,
+  ArrowUpDown,
+  Tags,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import { Collapsible } from "radix-ui";
@@ -65,6 +70,11 @@ interface NavItem {
   icon: LucideIcon;
   /** RBAC permission required to see this item; omit for always-visible. */
   permission?: string;
+  /**
+   * ANY-of alternative to `permission` for pages whose API reads accept more
+   * than one permission (e.g. elections: writers CRUD, reviewers publish).
+   */
+  anyOfPermissions?: string[];
 }
 
 // Pinned, ungrouped home link rendered above all collapsible sections.
@@ -104,6 +114,42 @@ const communityNav: NavItem[] = [
     href: "/dashboard/donations",
     icon: Heart,
     permission: "donations.read",
+  },
+];
+
+const electionNav: NavItem[] = [
+  {
+    title: "Tickets",
+    href: "/dashboard/campaigns",
+    icon: Vote,
+    // Every campaign role (writer, reviewer, auditor, researcher) holds read.
+    permission: "campaigns.read",
+  },
+  {
+    title: "Review Queue",
+    href: "/dashboard/campaigns/queue",
+    icon: ListChecks,
+    permission: "campaigns.review",
+  },
+  {
+    title: "Rail Order",
+    href: "/dashboard/campaigns/order",
+    icon: ArrowUpDown,
+    permission: "campaigns.write",
+  },
+  {
+    title: "Council Roles",
+    href: "/dashboard/campaigns/roles",
+    icon: Tags,
+    permission: "campaigns.read",
+  },
+  {
+    title: "Events",
+    href: "/dashboard/elections",
+    icon: CalendarDays,
+    // D5 split (plan 68): writers CRUD events, reviewers publish them — the
+    // list is readable by both, mirroring GET /api/admin/elections.
+    anyOfPermissions: ["elections.write", "campaigns.review"],
   },
 ];
 
@@ -332,6 +378,7 @@ const adminNav: NavItem[] = [
 
 const navGroups = [
   { label: "Community", items: communityNav },
+  { label: "Election Tickets", items: electionNav },
   { label: "Social", items: socialNav },
   { label: "Knowledge Base", items: knowledgeNav },
   { label: "AI Engine", items: aiEngineNav },
@@ -383,8 +430,10 @@ export function AppSidebar() {
     return navGroups
       .map((group) => ({
         ...group,
-        items: group.items.filter(
-          (item) => !item.permission || can(item.permission),
+        items: group.items.filter((item) =>
+          item.anyOfPermissions
+            ? item.anyOfPermissions.some((p) => can(p))
+            : !item.permission || can(item.permission),
         ),
       }))
       .filter((group) => group.items.length > 0);
