@@ -245,6 +245,16 @@ export function racesForViewer(
   return races.filter((r) => !r.scope || raceCoversGeo(r.scope, { state, lga }));
 }
 
+/**
+ * True when at least one race actually has candidates to show. A hero with
+ * entries but zero cards everywhere (campaigns API empty/unreachable, or a
+ * viewer geo-filtered down to candidate-less races) reads as broken — the
+ * page shows the AskHero pitch instead.
+ */
+export function hasBallotContent(races: readonly HomeRace[]): boolean {
+  return races.some((r) => r.candidates.length > 0);
+}
+
 const TIER_ORDER = ["Federal", "State", "Local"];
 
 /**

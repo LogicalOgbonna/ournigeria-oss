@@ -2,8 +2,9 @@
 
 import { useMemo } from "react";
 import { Show } from "@/components/ui/Show";
-import { buildPartySlates, racesForViewer, type HomeRace } from "@/lib/home-ballot";
+import { buildPartySlates, hasBallotContent, racesForViewer, type HomeRace } from "@/lib/home-ballot";
 import { usePersistedLocation } from "@/hooks/usePersistedLocation";
+import { AskHero } from "./AskHero";
 import { CandidatesHero } from "./CandidatesHero";
 import { HeroBackdrop } from "./HeroBackdrop";
 import { PartiesHero } from "./PartiesHero";
@@ -43,6 +44,12 @@ export function HomeHero({
   });
 
   const slate = slates.find((s) => s.party.acronym === filters.party) ?? slates[0];
+
+  // The server picks this hero when SOME viewer has ballot content, but THIS
+  // viewer's geo filter can still leave only candidate-less races (e.g. the
+  // gate carries one state's race and the presidential field is empty) — an
+  // election hero with zero cards reads as broken, so they get the pitch.
+  if (!hasBallotContent(visibleRaces)) return <AskHero withLocationSlot />;
 
   return (
     <div className="relative">

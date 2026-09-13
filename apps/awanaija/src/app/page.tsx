@@ -4,7 +4,7 @@ import { WelcomeModalWrapper } from "@/components/civic/WelcomeModalWrapper";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PersonalizedData } from "@/components/sections/PersonalizedData";
 import { getElectionGate } from "@/lib/election-gate";
-import { buildHomeRaces } from "@/lib/home-ballot";
+import { buildHomeRaces, hasBallotContent } from "@/lib/home-ballot";
 import { getCampaigns, toRailCandidate } from "@/lib/campaigns";
 import { presidentialTickets } from "./(election)/_lib";
 import { HomeHero } from "./_component/HomeHero";
@@ -65,17 +65,17 @@ export default async function Home() {
           per-viewer, client-side. Gate OFF (kill switch, decision C): the ask
           pitch takes the hero position instead — same page, different lead. */}
 
-      <Show when={races.length > 0}>
+      <Show when={hasBallotContent(races)}>
         <Suspense fallback={<div className="h-225" />}>
           <HomeHero races={races} years={years} electionYear={electionYear} />
         </Suspense>
       </Show>
 
-      <Show when={races.length === 0}>
+      <Show when={!hasBallotContent(races)}>
         <AskHero />
       </Show>
 
-      <PersonalizedData heroWillMount={races.length > 0} />
+      <PersonalizedData heroWillMount={hasBallotContent(races)} />
     </PageLayout>
   );
 }

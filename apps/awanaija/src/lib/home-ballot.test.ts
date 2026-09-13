@@ -263,3 +263,11 @@ test("buildHomeRaces: a throwing presidential source (no API at build time) stil
     { office: "president", n: 0 },
   ]);
 });
+
+test("hasBallotContent: entries without a single candidate anywhere do not count as a ballot", async () => {
+  const { hasBallotContent } = await import("./home-ballot");
+  assert.equal(hasBallotContent([]), false);
+  const empty = { id: "x", office: "governor", label: "Enugu Governorship", candidates: [] };
+  assert.equal(hasBallotContent([empty]), false);
+  assert.equal(hasBallotContent([empty, { ...empty, id: "p", office: "president", candidates: PRESIDENTIAL }]), true);
+});
