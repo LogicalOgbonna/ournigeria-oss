@@ -250,3 +250,16 @@ test("buildHomeRaces: dropdown follows ballot order regardless of gate payload o
   const { races } = await buildHomeRaces(gate, sources(), NOW);
   assert.deepEqual(races.map((r) => r.office), ["president", "governor", "senate", "hor"]);
 });
+
+test("buildHomeRaces: a throwing presidential source (no API at build time) still exports — empty rail, no crash", async () => {
+  const failing = {
+    presidential: async () => {
+      throw new TypeError("fetch failed");
+    },
+    tickets: async () => [] as RailCandidate[],
+  };
+  const { races } = await buildHomeRaces(null, failing, NOW); // gate also unreachable, like CI
+  assert.deepEqual(races.map((r) => ({ office: r.office, n: r.candidates.length })), [
+    { office: "president", n: 0 },
+  ]);
+});

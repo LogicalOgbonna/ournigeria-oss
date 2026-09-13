@@ -148,7 +148,10 @@ export async function buildHomeRaces(
         .sort((a, b) => officeRank(a.office) - officeRank(b.office))
     : [];
   const year = (gate ? presidentialYear(gate) : null) ?? FALLBACK_PRESIDENTIAL_YEAR;
-  const presidential = await sources.presidential(year);
+  // Same contract as the tickets source: an unreachable campaigns API is an
+  // empty rail, never a crashed homepage. This is also what static builds hit
+  // (CI/prerender run with no API) — the page must still export.
+  const presidential = await sources.presidential(year).catch(() => [] as readonly RailCandidate[]);
 
   const races: HomeRace[] = [];
   for (const race of upcoming) {

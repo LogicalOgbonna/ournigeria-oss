@@ -113,7 +113,11 @@ async function get<T>(path: string, notFound: T): Promise<T> {
     return await apiFetch<T>(path, { next: { revalidate: CAMPAIGNS_REVALIDATE } } as RequestInit);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return notFound;
-    throw err;
+    // Any other failure degrades to the not-found shape instead of throwing:
+    // an unreachable API is an empty rail/page section, never a crashed
+    // render — and static builds (CI prerender, no API) must still export.
+    console.warn(`[campaigns] ${path} failed: ${err instanceof Error ? err.message : err}`);
+    return notFound;
   }
 }
 
