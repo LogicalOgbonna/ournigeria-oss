@@ -98,20 +98,24 @@ test("buildHomeRaces: explicit enabled:false is the kill switch — zero races, 
   assert.deepEqual(years, []);
 });
 
-test("buildHomeRaces: null gate (unreachable, nothing stale) => presidential fallback with the fallback year", async () => {
+test("buildHomeRaces: null gate (unreachable, nothing stale) => zero races — AskHero covers it, no invented ballot (decision B)", async () => {
   const { races, year, years } = await buildHomeRaces(null, sources(), NOW);
-  assert.deepEqual(races.map((r) => ({ office: r.office, label: r.label })), [
-    { office: "president", label: "Presidential" },
-  ]);
-  assert.deepEqual(races[0].candidates, PRESIDENTIAL);
+  assert.deepEqual(races, []);
   assert.equal(year, 2027);
   assert.deepEqual(years, [2027]);
 });
 
-test("buildHomeRaces: enabled gate with nothing published => presidential fallback (pre-launch state)", async () => {
-  const { races } = await buildHomeRaces({ enabled: true, races: [] }, sources(), NOW);
-  assert.deepEqual(races.map((r) => r.office), ["president"]);
-  assert.deepEqual(races[0].candidates, PRESIDENTIAL);
+test("buildHomeRaces: published rows are authoritative — unpublishing the presidential row removes it (decision B)", async () => {
+  // Gate carries only the governorships (president unpublished).
+  const gate = gateWith([
+    { office: "governor", year: 2026, date: "2026-12-08", label: "Osun Governorship", states: ["osun"] },
+  ]);
+  const { races } = await buildHomeRaces(gate, sources(OSUN_TICKETS), NOW);
+  assert.ok(!races.some((r) => r.office === "president"));
+
+  // And nothing published at all => zero races (AskHero, not a stale ballot).
+  const none = await buildHomeRaces({ enabled: true, races: [] }, sources(), NOW);
+  assert.deepEqual(none.races, []);
 });
 
 test("buildHomeRaces: past races drop off; lga scope maps to the DB code; tickets errors mean an empty rail, not a crash", async () => {
@@ -130,9 +134,9 @@ test("buildHomeRaces: past races drop off; lga scope maps to the DB code; ticket
   const { races } = await buildHomeRaces(gate, failing, NOW);
 
   assert.deepEqual(calls, [{ type: "lga_chairman", year: 2026, lga: "kwara_ifelodun" }]);
-  // president prepended as fallback entry; the LGA race stays listed with an empty rail
+  // No invented president entry; the LGA race stays listed with an empty rail
+  // (hasBallotContent then routes this page to AskHero).
   assert.deepEqual(races.map((r) => ({ office: r.office, label: r.label, n: r.candidates.length })), [
-    { office: "president", label: "Presidential", n: 2 },
     { office: "lga_chairman", label: "Kwara LGA Polls", n: 0 },
   ]);
 });
@@ -234,10 +238,12 @@ test("REPRO: two same-office races in different states stay SEPARATE — an Enug
   // Two distinct contests => two distinct entries, each with its own scope.
   assert.equal(races.filter((r) => r.office === "governor").length, 2);
 
+  // Decision B: no auto-injected Presidential — each viewer sees exactly
+  // their published race, nothing borrowed from another state.
   const enuguViewer = racesForViewer(races, { stateCode: "enugu" });
-  assert.deepEqual(enuguViewer.map((r) => r.label).sort(), ["Enugu Governorship", "Presidential"]);
+  assert.deepEqual(enuguViewer.map((r) => r.label), ["Enugu Governorship"]);
   const osunViewer = racesForViewer(races, { stateCode: "osun" });
-  assert.deepEqual(osunViewer.map((r) => r.label).sort(), ["Osun Governorship", "Presidential"]);
+  assert.deepEqual(osunViewer.map((r) => r.label), ["Osun Governorship"]);
 });
 
 test("buildHomeRaces: dropdown follows ballot order regardless of gate payload order", async () => {
@@ -258,10 +264,15 @@ test("buildHomeRaces: a throwing presidential source (no API at build time) stil
     },
     tickets: async () => [] as RailCandidate[],
   };
-  const { races } = await buildHomeRaces(null, failing, NOW); // gate also unreachable, like CI
+  // Gate up with a president race, campaigns API down: entry stays, rail empty.
+  const gate = gateWith([{ office: "president", year: 2027, date: "2027-01-16" }]);
+  const { races } = await buildHomeRaces(gate, failing, NOW);
   assert.deepEqual(races.map((r) => ({ office: r.office, n: r.candidates.length })), [
     { office: "president", n: 0 },
   ]);
+  // Gate unreachable too => zero races, still no crash.
+  const dark = await buildHomeRaces(null, failing, NOW);
+  assert.deepEqual(dark.races, []);
 });
 
 test("hasBallotContent: entries without a single candidate anywhere do not count as a ballot", async () => {

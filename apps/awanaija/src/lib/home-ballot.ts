@@ -118,14 +118,14 @@ export interface HomeBallotSources {
  * empty rail is the truth ("no confirmed candidates yet"), a missing entry
  * looks like a bug.
  *
- * Gate semantics (decision C, 2026-09-13):
- * - `{enabled: false}` is the KILL SWITCH speaking deliberately — zero races,
- *   NO presidential fallback; the page renders no hero at all.
- * - `null` (gate unreachable, nothing stale) falls back to the presidential
- *   race — an API blip must never blank the homepage.
- * - `{enabled: true}` with no upcoming/published races also falls back: that
- *   is the pre-launch state (rows seeded, nothing published yet), and the
- *   presidential field is live product either way.
+ * Gate semantics (decision B supersedes C's fallback, 2026-09-13): PUBLISHED
+ * ROWS ARE THE ONLY SOURCE OF THE ELECTION HERO. There is no auto-injected
+ * presidential entry — unpublishing the presidential row removes it like any
+ * other race. Every empty outcome (kill switch, nothing published, gate
+ * unreachable with nothing stale, viewer geo-filtered to no content) renders
+ * the AskHero pitch via `hasBallotContent` — the never-blank-page guarantee
+ * lives there now. Blip protection on an unreachable gate is the cache stack
+ * (API last-known-good + Next data cache + L1), not a content fallback.
  */
 export async function buildHomeRaces(
   gate: ElectionGate | null,
@@ -148,10 +148,12 @@ export async function buildHomeRaces(
         .sort((a, b) => officeRank(a.office) - officeRank(b.office))
     : [];
   const year = (gate ? presidentialYear(gate) : null) ?? FALLBACK_PRESIDENTIAL_YEAR;
-  // Same contract as the tickets source: an unreachable campaigns API is an
-  // empty rail, never a crashed homepage. This is also what static builds hit
-  // (CI/prerender run with no API) — the page must still export.
-  const presidential = await sources.presidential(year).catch(() => [] as readonly RailCandidate[]);
+  // Fetched only when a president race is actually published. Same contract
+  // as the tickets source: an unreachable campaigns API is an empty rail,
+  // never a crashed homepage (static builds/CI prerender with no API included).
+  const presidential = upcoming.some((r) => r.office === "president")
+    ? await sources.presidential(year).catch(() => [] as readonly RailCandidate[])
+    : [];
 
   const races: HomeRace[] = [];
   for (const race of upcoming) {
@@ -203,15 +205,6 @@ export async function buildHomeRaces(
       }
     }
     races.push({ id, office: race.office, label: raceLabel(race), candidates, scope });
-  }
-
-  if (!races.some((r) => r.office === "president")) {
-    races.unshift({
-      id: `president:${year}`,
-      office: "president",
-      label: OFFICE_META.president.label,
-      candidates: presidential,
-    });
   }
 
   const years = [...new Set(upcoming.map((r) => r.year))].sort(
