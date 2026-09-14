@@ -201,8 +201,21 @@ if [ "$DEPLOY_ENV" = "staging" ]; then
   if docker compose -f "$COMPOSE_FILE" config --services 2>/dev/null | grep -qx socials-blue; then
     STAGING_SVCS+=(socials-blue)
   fi
-  docker compose -f "$COMPOSE_FILE" pull "${STAGING_SVCS[@]}"
-  docker compose -f "$COMPOSE_FILE" up -d "${STAGING_SVCS[@]}"
+  # CI's change detection only builds images for the apps a push touched, so
+  # the sha tag may not exist for every service. Pull per service; a service
+  # whose image wasn't rebuilt keeps running its current container instead of
+  # aborting the whole deploy.
+  FRESH_SVCS=()
+  for svc in "${STAGING_SVCS[@]}"; do
+    if docker compose -f "$COMPOSE_FILE" pull "$svc"; then
+      FRESH_SVCS+=("$svc")
+    else
+      echo "No $NEW_IMAGE_TAG image for $svc (not rebuilt this push) — keeping current container"
+    fi
+  done
+  if [ ${#FRESH_SVCS[@]} -gt 0 ]; then
+    docker compose -f "$COMPOSE_FILE" up -d "${FRESH_SVCS[@]}"
+  fi
   DEPLOY_END=$(date +%s)
   log_deploy "success" "" "$(( DEPLOY_END - DEPLOY_START ))"
   notify "✅ *Staging deploy complete*
