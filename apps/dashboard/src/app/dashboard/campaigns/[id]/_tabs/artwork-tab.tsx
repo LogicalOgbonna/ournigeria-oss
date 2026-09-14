@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { AssetDropZone } from "@/components/campaigns/asset-drop-zone";
 import { MediaSlotCard, type SlotShape } from "@/components/campaigns/media-slot-card";
+import { PosterArtEditor } from "@/components/campaigns/poster-art-editor";
 import { ReadOnlyNotice } from "@/components/campaigns/read-only-notice";
 import { ReasonDialog } from "@/components/campaigns/reason-dialog";
 import { SessionReasonBanner } from "@/components/campaigns/session-reason-banner";
@@ -29,6 +30,7 @@ import { byDisplayOrder, reorderPatches } from "@/lib/campaign-assets";
 import {
   MEDIA_APPEND_TYPES,
   MEDIA_SLOT_TYPES,
+  MEDIA_TYPE_HINT,
   MEDIA_TYPE_LABEL,
   campaignsApi,
   ticketHasMate,
@@ -43,8 +45,8 @@ import { usePermissions } from "@/lib/permissions";
 
 /** How the public page frames each slot — drives the preview box and its hint. */
 const SHAPE: Record<MediaType, SlotShape> = {
-  poster_candidate: "portrait",
-  poster_mate: "portrait",
+  poster_candidate: "poster",
+  poster_mate: "poster",
   card_candidate: "square",
   card_mate: "square",
   quote_photo: "free",
@@ -57,8 +59,8 @@ const SHAPE: Record<MediaType, SlotShape> = {
 /** The two slots that only exist on a ticket that runs a pair. */
 const MATE_SLOTS = new Set<MediaType>(["poster_mate", "card_mate"]);
 
-const POSTER_NOTE =
-  "Poster geometry editor arrives in a later release; imported geometry is kept.";
+/** The slots that feed the homepage poster section, in its display order. */
+const POSTER_SLOTS: readonly MediaType[] = ["poster_candidate", "poster_mate"];
 
 /**
  * Every image on the ticket. Seven fixed slots (a second upload REPLACES the
@@ -111,8 +113,11 @@ export function ArtworkTab({
   // A solo race has no mate slots — unless a mate is somehow already stored (or
   // artwork for one is), in which case they stay visible so it can be corrected.
   const mateRelevant = ticketHasMate(campaign);
-  const slots = MEDIA_SLOT_TYPES.filter(
-    (type) => mateRelevant || !MATE_SLOTS.has(type) || bySlot.has(type),
+  const visible = (type: MediaType) =>
+    mateRelevant || !MATE_SLOTS.has(type) || bySlot.has(type);
+  const posterSlots = POSTER_SLOTS.filter(visible);
+  const pageSlots = MEDIA_SLOT_TYPES.filter(
+    (type) => !POSTER_SLOTS.includes(type) && visible(type),
   );
 
   /** presign → PUT → commit for one slot (or one appended row). */
@@ -156,6 +161,34 @@ export function ArtworkTab({
       ...(why ? { reason: why } : {}),
     });
     toast.success("Image details saved");
+    onSaved();
+  }
+
+  /**
+   * PATCH the poster rows' geometry metadata. Sequential on purpose (both
+   * PATCHes re-flag a non-draft ticket for review — a parallel pair races on
+   * that update). Cancelling the reason dialog throws; the editor's own catch
+   * downgrades it to a warning toast.
+   */
+  async function saveGeometry(
+    candidateMetadata: Record<string, unknown>,
+    mateMetadata: Record<string, unknown> | null,
+  ) {
+    const posterRow = bySlot.get("poster_candidate");
+    if (!posterRow) return;
+    const why = await reason.askOrThrow("Save geometry");
+    await campaignsApi.patchMedia(campaign.id, posterRow.id, {
+      metadata: candidateMetadata,
+      ...(why ? { reason: why } : {}),
+    });
+    const mateRow = bySlot.get("poster_mate");
+    if (mateMetadata && mateRow) {
+      await campaignsApi.patchMedia(campaign.id, mateRow.id, {
+        metadata: mateMetadata,
+        ...(why ? { reason: why } : {}),
+      });
+    }
+    toast.success("Poster geometry saved — live on the site within moments");
     onSaved();
   }
 
@@ -221,21 +254,70 @@ export function ArtworkTab({
         canWrite={canWrite}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {slots.map((type) => (
-          <MediaSlotCard
-            key={type}
-            type={type}
-            media={bySlot.get(type) ?? null}
-            shape={SHAPE[type]}
-            note={type.startsWith("poster_") ? POSTER_NOTE : undefined}
+      <Card>
+        <CardHeader>
+          <CardTitle>Homepage poster</CardTitle>
+          <CardDescription>
+            The composed ticket poster shown on the homepage rail and
+            /elections. Upload the cut-outs, then position them below — the
+            preview is exactly what the public site renders, so there is
+            nothing to publish before you can see it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {posterSlots.map((type) => (
+              <MediaSlotCard
+                key={type}
+                type={type}
+                media={bySlot.get(type) ?? null}
+                shape={SHAPE[type]}
+                hint={MEDIA_TYPE_HINT[type]}
+                disabled={!canWrite}
+                onUpload={uploadFor(type)}
+                onSave={saveMedia}
+                onRemove={(m) => void requestRemove(m)}
+              />
+            ))}
+          </div>
+          <PosterArtEditor
+            campaign={campaign}
+            poster={bySlot.get("poster_candidate") ?? null}
+            matePoster={bySlot.get("poster_mate") ?? null}
+            logo={bySlot.get("logo") ?? null}
             disabled={!canWrite}
-            onUpload={uploadFor(type)}
-            onSave={saveMedia}
-            onRemove={(m) => void requestRemove(m)}
+            onSave={saveGeometry}
           />
-        ))}
-      </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign page images</CardTitle>
+          <CardDescription>
+            Everything the public ticket page itself shows — cards, the
+            pull-quote and bio photos, and the party logo. Each card says where
+            its image appears.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {pageSlots.map((type) => (
+              <MediaSlotCard
+                key={type}
+                type={type}
+                media={bySlot.get(type) ?? null}
+                shape={SHAPE[type]}
+                hint={MEDIA_TYPE_HINT[type]}
+                disabled={!canWrite}
+                onUpload={uploadFor(type)}
+                onSave={saveMedia}
+                onRemove={(m) => void requestRemove(m)}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -303,6 +385,7 @@ export function ArtworkTab({
                         type={media.type}
                         media={media}
                         shape={SHAPE[media.type]}
+                        hint={MEDIA_TYPE_HINT[media.type]}
                         title={`${MEDIA_TYPE_LABEL[media.type]} ${index + 1}`}
                         disabled={!canWrite}
                         // No onUpload: an appended commit APPENDS, so a

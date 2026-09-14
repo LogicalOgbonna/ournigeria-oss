@@ -221,15 +221,30 @@ export type MediaType =
   | (typeof MEDIA_SLOT_TYPES)[number]
   | (typeof MEDIA_APPEND_TYPES)[number];
 export const MEDIA_TYPE_LABEL: Record<MediaType, string> = {
-  poster_candidate: "Poster — candidate",
-  poster_mate: "Poster — running mate",
-  card_candidate: "Card — candidate",
-  card_mate: "Card — running mate",
-  quote_photo: "Quote photo",
+  poster_candidate: "Candidate cut-out",
+  poster_mate: "Running-mate cut-out",
+  card_candidate: "Candidate card",
+  card_mate: "Running-mate card",
+  quote_photo: "Pull-quote photo",
   bio_photo: "Bio photo",
   logo: "Party logo",
   banner: "Banner",
   photo: "Gallery photo",
+};
+
+/** Where each slot appears on the public site — shown under the card title. */
+export const MEDIA_TYPE_HINT: Record<MediaType, string> = {
+  poster_candidate:
+    "The candidate cut-out placed on the homepage poster (404×695 canvas). Best as a tight cut-out on a transparent background.",
+  poster_mate:
+    "The running-mate cut-out placed behind the candidate on the homepage poster. Transparent background recommended.",
+  card_candidate: "Square headshot on the ticket page's candidate card (1000×1000).",
+  card_mate: "Square headshot on the ticket page's running-mate card (1000×1000).",
+  quote_photo: "Background photo behind the pull-quote block on the ticket page.",
+  bio_photo: "Photo beside the biography section on the ticket page.",
+  logo: "Party logo — the chip on the homepage poster and the badge on the ticket page (square, 1000×1000).",
+  banner: "Wide banner strip on the ticket page, about 16:6.",
+  photo: "Gallery photo on the ticket page; any shape, 800 px+ on the short edge.",
 };
 export const DOCUMENT_KINDS = ["manifesto", "cv", "achievements"] as const;
 export const DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"] as const;

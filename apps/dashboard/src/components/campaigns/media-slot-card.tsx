@@ -21,10 +21,13 @@ import { toastActionError } from "@/lib/hooks/use-session-reason";
 import { cn } from "@/lib/utils";
 
 /** How the public page frames this slot — drives the preview box and the hint. */
-export type SlotShape = "portrait" | "square" | "wide" | "free";
+export type SlotShape = "portrait" | "poster" | "square" | "wide" | "free";
 
 const SHAPE: Record<SlotShape, { box: string; hint: string }> = {
   portrait: { box: "aspect-[3/4]", hint: "Portrait, about 3:4 (1200×1600)" },
+  // The homepage poster canvas is 404×695 — cut-outs land on it at authored
+  // sizes, so there is no fixed aspect to hit; the box just matches the canvas.
+  poster: { box: "aspect-[404/695]", hint: "Cut-out for the 404×695 poster canvas" },
   square: { box: "aspect-square", hint: "Square (1000×1000)" },
   wide: { box: "aspect-[16/6]", hint: "Wide banner, about 16:6" },
   free: {
@@ -42,6 +45,8 @@ export interface MediaSlotCardProps {
   shape: SlotShape;
   /** Overrides the `MEDIA_TYPE_LABEL` heading (appended rows number themselves). */
   title?: string;
+  /** Overrides the shape hint under the heading — e.g. `MEDIA_TYPE_HINT`. */
+  hint?: string;
   /** Extra copy under the heading — e.g. the poster-geometry note. */
   note?: ReactNode;
   disabled?: boolean;
@@ -65,9 +70,8 @@ export interface MediaSlotCardProps {
 
 /**
  * One artwork slot: what is stored, its caption and source, and the drop zone
- * that replaces it. Metadata (poster geometry) is deliberately not editable
- * here — the geometry editor is its own release and an imported `metadata`
- * blob must survive a caption edit untouched, which it does because `PATCH`
+ * that replaces it. Poster geometry is edited in `PosterArtEditor`, not here —
+ * a stored `metadata` blob survives a caption edit untouched because `PATCH`
  * only sends the keys below.
  */
 export function MediaSlotCard({
@@ -75,6 +79,7 @@ export function MediaSlotCard({
   media,
   shape,
   title,
+  hint,
   note,
   disabled,
   onUpload,
@@ -121,13 +126,14 @@ export function MediaSlotCard({
   }
 
   const frame = SHAPE[shape];
+  const slotHint = hint ?? frame.hint;
   const sourceMessageId = `${fieldId}-source-message`;
 
   return (
     <Card className="flex flex-col">
       <CardHeader>
         <CardTitle className="text-base">{title ?? MEDIA_TYPE_LABEL[type]}</CardTitle>
-        <CardDescription>{frame.hint}</CardDescription>
+        <CardDescription>{slotHint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div
@@ -148,7 +154,7 @@ export function MediaSlotCard({
             <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
               <ImageOff className="h-5 w-5" aria-hidden />
               <span className="text-xs">Nothing here yet</span>
-              <span className="px-4 text-center text-xs">{frame.hint}</span>
+              <span className="px-4 text-center text-xs">{slotHint}</span>
             </div>
           )}
         </div>

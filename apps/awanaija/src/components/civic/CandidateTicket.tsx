@@ -48,8 +48,12 @@ export interface TicketArtwork {
     readonly y: number;
     readonly w: number;
     readonly h: number;
-    /** Tailwind radius classes for this chip's corners. */
-    readonly radius: string;
+    /**
+     * Chip corner radii. Seeded rows store Tailwind classes (legacy); rows
+     * written by the dashboard geometry editor store per-corner pixel values
+     * (the shape posterArtSchema validates). Both render.
+     */
+    readonly radius: string | { readonly tl: number; readonly tr: number; readonly br: number; readonly bl: number };
     /** Posters that set the logo on a white card instead of bleeding it. */
     readonly plaque?: { readonly inset: { x: number; y: number; size: number } };
   };
@@ -237,12 +241,17 @@ function PartyChip({
   readonly px: number;
 }) {
   const chip = art?.chip;
+  const radiusClass = typeof chip?.radius === "string" ? chip.radius : undefined;
+  const radiusStyle =
+    chip && typeof chip.radius === "object"
+      ? { borderRadius: `${chip.radius.tl}px ${chip.radius.tr}px ${chip.radius.br}px ${chip.radius.bl}px` }
+      : undefined;
   const box = cn(
     "absolute z-20 overflow-hidden",
-    chip ? chip.radius : "rounded-l-[11px]",
+    chip ? radiusClass : "rounded-l-[11px]",
   );
   const style = chip
-    ? { left: chip.x, top: chip.y, width: chip.w, height: chip.h }
+    ? { left: chip.x, top: chip.y, width: chip.w, height: chip.h, ...radiusStyle }
     : { left: 303, top: 604, width: 101, height: 91 };
 
   const alt = party?.name ?? party?.acronym ?? "";
