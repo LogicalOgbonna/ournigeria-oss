@@ -21,7 +21,9 @@ import { Injectable, Logger } from "@nestjs/common";
 @Injectable()
 export class RevalidationService {
   private readonly logger = new Logger(RevalidationService.name);
-  private static readonly TIMEOUT_MS = 3_000;
+  // Vercel cold starts of the awanaija hook run ~5s; this is fire-and-forget
+  // (never blocks the admin mutation), so a generous ceiling costs nothing.
+  private static readonly TIMEOUT_MS = 10_000;
 
   /** An election row or the kill switch changed — the gate payload is different. */
   electionGateChanged(): void {
