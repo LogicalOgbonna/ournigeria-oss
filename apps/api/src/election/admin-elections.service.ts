@@ -1,3 +1,4 @@
+import { RevalidationService } from "../revalidation/revalidation.service";
 import {
   BadRequestException,
   ConflictException,
@@ -83,6 +84,7 @@ export class AdminElectionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly revalidation: RevalidationService,
   ) {}
 
   // ---------- reads ----------
@@ -154,7 +156,7 @@ export class AdminElectionsService {
       slug = await this.uniqueSlug(this.deriveSlug(input, scope));
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const row = await uniqueWrite(
         () =>
           tx.election.create({
@@ -188,6 +190,7 @@ export class AdminElectionsService {
       });
       return row;
     });
+    return created;
   }
 
   async patch(actor: AuditActor, id: string, input: PatchInput) {
@@ -231,7 +234,7 @@ export class AdminElectionsService {
       throw new BadRequestException("excludedStates: only a nationwide event can exclude states");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const patched = await this.prisma.$transaction(async (tx) => {
       const row = await uniqueWrite(
         () =>
           tx.election.update({
@@ -260,6 +263,10 @@ export class AdminElectionsService {
       });
       return row;
     });
+    // Draft edits are invisible to the public; published edits change the
+    // gate payload (date, label, scope) and must show up immediately.
+    if (existing.published) this.revalidation.electionGateChanged();
+    return patched;
   }
 
   async remove(actor: AuditActor, id: string) {
@@ -293,7 +300,7 @@ export class AdminElectionsService {
     const row = await this.mustElection(id);
     if (row.published) throw new ConflictException("publish: election is already published");
     this.assertFrom(row.status, ["scheduled", "postponed"], "publish");
-    return this.prisma.$transaction(async (tx) => {
+    const published = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.election.update({
         where: { id },
         data: { published: true, reviewStatus: "reviewed", reviewedBy: actorAdminId },
@@ -307,6 +314,8 @@ export class AdminElectionsService {
       });
       return updated;
     });
+    this.revalidation.electionGateChanged();
+    return published;
   }
 
   async unpublish(actor: AuditActor, id: string, reason: string) {
@@ -356,6 +365,7 @@ export class AdminElectionsService {
     // The gate service reads through the in-memory settings store.
     setSetting(GATE_SETTING_KEY, String(enabled));
     notifySettingsChanged();
+    this.revalidation.electionGateChanged();
     return { enabled };
   }
 
@@ -372,7 +382,7 @@ export class AdminElectionsService {
   }
 
   private async transition(actor: AuditActor, id: string, action: string, data: Prisma.ElectionUncheckedUpdateInput, metadata: Record<string, unknown>) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const before = await tx.election.findUniqueOrThrow({ where: { id }, select: { status: true, published: true } });
       const row = await tx.election.update({ where: { id }, data });
       await this.audit.log(tx, actor, {
@@ -384,6 +394,9 @@ export class AdminElectionsService {
       });
       return row;
     });
+    // Cache ping AFTER commit — the gate payload just changed.
+    this.revalidation.electionGateChanged();
+    return result;
   }
 
   /**

@@ -5,6 +5,8 @@ import { AuditCryptoService } from "../../audit/audit-crypto.service";
 import { bustRolesCache } from "../../admin/roles.util";
 import { AdminCampaignsService } from "../admin-campaigns.service";
 
+const revalidationNoop = { electionGateChanged() {}, campaignsChanged() {}, campaignChanged() {} } as never;
+
 /** ImageStorageService needs S3 config to construct; only isStoredUrl matters here. */
 const imageStub = { isStoredUrl: (u: string) => u.startsWith("https://cdn.ournigeria.ng/") || u.includes(".s3.") } as never;
 
@@ -61,7 +63,7 @@ describe("AdminCampaignsService election attachment", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    svc = new AdminCampaignsService(prisma, audit, imageStub);
+    svc = new AdminCampaignsService(prisma, audit, imageStub, revalidationNoop);
     writer = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");
   });

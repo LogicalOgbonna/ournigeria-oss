@@ -146,12 +146,6 @@ export function EditOfficialContent() {
         target_field: targetField,
         has_source: !!sourceUrl.trim(),
       });
-      // Revalidate the official's page cache so it shows this proposal
-      fetch("/api/revalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: `/officials/${officialId}` }),
-      }).catch(() => {});
       setSuccess(true);
     } catch (err: unknown) {
       const e = err as Record<string, unknown>;

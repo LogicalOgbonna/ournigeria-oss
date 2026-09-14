@@ -238,15 +238,18 @@ type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
  * the unknown case.
  */
 export async function getElectionGate(fetchImpl: FetchLike = fetch): Promise<ElectionGate | null> {
-  if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.gate;
-
+  // No happy-path memory cache: the tagged Next data cache is the speed layer,
+  // and on-demand revalidation (`revalidateTag("election-gate")`) must take
+  // effect on the very next request — a TTL'd L1 here would sit on top of it.
+  // The module-level `cache` survives purely as the FAILURE fallback: the
+  // last good gate this instance saw, served only when the fetch fails.
   const base = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000").replace(/\/$/, "");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS);
   try {
     const res = await fetchImpl(`${base}/api/election/gate`, {
       signal: ctl.signal,
-      next: { revalidate: CACHE_TTL_MS / 1000 },
+      next: { revalidate: CACHE_TTL_MS / 1000, tags: ["election-gate"] },
     } as RequestInit);
     if (!res.ok) return cache?.gate ?? null;
     const gate = parseGate(await res.json());

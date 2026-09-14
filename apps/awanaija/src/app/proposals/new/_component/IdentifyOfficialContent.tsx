@@ -105,7 +105,6 @@ export function IdentifyOfficialContent() {
     return () => { cancelled = true; };
   }, [showVerification, canonicalOfficialId]);
 
-  // Revalidate the newly-created official's page so it shows the proposal.
   useEffect(() => {
     if (form.success && form.newOfficialId) {
       posthog.capture("official_identified", {
@@ -113,11 +112,6 @@ export function IdentifyOfficialContent() {
         official_id: form.newOfficialId,
         location: form.locationLabel(),
       });
-      fetch("/api/revalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: `/officials/${form.newOfficialId}` }),
-      }).catch(() => {});
     }
   }, [form.success, form.newOfficialId]);
 

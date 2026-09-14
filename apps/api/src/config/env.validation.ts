@@ -41,9 +41,14 @@ export interface EnvConfig {
   LOCAL_STORAGE_PUBLIC_URL?: string;
   /** "true" lets the local provider advertise a non-loopback public URL (tunnelled dev boxes). */
   LOCAL_STORAGE_ALLOW_REMOTE?: string;
-  /** Cloudflare zone in front of CDN_BASE_URL; both optional — purge is a no-op without them. */
+  /** Cloudflare zone in front of CDN_BASE_URL; both optional — purge is a no-op without them.
+   *  RevalidationService reuses the pair for edge HTML purges of the awanaija zone. */
   CLOUDFLARE_ZONE_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;
+  /** awanaija on-demand cache invalidation (RevalidationService). All optional — unset skips the ping. */
+  AWANAIJA_REVALIDATE_URL?: string; // e.g. https://ournigeria.ng (no trailing slash)
+  AWANAIJA_REVALIDATE_SECRET?: string; // bearer for awanaija's POST /api/revalidate
+  PUBLIC_SITE_URL?: string; // absolute base for Cloudflare purge URLs (defaults to the revalidate URL)
   /** OKF knowledge-bundle publishing (see apps/api/src/okf). All optional. */
   OKF_SNAPSHOT_BASE_URL?: string; // public base for archived snapshots (defaults to CDN_BASE_URL)
   OKF_WEB_BASE_URL?: string; // canonical site base for `resource` links
@@ -155,6 +160,9 @@ export function validateEnv(config: Record<string, unknown>): EnvConfig {
     LOCAL_STORAGE_ALLOW_REMOTE: (config.LOCAL_STORAGE_ALLOW_REMOTE as string) || undefined,
     CLOUDFLARE_ZONE_ID: (config.CLOUDFLARE_ZONE_ID as string) || undefined,
     CLOUDFLARE_API_TOKEN: (config.CLOUDFLARE_API_TOKEN as string) || undefined,
+    AWANAIJA_REVALIDATE_URL: (config.AWANAIJA_REVALIDATE_URL as string) || undefined,
+    AWANAIJA_REVALIDATE_SECRET: (config.AWANAIJA_REVALIDATE_SECRET as string) || undefined,
+    PUBLIC_SITE_URL: (config.PUBLIC_SITE_URL as string) || undefined,
     OKF_SNAPSHOT_BASE_URL: (config.OKF_SNAPSHOT_BASE_URL as string) || undefined,
     OKF_WEB_BASE_URL: (config.OKF_WEB_BASE_URL as string) || undefined,
     OKF_GIT_REPO: (config.OKF_GIT_REPO as string) || undefined,

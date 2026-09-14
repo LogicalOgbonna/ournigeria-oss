@@ -60,7 +60,7 @@ describe("AdminElectionsService", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    svc = new AdminElectionsService(prisma, audit);
+    svc = new AdminElectionsService(prisma, audit, { electionGateChanged() {}, campaignsChanged() {}, campaignChanged() {} } as never);
     guard = new PermissionsGuard(new Reflector(), prisma);
     writer = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");

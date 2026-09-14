@@ -207,7 +207,7 @@ test("getElectionGate: GETs our gate endpoint through the Next data cache (reval
   assert.equal(g.races[0].office, "governor");
   assert.equal(url, "https://api.example.test/api/election/gate");
   assert.equal(init?.method, undefined); // plain GET
-  assert.deepEqual(init?.next, { revalidate: 60 });
+  assert.deepEqual(init?.next, { revalidate: 60, tags: ["election-gate"] });
 });
 
 test("getElectionGate: defaults to localhost:3000 without NEXT_PUBLIC_API_URL", async (t) => {
@@ -219,7 +219,7 @@ test("getElectionGate: defaults to localhost:3000 without NEXT_PUBLIC_API_URL", 
   assert.equal(url, "http://localhost:3000/api/election/gate");
 });
 
-test("getElectionGate: success => parsed races + 60s in-memory L1", async (t) => {
+test("getElectionGate: every call goes to the fetch — the tagged Next data cache is the speed layer, not an L1 TTL (on-demand revalidation must bite immediately)", async (t) => {
   saveEnvVars(t, "NEXT_PUBLIC_API_URL");
   __resetGateCache();
   let calls = 0;
@@ -227,7 +227,7 @@ test("getElectionGate: success => parsed races + 60s in-memory L1", async (t) =>
   const g = (await getElectionGate(fake))!;
   assert.equal(g.enabled, true);
   await getElectionGate(fake);
-  assert.equal(calls, 1);
+  assert.equal(calls, 2); // no happy-path memory cache
 });
 
 test("getElectionGate: non-2xx with no L1 => null (UNKNOWN, not off), and NEVER cached (next call refetches)", async (t) => {
@@ -242,14 +242,14 @@ test("getElectionGate: non-2xx with no L1 => null (UNKNOWN, not off), and NEVER 
   assert.equal(calls, 2);
 });
 
-test("getElectionGate: an explicit enabled:false response IS trusted and cached — the kill switch speaking", async (t) => {
+test("getElectionGate: an explicit enabled:false response IS trusted — the kill switch speaking", async (t) => {
   saveEnvVars(t, "NEXT_PUBLIC_API_URL");
   __resetGateCache();
   let calls = 0;
   const off = async () => { calls++; return resp({ enabled: false, races: [] }); };
   assert.deepEqual(await getElectionGate(off), OFF2);
-  assert.deepEqual(await getElectionGate(off), OFF2); // served from L1
-  assert.equal(calls, 1);
+  assert.deepEqual(await getElectionGate(off), OFF2);
+  assert.equal(calls, 2); // fetched each time; the data cache dedupes in prod
 });
 
 test("getElectionGate: non-2xx serves the stale L1 gate; recovery refreshes it", async (t) => {
@@ -261,9 +261,8 @@ test("getElectionGate: non-2xx serves the stale L1 gate; recovery refreshes it",
   assert.ok(good);
   assert.equal(good.races.length, 1);
 
-  t.mock.timers.tick(60_001); // L1 expired
   const stale = await getElectionGate(async () => { calls++; return resp("", false); });
-  assert.deepEqual(stale, good); // stale L1, not null
+  assert.deepEqual(stale, good); // failure serves the last good gate
   assert.equal(calls, 2);
 
   const recovered = await getElectionGate(async () => {
@@ -281,9 +280,7 @@ test("getElectionGate: invalid body or thrown fetch is never trusted — stale L
   assert.equal(await getElectionGate(async () => resp({ not: "a gate" })), null);
   assert.equal(await getElectionGate(async () => { throw new Error("network down"); }), null);
 
-  t.mock.timers.enable({ apis: ["Date"] });
   const good = await getElectionGate(async () => resp(GOOD_BODY));
-  t.mock.timers.tick(60_001);
   assert.deepEqual(await getElectionGate(async () => resp({ not: "a gate" })), good);
   assert.deepEqual(await getElectionGate(async () => { throw new Error("network down"); }), good);
 });

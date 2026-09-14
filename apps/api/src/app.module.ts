@@ -31,6 +31,7 @@ import { OkfModule } from "./okf/okf.module";
 import { ImportsModule } from "./admin/imports/imports.module";
 import { AuditModule } from "./audit/audit.module";
 import { StorageModule } from "./storage/storage.module";
+import { RevalidationModule } from "./revalidation/revalidation.module";
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { StorageModule } from "./storage/storage.module";
       allowExitOnIdle: false,
     }),
     StorageModule.forRoot(),
+    RevalidationModule,
     ChartModule,
     AuthModule,
     ConversationsModule,

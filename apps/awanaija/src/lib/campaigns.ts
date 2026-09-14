@@ -108,9 +108,9 @@ export interface CampaignDetail extends CampaignSummary {
  * cache an empty rail (or a redirect for a real ticket URL) for the whole
  * window. Callers that must never throw (generateStaticParams) catch it.
  */
-async function get<T>(path: string, notFound: T): Promise<T> {
+async function get<T>(path: string, notFound: T, tags: string[] = ["campaigns"]): Promise<T> {
   try {
-    return await apiFetch<T>(path, { next: { revalidate: CAMPAIGNS_REVALIDATE } } as RequestInit);
+    return await apiFetch<T>(path, { next: { revalidate: CAMPAIGNS_REVALIDATE, tags } } as RequestInit);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return notFound;
     // Any other failure degrades to the not-found shape instead of throwing:
@@ -139,7 +139,11 @@ export function getCampaigns(params: {
 }
 
 export function getCampaign(slug: string): Promise<CampaignDetail | null> {
-  return get<CampaignDetail | null>(`/campaigns/${encodeURIComponent(slug)}`, null);
+  // Per-ticket tag so a dashboard edit revalidates exactly this ticket's page.
+  return get<CampaignDetail | null>(`/campaigns/${encodeURIComponent(slug)}`, null, [
+    "campaigns",
+    `campaign:${slug}`,
+  ]);
 }
 
 // ----- Official record → the Political Career / Education cards -----

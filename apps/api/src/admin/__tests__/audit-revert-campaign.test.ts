@@ -14,6 +14,8 @@ import { registryOf } from "../../campaigns/__tests__/admin-campaign-assets.serv
 import { STAGING_PREFIX } from "../../campaigns/asset-store.service";
 import { CdnPurgeService } from "../../campaigns/cdn-purge.service";
 
+const revalidationNoop = { electionGateChanged() {}, campaignsChanged() {}, campaignChanged() {} } as never;
+
 const actorOf = (id: string): AuditActor => ({ actorType: "staff", actorId: id });
 
 /** ImageStorageService needs S3 config to construct; only isStoredUrl matters here. */
@@ -444,7 +446,7 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     const audit = new AuditService(prisma, new AuditCryptoService(prisma));
-    campaigns = new AdminCampaignsService(prisma, audit, imageStub);
+    campaigns = new AdminCampaignsService(prisma, audit, imageStub, revalidationNoop);
     council = new AdminCampaignCouncilService(prisma, audit, imageStub);
     // Real assets service over an in-memory object store: the revert must be
     // able to see (and miss) the object behind a recorded URL.
@@ -457,7 +459,7 @@ describe("AuditRevertService campaign.updated (live DB)", () => {
         return { url: store.urlFor(key), width: 1, height: 1 };
       },
     } as never;
-    assets = new AdminCampaignAssetsService(prisma, audit, assetImages, store, registryOf({ s3: store }), new CdnPurgeService({ get: () => undefined } as never));
+    assets = new AdminCampaignAssetsService(prisma, audit, assetImages, store, registryOf({ s3: store }), new CdnPurgeService({ get: () => undefined } as never), revalidationNoop);
     const alerts = { alert: vi.fn(async () => true) };
     revert = new AuditRevertService(prisma, audit, alerts as never, {} as never, {} as never, {} as never, campaigns, council, assets);
     writer = await mkAdmin("campaign_manager");

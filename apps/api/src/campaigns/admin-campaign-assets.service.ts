@@ -1,3 +1,4 @@
+import { RevalidationService } from "../revalidation/revalidation.service";
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, PrismaService } from "@ournigeria/database";
@@ -64,6 +65,7 @@ export class AdminCampaignAssetsService {
     /** Every configured provider: objects written before a provider switch live elsewhere. */
     private readonly storage: ObjectStorageService,
     private readonly cdn: CdnPurgeService,
+    private readonly revalidation: RevalidationService,
   ) {}
 
   // ---------- presign ----------
@@ -129,6 +131,8 @@ export class AdminCampaignAssetsService {
       return saved;
     });
     await this.store.delete(input.stagingKey).catch(() => undefined);
+    // Live-ticket assets changed — refresh public pages now.
+    this.revalidation.campaignChanged(campaign.slug, campaign.year);
     return row;
   }
 
@@ -221,6 +225,8 @@ export class AdminCampaignAssetsService {
       return saved;
     });
     for (const k of [input.stagingKey, input.coverStagingKey]) if (k) await this.store.delete(k).catch(() => undefined);
+    // Live-ticket assets changed — refresh public pages now.
+    this.revalidation.campaignChanged(campaign.slug, campaign.year);
     return row;
   }
 
@@ -256,6 +262,8 @@ export class AdminCampaignAssetsService {
       return updated;
     });
     await this.store.delete(input.stagingKey).catch(() => undefined);
+    // Live-ticket assets changed — refresh public pages now.
+    this.revalidation.campaignChanged(campaign.slug, campaign.year);
     return row;
   }
 

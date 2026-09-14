@@ -1,3 +1,4 @@
+import { RevalidationService } from "../revalidation/revalidation.service";
 import {
   BadRequestException,
   ConflictException,
@@ -89,6 +90,7 @@ export class AdminCampaignsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly images: ImageStorageService,
+    private readonly revalidation: RevalidationService,
   ) {}
 
   // ---------- reads ----------
@@ -252,7 +254,7 @@ export class AdminCampaignsService {
       if (!held.has("campaigns.review")) throw new ForbiddenException("Lowering confidence hides a public ticket; needs campaigns.review");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const edited = await this.prisma.$transaction(async (tx) => {
       // factionLabel is part of the partial race-key unique; on a public row a
       // collision is a 409, not a 500.
       const row = await uniqueWrite(
@@ -275,6 +277,11 @@ export class AdminCampaignsService {
       });
       return row;
     });
+    // Draft edits are invisible to the public; live-ticket edits must show.
+    if (existing.status === "active" || existing.status === "concluded") {
+      this.revalidation.campaignChanged(edited.slug, edited.year);
+    }
+    return edited;
   }
 
   async updateSlug(actor: AuditActor, id: string, slug: string) {
@@ -353,7 +360,7 @@ export class AdminCampaignsService {
           })
         : null;
 
-    return this.prisma.$transaction(async (tx) => {
+    const approved = await this.prisma.$transaction(async (tx) => {
       // assertRaceKeyFree ran before this transaction; the partial unique index
       // is the backstop for a concurrent approve, mapped to the same 409.
       const updated = await uniqueWrite(
@@ -387,6 +394,8 @@ export class AdminCampaignsService {
       });
       return updated;
     });
+    this.revalidation.campaignChanged(approved.slug, approved.year);
+    return approved;
   }
 
   /**
@@ -397,7 +406,7 @@ export class AdminCampaignsService {
   async unpublish(actor: AuditActor, id: string, reason: string) {
     const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active", "concluded"], "unpublish");
-    return this.prisma.$transaction(async (tx) => {
+    const hidden = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status: "suspended" } });
       // The only legitimate won → pending path: the ticket is being pulled from
       // public view, so the primary win it asserted no longer stands.
@@ -412,12 +421,16 @@ export class AdminCampaignsService {
       });
       return updated;
     });
+    this.revalidation.campaignChanged(hidden.slug, hidden.year);
+    return hidden;
   }
 
   async conclude(actor: AuditActor, id: string, reason: string) {
     const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active"], "conclude");
-    return this.transition(actor, id, "campaign.concluded", { status: "concluded" }, { reason });
+    const updated = await this.transition(actor, id, "campaign.concluded", { status: "concluded" }, { reason });
+    this.revalidation.campaignChanged(updated.slug, updated.year);
+    return updated;
   }
 
   async withdraw(actor: AuditActor, id: string, reason: string) {
@@ -431,13 +444,15 @@ export class AdminCampaignsService {
   private async retire(actor: AuditActor, id: string, status: "withdrawn" | "dissolved", reason: string) {
     const row = await mustCampaign(this.prisma, id);
     this.assertFrom(row.status, ["active", "concluded", "suspended"], status);
-    return this.prisma.$transaction(async (tx) => {
+    const retired = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.campaign.update({ where: { id }, data: { status } });
       const anchor = await ensureTicketElections(tx, updated, { result: "withdrawn", reviewedBy: actor.actorId ?? "dashboard", sourceType: "manual", confidence: anchorConfidence(updated.confidence)  });
       await this.persistAnchor(tx, updated, anchor.candidateElectionId);
       await this.audit.log(tx, actor, { action: `campaign.${status}`, targetType: "campaign", targetId: id, diff: { before: { status: row.status }, after: { status } }, metadata: { reason } });
       return updated;
     });
+    this.revalidation.campaignChanged(retired.slug, retired.year);
+    return retired;
   }
 
   // ---------- order ----------
@@ -463,6 +478,7 @@ export class AdminCampaignsService {
         diff: { before: Object.fromEntries(inRace.map((r) => [r.id, r.displayOrder])), after: Object.fromEntries(input.ids.map((id, i) => [id, i + 1])) },
       });
     });
+    this.revalidation.campaignsChanged();
     return { ranked: input.ids.length };
   }
 

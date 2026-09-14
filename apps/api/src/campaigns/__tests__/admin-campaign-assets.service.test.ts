@@ -26,6 +26,8 @@ import { AdminCampaignsService } from "../admin-campaigns.service";
 import { AdminCampaignCouncilService } from "../admin-campaign-council.service";
 import { CdnPurgeService } from "../cdn-purge.service";
 
+const revalidationNoop = { electionGateChanged() {}, campaignsChanged() {}, campaignChanged() {} } as never;
+
 /**
  * Live DB for rows + audit; MemoryObjectStore for S3; a stub ImageStorageService
  * that writes through the same memory store so URLs line up.
@@ -83,9 +85,9 @@ describe("AdminCampaignAssetsService", () => {
       },
     } as never;
     const purge = new CdnPurgeService({ get: () => undefined } as never);
-    campaigns = new AdminCampaignsService(prisma, audit, images);
+    campaigns = new AdminCampaignsService(prisma, audit, images, revalidationNoop);
     council = new AdminCampaignCouncilService(prisma, audit, images);
-    assets = new AdminCampaignAssetsService(prisma, audit, images, store, registry, purge);
+    assets = new AdminCampaignAssetsService(prisma, audit, images, store, registry, purge, revalidationNoop);
     writer = await mkAdmin("campaign_manager");
     reviewer = await mkAdmin("review_manager");
     const mk = (n: string) => campaigns.create(actor(writer), { electionType: "presidential", year: 2095, partyAcronym: "APC", slug: `zzz-assets-${n}-${tag}`, candidate: { name: `Zzz Assets ${n} ${tag}` }, runningMate: null, factionLabel: `zzz-${n}-${tag}` });
