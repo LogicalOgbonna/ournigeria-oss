@@ -2,12 +2,7 @@ import Link from "next/link";
 import { User } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
 import type { PartyOfficerView } from "@/lib/api";
-
-const OFFICER_ROLE_LABELS: Record<string, string> = {
-  national_chairman: "National Chairman",
-  national_secretary: "National Secretary",
-  party_leader: "Party Leader",
-};
+import { officerRoleLabel } from "@/lib/officer-roles";
 
 export function OfficerCard({ officer }: { readonly officer: PartyOfficerView }) {
   const inner = (
@@ -24,7 +19,7 @@ export function OfficerCard({ officer }: { readonly officer: PartyOfficerView })
       <div className="min-w-0">
         <div className="truncate font-medium text-foreground">{officer.name}</div>
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
-          {OFFICER_ROLE_LABELS[officer.role] ?? officer.role}
+          {officerRoleLabel(officer.role)}
         </div>
       </div>
     </>

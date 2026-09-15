@@ -1,27 +1,17 @@
 import Link from "next/link";
 import { Building2, User } from "lucide-react";
 import { OfficialAvatar } from "@/components/ui/OfficialAvatar";
-import type { PartyListItem, PartyOfficerView } from "@/lib/api";
+import type { PartyListItem } from "@/lib/api";
 import { Show } from "@/components/ui/Show";
+import { officerRoleLabel, orderedOfficers } from "@/lib/officer-roles";
 
-const OFFICER_ROLE_LABELS: Record<string, string> = {
-  national_chairman: "Chairman",
-  national_secretary: "Secretary",
-  party_leader: "Leader",
-};
-const OFFICER_ORDER = ["national_chairman", "national_secretary", "party_leader"];
-
-function orderedOfficers(officers: PartyOfficerView[]): PartyOfficerView[] {
-  return [...officers].sort(
-    (a, b) =>
-      (OFFICER_ORDER.indexOf(a.role) + 1 || 99) - (OFFICER_ORDER.indexOf(b.role) + 1 || 99),
-  );
-}
+// Compact list card: top roles only — the full slate lives on the party detail page.
+const MAX_CARD_OFFICERS = 3;
 
 export function PartyCard({ party }: { readonly party: PartyListItem }) {
   const completeness =
     party.completenessScore != null ? Math.round(party.completenessScore * 100) : null;
-  const officers = orderedOfficers(party.officers ?? []);
+  const officers = orderedOfficers(party.officers ?? [], MAX_CARD_OFFICERS);
 
   return (
     <Link
@@ -90,7 +80,7 @@ export function PartyCard({ party }: { readonly party: PartyListItem }) {
                   {o.name}
                 </div>
                 <div className="text-[11px] leading-tight text-slate-400">
-                  {OFFICER_ROLE_LABELS[o.role] ?? o.role}
+                  {officerRoleLabel(o.role, true)}
                 </div>
               </div>
             </div>

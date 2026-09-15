@@ -96,7 +96,7 @@ describe("partyProfilesImporter", () => {
   });
 
   it("emits a CREATE proposal for a new party (acronym not in DB) with a name", async () => {
-    const ACR = "ZZP"; // throwaway, not in seed data
+    const ACR = "ZZPI"; // throwaway, not in seed data (ZZP is taken by political-party-create.test.ts, which runs in parallel)
     const payload = {
       [ACR]: {
         name: "Zzp Importtest Party",

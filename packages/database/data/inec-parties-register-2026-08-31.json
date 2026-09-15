@@ -1,0 +1,809 @@
+{
+  "_meta": {
+    "description": "INEC statutory register of political parties scraped from https://inecnigeria.org/parties (22 recognized parties). Leadership (5 national roles), secretariat address, phone(s), email, website, per-party logo asset (hashed _nuxt URL — rots on INEC redeploys, re-host before relying on it; Accord publishes none). leadership.*.clean strips honorifics; .raw keeps the INEC string. db_acronym maps to our political_parties PK (INEC \"A\" = our \"Accord\").",
+    "scrapedAt": "2026-08-31",
+    "source": "https://inecnigeria.org/parties",
+    "applySql": "packages/database/data/inec-parties-update-2026-08-31.sql"
+  },
+  "A": {
+    "name": "Accord",
+    "db_acronym": "Accord",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Bar. Maxwell Mgbudem",
+        "clean": "Maxwell Mgbudem"
+      },
+      "national_secretary": {
+        "raw": "Hon. Adebukola Abiola Ajaja",
+        "clean": "Adebukola Abiola Ajaja"
+      },
+      "national_treasurer": {
+        "raw": "Salaudeen Abdulazeez Oyeniyi",
+        "clean": "Salaudeen Abdulazeez Oyeniyi"
+      },
+      "national_financial_secretary": {
+        "raw": "Hon (Mrs) Margret Elabo",
+        "clean": "Margret Elabo"
+      }
+    },
+    "hq_address": "No. 15 Jos Street, Area 3 Garki, Abuja.",
+    "phones": [
+      "+2348033141001"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": null,
+    "source_url": "https://inecnigeria.org/parties/accord-a"
+  },
+  "AA": {
+    "name": "Action Alliance",
+    "db_acronym": "AA",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Hon. Adekunle Rufai Omoaje (By Court Order)",
+        "clean": "Adekunle Rufai Omoaje",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_secretary": {
+        "raw": "Miller C. Orgwu (By Court Order)",
+        "clean": "Miller C. Orgwu",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_treasurer": {
+        "raw": "Sani Darma (By Court Order)",
+        "clean": "Sani Darma",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_financial_secretary": {
+        "raw": "Awoniyi Awolola (By Court Order)",
+        "clean": "Awoniyi Awolola",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_legal_adviser": {
+        "raw": "Barr. Abiodun Rufai (By Court Order)",
+        "clean": "Abiodun Rufai",
+        "flags": {
+          "court_order": true
+        }
+      }
+    },
+    "hq_address": "Plot 955, No. 17 Femi Otedola Crescent, 7th Avenue, Gwarinpa Estate, FCT Abuja.",
+    "phones": [
+      "+2348033849599",
+      "+2348158480502"
+    ],
+    "email": "actionallianceparty20005@gmail.com",
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/action-alliance-aa_logo.DQolkzM6.jpg",
+    "source_url": "https://inecnigeria.org/parties/action-alliance-aa"
+  },
+  "AAC": {
+    "name": "African Action Congress",
+    "db_acronym": "AAC",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Omoyele Sowore",
+        "clean": "Omoyele Sowore"
+      },
+      "national_secretary": {
+        "raw": "Oshiokhue Philip Ikpeminoghena",
+        "clean": "Oshiokhue Philip Ikpeminoghena"
+      },
+      "national_treasurer": {
+        "raw": "Erupre Gift Precious",
+        "clean": "Erupre Gift Precious"
+      },
+      "national_financial_secretary": {
+        "raw": "Faith Enattah Orinya",
+        "clean": "Faith Enattah Orinya"
+      },
+      "national_legal_adviser": {
+        "raw": "Inibehe Effiong",
+        "clean": "Inibehe Effiong"
+      }
+    },
+    "hq_address": "Office 011, Bolingo Hotel & Towers, (Office Block), Plot 777 Independent Avenue, beside American Embassy, Central Business District, Abuja.",
+    "phones": [
+      "+2348188237529"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/african-action-congress-aac_logo.BiPR0ZxO.jpg",
+    "source_url": "https://inecnigeria.org/parties/african-action-congress-aac"
+  },
+  "ADC": {
+    "name": "African Democratic Congress",
+    "db_acronym": "ADC",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Sen. David Mark",
+        "clean": "David Mark"
+      },
+      "national_secretary": {
+        "raw": "Ogbeni Rauf Aregbesola",
+        "clean": "Rauf Aregbesola"
+      },
+      "national_treasurer": {
+        "raw": "Dr.Mani Ibrahim Ahmad",
+        "clean": "Dr.Mani Ibrahim Ahmad"
+      },
+      "national_financial_secretary": {
+        "raw": "Akibu Dalhatu",
+        "clean": "Akibu Dalhatu"
+      },
+      "national_legal_adviser": {
+        "raw": "Prof Oserheimen Aigberaodion Osunbor",
+        "clean": "Prof Oserheimen Aigberaodion Osunbor"
+      }
+    },
+    "hq_address": "No. 2 Adetokunbo Ademola Crescent, Wuse II, Abuja.",
+    "phones": [
+      "+2348027789181"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/african-democratic-congress-adc_logo.DBilnanA.jpg",
+    "source_url": "https://inecnigeria.org/parties/african-democratic-congress-adc"
+  },
+  "ADP": {
+    "name": "Action Democratic Party",
+    "db_acronym": "ADP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Engr. Yabagi Yusuf Sani",
+        "clean": "Yabagi Yusuf Sani"
+      },
+      "national_secretary": {
+        "raw": "Victor Fingesi",
+        "clean": "Victor Fingesi"
+      },
+      "national_treasurer": {
+        "raw": "PST. Okey Udoh",
+        "clean": "PST. Okey Udoh"
+      },
+      "national_financial_secretary": {
+        "raw": "Mustapha Muhammad Gado",
+        "clean": "Mustapha Muhammad Gado"
+      },
+      "national_legal_adviser": {
+        "raw": "Bar. Kelechi Nwaiwu",
+        "clean": "Kelechi Nwaiwu"
+      }
+    },
+    "hq_address": "Plot 3379A, Mungo Park Close, Off Jesse Jackson Asokoro New Extension, Abuja.",
+    "phones": [
+      "+2348033001274"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/action-democratic-party-adp_logo.7qxyEaV2.png",
+    "source_url": "https://inecnigeria.org/parties/action-democratic-party-adp"
+  },
+  "APC": {
+    "name": "All Progressives Congress",
+    "db_acronym": "APC",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Prof. Nentawe Yilwatda Goshwe",
+        "clean": "Nentawe Yilwatda Goshwe"
+      },
+      "national_secretary": {
+        "raw": "Sen. Surajudeen Ajibola Basiru PhD, BL",
+        "clean": "Surajudeen Ajibola Basiru"
+      },
+      "national_treasurer": {
+        "raw": "Mr Uguru Mathew Ofoke",
+        "clean": "Mr Uguru Mathew Ofoke"
+      },
+      "national_financial_secretary": {
+        "raw": "Alh. Bashir Usman Gumel",
+        "clean": "Bashir Usman Gumel"
+      },
+      "national_legal_adviser": {
+        "raw": "Barr. Murtala Aliyu kankia(Life Bencher)",
+        "clean": "Murtala Aliyu kankia(Life Bencher)"
+      }
+    },
+    "hq_address": "No. 40 Blantyre Street, Wuse II, Abuja, Nigeria.",
+    "phones": [
+      "+2348066380772",
+      "+2348034753343"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/all-progressives-congress-apc_logo.CSXCWB6p.jpg",
+    "source_url": "https://inecnigeria.org/parties/all-progressives-congress-apc"
+  },
+  "APGA": {
+    "name": "All Progressives Grand Alliance",
+    "db_acronym": "APGA",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Barrister Sylvester Ezeokenwa",
+        "clean": "Sylvester Ezeokenwa"
+      },
+      "national_secretary": {
+        "raw": "Ibrahim Mani",
+        "clean": "Ibrahim Mani"
+      },
+      "national_treasurer": {
+        "raw": "Engr. Uche Onyemere",
+        "clean": "Uche Onyemere"
+      },
+      "national_financial_secretary": {
+        "raw": "Alhaji Habibu Aliyu",
+        "clean": "Alhaji Habibu Aliyu"
+      },
+      "national_legal_adviser": {
+        "raw": "Barrister Victor Agunzi",
+        "clean": "Victor Agunzi"
+      }
+    },
+    "hq_address": "Plot 1160 Cadastral Zone B07, Katampe District, Abuja.",
+    "phones": [
+      "+2347033103768"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/all-progressives-grand-alliance-apga_logo.PfgYjSjV.jpg",
+    "source_url": "https://inecnigeria.org/parties/all-progressives-grand-alliance-apga"
+  },
+  "APM": {
+    "name": "Allied Peoples Movement",
+    "db_acronym": "APM",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Yusuf Mamman Dantalle",
+        "clean": "Yusuf Mamman Dantalle"
+      },
+      "national_secretary": {
+        "raw": "Oyadeyi Ayodele Adebayo",
+        "clean": "Oyadeyi Ayodele Adebayo"
+      },
+      "national_treasurer": {
+        "raw": "Zavvalo Badon",
+        "clean": "Zavvalo Badon"
+      },
+      "national_financial_secretary": {
+        "raw": "Labarin Yunusa",
+        "clean": "Labarin Yunusa"
+      }
+    },
+    "hq_address": "Plot 232, No. 2 Leventis Building, Samuel Adesujo Ademulegun Street, Off Muhammadu Buhari Way, Central Business District, Abuja FCT.",
+    "phones": [
+      "+2348033043791",
+      "+2348055108331"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/allied-peoples-movement-apm_logo.BQN54Bkl.jpg",
+    "source_url": "https://inecnigeria.org/parties/allied-peoples-movement-apm"
+  },
+  "APP": {
+    "name": "Action Peoples Party",
+    "db_acronym": "APP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Uchenna Nnadi",
+        "clean": "Uchenna Nnadi"
+      },
+      "national_secretary": {
+        "raw": "Abu Ibrahim Sossan",
+        "clean": "Abu Ibrahim Sossan"
+      },
+      "national_treasurer": {
+        "raw": "Chioma Okoli",
+        "clean": "Chioma Okoli"
+      },
+      "national_financial_secretary": {
+        "raw": "Clement Christian",
+        "clean": "Clement Christian"
+      },
+      "national_legal_adviser": {
+        "raw": "Peter Abang",
+        "clean": "Peter Abang"
+      }
+    },
+    "hq_address": "No. 6 Alexander Crescent, Behind Banex Plaza, Wuse II, Abuja.",
+    "phones": [
+      "+2348175674309"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/action-peoples-party-app_logo.BhRwRU7M.png",
+    "source_url": "https://inecnigeria.org/parties/action-peoples-party-app"
+  },
+  "BP": {
+    "name": "Boot Party",
+    "db_acronym": "BP",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Adenuga Sunday",
+        "clean": "Adenuga Sunday"
+      },
+      "national_secretary": {
+        "raw": "Egwuatu Maryann .C",
+        "clean": "Egwuatu Maryann .C"
+      },
+      "national_financial_secretary": {
+        "raw": "Evelyn Oshevire",
+        "clean": "Evelyn Oshevire"
+      }
+    },
+    "hq_address": "House 11 Road C1, F.H.A Karu, Abuja.",
+    "phones": [
+      "+2347057749595"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/boot-party-bp_logo.Br5O5Wf6.jpg",
+    "source_url": "https://inecnigeria.org/parties/boot-party-bp"
+  },
+  "DLA": {
+    "name": "Democratic Leadership Alliance",
+    "db_acronym": "DLA",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Barr. Samuel M. Memeh",
+        "clean": "Samuel M. Memeh"
+      },
+      "national_secretary": {
+        "raw": "Grace E. Obekpa",
+        "clean": "Grace E. Obekpa"
+      },
+      "national_treasurer": {
+        "raw": "Anene N. Mirian",
+        "clean": "Anene N. Mirian"
+      },
+      "national_financial_secretary": {
+        "raw": "Umar Shehu Aliyu",
+        "clean": "Umar Shehu Aliyu"
+      },
+      "national_legal_adviser": {
+        "raw": "Barr. Aghwaretoma O. Fortune",
+        "clean": "Aghwaretoma O. Fortune"
+      }
+    },
+    "hq_address": "No. 25 Niger Street, Sun City Estate, Galadimawa, Abuja.",
+    "phones": [
+      "+2348057021236"
+    ],
+    "email": "democraticleadership@gmail.com",
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/democratic-leadership-alliance-dla_logo.B-mFJlad.jpg",
+    "source_url": "https://inecnigeria.org/parties/democratic-leadership-alliance-dla"
+  },
+  "LP": {
+    "name": "Labour Party",
+    "db_acronym": "LP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Sen. Nenadi E. Usman",
+        "clean": "Nenadi E. Usman"
+      },
+      "national_secretary": {
+        "raw": "Hon. Iheanacho Obioma",
+        "clean": "Iheanacho Obioma"
+      },
+      "national_treasurer": {
+        "raw": "Alh. Hamisu Santurati",
+        "clean": "Hamisu Santurati"
+      },
+      "national_financial_secretary": {
+        "raw": "Anslem A. Eragbe",
+        "clean": "Anslem A. Eragbe"
+      },
+      "national_legal_adviser": {
+        "raw": "Taiwo Mary Ajayi",
+        "clean": "Taiwo Mary Ajayi"
+      }
+    },
+    "hq_address": null,
+    "phones": [],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/labour-party-lp_logo.SV1XCjLU.jpg",
+    "source_url": "https://inecnigeria.org/parties/labour-party-lp"
+  },
+  "NDC": {
+    "name": "Nigeria Democratic Congress",
+    "db_acronym": "NDC",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Sen. Cleopas Moses Zuwoghe (By Court Order)",
+        "clean": "Cleopas Moses Zuwoghe",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_secretary": {
+        "raw": "Barr. Ikenna Morgan Enekweizu (By Court Order)",
+        "clean": "Ikenna Morgan Enekweizu",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_treasurer": {
+        "raw": "Mr John Odey (By Court Order)",
+        "clean": "Mr John Odey",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_financial_secretary": {
+        "raw": "Hon. Mainasara Abubakar Sani (By Court Order)",
+        "clean": "Mainasara Abubakar Sani",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_legal_adviser": {
+        "raw": "Barr Reuben Egwuaba (By Court Order)",
+        "clean": "Barr Reuben Egwuaba",
+        "flags": {
+          "court_order": true
+        }
+      }
+    },
+    "hq_address": "No. 4 Odenna Close, Off Libreville Street, Wuse II, Abuja.",
+    "phones": [
+      "+2348064726791"
+    ],
+    "email": "ndcofficial2024@gmail.com",
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/nigeria-democratic-congress_logo.BauESQLD.jpeg",
+    "source_url": "https://inecnigeria.org/parties/nigeria-democratic-congress"
+  },
+  "NDP": {
+    "name": "National Democratic Party",
+    "db_acronym": "NDP",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Hon. Ada Elizabeth Fredrick Okwori (By Court Order)",
+        "clean": "Ada Elizabeth Fredrick Okwori",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_secretary": {
+        "raw": "Mr. Silva Opusunju (By Court Order)",
+        "clean": "Silva Opusunju",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_treasurer": {
+        "raw": "Mr. Olajide Christmas Emmanuel Erhagbai (By Court Order)",
+        "clean": "Olajide Christmas Emmanuel Erhagbai",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_financial_secretary": {
+        "raw": "Mr. Mohammed Usman (By Court Order)",
+        "clean": "Mohammed Usman",
+        "flags": {
+          "court_order": true
+        }
+      },
+      "national_legal_adviser": {
+        "raw": "Barr. Chukwuemeka Uchenna Anthony (By Court Order)",
+        "clean": "Chukwuemeka Uchenna Anthony",
+        "flags": {
+          "court_order": true
+        }
+      }
+    },
+    "hq_address": "No. 3 Ontario Crescent, Suncity, Galadimawa, Abuja.",
+    "phones": [
+      "+2347063584464"
+    ],
+    "email": "officialndpnigeria@gmail.com",
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/national-democratic-party_logo.B2wV2anp.jpg",
+    "source_url": "https://inecnigeria.org/parties/national-democratic-party"
+  },
+  "NNPP": {
+    "name": "New Nigeria Peoples Party",
+    "db_acronym": "NNPP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Dr. Agbo Gilbert Major",
+        "clean": "Agbo Gilbert Major"
+      },
+      "national_secretary": {
+        "raw": "Com. Olaposi Sunday Oginni",
+        "clean": "Olaposi Sunday Oginni"
+      },
+      "national_treasurer": {
+        "raw": "Prince Adetoyese Omokanye",
+        "clean": "Adetoyese Omokanye"
+      },
+      "national_financial_secretary": {
+        "raw": "Mr. Anthony Kelechi Apugo",
+        "clean": "Anthony Kelechi Apugo"
+      },
+      "national_legal_adviser": {
+        "raw": "Asuquo Ibok",
+        "clean": "Asuquo Ibok"
+      }
+    },
+    "hq_address": "11 Mahatma Gandhi Street, Area 11, Garki, Abuja, Nigeria.",
+    "phones": [
+      "+2348023216343",
+      "+2348188600323"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/new-nigeria-peoples-party-nnpp_logo.DkfmFai5.jpg",
+    "source_url": "https://inecnigeria.org/parties/new-nigeria-peoples-party-nnpp"
+  },
+  "NRM": {
+    "name": "National Rescue Movement",
+    "db_acronym": "NRM",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Prince (Dr.) Chinedu Obi",
+        "clean": "Chinedu Obi"
+      },
+      "national_secretary": {
+        "raw": "Alh. Hassan Aminu Ibrahim",
+        "clean": "Hassan Aminu Ibrahim"
+      },
+      "national_treasurer": {
+        "raw": "Shedrach Oka",
+        "clean": "Shedrach Oka"
+      },
+      "national_financial_secretary": {
+        "raw": "Rev. Emmanuel Olorunmagba",
+        "clean": "Rev. Emmanuel Olorunmagba"
+      },
+      "national_legal_adviser": {
+        "raw": "Barr Musa Isiaka",
+        "clean": "Barr Musa Isiaka"
+      }
+    },
+    "hq_address": "Plot 2006, Kukawa Close, Off Makurdi Street, Area 10, Garki, Abuja FCT.",
+    "phones": [
+      "+2347047866746",
+      "+2348033144749",
+      "+2348032022776"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/national-rescue-movement-nrm_logo.BUg-M2QT.png",
+    "source_url": "https://inecnigeria.org/parties/national-rescue-movement-nrm"
+  },
+  "PDP": {
+    "name": "Peoples Democratic Party",
+    "db_acronym": "PDP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Hon. Abdulrahman Mohammed",
+        "clean": "Abdulrahman Mohammed"
+      },
+      "national_secretary": {
+        "raw": "Senator Samuel Anyanwu",
+        "clean": "Samuel Anyanwu"
+      },
+      "national_treasurer": {
+        "raw": "Odeyemi Mackson Oladiran",
+        "clean": "Odeyemi Mackson Oladiran"
+      },
+      "national_financial_secretary": {
+        "raw": "Eyim Donatus Henry",
+        "clean": "Eyim Donatus Henry"
+      },
+      "national_legal_adviser": {
+        "raw": "Kamaldeen Adeyemi Ajibade, SAN",
+        "clean": "Kamaldeen Adeyemi Ajibade"
+      }
+    },
+    "hq_address": "Wadata Plaza, Plot 1970 Michael Okpara Street, Wuse Zone 5, Abuja.",
+    "phones": [],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/peoples-democratic-party-pdp_logo.BClIHPW3.jpg",
+    "source_url": "https://inecnigeria.org/parties/peoples-democratic-party-pdp"
+  },
+  "PRP": {
+    "name": "Peoples Redemption Party",
+    "db_acronym": "PRP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Dr. Hakeem Baba-Ahmed",
+        "clean": "Hakeem Baba-Ahmed"
+      },
+      "national_secretary": {
+        "raw": "Mr. Kanu Sunday Uchenna",
+        "clean": "Kanu Sunday Uchenna"
+      },
+      "national_treasurer": {
+        "raw": "Dr. Bayawo Yunusa Abdullahi",
+        "clean": "Bayawo Yunusa Abdullahi"
+      },
+      "national_financial_secretary": {
+        "raw": "Mr.Chuka Patrick",
+        "clean": "Mr.Chuka Patrick"
+      },
+      "national_legal_adviser": {
+        "raw": "Barr.Vincent Danladi Okudu",
+        "clean": "Barr.Vincent Danladi Okudu"
+      }
+    },
+    "hq_address": "No. 8, Ogbabi Street, Adjacent Military Police Headquarter, Garki 2, Abuja.",
+    "phones": [
+      "+2348024441764"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/peoples-redemption-party-prp_logo.C8_o4OQI.png",
+    "source_url": "https://inecnigeria.org/parties/peoples-redemption-party-prp"
+  },
+  "SDP": {
+    "name": "Social Democratic Party",
+    "db_acronym": "SDP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Prof. Sadiq Umar Abubakar Gombe",
+        "clean": "Sadiq Umar Abubakar Gombe"
+      },
+      "national_secretary": {
+        "raw": "Dr. Olu Agunloye",
+        "clean": "Olu Agunloye"
+      },
+      "national_treasurer": {
+        "raw": "Hajia Maggie Mariam",
+        "clean": "Hajia Maggie Mariam"
+      },
+      "national_financial_secretary": {
+        "raw": "Mr Bello Ado Huseni",
+        "clean": "Mr Bello Ado Huseni"
+      },
+      "national_legal_adviser": {
+        "raw": "Barr. Aderemi Abimbola",
+        "clean": "Aderemi Abimbola"
+      }
+    },
+    "hq_address": null,
+    "phones": [],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/social-democratic-party-sdp_logo.DhlQ2VXw.png",
+    "source_url": "https://inecnigeria.org/parties/social-democratic-party-sdp"
+  },
+  "YP": {
+    "name": "Youth Party",
+    "db_acronym": "YP",
+    "in_our_db": false,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Mr. Abdulraham Abubakar",
+        "clean": "Abdulraham Abubakar"
+      },
+      "national_secretary": {
+        "raw": "Mrs. Helen Adoh",
+        "clean": "Helen Adoh"
+      },
+      "national_treasurer": {
+        "raw": "Mr. Kevwe Okpobia",
+        "clean": "Kevwe Okpobia"
+      },
+      "national_financial_secretary": {
+        "raw": "Mr. Sope Durodola",
+        "clean": "Sope Durodola"
+      },
+      "national_legal_adviser": {
+        "raw": "Mr. Adedayo Oshodi, SAN",
+        "clean": "Adedayo Oshodi"
+      }
+    },
+    "hq_address": "Suite 207, MKK Plaza, Gudu, Abuja.",
+    "phones": [
+      "+2347071261170"
+    ],
+    "email": "admin@youthpartyng.com",
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/youth-party-yp_logo.D9Wh44Zt.png",
+    "source_url": "https://inecnigeria.org/parties/youth-party-yp"
+  },
+  "YPP": {
+    "name": "Young Progressives Party",
+    "db_acronym": "YPP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Comrade Bishop Amakiri",
+        "clean": "Bishop Amakiri"
+      },
+      "national_secretary": {
+        "raw": "Barr. Vidiyeno Bamaiyi",
+        "clean": "Vidiyeno Bamaiyi"
+      },
+      "national_treasurer": {
+        "raw": "Usman Haruna",
+        "clean": "Usman Haruna"
+      },
+      "national_financial_secretary": {
+        "raw": "Azeez Adewale Ahmed",
+        "clean": "Azeez Adewale Ahmed"
+      },
+      "national_legal_adviser": {
+        "raw": "Tanze Benjamin Makoma",
+        "clean": "Tanze Benjamin Makoma"
+      }
+    },
+    "hq_address": "Block 10, Flat No. 1 Benue Crescent, Area 1, Garki, Abuja.",
+    "phones": [
+      "+2348100005566",
+      "+2347050505010"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/young-progressive-party-ypp_logo.Biw28-Pp.jpeg",
+    "source_url": "https://inecnigeria.org/parties/young-progressive-party-ypp"
+  },
+  "ZLP": {
+    "name": "Zenith Labour Party",
+    "db_acronym": "ZLP",
+    "in_our_db": true,
+    "leadership": {
+      "national_chairman": {
+        "raw": "Chief Dan Nwanyanwu, OFR",
+        "clean": "Dan Nwanyanwu"
+      },
+      "national_secretary": {
+        "raw": "Yahaya Makama",
+        "clean": "Yahaya Makama"
+      },
+      "national_treasurer": {
+        "raw": "Hassana El Abdullahi",
+        "clean": "Hassana El Abdullahi"
+      },
+      "national_financial_secretary": {
+        "raw": "Hon. Mrs Francisca Effiom",
+        "clean": "Mrs Francisca Effiom"
+      },
+      "national_legal_adviser": {
+        "raw": "ThankGod Enahoro",
+        "clean": "ThankGod Enahoro"
+      }
+    },
+    "hq_address": "Plot 73, Ladoke Akintola, Suite 206 Dabo Plaza, Garki 2, Abuja.",
+    "phones": [
+      "+2348033155775",
+      "+2348023730880"
+    ],
+    "email": null,
+    "website": null,
+    "logo_url": "https://inecnigeria.org/_nuxt/zenith-labour-party-zlp_logo.B_S46I7c.jpg",
+    "source_url": "https://inecnigeria.org/parties/zenith-labour-party-zlp"
+  }
+}

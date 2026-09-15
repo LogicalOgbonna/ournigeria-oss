@@ -1,7 +1,14 @@
 import type { DatasetImporter, ImportDiff, ProposalSpec, ProposalSourceInput } from "../importer.types";
 
-/** The three roles the dataset and entity both recognise. */
-const ROLES = ["national_chairman", "national_secretary", "party_leader"] as const;
+/** The roles the dataset and entity both recognise (INEC national officers + leader). */
+const ROLES = [
+  "national_chairman",
+  "national_secretary",
+  "party_leader",
+  "national_treasurer",
+  "national_financial_secretary",
+  "national_legal_adviser",
+] as const;
 type OfficerRole = (typeof ROLES)[number];
 
 /** Valid confidence tokens (chk_evidence_confidence). */
@@ -32,7 +39,7 @@ export const partyOfficersImporter: DatasetImporter = {
   name: "party-officers",
   label: "Party officers",
   description:
-    "National chairman / secretary / leader — seeded as officials and linked to the party.",
+    "National officers (chairman, secretary, leader, treasurer, financial secretary, legal adviser) — seeded as officials and linked to the party.",
   autoApprove: true,
 
   validate(json: unknown): void {

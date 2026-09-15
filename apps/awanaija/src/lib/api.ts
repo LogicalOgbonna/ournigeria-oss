@@ -760,6 +760,7 @@ export interface PartyStateChapter {
 
 export interface PartyDetail {
   acronym: string;
+  ballotCode: string | null;
   name: string;
   isActive: boolean;
   logoUrl: string | null;

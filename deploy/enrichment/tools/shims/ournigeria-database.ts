@@ -14,3 +14,9 @@
  * in the Prisma client).
  */
 export { slugifyName } from "../../../../packages/database/src/slug";
+// election-anchor is runtime-dependency-free: its only imports are a type-only
+// `@prisma/client` import (erased at build) and the mate-type constant map.
+export {
+  ensureTicketElections,
+  MATE_ELECTION_TYPE,
+} from "../../../../packages/database/src/campaigns/election-anchor";

@@ -22,6 +22,9 @@ model PoliticalParty {
   slogan        String? @db.VarChar(255)
   color         String? @db.VarChar(20)
   inecStatus    String? @map("inec_status") @db.VarChar(50)
+  // INEC ballot/register code. Usually equals `acronym`, but can diverge where our
+  // PK predates the register (e.g. our 'Accord' row is INEC ballot code 'A').
+  ballotCode    String? @map("ballot_code") @db.VarChar(20)
 
   completenessScore Decimal? @map("completeness_score") @db.Decimal(3, 2)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz()

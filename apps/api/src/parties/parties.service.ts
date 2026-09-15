@@ -2,6 +2,11 @@ import { Injectable, NotFoundException, BadRequestException } from "@nestjs/comm
 import { PrismaService } from "@ournigeria/database";
 
 const OFFICEHOLDER_ROLES = new Set(["governor", "senator", "rep", "mha", "lga_chairman"]);
+
+// Officer roles kept in the DB but NOT served to any client. `party_leader` is a
+// convention-based role (not on the INEC register); its sourcing policy is under
+// review — re-expose by removing it here once provenance is agreed.
+const HIDDEN_OFFICER_ROLES = ["party_leader"];
 const OFFICEHOLDER_PAGE_SIZE = 20;
 
 interface FootprintRow {
@@ -55,6 +60,33 @@ export class PartiesService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * Resolve a URL acronym param to its canonical PK, case-insensitively.
+   * PKs are mostly upper-case acronyms, but not all ('Accord'), and URLs
+   * arrive in any case. Exact match wins (deterministic if two PKs ever
+   * differ only by case); the input is validated first so LIKE/ILIKE
+   * metacharacters (%, _) can't act as wildcards under insensitive mode.
+   * Throws NotFoundException when no party matches.
+   */
+  private async resolveAcronym(acronymParam: string): Promise<string> {
+    if (!/^[A-Za-z0-9 .-]{1,20}$/.test(acronymParam)) {
+      throw new NotFoundException("Party not found");
+    }
+    const exact = await this.prisma.politicalParty.findUnique({
+      where: { acronym: acronymParam },
+      select: { acronym: true },
+    });
+    if (exact) return exact.acronym;
+    const party = await this.prisma.politicalParty.findFirst({
+      where: { acronym: { equals: acronymParam, mode: "insensitive" } },
+      select: { acronym: true },
+    });
+    if (!party) {
+      throw new NotFoundException("Party not found");
+    }
+    return party.acronym;
+  }
+
+  /**
    * List parties with a computed `seats` count = total active positions held.
    * Ordered by seats desc, then name asc.
    */
@@ -85,8 +117,9 @@ export class PartiesService {
         where: { status: "active", role: "governor", partyAcronym: { not: null } },
         _count: { _all: true },
       }),
-      // All officers in one query (≤45 rows); grouped per party below (no N+1).
+      // All officers in one query (~138 rows max: 6 roles × 23 parties); grouped per party below (no N+1).
       this.prisma.partyOfficer.findMany({
+        where: { role: { notIn: HIDDEN_OFFICER_ROLES } },
         orderBy: [{ displayOrder: "asc" }, { role: "asc" }],
         select: {
           partyAcronym: true,
@@ -141,13 +174,13 @@ export class PartiesService {
    * Full party profile + per-state chapters + computed electoral footprint.
    */
   async getByAcronym(acronymParam: string) {
-    const acronym = acronymParam.toUpperCase();
-
+    const acronym = await this.resolveAcronym(acronymParam);
     const party = await this.prisma.politicalParty.findUnique({
       where: { acronym },
       include: {
         chapters: { orderBy: { stateCode: "asc" } },
         officers: {
+          where: { role: { notIn: HIDDEN_OFFICER_ROLES } },
           orderBy: [{ displayOrder: "asc" }, { role: "asc" }],
           include: { official: { select: { slug: true } } },
         },
@@ -159,10 +192,10 @@ export class PartiesService {
     }
 
     const [footprint, statesGoverned, candidates, seatTotals] = await Promise.all([
-      this.computeFootprint(acronym),
-      this.computeStatesGoverned(acronym),
-      this.computeCandidates(acronym),
-      this.computeSeatTotalsAndRank(acronym),
+      this.computeFootprint(party.acronym),
+      this.computeStatesGoverned(party.acronym),
+      this.computeCandidates(party.acronym),
+      this.computeSeatTotalsAndRank(party.acronym),
     ]);
 
     const [budgetGoverned, seatsByZone] = await Promise.all([
@@ -174,6 +207,7 @@ export class PartiesService {
 
     return {
       acronym: party.acronym,
+      ballotCode: party.ballotCode,
       name: party.name,
       isActive: party.isActive,
       logoUrl: party.logoUrl,
@@ -388,10 +422,10 @@ export class PartiesService {
    * exclusive arc (state / constituency / lga).
    */
   async listOfficeholders(acronymParam: string, roleParam?: string, pageParam?: string) {
-    const acronym = acronymParam.toUpperCase();
     if (!roleParam || !OFFICEHOLDER_ROLES.has(roleParam)) {
       throw new BadRequestException("invalid or missing role");
     }
+    const acronym = await this.resolveAcronym(acronymParam);
     const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
     const limit = OFFICEHOLDER_PAGE_SIZE;
     const offset = (page - 1) * limit;
@@ -469,16 +503,7 @@ export class PartiesService {
    * Documented per-state chapter rows for a party, ordered by stateCode.
    */
   async getChapters(acronymParam: string) {
-    const acronym = acronymParam.toUpperCase();
-
-    const party = await this.prisma.politicalParty.findUnique({
-      where: { acronym },
-      select: { acronym: true },
-    });
-
-    if (!party) {
-      throw new NotFoundException("Party not found");
-    }
+    const acronym = await this.resolveAcronym(acronymParam);
 
     const chapters = await this.prisma.partyStateChapter.findMany({
       where: { partyAcronym: acronym },

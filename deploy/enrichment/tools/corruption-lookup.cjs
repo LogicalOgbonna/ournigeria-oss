@@ -8,6 +8,89 @@ function slugifyName(input) {
   return input.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/&/g, " and ").toLowerCase().replace(/['’.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 120).replace(/-+$/g, "");
 }
 
+// packages/database/src/campaigns/mate-type.ts
+var MATE_ELECTION_TYPE = {
+  presidential: "vice_presidential",
+  gubernatorial: "deputy_gubernatorial",
+  lga_chairman: "lga_vice_chairman",
+  senatorial: null,
+  house_of_reps: null,
+  state_assembly: null,
+  councilor: null,
+  other: null
+};
+
+// packages/database/src/campaigns/election-anchor.ts
+var CONFIDENCE_RANK = { low: 1, medium: 2, high: 3 };
+async function ensureTicketElections(tx, t, ctx) {
+  const scope = { stateCode: t.stateCode, constituencyCode: t.constituencyCode, lgaCode: t.lgaCode };
+  const scopeIfKnown = {
+    ...t.stateCode !== null ? { stateCode: t.stateCode } : {},
+    ...t.constituencyCode !== null ? { constituencyCode: t.constituencyCode } : {},
+    ...t.lgaCode !== null ? { lgaCode: t.lgaCode } : {}
+  };
+  const now = /* @__PURE__ */ new Date();
+  const EXISTING_SELECT = {
+    id: true,
+    officialId: true,
+    reviewStatus: true,
+    confidence: true,
+    result: true
+  };
+  async function ensure(officialId, electionType, isPrimary, winnerName, knownId) {
+    const result = isPrimary ? ctx.result : ctx.result === "withdrawn" ? "withdrawn" : "pending";
+    let existing = knownId ? await tx.officialElection.findUnique({ where: { id: knownId }, select: EXISTING_SELECT }) : null;
+    if (existing && existing.officialId !== officialId) existing = null;
+    if (!existing) {
+      existing = await tx.officialElection.findFirst({
+        where: { officialId, electionType, isPrimary, year: t.year, partyAcronym: t.partyAcronym },
+        orderBy: { createdAt: "asc" },
+        select: EXISTING_SELECT
+      });
+    }
+    if (existing) {
+      const raise = CONFIDENCE_RANK[ctx.confidence] > (CONFIDENCE_RANK[existing.confidence] ?? 0);
+      const nextResult = existing.result === "won" && result === "pending" && !ctx.allowResultDowngrade ? "won" : result;
+      await tx.officialElection.update({
+        where: { id: existing.id },
+        data: {
+          result: nextResult,
+          winnerName: nextResult === "won" ? winnerName : null,
+          lastVerifiedAt: now,
+          ...scopeIfKnown,
+          ...raise ? { confidence: ctx.confidence } : {},
+          ...existing.reviewStatus === "unreviewed" ? { reviewStatus: "reviewed", reviewedBy: ctx.reviewedBy } : {}
+        }
+      });
+      return existing.id;
+    }
+    const row = await tx.officialElection.create({
+      data: {
+        officialId,
+        electionType,
+        isPrimary,
+        year: t.year,
+        partyAcronym: t.partyAcronym,
+        ...scope,
+        result,
+        winnerName: result === "won" ? winnerName : null,
+        notes: ctx.notes ?? null,
+        confidence: ctx.confidence,
+        sourceType: ctx.sourceType,
+        reviewStatus: ctx.reviewStatus ?? "reviewed",
+        reviewedBy: ctx.reviewedBy,
+        lastVerifiedAt: now
+      },
+      select: { id: true }
+    });
+    return row.id;
+  }
+  const candidateElectionId = t.candidateOfficialId ? await ensure(t.candidateOfficialId, t.electionType, true, t.candidateName, t.officialElectionId) : null;
+  const mateType = MATE_ELECTION_TYPE[t.electionType] ?? null;
+  const mateElectionId = t.runningMateOfficialId && mateType ? await ensure(t.runningMateOfficialId, mateType, false, t.runningMateName) : null;
+  return { candidateElectionId, mateElectionId };
+}
+
 // apps/api/src/enrichment/agent/university-domains.gen.ts
 var WORLD_UNIVERSITY_DOMAINS = [
   "a-aarhus.dk",
@@ -4008,11 +4091,21 @@ function corruptionInvolvementEntity() {
     }
   };
 }
-var PARTY_OFFICER_ROLES = /* @__PURE__ */ new Set(["national_chairman", "national_secretary", "party_leader"]);
+var PARTY_OFFICER_ROLES = /* @__PURE__ */ new Set([
+  "national_chairman",
+  "national_secretary",
+  "party_leader",
+  "national_treasurer",
+  "national_financial_secretary",
+  "national_legal_adviser"
+]);
 var PARTY_OFFICER_ORDER = {
   national_chairman: 0,
   national_secretary: 1,
-  party_leader: 2
+  party_leader: 2,
+  national_treasurer: 3,
+  national_financial_secretary: 4,
+  national_legal_adviser: 5
 };
 function partyOfficerEntity() {
   return {
@@ -4447,6 +4540,243 @@ var assemblyMemberEntity = {
     return { id: positionId, officialId };
   }
 };
+var CDN_BASE = (process.env.CDN_BASE_URL ?? "https://cdn.ournigeria.ng").replace(/\/+$/, "");
+var cdnKey = (key) => typeof key === "string" && key ? `${CDN_BASE}/${key.replace(/^\/+/, "")}` : null;
+var CAMPAIGN_DOCUMENT_KINDS = ["manifesto", "cv", "achievements"];
+var CAMPAIGN_DOCUMENT_SUBJECTS = ["ticket", "candidate", "running_mate"];
+async function resolveExistingPerson(tx, p, fallbackSlug) {
+  const bySlug = async (slug) => {
+    const rows = await tx.$queryRawUnsafe(
+      `SELECT id FROM nigerian_officials WHERE slug = $1 AND deleted_at IS NULL LIMIT 1`,
+      slug
+    );
+    return rows[0]?.id ?? null;
+  };
+  const slugs = [...new Set([p.name, ...p.aka ?? []].map((n) => slugifyName(n)).filter(Boolean))];
+  for (const slug of slugs) {
+    const id = await bySlug(slug);
+    if (!id) continue;
+    if (p.knownOfficeHolder === true) return id;
+    const held = await tx.$queryRawUnsafe(
+      `SELECT 1 FROM official_positions WHERE official_id = $1::uuid AND status = 'active' LIMIT 1`,
+      id
+    );
+    if (held.length === 0) return id;
+    break;
+  }
+  return fallbackSlug ? await bySlug(fallbackSlug) : null;
+}
+var perRaceSlug = (name, year, party) => `${slugifyName(name)}-${year}-${party.toLowerCase()}`;
+function campaignEntity() {
+  return {
+    targetTable: "campaigns",
+    evidenceEntryType: null,
+    // evidence rows are per official/position, not per ticket
+    validate(raw) {
+      if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+        throw new BadRequestException("malformed create payload");
+      }
+      const p = raw;
+      for (const k of ["slug", "party", "electionType", "year", "candidate"]) {
+        if (p[k] === void 0 || p[k] === null) throw new BadRequestException(`${k} is required`);
+      }
+      if (typeof p.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.slug)) {
+        throw new BadRequestException("slug must be lower-case kebab");
+      }
+      if (!Number.isInteger(p.year)) throw new BadRequestException("year must be an integer");
+      const cand = p.candidate;
+      if (typeof cand !== "object" || typeof cand.name !== "string" || !cand.name.trim()) {
+        throw new BadRequestException("candidate.name is required");
+      }
+      if (p.stateCode !== void 0 && p.stateCode !== null) {
+        p.stateCode = resolveStateSlug(p.stateCode) ?? (String(p.stateCode).trim().toLowerCase() || null);
+      }
+      for (const k of ["constituencyCode", "lgaCode"]) {
+        const v = p[k];
+        if (typeof v === "string") p[k] = v.trim().toLowerCase() || null;
+      }
+      const docs = p.documents;
+      if (docs !== void 0 && docs !== null) {
+        if (!Array.isArray(docs)) throw new BadRequestException("documents must be an array");
+        docs.forEach((d, i) => {
+          const doc = d;
+          if (!CAMPAIGN_DOCUMENT_KINDS.includes(doc?.kind)) {
+            throw new BadRequestException(`documents[${i}].kind must be one of ${CAMPAIGN_DOCUMENT_KINDS.join(", ")}`);
+          }
+          if (!CAMPAIGN_DOCUMENT_SUBJECTS.includes(doc?.subject)) {
+            throw new BadRequestException(`documents[${i}].subject must be one of ${CAMPAIGN_DOCUMENT_SUBJECTS.join(", ")}`);
+          }
+          if (typeof doc?.title !== "string" || !doc.title.trim()) {
+            throw new BadRequestException(`documents[${i}].title is required`);
+          }
+        });
+      }
+      return p;
+    },
+    async preflight(tx, payload) {
+      const exists = await tx.$queryRawUnsafe(`SELECT 1 FROM campaigns WHERE slug = $1`, payload.slug);
+      if (exists.length) throw new BadRequestException(`campaign ${payload.slug} already exists`);
+      const party = await tx.$queryRawUnsafe(
+        `SELECT 1 FROM political_parties WHERE acronym = $1`,
+        String(payload.party).toUpperCase()
+      );
+      if (!party.length) throw new BadRequestException(`unknown party ${payload.party}`);
+      const geo = [
+        ["stateCode", "state_code", "nigerian_states"],
+        ["constituencyCode", "constituency_code", "nigerian_constituencies"],
+        ["lgaCode", "lga_code", "nigerian_lgas"]
+      ];
+      for (const [key, column, table] of geo) {
+        const v = payload[key];
+        if (!v) continue;
+        const rows = await tx.$queryRawUnsafe(`SELECT 1 FROM ${table} WHERE code = $1`, v);
+        if (!rows.length) throw new BadRequestException(`unknown ${column} ${String(v)}`);
+      }
+      const cand = payload.candidate;
+      const existingCandidate = await resolveExistingPerson(
+        tx,
+        cand,
+        perRaceSlug(cand.name, Number(payload.year), String(payload.party))
+      );
+      if (existingCandidate) {
+        const dupe = await tx.$queryRawUnsafe(
+          `SELECT slug FROM campaigns
+            WHERE candidate_official_id = $1::uuid
+              AND election_type = $2 AND year = $3::int AND party_acronym = $4
+              AND status NOT IN ('withdrawn', 'dissolved')
+            LIMIT 1`,
+          existingCandidate,
+          String(payload.electionType),
+          Number(payload.year),
+          String(payload.party).toUpperCase()
+        );
+        if (dupe.length) {
+          throw new BadRequestException(
+            `${cand.name} already has a ticket for this race: ${dupe[0].slug}`
+          );
+        }
+      }
+    },
+    async insert(rawTx, payload, ctx) {
+      const tx = rawTx;
+      const year = Number(payload.year);
+      const party = String(payload.party).toUpperCase();
+      const confidence = ctx.confidence === "high" || ctx.confidence === "low" ? ctx.confidence : "medium";
+      const person = async (p) => {
+        if (!p) return null;
+        const imageUrl = cdnKey(p.card ?? p.poster);
+        const slugHint = perRaceSlug(p.name, year, party);
+        const existingId = await resolveExistingPerson(rawTx, p, slugHint);
+        if (existingId) return { id: existingId, name: p.name, imageUrl };
+        const id = await findOrCreateOfficial(rawTx, {
+          name: p.name,
+          imageUrl,
+          gender: p.gender ?? null,
+          dateOfBirth: p.dateOfBirth ?? null,
+          officialType: null,
+          // a candidate is not an office-holder (plan 60 §4.3)
+          slug: slugHint
+        });
+        return { id, name: p.name, imageUrl };
+      };
+      const cand = await person(payload.candidate);
+      const mateInput = payload.runningMate ?? null;
+      const mate = await person(mateInput);
+      const c = payload.candidate;
+      const blurbs = payload.documentBlurbs ?? {};
+      const art = payload.posterArt;
+      const media = [];
+      const push = (type, key, metadata) => {
+        const url = cdnKey(key);
+        if (url) media.push({ type, url, metadata, displayOrder: media.length });
+      };
+      push(
+        "poster_candidate",
+        c.poster,
+        art ? { box: art.candidate, chip: art.chip ?? null, scrim: art.scrim ?? null, urlColor: art.urlColor ?? null } : void 0
+      );
+      push("poster_mate", mateInput?.poster, art?.mate ? { box: art.mate } : void 0);
+      push("card_candidate", c.card);
+      push("card_mate", mateInput?.card);
+      push("quote_photo", payload.quotePhoto);
+      push("bio_photo", payload.bioPhoto);
+      push("logo", payload.logo);
+      const documents = (payload.documents ?? []).map((d) => ({
+        kind: d.kind,
+        subject: d.subject,
+        title: d.title,
+        blurb: d.blurb ?? blurbs[d.kind] ?? null,
+        coverUrl: cdnKey(d.cover),
+        fileUrl: cdnKey(d.file),
+        pageCount: d.pageCount ?? null,
+        confidence,
+        sourceType: "import"
+      }));
+      const row = await tx.campaign.create({
+        data: {
+          slug: String(payload.slug),
+          electionType: String(payload.electionType),
+          year,
+          partyAcronym: party,
+          stateCode: payload.stateCode ?? null,
+          constituencyCode: payload.constituencyCode ?? null,
+          lgaCode: payload.lgaCode ?? null,
+          candidateOfficialId: cand.id,
+          candidateName: cand.name,
+          candidateShortName: c.shortName ?? null,
+          candidateImageUrl: cand.imageUrl,
+          runningMateOfficialId: mate?.id ?? null,
+          runningMateName: mate?.name ?? null,
+          runningMateImageUrl: mate?.imageUrl ?? null,
+          candidateBio: payload.candidateBio ?? null,
+          visionLine: payload.visionLine ?? null,
+          fineprint: payload.fineprint ?? null,
+          pullQuote: payload.pullQuote ?? null,
+          pullQuoteBg: payload.pullQuoteBg ?? null,
+          brandColor: payload.brandColor ?? null,
+          factionLabel: payload.factionLabel ?? null,
+          isDisputed: Boolean(payload.isDisputed),
+          status: "draft",
+          reviewStatus: "unreviewed",
+          reviewRequestedAt: /* @__PURE__ */ new Date(),
+          reviewRequestedBy: ctx.adminId,
+          confidence,
+          sourceType: "import",
+          sourceUrl: payload.sourceUrl ?? null,
+          documents: { create: documents },
+          media: { create: media }
+        },
+        select: {
+          id: true,
+          electionType: true,
+          year: true,
+          partyAcronym: true,
+          stateCode: true,
+          constituencyCode: true,
+          lgaCode: true,
+          candidateOfficialId: true,
+          candidateName: true,
+          runningMateOfficialId: true,
+          runningMateName: true,
+          officialElectionId: true
+        }
+      });
+      const anchor = await ensureTicketElections(tx, row, {
+        result: "pending",
+        reviewedBy: ctx.adminId,
+        sourceType: "import",
+        confidence,
+        // Nobody has looked at a machine-created anchor yet; the ticket itself
+        // lands review_status='unreviewed' and the anchor must match.
+        reviewStatus: "unreviewed"
+      });
+      if (anchor.candidateElectionId) {
+        await tx.campaign.update({ where: { id: row.id }, data: { officialElectionId: anchor.candidateElectionId } });
+      }
+      return { id: row.id, officialId: cand.id };
+    }
+  };
+}
 var CREATABLE_ENTITIES = {
   official_education: officialFactEntity("official_education", "education", [
     { key: "institution", column: "institution", type: "string", required: true },
@@ -4582,7 +4912,9 @@ var CREATABLE_ENTITIES = {
   political_parties: politicalPartyEntity(),
   // Assembly member (State House of Assembly, role 'mha'): find-or-create official,
   // upsert active mha position for the seat, atomic downgrade of other holders.
-  assembly_member: assemblyMemberEntity
+  assembly_member: assemblyMemberEntity,
+  // Election tickets (bulk import): draft campaign + media + documents + anchor.
+  campaigns: campaignEntity()
 };
 function getCreatableEntity(targetTable) {
   return CREATABLE_ENTITIES[targetTable] ?? null;

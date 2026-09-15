@@ -17,7 +17,7 @@ const ADMIN = "11111111-1111-1111-1111-111111111111";
 
 describe("party_officers create (find-or-create official)", () => {
   let owner: Client;
-  let createdNdcFixture = false;
+  let createdFixtureParty = false;
   const cleanupOfficerIds: string[] = [];
   const cleanupOfficialIds: string[] = [];
 
@@ -25,30 +25,31 @@ describe("party_officers create (find-or-create official)", () => {
     if (!OWNER_URL) throw new Error("DATABASE_URL not set");
     owner = new Client({ connectionString: OWNER_URL });
     await owner.connect();
-    // Self-sufficient fixture: NDC (registered 2026) postdates older dev-DB
-    // seeds — upsert it so the FK insert below never depends on seed vintage.
+    // Self-sufficient fixture: a synthetic acronym that can never collide with a
+    // real registered party (using a real one broke once the INEC register import
+    // populated its officers — duplicate (party, role) on uq_party_officer_role).
     // Track whether WE created it so afterAll removes only our own row (the
     // shared dev DB must not accumulate fixture-guessed party names).
     const ins = await owner.query(
-      `INSERT INTO political_parties (acronym, name) VALUES ('NDC', 'New Democratic Coalition')
+      `INSERT INTO political_parties (acronym, name) VALUES ('ZZTEST', 'Fixture Test Party')
        ON CONFLICT (acronym) DO NOTHING`,
     );
-    createdNdcFixture = (ins.rowCount ?? 0) > 0;
+    createdFixtureParty = (ins.rowCount ?? 0) > 0;
   });
   afterAll(async () => {
     if (cleanupOfficerIds.length)
       await owner.query(`DELETE FROM party_officers WHERE id = ANY($1::uuid[])`, [cleanupOfficerIds]);
     if (cleanupOfficialIds.length)
       await owner.query(`DELETE FROM nigerian_officials WHERE id = ANY($1::uuid[])`, [cleanupOfficialIds]);
-    if (createdNdcFixture)
-      await owner.query(`DELETE FROM political_parties WHERE acronym = 'NDC'`).catch(() => {});
+    if (createdFixtureParty)
+      await owner.query(`DELETE FROM political_parties WHERE acronym = 'ZZTEST'`).catch(() => {});
     await owner.end();
   });
 
   it("creates an official + party_officers row linked by official_id", async () => {
     const entity = getCreatableEntity("party_officers")!;
     const payload = entity.validate({
-      partyAcronym: "NDC",
+      partyAcronym: "ZZTEST",
       role: "national_secretary",
       name: "Zzz Importtest Person",
       imageUrl: null,
@@ -94,7 +95,11 @@ describe("party_officers create — full apply path (integration)", () => {
   let svc: EnrichmentApplyService;
   let officerId: string | null = null;
   let officialId: string | null = null;
-  const PARTY = "ADC"; // exists, and has no party_leader (verified against dev DB)
+  let createdApplyFixtureParty = false;
+  // Synthetic party: relying on a real one (previously ADC) breaks as soon as any
+  // import/enrichment fills the (party, role) slot — same collision class the
+  // ZZTEST fixture above exists to avoid.
+  const PARTY = "ZZTESTB";
   const ROLE = "party_leader";
   const NAME = "Apply Path Officer ACE";
 
@@ -102,6 +107,13 @@ describe("party_officers create — full apply path (integration)", () => {
     prisma = new PrismaService();
     await prisma.onModuleInit();
     svc = new EnrichmentApplyService(prisma, imageStub, new CompletenessService(prisma));
+    const existing = await prisma.politicalParty.findUnique({ where: { acronym: PARTY } });
+    if (!existing) {
+      await prisma.politicalParty.create({
+        data: { acronym: PARTY, name: "Fixture Apply-Path Party", isActive: false },
+      });
+      createdApplyFixtureParty = true;
+    }
   });
 
   afterAll(async () => {
@@ -112,6 +124,8 @@ describe("party_officers create — full apply path (integration)", () => {
     }
     await prisma.changeProposal.deleteMany({ where: { reasoning: { contains: "ace-party-officer-apply-test" } } });
     if (officialId) await prisma.nigerianOfficial.delete({ where: { id: officialId } }).catch(() => {});
+    if (createdApplyFixtureParty)
+      await prisma.politicalParty.delete({ where: { acronym: PARTY } }).catch(() => {});
     await prisma.onModuleDestroy();
   });
 

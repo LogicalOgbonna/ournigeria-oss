@@ -328,11 +328,21 @@ function corruptionInvolvementEntity(): CreatableEntity {
 }
 
 /** Known party-officer roles (singular per party). */
-const PARTY_OFFICER_ROLES = new Set(["national_chairman", "national_secretary", "party_leader"]);
+const PARTY_OFFICER_ROLES = new Set([
+  "national_chairman",
+  "national_secretary",
+  "party_leader",
+  "national_treasurer",
+  "national_financial_secretary",
+  "national_legal_adviser",
+]);
 const PARTY_OFFICER_ORDER: Record<string, number> = {
   national_chairman: 0,
   national_secretary: 1,
   party_leader: 2,
+  national_treasurer: 3,
+  national_financial_secretary: 4,
+  national_legal_adviser: 5,
 };
 
 /**

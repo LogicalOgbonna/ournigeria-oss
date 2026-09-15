@@ -49,6 +49,9 @@ export class PartiesController {
       if (err.status === 400) {
         return res.status(HttpStatus.BAD_REQUEST).json({ error: err.message });
       }
+      if (err.status === 404) {
+        return res.status(HttpStatus.NOT_FOUND).json({ error: "Party not found" });
+      }
       console.error("parties officeholders error:", err);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
     }
