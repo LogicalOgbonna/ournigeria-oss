@@ -1,31 +1,27 @@
--- INEC registered-parties sync — scraped 2026-08-31 from https://inecnigeria.org/parties
--- Idempotent upserts, but treat as APPLY-ONCE: a re-run after later enrichment/admin edits will
--- clobber them (officer names/confidence re-set, official_id re-NULLed on the 4 person-changed rows).
--- After applying to prod: (1) record date+host in PROGRESS.md and do not re-run;
--- (2) purge the Cloudflare edge cache by /parties prefix and verify via the *.vercel.app
---     origin — edge cache has masked fresh prod data before (see memory).
--- REQUIRES migration 20260831225547_add_party_ballot_code.
--- Apply: docker exec -i <db> psql -U spending -d spending -v ON_ERROR_STOP=1 < this-file
--- NOTES:
---  * Party row is upserted BEFORE its officers (FK party_officers_party_acronym_fkey).
---  * uq_party_officer_role is a unique INDEX, so ON CONFLICT uses column inference.
---  * Our PK for Accord stays 'Accord'; ballot_code carries INEC's 'A'. Our 'A' row is the
---    inactive legacy 'Alliance' — untouched.
---  * APP rename 'All Progressives Party' -> 'Action Peoples Party': same-party correction (INEC's
---    APP register entry, same chairman Uchenna Nnadi). Operator: spot-check the 15 APP
---    official_positions before applying if in doubt.
---  * official_id is NULLed only when the officer is a different PERSON (AA sec, AAC chair,
---    NNPP chair+sec); spelling corrections keep the official link. The 4 outgoing officials
---    (Vernimbe A. James, Samuel Ajeigbe, Bala Yunusa Mohammed, Dipo Olayoku) become unlinked;
---    any later dedup/delete of them MUST honor the official_slug_aliases invariant.
---  * logo_url values are INEC's per-party assets (fill-only, never overwrite; Accord has none).
---    Hashed _nuxt URLs rot on INEC redeploys — re-host via backfill-images-to-s3 as follow-up.
---  * display_order: chairman 0, secretary 1, (party_leader 2 by convention), treasurer 3,
---    financial secretary 4, legal adviser 5.
-BEGIN;
+-- INEC registered-parties data sync (register scraped 2026-08-31 from https://inecnigeria.org/parties).
+-- Formerly the operator-applied packages/database/data/inec-parties-update-2026-08-31.sql;
+-- promoted to a migration so prod/staging/dev apply it automatically on boot — no manual step.
+-- Runs exactly once per DB (_prisma_migrations); every statement is an idempotent upsert, and
+-- party rows are FULL upserts so a fresh empty DB satisfies the officer FKs below.
+-- Semantics: INEC authoritative for name/ballot_code/hq_address/phone; email/logo fill-only
+-- (never clobber enrichment); party_leader untouched except display_order normalization.
+-- official_id is NULLed only where the officer is a different PERSON (AA sec, AAC chair,
+-- NNPP chair+sec) — re-link via enrichment; slug-alias invariant applies to the 4 outgoing officials.
 
 -- A — Accord
-UPDATE political_parties SET ballot_code = 'A', name = 'Accord', hq_address = 'No. 15 Jos Street, Area 3 Garki, Abuja.', updated_at = now() WHERE acronym = 'Accord';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('Accord', 'A', 'Accord', true, NULL, 'No. 15 Jos Street, Area 3 Garki, Abuja.', NULL, '+2348033141001', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('Accord', 'national_chairman', 'Maxwell Mgbudem', 0, 'inec', 'https://inecnigeria.org/parties/accord-a', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -48,7 +44,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- AA — Action Alliance
-UPDATE political_parties SET ballot_code = 'AA', hq_address = 'Plot 955, No. 17 Femi Otedola Crescent, 7th Avenue, Gwarinpa Estate, FCT Abuja.', phone_number = '+2348033849599, +2348158480502', email = 'actionallianceparty20005@gmail.com', logo_url = 'https://inecnigeria.org/_nuxt/action-alliance-aa_logo.DQolkzM6.jpg', updated_at = now() WHERE acronym = 'AA';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('AA', 'AA', 'Action Alliance', true, 'https://inecnigeria.org/_nuxt/action-alliance-aa_logo.DQolkzM6.jpg', 'Plot 955, No. 17 Femi Otedola Crescent, 7th Avenue, Gwarinpa Estate, FCT Abuja.', 'actionallianceparty20005@gmail.com', '+2348033849599, +2348158480502', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('AA', 'national_chairman', 'Adekunle Rufai Omoaje', 0, 'inec', 'https://inecnigeria.org/parties/action-alliance-aa', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -77,7 +85,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- AAC — African Action Congress
-UPDATE political_parties SET ballot_code = 'AAC', hq_address = 'Office 011, Bolingo Hotel & Towers, (Office Block), Plot 777 Independent Avenue, beside American Embassy, Central Business District, Abuja.', phone_number = '+2348188237529', logo_url = 'https://inecnigeria.org/_nuxt/african-action-congress-aac_logo.BiPR0ZxO.jpg', updated_at = now() WHERE acronym = 'AAC';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('AAC', 'AAC', 'African Action Congress', true, 'https://inecnigeria.org/_nuxt/african-action-congress-aac_logo.BiPR0ZxO.jpg', 'Office 011, Bolingo Hotel & Towers, (Office Block), Plot 777 Independent Avenue, beside American Embassy, Central Business District, Abuja.', NULL, '+2348188237529', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('AAC', 'national_chairman', 'Omoyele Sowore', 0, 'inec', 'https://inecnigeria.org/parties/african-action-congress-aac', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -106,7 +126,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- ADC — African Democratic Congress
-UPDATE political_parties SET ballot_code = 'ADC', hq_address = 'No. 2 Adetokunbo Ademola Crescent, Wuse II, Abuja.', phone_number = '+2348027789181', updated_at = now() WHERE acronym = 'ADC';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('ADC', 'ADC', 'African Democratic Congress', true, 'https://inecnigeria.org/_nuxt/african-democratic-congress-adc_logo.DBilnanA.jpg', 'No. 2 Adetokunbo Ademola Crescent, Wuse II, Abuja.', NULL, '+2348027789181', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('ADC', 'national_chairman', 'David Mark', 0, 'inec', 'https://inecnigeria.org/parties/african-democratic-congress-adc', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -134,7 +166,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- ADP — Action Democratic Party
-UPDATE political_parties SET ballot_code = 'ADP', hq_address = 'Plot 3379A, Mungo Park Close, Off Jesse Jackson Asokoro New Extension, Abuja.', phone_number = '+2348033001274', logo_url = 'https://inecnigeria.org/_nuxt/action-democratic-party-adp_logo.7qxyEaV2.png', updated_at = now() WHERE acronym = 'ADP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('ADP', 'ADP', 'Action Democratic Party', true, 'https://inecnigeria.org/_nuxt/action-democratic-party-adp_logo.7qxyEaV2.png', 'Plot 3379A, Mungo Park Close, Off Jesse Jackson Asokoro New Extension, Abuja.', NULL, '+2348033001274', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('ADP', 'national_chairman', 'Yabagi Yusuf Sani', 0, 'inec', 'https://inecnigeria.org/parties/action-democratic-party-adp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -162,7 +206,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- APC — All Progressives Congress
-UPDATE political_parties SET ballot_code = 'APC', hq_address = 'No. 40 Blantyre Street, Wuse II, Abuja, Nigeria.', phone_number = '+2348066380772, +2348034753343', updated_at = now() WHERE acronym = 'APC';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('APC', 'APC', 'All Progressives Congress', true, 'https://inecnigeria.org/_nuxt/all-progressives-congress-apc_logo.CSXCWB6p.jpg', 'No. 40 Blantyre Street, Wuse II, Abuja, Nigeria.', NULL, '+2348066380772, +2348034753343', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('APC', 'national_chairman', 'Nentawe Goshwe Yilwatda', 0, 'inec', 'https://inecnigeria.org/parties/all-progressives-congress-apc', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -190,7 +246,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- APGA — All Progressives Grand Alliance
-UPDATE political_parties SET ballot_code = 'APGA', hq_address = 'Plot 1160 Cadastral Zone B07, Katampe District, Abuja.', phone_number = '+2347033103768', updated_at = now() WHERE acronym = 'APGA';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('APGA', 'APGA', 'All Progressives Grand Alliance', true, 'https://inecnigeria.org/_nuxt/all-progressives-grand-alliance-apga_logo.PfgYjSjV.jpg', 'Plot 1160 Cadastral Zone B07, Katampe District, Abuja.', NULL, '+2347033103768', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('APGA', 'national_chairman', 'Sylvester Ezeokenwa', 0, 'inec', 'https://inecnigeria.org/parties/all-progressives-grand-alliance-apga', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -221,10 +289,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('APM', 'APM', 'Allied Peoples Movement', true, 'https://inecnigeria.org/_nuxt/allied-peoples-movement-apm_logo.BQN54Bkl.jpg', 'Plot 232, No. 2 Leventis Building, Samuel Adesujo Ademulegun Street, Off Muhammadu Buhari Way, Central Business District, Abuja FCT.', NULL, '+2348033043791, +2348055108331', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'Allied Peoples Movement', ballot_code = 'APM', is_active = true, hq_address = 'Plot 232, No. 2 Leventis Building, Samuel Adesujo Ademulegun Street, Off Muhammadu Buhari Way, Central Business District, Abuja FCT.',
-  email = COALESCE(political_parties.email, NULL),
-  phone_number = COALESCE(political_parties.phone_number, '+2348033043791, +2348055108331'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/allied-peoples-movement-apm_logo.BQN54Bkl.jpg'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('APM', 'national_chairman', 'Yusuf Mamman Dantalle', 0, 'inec', 'https://inecnigeria.org/parties/allied-peoples-movement-apm', 'high', 'reviewed', now())
@@ -248,7 +321,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- APP — Action Peoples Party
-UPDATE political_parties SET ballot_code = 'APP', name = 'Action Peoples Party', hq_address = 'No. 6 Alexander Crescent, Behind Banex Plaza, Wuse II, Abuja.', phone_number = '+2348175674309', logo_url = 'https://inecnigeria.org/_nuxt/action-peoples-party-app_logo.BhRwRU7M.png', updated_at = now() WHERE acronym = 'APP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('APP', 'APP', 'Action Peoples Party', true, 'https://inecnigeria.org/_nuxt/action-peoples-party-app_logo.BhRwRU7M.png', 'No. 6 Alexander Crescent, Behind Banex Plaza, Wuse II, Abuja.', NULL, '+2348175674309', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('APP', 'national_chairman', 'Uchenna Nnadi', 0, 'inec', 'https://inecnigeria.org/parties/action-peoples-party-app', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -279,10 +364,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('BP', 'BP', 'Boot Party', true, 'https://inecnigeria.org/_nuxt/boot-party-bp_logo.Br5O5Wf6.jpg', 'House 11 Road C1, F.H.A Karu, Abuja.', NULL, '+2347057749595', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'Boot Party', ballot_code = 'BP', is_active = true, hq_address = 'House 11 Road C1, F.H.A Karu, Abuja.',
-  email = COALESCE(political_parties.email, NULL),
-  phone_number = COALESCE(political_parties.phone_number, '+2347057749595'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/boot-party-bp_logo.Br5O5Wf6.jpg'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('BP', 'national_chairman', 'Adenuga Sunday', 0, 'inec', 'https://inecnigeria.org/parties/boot-party-bp', 'high', 'reviewed', now())
@@ -304,10 +394,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('DLA', 'DLA', 'Democratic Leadership Alliance', true, 'https://inecnigeria.org/_nuxt/democratic-leadership-alliance-dla_logo.B-mFJlad.jpg', 'No. 25 Niger Street, Sun City Estate, Galadimawa, Abuja.', 'democraticleadership@gmail.com', '+2348057021236', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'Democratic Leadership Alliance', ballot_code = 'DLA', is_active = true, hq_address = 'No. 25 Niger Street, Sun City Estate, Galadimawa, Abuja.',
-  email = COALESCE(political_parties.email, 'democraticleadership@gmail.com'),
-  phone_number = COALESCE(political_parties.phone_number, '+2348057021236'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/democratic-leadership-alliance-dla_logo.B-mFJlad.jpg'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('DLA', 'national_chairman', 'Samuel M. Memeh', 0, 'inec', 'https://inecnigeria.org/parties/democratic-leadership-alliance-dla', 'high', 'reviewed', now())
@@ -336,7 +431,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- LP — Labour Party
-UPDATE political_parties SET ballot_code = 'LP', updated_at = now() WHERE acronym = 'LP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('LP', 'LP', 'Labour Party', true, 'https://inecnigeria.org/_nuxt/labour-party-lp_logo.SV1XCjLU.jpg', NULL, NULL, NULL, 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('LP', 'national_chairman', 'Nenadi E. Usman', 0, 'inec', 'https://inecnigeria.org/parties/labour-party-lp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -367,10 +474,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('NDC', 'NDC', 'Nigeria Democratic Congress', true, 'https://inecnigeria.org/_nuxt/nigeria-democratic-congress_logo.BauESQLD.jpeg', 'No. 4 Odenna Close, Off Libreville Street, Wuse II, Abuja.', 'ndcofficial2024@gmail.com', '+2348064726791', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'Nigeria Democratic Congress', ballot_code = 'NDC', is_active = true, hq_address = 'No. 4 Odenna Close, Off Libreville Street, Wuse II, Abuja.',
-  email = COALESCE(political_parties.email, 'ndcofficial2024@gmail.com'),
-  phone_number = COALESCE(political_parties.phone_number, '+2348064726791'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/nigeria-democratic-congress_logo.BauESQLD.jpeg'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('NDC', 'national_chairman', 'Cleopas Moses Zuwoghe', 0, 'inec', 'https://inecnigeria.org/parties/nigeria-democratic-congress', 'high', 'reviewed', now())
@@ -402,10 +514,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('NDP', 'NDP', 'National Democratic Party', true, 'https://inecnigeria.org/_nuxt/national-democratic-party_logo.B2wV2anp.jpg', 'No. 3 Ontario Crescent, Suncity, Galadimawa, Abuja.', 'officialndpnigeria@gmail.com', '+2347063584464', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'National Democratic Party', ballot_code = 'NDP', is_active = true, hq_address = 'No. 3 Ontario Crescent, Suncity, Galadimawa, Abuja.',
-  email = COALESCE(political_parties.email, 'officialndpnigeria@gmail.com'),
-  phone_number = COALESCE(political_parties.phone_number, '+2347063584464'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/national-democratic-party_logo.B2wV2anp.jpg'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('NDP', 'national_chairman', 'Ada Elizabeth Fredrick Okwori', 0, 'inec', 'https://inecnigeria.org/parties/national-democratic-party', 'high', 'reviewed', now())
@@ -434,7 +551,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- NNPP — New Nigeria Peoples Party
-UPDATE political_parties SET ballot_code = 'NNPP', hq_address = '11 Mahatma Gandhi Street, Area 11, Garki, Abuja, Nigeria.', phone_number = '+2348023216343, +2348188600323', updated_at = now() WHERE acronym = 'NNPP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('NNPP', 'NNPP', 'New Nigeria Peoples Party', true, 'https://inecnigeria.org/_nuxt/new-nigeria-peoples-party-nnpp_logo.DkfmFai5.jpg', '11 Mahatma Gandhi Street, Area 11, Garki, Abuja, Nigeria.', NULL, '+2348023216343, +2348188600323', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('NNPP', 'national_chairman', 'Agbo Gilbert Major', 0, 'inec', 'https://inecnigeria.org/parties/new-nigeria-peoples-party-nnpp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -467,10 +596,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('NRM', 'NRM', 'National Rescue Movement', true, 'https://inecnigeria.org/_nuxt/national-rescue-movement-nrm_logo.BUg-M2QT.png', 'Plot 2006, Kukawa Close, Off Makurdi Street, Area 10, Garki, Abuja FCT.', NULL, '+2347047866746, +2348033144749', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'National Rescue Movement', ballot_code = 'NRM', is_active = true, hq_address = 'Plot 2006, Kukawa Close, Off Makurdi Street, Area 10, Garki, Abuja FCT.',
-  email = COALESCE(political_parties.email, NULL),
-  phone_number = COALESCE(political_parties.phone_number, '+2347047866746, +2348033144749'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/national-rescue-movement-nrm_logo.BUg-M2QT.png'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('NRM', 'national_chairman', 'Chinedu Obi', 0, 'inec', 'https://inecnigeria.org/parties/national-rescue-movement-nrm', 'high', 'reviewed', now())
@@ -499,7 +633,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- PDP — Peoples Democratic Party
-UPDATE political_parties SET ballot_code = 'PDP', hq_address = 'Wadata Plaza, Plot 1970 Michael Okpara Street, Wuse Zone 5, Abuja.', updated_at = now() WHERE acronym = 'PDP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('PDP', 'PDP', 'Peoples Democratic Party', true, 'https://inecnigeria.org/_nuxt/peoples-democratic-party-pdp_logo.BClIHPW3.jpg', 'Wadata Plaza, Plot 1970 Michael Okpara Street, Wuse Zone 5, Abuja.', NULL, NULL, 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('PDP', 'national_chairman', 'Abdulrahman Mohammed', 0, 'inec', 'https://inecnigeria.org/parties/peoples-democratic-party-pdp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -527,7 +673,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- PRP — Peoples Redemption Party
-UPDATE political_parties SET ballot_code = 'PRP', hq_address = 'No. 8, Ogbabi Street, Adjacent Military Police Headquarter, Garki 2, Abuja.', phone_number = '+2348024441764', logo_url = 'https://inecnigeria.org/_nuxt/peoples-redemption-party-prp_logo.C8_o4OQI.png', updated_at = now() WHERE acronym = 'PRP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('PRP', 'PRP', 'Peoples Redemption Party', true, 'https://inecnigeria.org/_nuxt/peoples-redemption-party-prp_logo.C8_o4OQI.png', 'No. 8, Ogbabi Street, Adjacent Military Police Headquarter, Garki 2, Abuja.', NULL, '+2348024441764', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('PRP', 'national_chairman', 'Hakeem Baba-Ahmed', 0, 'inec', 'https://inecnigeria.org/parties/peoples-redemption-party-prp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -555,7 +713,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- SDP — Social Democratic Party
-UPDATE political_parties SET ballot_code = 'SDP', updated_at = now() WHERE acronym = 'SDP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('SDP', 'SDP', 'Social Democratic Party', true, 'https://inecnigeria.org/_nuxt/social-democratic-party-sdp_logo.DhlQ2VXw.png', NULL, NULL, NULL, 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('SDP', 'national_chairman', 'Sadiq Umar Abubakar Gombe', 0, 'inec', 'https://inecnigeria.org/parties/social-democratic-party-sdp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -586,10 +756,15 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
 VALUES ('YP', 'YP', 'Youth Party', true, 'https://inecnigeria.org/_nuxt/youth-party-yp_logo.D9Wh44Zt.png', 'Suite 207, MKK Plaza, Gudu, Abuja.', 'admin@youthpartyng.com', '+2347071261170', 'Registered')
 ON CONFLICT (acronym) DO UPDATE SET
-  name = 'Youth Party', ballot_code = 'YP', is_active = true, hq_address = 'Suite 207, MKK Plaza, Gudu, Abuja.',
-  email = COALESCE(political_parties.email, 'admin@youthpartyng.com'),
-  phone_number = COALESCE(political_parties.phone_number, '+2347071261170'),
-  logo_url = COALESCE(political_parties.logo_url, 'https://inecnigeria.org/_nuxt/youth-party-yp_logo.D9Wh44Zt.png'),
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
   inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('YP', 'national_chairman', 'Abdulraham Abubakar', 0, 'inec', 'https://inecnigeria.org/parties/youth-party-yp', 'high', 'reviewed', now())
@@ -618,7 +793,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- YPP — Young Progressives Party
-UPDATE political_parties SET ballot_code = 'YPP', hq_address = 'Block 10, Flat No. 1 Benue Crescent, Area 1, Garki, Abuja.', phone_number = '+2348100005566, +2347050505010', updated_at = now() WHERE acronym = 'YPP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('YPP', 'YPP', 'Young Progressives Party', true, 'https://inecnigeria.org/_nuxt/young-progressive-party-ypp_logo.Biw28-Pp.jpeg', 'Block 10, Flat No. 1 Benue Crescent, Area 1, Garki, Abuja.', NULL, '+2348100005566, +2347050505010', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('YPP', 'national_chairman', 'Bishop Amakiri', 0, 'inec', 'https://inecnigeria.org/parties/young-progressive-party-ypp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -646,7 +833,19 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
   confidence = 'high', review_status = 'reviewed', last_verified_at = now(), updated_at = now();
 
 -- ZLP — Zenith Labour Party
-UPDATE political_parties SET ballot_code = 'ZLP', hq_address = 'Plot 73, Ladoke Akintola, Suite 206 Dabo Plaza, Garki 2, Abuja.', phone_number = '+2348033155775, +2348023730880', updated_at = now() WHERE acronym = 'ZLP';
+INSERT INTO political_parties (acronym, ballot_code, name, is_active, logo_url, hq_address, email, phone_number, inec_status)
+VALUES ('ZLP', 'ZLP', 'Zenith Labour Party', true, 'https://inecnigeria.org/_nuxt/zenith-labour-party-zlp_logo.B_S46I7c.jpg', 'Plot 73, Ladoke Akintola, Suite 206 Dabo Plaza, Garki 2, Abuja.', NULL, '+2348033155775, +2348023730880', 'Registered')
+ON CONFLICT (acronym) DO UPDATE SET
+  name = EXCLUDED.name,
+  ballot_code = EXCLUDED.ballot_code,
+  is_active = true,
+  -- INEC is authoritative for the secretariat address and phone when it publishes one
+  hq_address = COALESCE(EXCLUDED.hq_address, political_parties.hq_address),
+  phone_number = COALESCE(EXCLUDED.phone_number, political_parties.phone_number),
+  -- fill-only: never clobber enrichment-sourced values
+  email = COALESCE(political_parties.email, EXCLUDED.email),
+  logo_url = COALESCE(political_parties.logo_url, EXCLUDED.logo_url),
+  inec_status = 'Registered', updated_at = now();
 INSERT INTO party_officers (party_acronym, role, name, display_order, source_type, source_url, confidence, review_status, last_verified_at)
 VALUES ('ZLP', 'national_chairman', 'Dan Nwanyanwu', 0, 'inec', 'https://inecnigeria.org/parties/zenith-labour-party-zlp', 'high', 'reviewed', now())
 ON CONFLICT (party_acronym, role) DO UPDATE SET
@@ -676,5 +875,3 @@ ON CONFLICT (party_acronym, role) DO UPDATE SET
 -- Normalize legacy party_leader rows to their conventional slot (they defaulted to 0).
 UPDATE party_officers SET display_order = 2, updated_at = now()
 WHERE role = 'party_leader' AND display_order <> 2;
-
-COMMIT;

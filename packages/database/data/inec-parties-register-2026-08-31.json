@@ -3,7 +3,7 @@
     "description": "INEC statutory register of political parties scraped from https://inecnigeria.org/parties (22 recognized parties). Leadership (5 national roles), secretariat address, phone(s), email, website, per-party logo asset (hashed _nuxt URL — rots on INEC redeploys, re-host before relying on it; Accord publishes none). leadership.*.clean strips honorifics; .raw keeps the INEC string. db_acronym maps to our political_parties PK (INEC \"A\" = our \"Accord\").",
     "scrapedAt": "2026-08-31",
     "source": "https://inecnigeria.org/parties",
-    "applySql": "packages/database/data/inec-parties-update-2026-08-31.sql"
+    "applySql": "packages/database/prisma/migrations/20260915170000_inec_party_register_data/migration.sql (auto-applied by prisma migrate deploy on boot — no manual step)"
   },
   "A": {
     "name": "Accord",
