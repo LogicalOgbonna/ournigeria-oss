@@ -110,11 +110,26 @@ type ProfileLgaKpi = {
   delta: string;
 };
 
+/** Stable identifier for the seat a row fills, independent of the printed
+ *  office line — `role` carries the state/LGA in it now ("Executive Governor
+ *  Abia State"), so it can no longer be matched against a literal. */
+type ProfileSeat = "governor" | "chairman";
+
 type ProfileOfficialRow =
-  | { isMissing: true; role: string; constituencyCode?: string; constituencyName?: string }
+  | {
+      isMissing: true;
+      role: string;
+      shortRole?: string;
+      seat?: ProfileSeat;
+      constituencyCode?: string;
+      constituencyName?: string;
+    }
   | {
       isMissing?: false;
       role: string;
+      /** Unscoped seat name for the "Unknown …" line. */
+      shortRole?: string;
+      seat?: ProfileSeat;
       id?: string;
       slug?: string | null;
       name?: string;
@@ -145,7 +160,7 @@ type LocationSelection = {
  * take. Missing seats keep their link into the "help us identify them"
  * contribution flow, pre-filled with the viewer's location.
  */
-function toLocalOfficial(
+export function toLocalOfficial(
   row: ProfileOfficialRow | undefined,
   where: LocationSelection,
   partyLogos: Record<string, string> = {},
@@ -157,6 +172,7 @@ function toLocalOfficial(
       id: `missing-${row.role}`,
       name: "",
       role: row.role,
+      shortRole: row.shortRole,
       missing: true,
       // `missingSeatHref` (from main) carries the constituency already resolved
       // for this ward, so a vacant constituency seat opens the identify form
@@ -169,6 +185,7 @@ function toLocalOfficial(
     id: row.id ?? row.role,
     name: row.name ?? "",
     role: row.role,
+    shortRole: row.shortRole,
     term: row.term,
     party: row.party,
     partyLogoUrl: row.party ? (partyLogos[row.party.toUpperCase()] ?? null) : null,
@@ -227,12 +244,19 @@ function igrKpiLabel(stats: GeoStats | null | undefined): string {
 // An unmapped label yields no role at all, which drops the citizen on the
 // manual seat picker — never silently mis-file against a different seat.
 const ROLE_TO_IDENTIFY_VALUE: Record<string, string> = {
-  Governor: "governor",
   Senator: "senator",
   "House of Reps": "representative",
   "State House": "mha",
-  "LGA Chairman": "lga_chairman",
   "Ward Councillor": "councilor",
+};
+
+// The two chief-executive seats print a PLACE-SCOPED office line ("Executive
+// Governor, Abia State", "Chairman Ikwuano LGA", "FCT Minister"), so their
+// role text is not a stable key. They carry a `seat` discriminator instead,
+// and it takes precedence over the role-text map above.
+const SEAT_TO_IDENTIFY_VALUE: Record<ProfileSeat, string> = {
+  governor: "governor",
+  chairman: "lga_chairman",
 };
 
 /** Builds the "Help us identify them" deep link, carrying whatever seat context
@@ -243,7 +267,9 @@ function missingSeatHref(
   ctx: { stateCode: string; stateName: string; lgaCode: string; lgaName: string; wardCode: string; wardName: string },
 ): string {
   return identifyHref({
-    role: ROLE_TO_IDENTIFY_VALUE[official.role],
+    role: official.seat
+      ? SEAT_TO_IDENTIFY_VALUE[official.seat]
+      : ROLE_TO_IDENTIFY_VALUE[official.role],
     stateCode: ctx.stateCode, stateName: ctx.stateName,
     lgaCode: ctx.lgaCode, lgaName: ctx.lgaName,
     wardCode: ctx.wardCode, wardName: ctx.wardName,
@@ -274,6 +300,57 @@ function sectorsToBars(
   }));
 }
 
+/** The FCT is not a state: it has a Minister, not a Governor, and its six
+ *  second-tier units are Area Councils, not LGAs. The API still files Nyesom
+ *  Wike under `stateDetails.governor`, so without this guard the card would
+ *  print "Executive Governor FCT State" over the FCT Minister. */
+function isFct(stateName: string): boolean {
+  return /^fct$/i.test(stateName.trim()) || /federal capital/i.test(stateName);
+}
+
+/** Where the "Your Local Context" section is in the permission handshake.
+ *  `idle` is the only state that has not resolved a place yet. */
+export type LocationState = "idle" | "loading" | "success" | "denied" | "outside_nigeria";
+
+/** Copy under "See where the money dey move in your area".
+ *
+ *  The section opens by asking for a permission, so the subtitle has to stop
+ *  asking the moment it has an answer: once a place is resolved its job is to
+ *  name that place and point at the data, not repeat the pitch. `denied` and
+ *  `outside_nigeria` land on the same explore copy because real data for a
+ *  real place IS on screen (the Lagos default) — the amber notice right below
+ *  carries the caveat, so saying it twice only buries the invitation. */
+export function localContextSubtitle(
+  state: LocationState,
+  where: { readonly state: string; readonly lga: string },
+): string {
+  if (state === "idle") {
+    return "Grant location access to instantly see budgets, projects, and FAAC allocations for your specific State, Local Government, and Ward.";
+  }
+  if (state === "loading") {
+    return "Pulling the latest budgets, projects and FAAC allocations for your area.";
+  }
+  return `You're seeing ${where.lga}, ${where.state}. Dig into the budgets, projects and FAAC allocations your leaders control, and switch the location or month any time to compare.`;
+}
+
+/** Office line for the state's chief executive, scoped to the state so the card
+ *  reads "Executive Governor Abia State" rather than a bare "Governor".
+ *  `shortRole` is the unscoped seat name, used for the "Unknown …" line when
+ *  we hold no holder — "Unknown Governor" beats "Unknown Executive Governor
+ *  Abia State". */
+function governorRole(stateName: string): { role: string; shortRole: string } {
+  if (isFct(stateName)) return { role: "FCT Minister", shortRole: "FCT Minister" };
+  return { role: `Executive Governor, ${stateName} State`, shortRole: "Governor" };
+}
+
+/** Office line for the LGA's chief executive — "Chairman Ikwuano LGA". */
+function chairmanRole(stateName: string, lgaName: string): { role: string; shortRole: string } {
+  return {
+    role: `Chairman ${lgaName} ${isFct(stateName) ? "Area Council" : "LGA"}`,
+    shortRole: "Chairman",
+  };
+}
+
 export function transformProfileData(
   stateCode: string, stateName: string, lgaCode: string, lgaName: string, wardCode: string, wardName: string,
   stateDetails: StateDetails | null | undefined,
@@ -286,11 +363,14 @@ export function transformProfileData(
     ? `${monthNamesShort[month - 1]} '${year.toString().slice(-2)}` 
     : (lgaDetails?.stats?.faacDate || stateDetails?.stats?.faacDate || "YTD");
 
+  const govRole = governorRole(stateName);
+  const chairRole = chairmanRole(stateName, lgaName);
+
   const officials: ProfileOfficialRow[] = [];
   if (stateDetails?.governor) {
-    officials.push({ ...stateDetails.governor, role: "Governor", contactType: "email", contact: stateDetails.governor.email || null });
+    officials.push({ ...stateDetails.governor, ...govRole, seat: "governor", contactType: "email", contact: stateDetails.governor.email || null });
   } else {
-    officials.push({ isMissing: true, role: "Governor" });
+    officials.push({ isMissing: true, ...govRole, seat: "governor" });
   }
   
   if (lgaDetails?.senator) {
@@ -327,9 +407,9 @@ export function transformProfileData(
   }
   
   if (lgaDetails?.chairman) {
-    officials.push({ ...lgaDetails.chairman, role: "LGA Chairman", contactType: "email", contact: lgaDetails.chairman.email || null });
+    officials.push({ ...lgaDetails.chairman, ...chairRole, seat: "chairman", contactType: "email", contact: lgaDetails.chairman.email || null });
   } else {
-    officials.push({ isMissing: true, role: "LGA Chairman" });
+    officials.push({ isMissing: true, ...chairRole, seat: "chairman" });
   }
   
   if (wardDetails?.councilor) {
@@ -448,7 +528,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
   const { setLocation: setPersistedLocation } = usePersistedLocation();
   // The hero's slot for the viewing-status row (see HeroLocationSlot).
   const heroSlot = useHeroLocationSlot();
-  const [locationState, setLocationState] = useState<"idle" | "loading" | "success" | "denied" | "outside_nigeria">("success");
+  const [locationState, setLocationState] = useState<LocationState>("success");
   const [data, setData] = useState<ProfileViewData>(transformProfileData(initialSelection.stateCode, initialSelection.stateName, initialSelection.lgaCode, initialSelection.lgaName, initialSelection.wardCode, initialSelection.wardName, initialStateDetails, initialLgaDetails, initialWardDetails, initialYear, initialMonth));
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
@@ -697,7 +777,11 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
   // it was under the candidates, but rendered at the top of the homepage hero
   // through a portal (HeroLocationSlot). Its state and fetches stay here.
   const locationRow = (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+    // `relative` so that on a phone both pickers anchor to the WHOLE row (see
+    // the `static sm:relative` wrappers below): anchored to their own pill they
+    // hang off the left edge as soon as the row wraps, because the pills then sit
+    // at the far left and the panels are wider than the space beside them.
+    <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <div className="flex items-center gap-3">
                 {/* Label and status dot are desktop-only. On a phone the row has to
                     hold the location, the location picker and the month picker, and
@@ -722,7 +806,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
           
               <div className="flex items-center gap-3">
                 {/* Location Selector */}
-                <div className="relative">
+                <div className="static sm:relative">
                   <button 
                     onClick={() => {
                       setDropdownOpen(!dropdownOpen);
@@ -737,7 +821,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
                   </button>
               
                   <Show when={dropdownOpen}>
-                    <div className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 top-full mt-2 w-[300px] sm:w-80 rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/10 z-50 overflow-hidden flex flex-col">
+                    <div className="absolute left-0 right-0 w-auto sm:left-auto sm:right-0 sm:w-80 top-full mt-2 rounded-2xl border border-border/60 bg-card shadow-xl shadow-black/10 z-50 overflow-hidden flex flex-col">
                       {/* Header */}
                       <div className="p-3 border-b border-border/50 flex items-center gap-2 bg-muted/30">
                         <Show when={selectorStep !== "state"}>
@@ -794,7 +878,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
                 </div>
 
                 {/* Date Selector */}
-                <div className="relative">
+                <div className="static sm:relative">
                   <button 
                     onClick={() => {
                       setDateDropdownOpen(!dateDropdownOpen);
@@ -814,7 +898,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
                   </button>
               
                   <Show when={dateDropdownOpen}>
-                    <div className="absolute right-0 top-full mt-2 w-[280px] sm:w-72 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
+                    <div className="absolute left-0 right-0 w-auto sm:left-auto sm:right-0 sm:w-72 top-full mt-2 rounded-2xl border border-border/60 bg-card p-2 shadow-xl shadow-black/10 z-50 flex gap-2">
                       <div className="flex-1 max-h-60 overflow-y-auto pr-1 scrollbar-theme">
                         <div className="font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2 px-2 pt-1">Month</div>
                         {selectedYear && faacPeriods.monthsByYear[selectedYear]?.map((m) => (
@@ -883,6 +967,25 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
             </div>
   );
 
+  // Mobile reads the section as a story: person, then that person's money.
+  // Governor -> state snapshot -> LGA chairman -> LGA snapshot -> everyone else.
+  // The chairman therefore needs a featured card of its own on mobile, and its
+  // entry in the peer strip has to disappear at the same breakpoint so it is
+  // never shown twice. Desktop is untouched, so both live in one DOM behind
+  // `lg:` classes rather than two rendered trees.
+  // Both featured cards resolve through `seat`, never through array position —
+  // the office lines are place-scoped and the push order in
+  // `transformProfileData` is not a contract.
+  const governorRow = data.officials.find((o) => o.seat === "governor");
+  const governor = toLocalOfficial(governorRow, currentSelection, partyLogos);
+  const chairmanRow = data.officials.find((o) => o.seat === "chairman");
+  const chairman = chairmanRow
+    ? toLocalOfficial(chairmanRow, currentSelection, partyLogos)
+    : null;
+  const peers = data.officials
+    .filter((o) => o !== governorRow)
+    .map((o) => toLocalOfficial(o, currentSelection, partyLogos));
+
   return (
     <>
     {/* Personalization Top Bar */}
@@ -910,7 +1013,7 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
           <KitSectionTitle
             kicker="Your Local Context"
             title="See where the money dey move in your area"
-            subtitle="Grant location access to instantly see budgets, projects, and FAAC allocations for your specific State, Local Government, and Ward."
+            subtitle={localContextSubtitle(locationState, data)}
           />
           
           <Show when={locationState === "idle"}>
@@ -976,10 +1079,17 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
             <SkeletonLoader />
           </Show>
           <Show when={locationState !== "loading"}>
-          <div className="grid items-start gap-10 lg:grid-cols-12">
-            <div className="lg:col-span-5 flex flex-col gap-6">
-              {/* LGA Financials — after the officials card on mobile, before it on desktop */}
-              <div className="order-2 lg:order-1 rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
+          {/* One DOM, two orders. Below `lg` the two column wrappers are
+              `display: contents`, so their children collapse into this single
+              grid and the mobile story order is just `order-1..5` across both.
+              At `lg` the wrappers become flex columns again and `lg:order-*`
+              restores the original two-column layout. */}
+          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
+            <div className="contents lg:col-span-5 lg:flex lg:flex-col lg:gap-6">
+              {/* LGA Financials — mobile slot 4, right after the LGA chairman,
+                  mirroring governor -> state snapshot. Desktop keeps it at the
+                  top of the left column. */}
+              <div className="order-4 lg:order-1 rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-xl shadow-black/5 backdrop-blur-md">
                 <div className="flex items-center gap-4 mb-6 border-b border-border/50 pb-5">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                     <MapPin className="h-6 w-6" />
@@ -1018,26 +1128,44 @@ export function PersonalizedDataClient({ heroWillMount = false, initialFaacPerio
                 </div>
               </div>
 
-              {/* Featured official — the headline holder for this area.
-                  Comes first on mobile, sits under the LGA card on desktop. */}
+              {/* Governor — opens the section on mobile, sits under the LGA
+                  card on desktop. The card is a fixed 222px inside a column
+                  that the LGA card stretches to ~403px, so `self-center`
+                  shrinks the flex item to its content and centres it under
+                  that card at BOTH breakpoints rather than leaving 180px of
+                  dead space to its right on desktop. */}
               <FeaturedOfficialCard
-                className="order-1 lg:order-2"
-                official={toLocalOfficial(data.officials[0], currentSelection, partyLogos)}
+                className="order-1 lg:order-2 self-center"
+                official={governor}
               />
             </div>
-            <div className="lg:col-span-7 flex flex-col gap-8">
+            <div className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-8">
               <KitDashboardMock
-                title={`${data.state} snapshot`}
+                className="order-2 lg:order-1"
+                // "FCT State" is not a place — same guard as the governor's
+                // office line, so the 36 states keep the suffix and the
+                // territory does not get one.
+                title={isFct(data.state) ? data.state : `${data.state} State`}
                 region={`${data.lga} · ${data.ward}`}
                 kpis={data.kpis}
                 bars={data.bars}
                 hideBadge
               />
+              {/* LGA chairman, mobile only — the local half of the story, and
+                  the lead-in to the LGA card below it. On desktop the chairman
+                  stays where it has always been, inside the peer strip. */}
+              {chairman && (
+                <FeaturedOfficialCard
+                  className="order-3 self-center lg:hidden"
+                  official={chairman}
+                />
+              )}
               {/* The viewer's other representatives, three across. */}
               <PeerOfficialsStrip
-                officials={data.officials
-                  .slice(1)
-                  .map((o) => toLocalOfficial(o, currentSelection, partyLogos))}
+                className="order-5 lg:order-2"
+                title="Other Leaders"
+                officials={peers}
+                hiddenOnMobileIds={chairman ? [chairman.id] : undefined}
                 moreHref={`/states/${currentSelection.stateName.toLowerCase().replace(/\s+/g, "-")}`}
                 moreLabel={`Learn more about ${data.state}`}
               />

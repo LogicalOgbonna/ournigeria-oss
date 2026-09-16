@@ -25,7 +25,7 @@ export function AskHero({
   return (
     <div className="relative">
       <HeroBackdrop />
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-40">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-28">
         {withLocationSlot && <HeroLocationSlot />}
         <section className="grid items-center gap-12 pb-16 pt-6 lg:grid-cols-2 lg:gap-16 lg:pb-24">
           <AskPitch title="Follow Your LGA Money," accent="No Gree." />

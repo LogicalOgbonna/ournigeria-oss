@@ -7,6 +7,7 @@
     "build": "pnpm --filter @ournigeria/official-records run build && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "lighthouse": "lhci autorun",
     "gen:og-map": "node scripts/gen-og-map.mjs"
   },

@@ -54,6 +54,12 @@
       "options": {
         "cwd": "apps/awanaija"
       }
+    },
+    "test": {
+      "command": "tsx --test \"src/**/*.test.ts\"",
+      "options": {
+        "cwd": "apps/awanaija"
+      }
     }
   }
 }

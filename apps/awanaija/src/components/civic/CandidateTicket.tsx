@@ -81,7 +81,9 @@ const SIZE_CLASS: Record<TicketSize, string> = {
   sm: "[--ticket-scale:0.26]", //     105px — mobile rail,     Figma 132:8124
   md: "[--ticket-scale:0.3535]", //   143px — mobile featured, Figma 132:9672
   lg: "[--ticket-scale:1]", //        404px — desktop,         Figma 132:2097
-  rail: "[--ticket-scale:0.26] lg:[--ticket-scale:1]",
+  // Desktop rail runs 30% under the Figma size (283px): full-size posters read
+  // as too big in the hero. Tune here (and the rail's lg gap) together.
+  rail: "[--ticket-scale:0.26] lg:[--ticket-scale:0.7]",
   hero: "[--ticket-scale:0.3535] lg:[--ticket-scale:1]",
 };
 
@@ -90,7 +92,7 @@ const SIZE_PX: Record<TicketSize, number> = {
   sm: 105,
   md: 143,
   lg: 404,
-  rail: 404,
+  rail: 283,
   hero: 404,
 };
 

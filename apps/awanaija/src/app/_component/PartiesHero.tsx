@@ -2,7 +2,7 @@
 
 import { CandidateTicket, type TicketParty, type TicketPerson } from "@/components/civic/CandidateTicket";
 import type { HomePartySlate } from "@/lib/home-ballot";
-import { HeroHeading } from "./HeroHeading";
+import { VoteHeading } from "./VoteHeading";
 import { HeroLocationSlot } from "./HeroLocationSlot";
 import { OfficeSelect } from "./OfficeSelect";
 import { PartyPill } from "./PartyPill";
@@ -32,13 +32,8 @@ export function PartiesHero({
   const { candidate, mate, party } = slate.featured;
 
   return (
-    <section className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-40">
-      <HeroHeading
-        className="text-center lg:text-left"
-        kicker="know the running candidates"
-        kickerAccent="the"
-        title="Who is running?"
-      />
+    <section className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-28">
+      <VoteHeading className="text-center lg:text-left" />
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 lg:mt-10">
         <PartyPill party={slate.party} options={parties} onChange={onPartyChange} />

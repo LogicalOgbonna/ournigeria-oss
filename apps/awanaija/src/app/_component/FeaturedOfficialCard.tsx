@@ -9,7 +9,12 @@ import { cn } from "@/lib/utils";
 export interface LocalOfficial {
   readonly id: string;
   readonly name: string;
+  /** Printed office line, scoped to the place — "Executive Governor Abia State". */
   readonly role: string;
+  /** Unscoped seat name for the vacant-seat line, so a missing holder reads
+   *  "Unknown Governor" rather than "Unknown Executive Governor Abia State".
+   *  Falls back to `role`. */
+  readonly shortRole?: string | null;
   readonly term?: string | null;
   readonly party?: string | null;
   readonly partyLogoUrl?: string | null;
@@ -212,7 +217,7 @@ export function FeaturedOfficialCard({
 
       <div className="mt-2 w-[222px] max-w-full">
         <p className="font-sans text-[14px] font-semibold leading-[20px] text-foreground">
-          {official.missing ? `Unknown ${official.role}` : official.name}
+          {official.missing ? `Unknown ${official.shortRole ?? official.role}` : official.name}
         </p>
         <p className="font-sans text-[12px] font-medium leading-[16px] text-emerald-600 dark:text-emerald-400">
           {official.role}

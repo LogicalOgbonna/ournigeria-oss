@@ -18,14 +18,23 @@ import {
  */
 export function PeerOfficialsStrip({
   officials,
+  title,
   moreHref,
   moreLabel,
   className,
+  hiddenOnMobileIds,
 }: {
   readonly officials: readonly LocalOfficial[];
+  /** Overline in the card's top-right corner — labels the strip against the
+   *  featured cards above it. DESIGN.md "Overline": mono, uppercase, muted. */
+  readonly title?: string;
   readonly moreHref?: string;
   readonly moreLabel?: string;
   readonly className?: string;
+  /** Ids promoted out of the strip on mobile — they get their own featured card
+   *  higher up the page, so the peer entry is `hidden lg:flex` rather than a
+   *  second list. CSS-only keeps one DOM for both breakpoints. */
+  readonly hiddenOnMobileIds?: readonly string[];
 }) {
   if (officials.length === 0) return null;
 
@@ -36,13 +45,23 @@ export function PeerOfficialsStrip({
         className,
       )}
     >
+      <Show when={Boolean(title)}>
+        <p className="mb-5 text-right font-[family-name:var(--font-mono)] text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          {title}
+        </p>
+      </Show>
+
       {/* Column count follows the card's own width, not the viewport: this strip
           lives in a 7/12 slot of a max-w-5xl grid, so a viewport-keyed
           `xl:grid-cols-3` produced ~180px columns that broke every name onto one
           word per line. auto-fit only adds a column when 200px still fits. */}
       <div className="grid gap-5 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
         {officials.map((official) => (
-          <PeerCard key={official.id} official={official} />
+          <PeerCard
+            key={official.id}
+            official={official}
+            hiddenOnMobile={hiddenOnMobileIds?.includes(official.id)}
+          />
         ))}
       </div>
 
@@ -59,7 +78,13 @@ export function PeerOfficialsStrip({
   );
 }
 
-function PeerCard({ official }: { readonly official: LocalOfficial }) {
+function PeerCard({
+  official,
+  hiddenOnMobile,
+}: {
+  readonly official: LocalOfficial;
+  readonly hiddenOnMobile?: boolean;
+}) {
   const href = official.missing
     ? official.missingHref
     : `/officials/${official.slug ?? official.id}`;
@@ -104,7 +129,7 @@ function PeerCard({ official }: { readonly official: LocalOfficial }) {
           title={official.missing ? undefined : official.name}
           className="line-clamp-2 break-words font-sans text-[14px] font-semibold leading-[18px] text-foreground"
         >
-          {official.missing ? `Unknown ${official.role}` : official.name}
+          {official.missing ? `Unknown ${official.shortRole ?? official.role}` : official.name}
         </p>
         <p
           title={official.role}
@@ -132,12 +157,19 @@ function PeerCard({ official }: { readonly official: LocalOfficial }) {
     </>
   );
 
-  if (!href) return <div className="flex items-start gap-[10px]">{body}</div>;
+  const shell = hiddenOnMobile ? "hidden lg:flex" : "flex";
+
+  if (!href) return <div className={cn(shell, "items-start gap-[10px]")}>{body}</div>;
 
   // Stretched link rather than a wrapper — ContactRow renders real <a> elements,
   // and an anchor may not nest inside an anchor.
   return (
-    <div className="relative flex items-start gap-[10px] transition-opacity hover:opacity-80">
+    <div
+      className={cn(
+        shell,
+        "relative items-start gap-[10px] transition-opacity hover:opacity-80",
+      )}
+    >
       {body}
       <Link
         href={href}

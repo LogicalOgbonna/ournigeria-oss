@@ -6,6 +6,7 @@ export { ChatDemo } from "./ChatDemo";
 export { DropdownMenu, type DropdownOption } from "./DropdownMenu";
 export { HeroBackdrop } from "./HeroBackdrop";
 export { HeroHeading } from "./HeroHeading";
+export { VoteHeading, VOTE_PHRASES } from "./VoteHeading";
 export { HomeHero } from "./HomeHero";
 export { LocationChip } from "./LocationChip";
 export { OfficeSelect } from "./OfficeSelect";

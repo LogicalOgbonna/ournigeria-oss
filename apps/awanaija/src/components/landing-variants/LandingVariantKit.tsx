@@ -149,15 +149,22 @@ export function KitDashboardMock({
   kpis,
   bars,
   hideBadge,
+  className,
 }: {
   title: string;
   region: string;
   kpis: DashboardKpi[];
   bars: BarDatum[];
   hideBadge?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-2xl shadow-black/10 backdrop-blur-md">
+    <div
+      className={cn(
+        "rounded-[1.75rem] border border-border/60 bg-gradient-to-b from-card to-card/40 p-6 shadow-2xl shadow-black/10 backdrop-blur-md",
+        className,
+      )}
+    >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border/50 pb-5">
         <div>
           <p className="font-[family-name:var(--font-heading)] text-xl font-semibold">

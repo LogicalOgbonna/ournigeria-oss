@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Horizontally scrolling rail of candidate posters — Figma 132:2096 (desktop,
- * 404px cards / 25px gap) and 132:8123 (mobile, 105px cards / 6px gap). One
+ * 404px cards / 25px gap, rendered at 70%: 283px / 18px) and 132:8123 (mobile, 105px cards / 6px gap). One
  * tree serves both; the card size is a CSS breakpoint, not a second render.
  *
  * A plain native scroll container: momentum, scroll-snap, shift-wheel and
@@ -148,7 +148,14 @@ export function CandidateRail({
         ref={scroller}
         data-testid="candidate-rail"
         onScroll={onScroll}
-        className="flex snap-x snap-mandatory gap-[6px] overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:gap-[25px] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "flex snap-x snap-mandatory gap-[6px] overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] lg:gap-[18px] [&::-webkit-scrollbar]:hidden",
+          // A short contest (one governorship ticket) sits centred on a phone
+          // instead of hugging the left edge. `safe` keeps it start-aligned the
+          // moment the posters overflow, so a full rail still scrolls from the
+          // first card; browsers without `safe` ignore the rule and stay left.
+          "[justify-content:safe_center] lg:justify-start",
+        )}
       >
         {items.map((item, i) => (
           <li key={item.id} className="snap-start">

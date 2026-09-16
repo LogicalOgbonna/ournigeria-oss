@@ -39,5 +39,5 @@ export function useHeroLocationSlot(): HTMLElement | null {
 
 export function HeroLocationSlot({ className }: { readonly className?: string }) {
   // Reserve the row's height so the heading does not jump when the portal fills it.
-  return <div ref={register} className={className ?? "min-h-[50px]"} />;
+  return <div ref={register} className={className ?? "min-h-[50px] lg:min-h-[34px]"} />;
 }

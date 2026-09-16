@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Show } from "@/components/ui/Show";
 import type { HomeRace } from "@/lib/home-ballot";
 import { CandidateRail } from "./CandidateRail";
-import { HeroHeading } from "./HeroHeading";
+import { VoteHeading } from "./VoteHeading";
 import { HeroLocationSlot } from "./HeroLocationSlot";
 import { OfficeSelect } from "./OfficeSelect";
 import { RailDots } from "./RailDots";
@@ -61,18 +61,13 @@ export function CandidatesHero({
   return (
     <section
       {...autoplay.handlers}
-      className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-40"
+      className="relative mx-auto w-full max-w-7xl px-6 pt-28 lg:px-8 lg:pt-28"
     >
       {/* "You are viewing … [Change] [Month]" — the real row, portalled here
           from PersonalizedDataClient (see HeroLocationSlot). */}
       <HeroLocationSlot />
 
-      <HeroHeading
-        className="mt-6 lg:mt-8"
-        kicker="know the running candidates"
-        kickerAccent="the"
-        title="Who is running?"
-      />
+      <VoteHeading className="mt-6 lg:mt-4" />
 
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 lg:mt-10">
         <div className="flex items-center gap-2">
