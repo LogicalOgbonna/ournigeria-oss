@@ -13,7 +13,7 @@ on:
         type: boolean
         default: true
       build_enrichment:
-        description: "Force-build the enrichment agent image (any branch → homeland arm64 → GHCR)"
+        description: "Force-build the enrichment agent image (any branch → hosted arm64 → GHCR)"
         type: boolean
         default: false
 
@@ -142,10 +142,10 @@ jobs:
   build:
     needs: [validate, detect-changes]
     if: needs.detect-changes.outputs.any_changed == 'true'
-    # prod push → arm64 built NATIVELY on the self-hosted homeland runner (no QEMU);
+    # prod push → arm64 built NATIVELY on GitHub's hosted arm64 runner (no QEMU);
     # dev/staging + all PRs → amd64 on GitHub's cloud runners. Each env builds only
-    # the single arch its deploy target runs (legacy box amd64, OCI prod box arm64).
-    runs-on: ${{ (github.event_name == 'push' && github.ref_name == 'prod') && fromJSON('["self-hosted","ARM64","Linux"]') || 'ubuntu-latest' }}
+    # the single arch its deploy target runs.
+    runs-on: ${{ (github.event_name == 'push' && github.ref_name == 'prod') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       # Don't let one app's build failure cancel the healthy legs and skip the
       # deploy. Each app builds/deploys independently.
@@ -155,12 +155,10 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v5
 
-      # Reclaim ~25GB of preinstalled toolchains on GitHub's cloud runner so the
-      # amd64 build doesn't hit "No space left on device". SKIPPED on the
-      # self-hosted homeland runner: it has none of these dirs, and the
-      # `docker image prune --all` below would wipe images other projects use.
+      # Reclaim ~25GB of preinstalled toolchains so the build doesn't hit
+      # "No space left on device". Runs on every runner now that both the amd64
+      # and arm64 legs are GitHub-hosted and ephemeral.
       - name: Free up runner disk space
-        if: ${{ !(github.event_name == 'push' && github.ref_name == 'prod') }}
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
             /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
@@ -169,7 +167,7 @@ jobs:
           df -h /
 
       # No setup-qemu-action: each runner builds its native arch (amd64 on GitHub,
-      # arm64 on homeland), so cross-arch emulation is never needed.
+      # arm64 on the hosted arm64 runner), so cross-arch emulation is never needed.
       - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd  # v4
 
       - uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  # v4
@@ -199,7 +197,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # single native arch per environment (see runs-on above): arm64 on the
-          # prod push (homeland), amd64 everywhere else (GitHub cloud). No QEMU.
+          # prod push, amd64 everywhere else. No QEMU.
           platforms: ${{ (github.event_name == 'push' && github.ref_name == 'prod') && 'linux/arm64' || 'linux/amd64' }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
@@ -214,12 +212,12 @@ jobs:
   # ─── Enrichment agent image (sibling stack, prod arm64 only) ──────────────────
   # Isolated from the app `build` matrix on purpose: different Dockerfile/context/image,
   # a pre-build step (regenerate the bundled .cjs CLIs fresh from apps/api source), and
-  # a prod-only lifecycle. Runs natively on the homeland arm64 runner — same as prod app
-  # builds — so no QEMU. camofox is NOT built here (build-once, pinned in GHCR).
+  # a prod-only lifecycle. Runs natively on a GitHub-hosted arm64 runner — same as prod
+  # app builds — so no QEMU. camofox is NOT built here (build-once, pinned in GHCR).
   build-enrichment:
     needs: [validate, detect-changes]
     if: needs.detect-changes.outputs.enrichment == 'true'
-    runs-on: ["self-hosted", "ARM64", "Linux"]
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v5
 

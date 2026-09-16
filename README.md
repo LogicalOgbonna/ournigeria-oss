@@ -369,5 +369,11 @@ apps/socials/src/
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+OurNigeria is free software, licensed under the **GNU Affero General Public License v3.0** —
+see [LICENSE](LICENSE).
+
+AGPL-3.0 is a copyleft licence with a network clause: if you run a modified version of this
+software as a service over a network, you must offer its users the corresponding source of your
+modified version. That is deliberate — a public-accountability platform should not be forkable
+into a closed service.
 
